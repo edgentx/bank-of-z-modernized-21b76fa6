@@ -1,36 +1,47 @@
 package com.example.domain.vforce360.service;
 
-import com.example.domain.shared.Command;
-import com.example.domain.vforce360.model.ReportDefectCmd;
-import com.example.domain.vforce360.model.VForce360Aggregate;
-import com.example.domain.vforce360.repository.VForce360Repository;
+import com.example.domain.vforce360.model.ReportDefectCommand;
+import com.example.domain.vforce.ports.GitHubIssuePort;
+import com.example.domain.vforce.ports.SlackNotificationPort;
+import io.temporal.spring.boot.WorkflowInterface;
 import io.temporal.spring.boot.WorkflowImpl;
-import io.temporal.workflow.WorkflowInterface;
-import io.temporal.workflow.WorkflowMethod;
+import io.temporal.workflow.Workflow;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @WorkflowInterface
-public interface VForce360Workflow {
-    @WorkflowMethod
-    String reportDefect(String defectId, String githubUrl, String slackBody);
+public interface VForce360WorkflowDef {
+    String reportDefect(ReportDefectCommand cmd);
 }
 
 @Component
-@WorkflowImpl(taskQueues = "VForce360TaskQueue")
-public class VForce360WorkflowImpl implements VForce360Workflow {
+@WorkflowImpl(taskQueue = "VForce360TaskQueue")
+public class VForce360Workflow implements VForce360WorkflowDef {
+
+    private final GitHubIssuePort githubIssuePort;
+    private final SlackNotificationPort slackNotificationPort;
 
     @Autowired
-    private VForce360Repository repository;
+    public VForce360Workflow(GitHubIssuePort githubIssuePort, SlackNotificationPort slackNotificationPort) {
+        this.githubIssuePort = githubIssuePort;
+        this.slackNotificationPort = slackNotificationPort;
+    }
 
     @Override
-    public String reportDefect(String defectId, String githubUrl, String slackBody) {
-        VForce360Aggregate aggregate = repository.load(defectId);
-        Command cmd = new ReportDefectCmd(defectId, githubUrl, slackBody);
-        
-        aggregate.execute(cmd);
-        
-        repository.save(aggregate);
-        return aggregate.getGithubUrl();
+    public String reportDefect(ReportDefectCommand cmd) {
+        // 1. Create GitHub Issue
+        String issueUrl = githubIssuePort.createIssue(
+            "Defect: " + cmd.description(),
+            "Severity: " + cmd.severity() + "\nID: " + cmd.defectId()
+        );
+
+        // 2. Compose Slack Message (Validating VW-454)
+        String slackMessage = "New defect reported: " + cmd.description() + "\n" +
+                             "GitHub Issue: " + issueUrl;
+
+        // 3. Send Notification
+        slackNotificationPort.postMessage("#vforce360-issues", slackMessage);
+
+        return issueUrl;
     }
 }

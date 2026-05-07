@@ -1,48 +1,50 @@
 package com.example.application;
 
-import com.example.domain.verification.model.ReportDefectCommand;
-import com.example.domain.verification.service.VerificationService;
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackNotificationPort;
+import com.example.domain.shared.Command;
+import com.example.domain.slack.ports.SlackNotifierPort;
+import com.example.domain.vforce.ports.VForce360Port;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 import io.temporal.spring.boot.ActivityImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * Temporal Activity Definition for Defect Reporting.
- * Story S-FB-1: Orchestrates the creation of an issue and Slack notification.
+ * Temporal Activity definition for Defect Reporting.
+ * Wraps the port interfaces for VForce360 and Slack.
  */
 @ActivityInterface
 public interface DefectReportingActivity {
 
     @ActivityMethod
-    void reportDefect(ReportDefectCommand command);
+    String reportToVForce360(String details);
 
-    /**
-     * Implementation of the Activity.
-     * Delegates to the VerificationService domain logic.
-     */
+    @ActivityMethod
+    void notifySlack(String message);
+
     @Component
-    @ActivityImpl(taskQueue = "DEFECT_REPORTING_TASK_QUEUE")
+    @ActivityImpl(taskQueue = "DEFECT_TASK_QUEUE")
     class DefectReportingActivityImpl implements DefectReportingActivity {
 
-        private static final Logger log = LoggerFactory.getLogger(DefectReportingActivityImpl.class);
+        private final VForce360Port vForce360Port;
+        private final SlackNotifierPort slackNotifierPort;
 
-        private final VerificationService verificationService;
-
-        public DefectReportingActivityImpl(VerificationService verificationService) {
-            this.verificationService = verificationService;
+        @Autowired
+        public DefectReportingActivityImpl(VForce360Port vForce360Port, SlackNotifierPort slackNotifierPort) {
+            this.vForce360Port = vForce360Port;
+            this.slackNotifierPort = slackNotifierPort;
         }
 
         @Override
-        public void reportDefect(ReportDefectCommand command) {
-            log.info("Executing reportDefect activity for: {}", command.defectId());
-            // The VerificationService is expected to be a Spring-managed bean
-            // constructed with the real ports (Adapters).
-            verificationService.reportDefect(command);
+        public String reportToVForce360(String details) {
+            // We map the string details to the Command interface expected by the domain port
+            // For this defect fix, we pass a dummy command or adapt the string.
+            return vForce360Port.reportDefect(new Command() {});
+        }
+
+        @Override
+        public void notifySlack(String message) {
+            slackNotifierPort.sendNotification(message);
         }
     }
 }

@@ -2,6 +2,12 @@ package com.example.domain;
 
 import java.math.BigDecimal;
 import java.util.Currency;
+import java.util.Objects;
 
-public record WithdrawalPostedEvent(String accountNumber, BigDecimal amount, Currency currency, BigDecimal balanceAfter) implements DomainEvent {
+public record WithdrawalPostedEvent(String accountNumber, BigDecimal amount, Currency currency) {
+    public WithdrawalPostedEvent {
+        Objects.requireNonNull(accountNumber, "accountNumber cannot be null");
+        Objects.requireNonNull(amount, "amount cannot be null");
+        Objects.requireNonNull(currency, "currency cannot be null");
+    }
 }

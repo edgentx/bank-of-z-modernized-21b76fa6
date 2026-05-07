@@ -6,7 +6,6 @@ import org.junit.platform.suite.api.Suite;
 
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features")
+@SelectClasspathResource("features/S-20.feature")
 public class S20TestSuite {
-    // This suite runs Cucumber features found in the features/ directory
 }

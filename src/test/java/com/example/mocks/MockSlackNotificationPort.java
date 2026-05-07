@@ -5,43 +5,37 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock adapter for Slack notifications.
- * Captures messages in memory for verification during tests.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Allows inspection of the messages that would have been sent.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class PostedMessage {
+    // Record of invocations
+    public static class Call {
         public final String channelId;
-        public final String body;
+        public final String messageBody;
 
-        public PostedMessage(String channelId, String body) {
+        public Call(String channelId, String messageBody) {
             this.channelId = channelId;
-            this.body = body;
+            this.messageBody = messageBody;
         }
     }
 
-    private final List<PostedMessage> messages = new ArrayList<>();
+    private final List<Call> calls = new ArrayList<>();
 
     @Override
-    public void postMessage(String channelId, String messageBody) {
-        // Store in memory instead of calling real API
-        this.messages.add(new PostedMessage(channelId, messageBody));
+    public boolean sendMessage(String channelId, String messageBody) {
+        // In a real mock, we might allow configuring return values,
+        // but for Slack we usually just want to verify the call happened.
+        this.calls.add(new Call(channelId, messageBody));
+        return true;
     }
 
-    public List<PostedMessage> getMessages() {
-        return messages;
+    public List<Call> getCalls() {
+        return List.copyOf(calls);
     }
 
-    public void clear() {
-        messages.clear();
-    }
-
-    /**
-     * Helper assertion to check if the last message contained the specific GitHub URL.
-     */
-    public boolean lastMessageContainsUrl(String url) {
-        if (messages.isEmpty()) return false;
-        PostedMessage last = messages.get(messages.size() - 1);
-        return last.body.contains(url);
+    public void reset() {
+        calls.clear();
     }
 }

@@ -9,16 +9,17 @@ import java.util.UUID;
  * Domain event emitted when a teller session is successfully started.
  */
 public record SessionStartedEvent(
-    String eventId,
-    String aggregateId,
-    String tellerId,
-    String terminalId,
-    Instant occurredAt,
-    String navigationState
+        String aggregateId,
+        String tellerId,
+        String terminalId,
+        String operationalContext,
+        Instant occurredAt
 ) implements DomainEvent {
-
-    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, String navState, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), aggregateId, tellerId, terminalId, occurredAt, navState);
+    public SessionStartedEvent {
+        // Validate basic invariants for the event structure
+        if (aggregateId == null || aggregateId.isBlank()) {
+            throw new IllegalArgumentException("aggregateId cannot be null");
+        }
     }
 
     @Override

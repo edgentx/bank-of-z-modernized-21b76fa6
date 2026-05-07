@@ -1,0 +1,22 @@
+package com.example.mocks;
+
+import com.example.domain.teller.model.TellerSessionAggregate;
+import com.example.domain.teller.repository.TellerSessionRepository;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class TellerSessionRepositoryMock implements TellerSessionRepository {
+    private final Map<String, TellerSessionAggregate> store = new HashMap<>();
+
+    @Override
+    public TellerSessionAggregate save(TellerSessionAggregate aggregate) {
+        store.put(aggregate.id(), aggregate);
+        return aggregate;
+    }
+
+    @Override
+    public TellerSessionAggregate findById(String id) {
+        return store.get(id);
+    }
+}

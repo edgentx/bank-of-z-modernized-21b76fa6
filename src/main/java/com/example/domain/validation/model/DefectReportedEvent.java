@@ -1,17 +1,16 @@
 package com.example.domain.validation.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
-import java.util.UUID;
 
 /**
- * Event emitted when a defect is successfully reported and linked.
+ * Event emitted when a defect is reported and the notification is sent.
  */
 public record DefectReportedEvent(
-    String aggregateId,
-    String defectId,
-    String githubIssueUrl,
-    Instant occurredAt
+        String defectId,
+        String slackMessageBody,
+        Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
@@ -20,7 +19,7 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return defectId;
     }
 
     @Override

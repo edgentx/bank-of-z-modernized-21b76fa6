@@ -1,54 +1,48 @@
 package com.example.application;
 
-import com.example.ports.GitHubIssuePort;
+import com.example.domain.verification.model.ReportDefectCommand;
+import com.example.domain.verification.service.VerificationService;
+import com.example.ports.GitHubPort;
 import com.example.ports.SlackNotificationPort;
+import io.temporal.activity.ActivityInterface;
+import io.temporal.activity.ActivityMethod;
+import io.temporal.spring.boot.ActivityImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Temporal Activity implementation for reporting defects.
- * This logic fixes VW-454 by ensuring the generated GitHub URL is
- * explicitly included in the Slack notification body.
+ * Temporal Activity Definition for Defect Reporting.
+ * Story S-FB-1: Orchestrates the creation of an issue and Slack notification.
  */
-@Component
-public class DefectReportingActivity {
+@ActivityInterface
+public interface DefectReportingActivity {
 
-    private static final Logger log = LoggerFactory.getLogger(DefectReportingActivity.class);
-
-    private final GitHubIssuePort gitHubIssuePort;
-    private final SlackNotificationPort slackNotificationPort;
-
-    public DefectReportingActivity(GitHubIssuePort gitHubIssuePort,
-                                   SlackNotificationPort slackNotificationPort) {
-        this.gitHubIssuePort = gitHubIssuePort;
-        this.slackNotificationPort = slackNotificationPort;
-    }
+    @ActivityMethod
+    void reportDefect(ReportDefectCommand command);
 
     /**
-     * Reports a defect by creating a GitHub issue and notifying Slack.
-     * VW-454 Fix: Ensure the URL returned from GitHub is injected into the Slack payload.
-     *
-     * @param title The defect title.
-     * @param description The defect description.
+     * Implementation of the Activity.
+     * Delegates to the VerificationService domain logic.
      */
-    public void reportDefect(String title, String description) {
-        log.info("Executing report_defect for: {}", title);
+    @Component
+    @ActivityImpl(taskQueue = "DEFECT_REPORTING_TASK_QUEUE")
+    class DefectReportingActivityImpl implements DefectReportingActivity {
 
-        // 1. Create the GitHub issue
-        String issueUrl = gitHubIssuePort.createIssue(title, description);
+        private static final Logger log = LoggerFactory.getLogger(DefectReportingActivityImpl.class);
 
-        // 2. Construct the Slack body including the GitHub URL
-        // This satisfies the criteria: "Slack body includes GitHub issue: <url>"
-        String slackBody = String.format(
-            "Defect Reported: %s\nGitHub Issue: <%s|Link>",
-            title,
-            issueUrl
-        );
+        private final VerificationService verificationService;
 
-        // 3. Post to Slack
-        slackNotificationPort.postMessage(slackBody);
+        public DefectReportingActivityImpl(VerificationService verificationService) {
+            this.verificationService = verificationService;
+        }
 
-        log.info("Successfully reported defect {} to Slack with link {}", title, issueUrl);
+        @Override
+        public void reportDefect(ReportDefectCommand command) {
+            log.info("Executing reportDefect activity for: {}", command.defectId());
+            // The VerificationService is expected to be a Spring-managed bean
+            // constructed with the real ports (Adapters).
+            verificationService.reportDefect(command);
+        }
     }
 }

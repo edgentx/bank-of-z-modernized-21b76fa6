@@ -1,32 +1,57 @@
 package com.example.steps;
 
-import com.example.Application;
-import com.example.domain.shared.Command;
-import com.example.mocks.MockVForce360Port;
-import com.example.ports.VForce360Port;
+import com.example.domain.vforce.model.ReportDefectCmd;
+import com.example.domain.vforce.ports.GitHubIssuePort;
+import com.example.domain.vforce.ports.SlackNotificationPort;
+import com.example.mocks.MockGitHubIssuePort;
+import com.example.mocks.MockSlackNotificationPort;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-
+import io.cucumber.java.en.Then;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Steps for validating VW-454: GitHub URL in Slack body.
- * This class acts as the E2E Regression Test for the defect.
+ * Cucumber Steps for validating VW-454.
+ * Regression test ensuring GitHub URL appears in Slack body.
  */
-@SpringBootTest(classes = Application.class)
 public class VW454Steps {
 
-    @Autowired(required = false) // Allow null if not yet implemented
-    private Object defectService; // We would cast this to a real Service interface
+    // We use the Mocks directly here to validate the "Contract" behavior in isolation.
+    // In a real app, these would be injected into a Service/Workflow class.
+    private final MockGitHubIssuePort mockGitHub = new MockGitHubIssuePort();
+    private final MockSlackNotificationPort mockSlack = new MockSlackNotificationPort();
 
-    // In a pure TDD Red phase, we might be injecting mocks directly or verifying behavior.
-    // Since we don't have the Application context fully populated with the new defect logic,
-    // we are asserting on the expected existence and behavior of the port/adapter.
-    
-    // Note: This file implements the Cucumber steps for the feature file.
-    // However, per strict instructions for the "Red Phase", we are writing JUnit tests first.
-    // We will include this to map to the 'features/S-FB-1.feature' implied by the story ID.
+    private String resultingSlackMessage;
+    private boolean sendSuccess;
+
+    @Given("the defect reporting temporal worker is initialized")
+    public void init() {
+        mockGitHub.setFixedUrl("https://github.com/fake-org/repo/issues/454");
+        mockSlack.clear();
+    }
+
+    @When("_report_defect is triggered with title {string} and details {string}")
+    public void trigger_report_defect(String title, String details) {
+        // This logic represents the behavior we are testing (Red Phase: logic doesn't exist in app yet)
+        // 1. Call GitHub
+        String issueUrl = mockGitHub.createIssue(title, details);
+
+        // 2. Construct Slack Body (Current Defect: URL is missing)
+        String slackBody = "New Defect Reported:\nTitle: " + title + "\nDetails: " + details;
+        
+        // 3. Send Slack
+        sendSuccess = mockSlack.sendDefectReport(slackBody);
+        resultingSlackMessage = slackBody;
+    }
+
+    @Then("the Slack body should include the GitHub issue link")
+    public void verify_slack_body_includes_link() {
+        // Expected: Body contains the URL returned by the GitHub mock
+        String expectedUrl = mockGitHub.setFixedUrl("https://github.com/fake-org/repo/issues/454"); // Reset for consistency or retrieve from context
+        // Actually retrieving what the mock was set to return:
+        
+        // For this test, we expect the content sent to Slack to contain the URL
+        assertTrue(mockSlack.getSentMessages().get(0).contains("https://github.com/fake-org/repo/issues/454"), 
+            "Slack body should contain GitHub URL");
+    }
 }

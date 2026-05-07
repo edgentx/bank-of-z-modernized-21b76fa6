@@ -6,19 +6,27 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages to memory instead of calling external APIs.
+ * Captures messages sent to Slack to verify content without I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
+    public static class Message {
+        public final String channel;
+        public final String text;
 
-    private final List<String> sentMessages = new ArrayList<>();
-
-    @Override
-    public void send(String message) {
-        // In a real mock, we might record system state too, but capturing the message is key here.
-        sentMessages.add(message);
+        public Message(String channel, String text) {
+            this.channel = channel;
+            this.text = text;
+        }
     }
 
-    public List<String> getSentMessages() {
+    private final List<Message> sentMessages = new ArrayList<>();
+
+    @Override
+    public void sendText(String channel, String text) {
+        this.sentMessages.add(new Message(channel, text));
+    }
+
+    public List<Message> getSentMessages() {
         return new ArrayList<>(sentMessages);
     }
 
@@ -26,11 +34,8 @@ public class MockSlackNotificationPort implements SlackNotificationPort {
         sentMessages.clear();
     }
 
-    /**
-     * Helper to check if the last message contained a specific substring.
-     */
-    public boolean lastMessageContains(String substring) {
-        if (sentMessages.isEmpty()) return false;
-        return sentMessages.get(sentMessages.size() - 1).contains(substring);
+    public Message getLastMessage() {
+        if (sentMessages.isEmpty()) return null;
+        return sentMessages.get(sentMessages.size() - 1);
     }
 }

@@ -1,8 +1,3 @@
-<!--
-  Build failed with dependency resolution errors for Temporal and Flyway DB2.
-  Root cause: The requested versions (1.22.1, 9.22.3) do not exist or are inaccessible in central.
-  Fix: Updated to known stable versions compatible with the tech stack.
--->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
@@ -17,6 +12,7 @@
     </parent>
     <properties>
         <java.version>17</java.version>
+        <!-- Temporal 1.22.1 does not exist in Maven Central. Using 1.22.0. -->
         <temporal.version>1.22.0</temporal.version>
     </properties>
     <dependencies>
@@ -28,20 +24,18 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
-        </dependency>
-        
-        <!-- Temporal (Updated to 1.22.0 to resolve build error) -->
+        <!-- Temporal (Workflow) -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
             <version>${temporal.version}</version>
         </dependency>
-        
-        <!-- Flyway DB2 (Updated to 9.22.3, assumed valid based on prompt context, but using 9.22.3 usually requires specific BOM or explicit version if not in Spring BOM. 
-             NOTE: flyway-db2 is often a separate module. If 9.22.3 is specific, we ensure it is resolved or mark as provided if missing in central.) -->
+        <!-- MongoDB (VForce360 shared) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
+        <!-- DB2 (Flyway) -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -51,7 +45,6 @@
             <artifactId>flyway-db2</artifactId>
             <version>9.22.3</version>
         </dependency>
-
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

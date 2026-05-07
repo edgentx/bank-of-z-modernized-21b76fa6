@@ -5,19 +5,17 @@ import com.example.domain.tellersession.repository.TellerSessionRepository;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 public class InMemoryTellerSessionRepository implements TellerSessionRepository {
     private final Map<String, TellerSessionAggregate> store = new HashMap<>();
 
     @Override
-    public TellerSessionAggregate save(TellerSessionAggregate aggregate) {
-        store.put(aggregate.id(), aggregate);
-        return aggregate;
+    public TellerSessionAggregate load(String id) {
+        return store.get(id);
     }
 
     @Override
-    public Optional<TellerSessionAggregate> findById(String id) {
-        return Optional.ofNullable(store.get(id));
+    public void save(TellerSessionAggregate aggregate) {
+        store.put(aggregate.id(), aggregate);
     }
 }

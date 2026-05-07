@@ -2,30 +2,47 @@ package com.example.config;
 
 import com.example.adapters.GitHubIssueAdapter;
 import com.example.adapters.SlackNotificationAdapter;
-import com.example.ports.GitHubIssuePort;
-import com.example.ports.SlackNotificationPort;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.OkHttpClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import java.util.concurrent.TimeUnit;
 
-/**
- * Spring Configuration for Ports and Adapters.
- * In a real environment, active profiles would dictate whether real or mock adapters are used.
- * Here we define the real adapters as primary beans; tests are expected to override these via
- * @Primary or test-specific configurations in src/test.
- */
 @Configuration
 public class SpringConfig {
 
+    @Value("${github.repo.owner}")
+    private String repoOwner;
+
+    @Value("${github.repo.name}")
+    private String repoName;
+
+    @Value("${github.token}")
+    private String githubToken;
+
     @Bean
-    @ConditionalOnMissingBean(GitHubIssuePort.class)
-    public GitHubIssuePort gitHubIssuePort() {
-        return new GitHubIssueAdapter();
+    public OkHttpClient okHttpClient() {
+        return new OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build();
     }
 
     @Bean
-    @ConditionalOnMissingBean(SlackNotificationPort.class)
-    public SlackNotificationPort slackNotificationPort() {
-        return new SlackNotificationAdapter();
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
+    }
+
+    @Bean
+    public GitHubIssueAdapter gitHubIssueAdapter(OkHttpClient client, ObjectMapper mapper) {
+        return new GitHubIssueAdapter(client, mapper, repoOwner, repoName, githubToken);
+    }
+
+    @Bean
+    public SlackNotificationAdapter slackNotificationAdapter(OkHttpClient client, ObjectMapper mapper, 
+                                                             @Value("${slack.webhook.url}") String webhookUrl) {
+        return new SlackNotificationAdapter(client, mapper, webhookUrl);
     }
 }

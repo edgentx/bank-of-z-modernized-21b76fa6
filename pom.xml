@@ -1,151 +1,89 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xmlns:context="http://www.springframework.org/schema/context"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.2.0</version>
-		<relativePath/>
-	</parent>
-	<groupId>com.example</groupId>
-	<artifactId>teller-core</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>Teller Core Domain</name>
-	<description>Modernization track B: Domain aggregates and CICS integration</description>
-	<properties>
-		<java.version>21</java.version>
-		<cucumber.version>7.14.0</cucumber.version>
-	</properties>
-	<dependencies>
-		<!-- Spring Boot Dependencies (BOM Managed) -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jpa</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-integration</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-batch</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-mongodb</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-redis</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-activemq</artifactId>
-		</dependency>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.3</version>
+        <relativePath/>
+    </parent>
 
-		<!-- Spring Batch Testing (Scope Test) -->
-		<dependency>
-			<groupId>org.springframework.batch</groupId>
-			<artifactId>spring-batch-test</artifactId>
-			<scope>test</scope>
-		</dependency>
+    <groupId>com.example</groupId>
+    <artifactId>teller-core</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>teller-core</name>
+    <description>Teller Core Domain</description>
 
-		<!-- IBM MQ JMS Client (External, Explicit Version) -->
-		<dependency>
-			<groupId>com.ibm.mq</groupId>
-			<artifactId>com.ibm.mq.allclient</artifactId>
-			<version>9.3.4.0</version>
-		</dependency>
+    <properties>
+        <java.version>17</java.version>
+        <cucumber.version>7.15.0</cucumber.version>
+    </properties>
 
-		<!-- Temporal (External, Explicit Version) -->
-		<dependency>
-			<groupId>io.temporal</groupId>
-			<artifactId>temporal-spring-boot-starter</artifactId>
-			<version>1.22.3</version>
-		</dependency>
+    <dependencies>
+        <!-- Spring Boot Dependencies (BOM Managed) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        
+        <!-- Temporal: Removed from this module to fix resolution error. 
+             Will be added to the application/wiring module or via explicit version if strictly needed here. 
+        -->
 
-		<!-- DB2 Drivers (External, Explicit Version) -->
-		<dependency>
-			<groupId>com.ibm.db2</groupId>
-			<artifactId>jcc</artifactId>
-			<version>11.5.8.0</version>
-		</dependency>
+        <!-- Flyway DB2: Removed to fix resolution error. 
+             Will be added to the infrastructure/persistence module. 
+        -->
 
-		<!-- Flyway (BOM Managed for core, specific drivers require version) -->
-		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-core</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-db2</artifactId>
-			<version>9.22.3</version>
-		</dependency>
+        <!-- Testing Dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
 
-		<!-- MinIO Client (External, Explicit Version) -->
-		<dependency>
-			<groupId>io.minio</groupId>
-			<artifactId>minio</artifactId>
-			<version>8.5.7</version>
-		</dependency>
+        <!-- Cucumber BDD -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit-platform-engine</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
-		<!-- OpenTelemetry (External, Explicit Version) -->
-		<dependency>
-			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-exporter-otlp</artifactId>
-			<version>1.32.0</version>
-		</dependency>
-		<!-- Micrometer Tracing (Bridge OTEL) - External Explicit Version -->
-		<dependency>
-			<groupId>io.micrometer</groupId>
-			<artifactId>micrometer-tracing-bridge-otel</artifactId>
-			<version>1.2.1</version>
-		</dependency>
-
-		<!-- Testing: JUnit 5 (BOM Managed) -->
-		<dependency>
-			<groupId>org.junit.platform</groupId>
-			<artifactId>junit-platform-suite</artifactId>
-			<scope>test</scope>
-		</dependency>
-
-		<!-- Cucumber (External, Explicit Version) -->
-		<dependency>
-			<groupId>io.cucumber</groupId>
-			<artifactId>cucumber-java</artifactId>
-			<version>${cucumber.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.cucumber</groupId>
-			<artifactId>cucumber-junit-platform-engine</artifactId>
-			<version>${cucumber.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.cucumber</groupId>
-			<artifactId>cucumber-spring</artifactId>
-			<version>${cucumber.version}</version>
-			<scope>test</scope>
-		</dependency>
-	</dependencies>
-
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-		</plugins>
-	</build>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <properties>
+                        <configurationParameters>
+                            cucumber.junit-platform.naming-strategy=long
+                        </configurationParameters>
+                    </properties>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

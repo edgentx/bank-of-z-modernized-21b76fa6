@@ -2,16 +2,13 @@ package com.example.domain.validation.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.Map;
-
 /**
- * Command to report a defect, typically triggered via Temporal workflow.
- * Contains details about the defect to be formatted into a Slack message.
+ * Command to report a defect, triggered by Temporal workflow.
+ * Contains the context needed to generate a GitHub issue link.
  */
 public record ReportDefectCommand(
-        String defectId,
-        String title,
-        String severity,
-        Map<String, Object> metadata
-) implements Command {
-}
+    String defectId,
+    String projectId,
+    String severity,
+    String title
+) implements Command {}

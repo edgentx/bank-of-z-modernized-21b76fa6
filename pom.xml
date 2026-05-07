@@ -9,7 +9,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.0</version> <!-- Aligning with modern Spring Boot / Java 17 standards -->
+        <version>3.2.0</version>
         <relativePath/>
     </parent>
 
@@ -38,19 +38,8 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Temporal (WARNING: Needs explicit version as it is NOT in Spring Boot BOM) -->
-        <!-- NOTE: The error log indicated 1.22.1 was missing. We try a known valid artifact or comment it out to fix build. -->
-        <!-- Ideally, use the Temporal Spring Boot Starter if available, or the standard SDK. -->
-        <!-- Using 1.22.1 (from error log) or newer. Let's assume standard temporal-sdk usage for the POM fix -->
-        <!-- The user error mentioned 'temporal-spring-boot-starter' which is often an external module or incubator. -->
-        <!-- To ensure the build works immediately, we use the standard SDK which is in Maven Central. -->
-        <!-- <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>1.22.1</version>
-        </dependency> -->
-        
-        <!-- Corrected dependency for Temporal SDK (managed by temporal BOM usually, but here we need version) -->
+        <!-- Temporal SDK (Not in Spring Boot BOM, explicit version required) -->
+        <!-- Using 1.22.1 to satisfy dependency resolution failure mentioned in prompt -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-sdk</artifactId>

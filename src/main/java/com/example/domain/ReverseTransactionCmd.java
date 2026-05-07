@@ -2,7 +2,12 @@ package com.example.domain;
 
 import java.util.UUID;
 
-public class ReverseTransactionCmd {
+/**
+ * Command to reverse a previously posted transaction.
+ * Part of the S-12 Story implementation.
+ */
+public class ReverseTransactionCmd implements S12Command {
+
     private final UUID originalTransactionId;
 
     public ReverseTransactionCmd(UUID originalTransactionId) {

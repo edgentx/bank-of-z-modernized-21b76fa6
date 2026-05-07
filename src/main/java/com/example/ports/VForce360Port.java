@@ -1,18 +1,17 @@
 package com.example.ports;
 
 /**
- * Port interface for interacting with VForce360 services.
- * This is the abstraction over the external Slack/GitHub reporting API.
+ * Port for interacting with the VForce360 defect reporting system.
+ * This is the boundary interface for the external service integration.
  */
 public interface VForce360Port {
 
     /**
      * Reports a defect to the VForce360 system.
-     *
-     * @param projectId The UUID of the project reporting the defect.
-     * @param title The title of the defect.
-     * @param description The detailed description of the defect.
-     * @return The URL of the created GitHub issue.
+     * @param request The defect details
+     * @return The resulting issue URL
      */
-    String reportDefect(String projectId, String title, String description);
+    String reportDefect(DefectRequest request);
+
+    record DefectRequest(String title, String description, String severity) {}
 }

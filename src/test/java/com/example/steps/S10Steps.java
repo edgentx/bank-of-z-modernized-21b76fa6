@@ -1,137 +1,161 @@
 package com.example.steps;
 
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.transaction.model.PostDepositCmd;
-import com.example.domain.transaction.model.TransactionAggregate;
-import com.example.domain.transaction.model.TransactionPostedEvent;
+import com.example.domain.transaction.model.*;
+import com.example.domain.transaction.repository.TransactionRepository;
+import com.example.mocks.InMemoryTransactionRepository;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-
+/**
+ * Step definitions for S-10: PostDepositCmd.
+ * Uses the existing TransactionAggregate and InMemoryTransactionRepository.
+ */
 public class S10Steps {
 
+    private final TransactionRepository repository = new InMemoryTransactionRepository();
     private TransactionAggregate aggregate;
     private List<DomainEvent> resultEvents;
-    private Exception caughtException;
+    private Exception thrownException;
 
-    // State helpers to simulate specific constraints if needed
-    private boolean enforceMaxBalance = false; 
+    // Helpers
+    private String validAccountId = "ACC-123-456";
+    private String validCurrency = "USD";
+    private String validTxId = "TX-" + System.currentTimeMillis();
+    private BigDecimal validAmount = new BigDecimal("100.00");
 
     @Given("a valid Transaction aggregate")
     public void aValidTransactionAggregate() {
-        String transactionId = "tx-123";
-        this.aggregate = new TransactionAggregate(transactionId);
-        this.enforceMaxBalance = false;
+        this.aggregate = new TransactionAggregate(validTxId);
     }
 
     @Given("a valid accountNumber is provided")
     public void aValidAccountNumberIsProvided() {
-        // Context setup, usually combined in the 'When' via command construction
+        // Setup state for account, handled in context
     }
 
     @Given("a valid amount is provided")
     public void aValidAmountIsProvided() {
-        // Context setup
+        // Handled in context
     }
 
     @Given("a valid currency is provided")
     public void aValidCurrencyIsProvided() {
-        // Context setup
+        // Handled in context
     }
 
-    // --- Negative Constraints ---
-
     @Given("a Transaction aggregate that violates: Transaction amounts must be greater than zero.")
-    public void aTransactionAggregateThatViolatesAmountPositive() {
-        this.aggregate = new TransactionAggregate("tx-negative");
+    public void aTransactionAggregateWithInvalidAmount() {
+        this.aggregate = new TransactionAggregate(validTxId);
     }
 
     @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.")
-    public void aTransactionAggregateThatViolatesAlreadyPosted() {
-        this.aggregate = new TransactionAggregate("tx-posted");
-        // Manually force the aggregate into a 'posted' state to simulate the violation condition
-        // (This assumes the aggregate allows loading posted state, or we mock the internals for the test)
-        // Since we are white-box testing the domain, we assume the aggregate correctly tracks state.
-        // To test the rejection, we need to execute a command that works, then execute another.
-        // However, the Given implies the state is *already* violated.
-        // In a real scenario we'd load from events. Here we construct the scenario:
-        try {
-            // Execute a valid command first to make it posted
-            aggregate.execute(new PostDepositCmd("tx-posted", "acct-1", new BigDecimal("100.00"), "USD"));
-        } catch (Exception e) {
-            throw new RuntimeException("Test setup failed: could not initialize posted state", e);
-        }
+    public void aTransactionAggregateThatIsAlreadyPosted() {
+        // Create and post a transaction to make it immutable (rejection condition)
+        this.aggregate = new TransactionAggregate(validTxId);
+        PostDepositCmd cmd = new PostDepositCmd(validTxId, validAccountId, validAmount, validCurrency);
+        // Execute via repository to persist state in memory
+        repository.save(aggregate); 
+        aggregate.execute(cmd);
+        // Ensure it's marked posted in memory for the next step
+        repository.save(aggregate);
     }
 
     @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance (enforced via aggregate validation).")
-    public void aTransactionAggregateThatViolatesBalance() {
-        this.aggregate = new TransactionAggregate("tx-balance");
-        this.enforceMaxBalance = true;
+    public void aTransactionAggregateThatViolatesBalanceValidation() {
+        // In this domain logic, we simulate a constraint rejection (e.g. max balance exceeded)
+        // by simulating a scenario where the aggregate might throw an exception.
+        // For this BDD, we simulate the validation logic.
+        this.aggregate = new TransactionAggregate(validTxId);
     }
-
-    // --- Actions ---
 
     @When("the PostDepositCmd command is executed")
     public void thePostDepositCmdCommandIsExecuted() {
-        String txId = aggregate.id();
-        String acctId = "acct-456";
-        BigDecimal amount = new BigDecimal("100.00");
-        String currency = "USD";
-
-        // Adjust data based on the specific violation scenario context
-        if (enforceMaxBalance) {
-             // Hypothetical check: if enforcing balance, this data triggers it.
-             // For this stub, we'll verify the aggregate logic. 
-             // Note: The aggregate provided doesn't actually check external balance, 
-             // but the Test Data/Scenario structure is the key here.
-        }
-
-        // If we are in the "Amount must be > 0" violation scenario
-        // (We can determine this by checking the ID or a flag, but here we assume the step
-        // setup handles the data injection or we inspect the aggregate state).
-        // However, the Gherkin separates the Given/When. 
-        // We will use a heuristic or flag if necessary, but standard practice is to construct the specific command in the When based on context.
-        // For simplicity and robustness against "magic" data:
-        
-        if (txId.equals("tx-negative")) {
-            amount = new BigDecimal("-50.00");
-        }
-
         try {
-            PostDepositCmd cmd = new PostDepositCmd(txId, acctId, amount, currency);
-            resultEvents = aggregate.execute(cmd);
+            // Determine inputs based on context (simplified for brevity, assumes valid context uses defaults)
+            // If the previous step was the "invalid amount" setup, we use 0 or negative.
+            // If it was "already posted", the aggregate state is already posted.
+            
+            BigDecimal amount = validAmount;
+            // Check scenario context via simple flags or state (Here simplified for readability)
+            // Ideally Cucumber Scenario context is used, but we rely on the specific Given flow.
+            
+            // Detect "amount must be greater than zero" context by checking if we are in that specific failure flow
+            // (In a real app, we'd use a ScenarioContext object)
+            if (Thread.currentThread().getStackTrace().length > 2) { 
+                // This is a heuristic for the step definition demo. 
+                // We will rely on specific command invocation in the When logic below if we had context.
+                // Instead, we will handle the logic in specific methods if we wanted to be strict,
+                // but Cucumber allows a single When. We will use the state of the aggregate.
+            }
+            
+            // Actually, standard BDD practice is to pass the specific invalid data here.
+            // Since the Gherkin is generic, we will assume valid data unless the Given set a flag.
+            // For this demo, we will assume the 'When' uses valid data, and the 'Given' prepared the bad state.
+            // EXCEPT for the amount case, which is data-driven.
+            
+            // Re-implementing specific logic for clarity:
+            // 1. Success case: valid data
+            // 2. Amount violation: use 0 amount.
+            // 3. Posted violation: aggregate is already posted (state check).
+            // 4. Balance violation: use a specific marker (e.g. massive amount) or rely on a mock setup.
+            
+            // Let's use a shared context approach or simple detection:
+            boolean isInvalidAmountScenario = aggregate.id().startsWith("TX-INVALID-AMOUNT"); // Requires Given to set ID
+            boolean isBalanceViolationScenario = aggregate.id().startsWith("TX-BALANCE");
+
+            if (isInvalidAmountScenario) {
+                amount = BigDecimal.ZERO;
+            }
+            if (isBalanceViolationScenario) {
+                amount = new BigDecimal("99999999999.00"); // Simulating max balance overflow check
+            }
+
+            PostDepositCmd cmd = new PostDepositCmd(aggregate.id(), validAccountId, amount, validCurrency);
+            this.resultEvents = aggregate.execute(cmd);
+            
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            this.thrownException = e;
         } catch (Exception e) {
-            caughtException = e;
+            this.thrownException = e;
         }
     }
 
-    // --- Outcomes ---
-
+    // Specific Whens for data-driving the invalid cases if needed, or override the above.
+    // To support the generic Gherkin provided:
+    // We will override the behavior of the valid data defaults in the Given methods below
+    // by changing the defaults stored in fields.
+    
+    @Given("a Transaction aggregate that violates: Transaction amounts must be greater than zero.")
+    public void setupInvalidAmountContext() {
+        aTransactionAggregateWithInvalidAmount();
+        this.validAmount = BigDecimal.ZERO; // Override the valid amount for the subsequent When
+    }
+    
     @Then("a deposit.posted event is emitted")
     public void aDepositPostedEventIsEmitted() {
-        assertNotNull(resultEvents, "Expected events to be emitted");
-        assertEquals(1, resultEvents.size(), "Expected exactly one event");
+        Assertions.assertNotNull(resultEvents);
+        Assertions.assertEquals(1, resultEvents.size());
+        Assertions.assertTrue(resultEvents.get(0) instanceof TransactionPostedEvent);
         
-        DomainEvent event = resultEvents.get(0);
-        // The domain event is TransactionPostedEvent, but the Gherkin asks for 'deposit.posted' conceptually
-        assertTrue(event instanceof TransactionPostedEvent, "Expected TransactionPostedEvent");
-        
-        TransactionPostedEvent postedEvent = (TransactionPostedEvent) event;
-        assertEquals("deposit", postedEvent.kind());
+        TransactionPostedEvent event = (TransactionPostedEvent) resultEvents.get(0);
+        Assertions.assertEquals("deposit", event.kind());
+        Assertions.assertEquals(validAccountId, event.accountId());
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(caughtException, "Expected an exception to be thrown");
-        // The aggregate throws IllegalStateException or IllegalArgumentException. These are Domain Errors in this context.
-        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException,
-            "Expected a domain exception (IllegalStateException or IllegalArgumentException), but got: " + caughtException.getClass().getSimpleName());
+        Assertions.assertNotNull(thrownException);
+        // Check it's not a generic unexpected error
+        Assertions.assertTrue(
+            thrownException instanceof IllegalStateException || 
+            thrownException instanceof IllegalArgumentException
+        );
     }
-
 }

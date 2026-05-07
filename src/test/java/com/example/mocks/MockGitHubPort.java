@@ -1,36 +1,37 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
-import java.util.ArrayList;
-import java.util.List;
+
+import java.util.Map;
 
 /**
  * Mock implementation of GitHubPort for testing.
- * Records calls and allows verification of issue creation content.
+ * Allows verification of inputs and control over return values (URLs).
  */
 public class MockGitHubPort implements GitHubPort {
 
-    private final List<IssueRequest> createdIssues = new ArrayList<>();
-    private String nextIssueUrl = "https://github.com/example/repo/issues/1";
-
-    public record IssueRequest(String title, String body) {}
+    private String lastTitle;
+    private String lastBody;
+    private Map<String, String> lastLabels;
+    private String mockUrl = "https://github.com/mock-repo/issues/1";
+    private boolean shouldFail = false;
 
     @Override
-    public String createIssue(String title, String body) {
-        createdIssues.add(new IssueRequest(title, body));
-        return nextIssueUrl;
+    public String createIssue(String title, String body, Map<String, String> labels) {
+        if (shouldFail) {
+            throw new RuntimeException("Mock GitHub Failure");
+        }
+        this.lastTitle = title;
+        this.lastBody = body;
+        this.lastLabels = labels;
+        return mockUrl;
     }
 
-    public List<IssueRequest> getCreatedIssues() {
-        return new ArrayList<>(createdIssues);
-    }
+    // Getters for Assertions
+    public String getLastTitle() { return lastTitle; }
+    public String getLastBody() { return lastBody; }
+    public Map<String, String> getLastLabels() { return lastLabels; }
 
-    public void setNextIssueUrl(String url) {
-        this.nextIssueUrl = url;
-    }
-
-    public void reset() {
-        createdIssues.clear();
-        nextIssueUrl = "https://github.com/example/repo/issues/1";
-    }
+    public void setMockUrl(String url) { this.mockUrl = url; }
+    public void setShouldFail(boolean fail) { this.shouldFail = fail; }
 }

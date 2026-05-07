@@ -6,17 +6,19 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Event emitted when a transfer is completed.
- */
 public record TransferCompletedEvent(
+    String eventId,
     String aggregateId,
-    String sourceAccount,
-    String destinationAccount,
+    String fromAccountId,
+    String toAccountId,
     BigDecimal amount,
     String currency,
     Instant occurredAt
 ) implements DomainEvent {
+    public TransferCompletedEvent(String aggregateId, String fromAccountId, String toAccountId, BigDecimal amount, String currency, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, fromAccountId, toAccountId, amount, currency, occurredAt);
+    }
+
     @Override
     public String type() {
         return "transfer.completed";
@@ -25,10 +27,5 @@ public record TransferCompletedEvent(
     @Override
     public String aggregateId() {
         return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

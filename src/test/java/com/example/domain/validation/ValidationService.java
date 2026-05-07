@@ -1,52 +1,23 @@
 package com.example.domain.validation;
 
-import com.example.domain.validation.model.DefectReportedEvent;
-import com.example.domain.validation.model.ReportDefectCmd;
 import com.example.ports.SlackNotificationPort;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Collections;
-
 /**
- * Service class handling the business logic for defect reporting.
- * This is the implementation that satisfies the Vw454ValidationE2ETest.
+ * Service handling defect reporting logic.
+ * This class is expected to be implemented to make the test pass.
+ * Placed in test structure temporarily or as a placeholder for the main implementation.
  */
 public class ValidationService {
 
-    private final SlackNotificationPort slackPort;
+    private final SlackNotificationPort slackNotificationPort;
 
-    /**
-     * Constructor-based dependency injection.
-     * @param slackPort The port (interface) for Slack operations.
-     */
-    public ValidationService(SlackNotificationPort slackPort) {
-        this.slackPort = slackPort;
+    public ValidationService(SlackNotificationPort slackNotificationPort) {
+        this.slackNotificationPort = slackNotificationPort;
     }
 
-    /**
-     * Handles the ReportDefect command.
-     * Generates the Slack payload, sends it via the adapter, and returns the domain event.
-     *
-     * @param cmd The command containing defect details.
-     * @return A list containing the DefectReportedEvent.
-     * @throws IllegalArgumentException if the GitHub URL is missing or blank.
-     */
-    public List<DefectReportedEvent> handleReportDefect(ReportDefectCmd cmd) {
-        // 1. Validate Input
-        if (cmd.githubUrl() == null || cmd.githubUrl().isBlank()) {
-            throw new IllegalArgumentException("GitHub URL is required to report a defect");
-        }
-
-        // 2. Construct Message Body for Slack
-        // Using a simple format that includes the URL as per Acceptance Criteria.
-        String messageBody = "Defect Reported: " + cmd.title() + "\nLink: " + cmd.githubUrl();
-        
-        // 3. Send via Port (Adapter Pattern)
-        slackPort.sendNotification(messageBody);
-
-        // 4. Emit Domain Event
-        DefectReportedEvent event = new DefectReportedEvent(cmd.defectId(), messageBody, Instant.now());
-        return Collections.singletonList(event);
+    public void reportDefect(DefectReportedCommand cmd) {
+        // Implementation pending.
+        // Logic should format a message containing cmd.githubUrl and send it to the port.
+        throw new UnsupportedOperationException("Implement S-FB-1 defect reporting logic here");
     }
 }

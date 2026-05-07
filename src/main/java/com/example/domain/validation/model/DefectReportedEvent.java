@@ -6,9 +6,8 @@ import java.util.UUID;
 
 public record DefectReportedEvent(
     String aggregateId,
-    String issueReference,
-    String severity,
-    String description,
+    String defectId,
+    String githubUrl,
     Instant occurredAt
 ) implements DomainEvent {
     @Override
@@ -18,11 +17,11 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return aggregateId();
     }
 
     @Override
     public Instant occurredAt() {
-        return occurredAt;
+        return occurredAt();
     }
 }

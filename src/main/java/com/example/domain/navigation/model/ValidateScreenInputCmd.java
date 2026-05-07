@@ -5,10 +5,13 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Command to validate user input for a specific screen.
- * Bounded Context: user-interface-navigation
+ * Command to validate user input against a specific ScreenMap definition.
+ * Attributes:
+ * - screenId: Identifier for the screen map (BMS Mapset).
+ * - inputFields: Map of field names to their string values.
  */
 public record ValidateScreenInputCmd(
-    String screenId,
-    Map<String, String> inputFields
-) implements Command {}
+        String screenId,
+        Map<String, String> inputFields
+) implements Command {
+}

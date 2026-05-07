@@ -7,13 +7,12 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record DepositPostedEvent(
-        String aggregateId,
-        String accountNumber,
-        BigDecimal amount,
-        String currency,
-        Instant occurredAt
+    String aggregateId,
+    String accountNumber,
+    BigDecimal amount,
+    String currency,
+    Instant occurredAt
 ) implements DomainEvent {
-
     @Override
     public String type() {
         return "deposit.posted";

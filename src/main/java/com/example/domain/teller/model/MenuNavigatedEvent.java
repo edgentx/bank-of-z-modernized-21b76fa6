@@ -3,22 +3,22 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
 /**
- * Domain event emitted when a teller successfully navigates to a new screen/menu.
- * This replaces the legacy 3270 data stream signal.
+ * Event emitted when a teller successfully navigates to a menu.
+ * S-19: user-interface-navigation
  */
 public record MenuNavigatedEvent(
-        String aggregateId,
-        String sessionId,
-        String menuId,
-        String action,
-        Instant occurredAt
+    String eventId,
+    String aggregateId,
+    String sessionId,
+    String menuId,
+    String action,
+    Instant occurredAt
 ) implements DomainEvent {
-    public MenuNavigatedEvent {
-        Objects.requireNonNull(aggregateId);
-        Objects.requireNonNull(occurredAt);
+    public MenuNavigatedEvent(String aggregateId, String sessionId, String menuId, String action, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, sessionId, menuId, action, occurredAt);
     }
 
     @Override

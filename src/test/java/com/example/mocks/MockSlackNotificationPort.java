@@ -6,39 +6,29 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages posted to Slack to verify content without external I/O.
+ * Captures messages sent to Slack to verify content without network calls.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class PostedMessage {
-        public final String channel;
-        public final String body;
+    public final List<Message> messages = new ArrayList<>();
+    private boolean shouldFail = false;
 
-        public PostedMessage(String channel, String body) {
-            this.channel = channel;
-            this.body = body;
-        }
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
     }
-
-    private final List<PostedMessage> postedMessages = new ArrayList<>();
-    private boolean shouldSucceed = true;
 
     @Override
-    public boolean postMessage(String channel, String body) {
-        postedMessages.add(new PostedMessage(channel, body));
-        return shouldSucceed;
+    public boolean postMessage(String channel, String messageBody) {
+        if (shouldFail) {
+            return false;
+        }
+        messages.add(new Message(channel, messageBody));
+        return true;
     }
 
-    public List<PostedMessage> getPostedMessages() {
-        return new ArrayList<>(postedMessages);
+    public boolean containsUrlInBody(String url) {
+        return messages.stream().anyMatch(msg -> msg.body().contains(url));
     }
 
-    public void reset() {
-        postedMessages.clear();
-        shouldSucceed = true;
-    }
-
-    public void setShouldSucceed(boolean succeed) {
-        this.shouldSucceed = succeed;
-    }
+    public record Message(String channel, String body) {}
 }

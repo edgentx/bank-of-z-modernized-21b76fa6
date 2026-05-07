@@ -1,47 +1,38 @@
 package com.example.adapters;
 
-import com.example.ports.SlackNotifier;
-import org.springframework.beans.factory.annotation.Value;\nimport org.springframework.stereotype.Component;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 /**
- * Real implementation for Slack notifications via Webhook.
- * Wired in production, replaced by MockSlackNotifier in tests.
+ * Adapter for posting notifications to Slack.
+ * This file was created to fix the compilation errors in the previous iteration.
  */
 @Component
-public class SlackWebhookAdapter implements SlackNotifier {
+public class SlackWebhookAdapter {
 
-    private final String webhookUrl;
     private final RestTemplate restTemplate;
+    private final String webhookUrl;
 
-    public SlackWebhookAdapter(@Value("${slack.webhook.url}") String webhookUrl,
-                               RestTemplate restTemplate) {
-        this.webhookUrl = webhookUrl;
+    public SlackWebhookAdapter(RestTemplate restTemplate, String webhookUrl) {
         this.restTemplate = restTemplate;
+        this.webhookUrl = webhookUrl;
     }
 
-    @Override
-    public void send(String message) {
-        // In a real scenario, we would construct a JSON payload matching Slack's API expectations.
-        // For this defect fix validation, we perform the HTTP POST.
-        // The exact JSON format depends on Slack App configuration (Incoming Webhooks).
+    public void sendNotification(String message) {
+        if (webhookUrl == null || webhookUrl.isEmpty()) {
+            throw new IllegalStateException("Slack webhook URL is not configured.");
+        }
         
-        if (webhookUrl == null || webhookUrl.isBlank()) {
-            // If running in a profile without a webhook configured, log to stdout for verification
-            System.out.println("[SLACK WEBHOOK SIMULATION] " + message);
-            return;
-        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
 
-        try {
-            // Simple text payload
-            var payload = new SlackPayload(message);
-            restTemplate.postForObject(webhookUrl, payload, String.class);
-        } catch (Exception e) {
-            // Swallow exceptions in tests to avoid noise, but log in real app
-            System.err.println("Failed to send Slack notification: " + e.getMessage());
-        }
+        // Construct a basic Slack payload
+        String payload = "{\"text\": \"" + message + "\"}";
+
+        HttpEntity<String> request = new HttpEntity<>(payload, headers);
+        restTemplate.postForObject(webhookUrl, request, String.class);
     }
-
-    // DTO for Slack API
-    private record SlackPayload(String text) {}
 }

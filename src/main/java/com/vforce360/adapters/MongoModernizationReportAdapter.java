@@ -14,7 +14,6 @@ public class MongoModernizationReportAdapter implements MarReportPort {
     private final MongoClient mongoClient;
     private final ObjectMapper mapper;
 
-    // Fixed constructor to accept dependencies as required by Config
     public MongoModernizationReportAdapter(MongoClient mongoClient, ObjectMapper mapper) {
         this.mongoClient = mongoClient;
         this.mapper = mapper;

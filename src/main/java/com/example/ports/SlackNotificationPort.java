@@ -1,19 +1,11 @@
 package com.example.ports;
 
-import com.example.domain.shared.Command;
-import java.util.concurrent.CompletableFuture;
-
-/**
- * Port interface for sending Slack notifications.
- * Implementations will handle the HTTP interaction with the Slack Web API.
- */
+/** Port for sending Slack notifications. */
 public interface SlackNotificationPort {
-
     /**
-     * Sends a defect report to the configured Slack channel.
-     *
-     * @param command The command triggering the report (e.g., ReportDefectCmd)
-     * @return CompletableFuture containing the message Timestamp (TS) if successful.
+     * Sends a defect report to Slack.
+     * @param projectId The ID of the project.
+     * @param message The message body to send.
      */
-    CompletableFuture<String> publishDefect(Command command);
+    void sendDefectNotification(String projectId, String message);
 }

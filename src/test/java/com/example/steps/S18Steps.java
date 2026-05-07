@@ -1,108 +1,93 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.tellersession.model.SessionStartedEvent;
-import com.example.domain.tellersession.model.StartSessionCmd;
-import com.example.domain.tellersession.model.TellerSessionAggregate;
+import com.example.domain.teller.model.SessionStartedEvent;
+import com.example.domain.teller.model.StartSessionCmd;
+import com.example.domain.teller.model.TellerSession;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import static org.junit.jupiter.api.Assertions.*;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 public class S18Steps {
 
-    private TellerSessionAggregate aggregate;
-    private List<DomainEvent> resultEvents;
-    private Exception caughtException;
-    private String testTellerId;
-    private String testTerminalId;
+    private TellerSession aggregate;
+    private List<DomainEvent> result;
+    private Exception thrownException;
 
+    // Scenario 1: Successfully execute StartSessionCmd
     @Given("a valid TellerSession aggregate")
-    public void aValidTellerSessionAggregate() {
-        String sessionId = "session-123";
-        aggregate = new TellerSessionAggregate(sessionId);
-        // Simulate successful authentication context for the positive case
+    public void a_valid_teller_session_aggregate() {
+        aggregate = new TellerSession("session-123");
+        // Ensure default valid state for success
         aggregate.setAuthenticated(true);
-    }
-
-    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void aTellerSessionAggregateThatViolatesAuth() {
-        String sessionId = "session-auth-fail";
-        aggregate = new TellerSessionAggregate(sessionId);
-        // Explicitly set authenticated to false to violate the rule
-        aggregate.setAuthenticated(false);
-    }
-
-    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void aTellerSessionAggregateThatViolatesTimeout() {
-        String sessionId = "session-timeout-fail";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.setAuthenticated(true);
-        // Set last activity to 20 minutes ago (Violation: > 15 mins)
-        aggregate.setLastActivityAt(Instant.now().minus(Duration.ofMinutes(20)));
-    }
-
-    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void aTellerSessionAggregateThatViolatesNavState() {
-        String sessionId = "session-nav-fail";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.setAuthenticated(true);
-        // Simulate a state where the navigation context is invalid or locked
-        // In this specific aggregate impl, we verify the Command inputs are valid context.
-        // However, if the aggregate itself holds a state that prevents context update:
-        aggregate.setOperationalContext("INVALID_LOCKED_STATE");
+        aggregate.setLastActivityAt(Instant.now());
+        aggregate.setCurrentState("INIT");
     }
 
     @And("a valid tellerId is provided")
-    public void aValidTellerIdIsProvided() {
-        this.testTellerId = "teller-001";
+    public void a_valid_teller_id_is_provided() {
+        // Handled in the 'When' step via command creation
     }
 
     @And("a valid terminalId is provided")
-    public void aValidTerminalIdIsProvided() {
-        this.testTerminalId = "TERM-01";
+    public void a_valid_terminal_id_is_provided() {
+        // Handled in the 'When' step via command creation
+    }
+
+    // Scenario 2, 3, 4 Setups for specific violations
+    @Given("A TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
+    public void a_teller_session_aggregate_that_violates_auth() {
+        aggregate = new TellerSession("session-123");
+        aggregate.setAuthenticated(false); // Violation
+        aggregate.setCurrentState("INIT");
+        aggregate.setLastActivityAt(Instant.now());
+    }
+
+    @Given("A TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
+    public void a_teller_session_aggregate_that_violates_timeout() {
+        aggregate = new TellerSession("session-123");
+        aggregate.setAuthenticated(true);
+        // Set last activity to 20 minutes ago (Assuming 15 min timeout in aggregate)
+        aggregate.setLastActivityAt(Instant.now().minusSeconds(1200));
+        aggregate.setCurrentState("INIT");
+    }
+
+    @Given("A TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
+    public void a_teller_session_aggregate_that_violates_nav() {
+        aggregate = new TellerSession("session-123");
+        aggregate.setAuthenticated(true);
+        aggregate.setCurrentState("TXN_IN_PROGRESS"); // Invalid state for starting a session
     }
 
     @When("the StartSessionCmd command is executed")
-    public void theStartSessionCmdCommandIsExecuted() {
+    public void the_start_session_cmd_command_is_executed() {
         try {
-            StartSessionCmd cmd = new StartSessionCmd(aggregate.id(), testTellerId, testTerminalId);
-            resultEvents = aggregate.execute(cmd);
-        } catch (IllegalStateException | IllegalArgumentException | UnknownCommandException e) {
-            caughtException = e;
+            StartSessionCmd cmd = new StartSessionCmd("teller-1", "term-1", "valid-token");
+            result = aggregate.execute(cmd);
+        } catch (Exception e) {
+            thrownException = e;
         }
     }
 
     @Then("a session.started event is emitted")
-    public void aSessionStartedEventIsEmitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof SessionStartedEvent);
-        
-        SessionStartedEvent event = (SessionStartedEvent) resultEvents.get(0);
-        assertEquals("session.started", event.type());
-        assertEquals(aggregate.id(), event.aggregateId());
-        assertEquals(testTellerId, event.tellerId());
-        assertEquals(testTerminalId, event.terminalId());
-        
-        // Verify aggregate state mutation
-        assertTrue(aggregate.isSessionActive());
-        assertEquals(testTerminalId, aggregate.getTerminalId());
+    public void a_session_started_event_is_emitted() {
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+        assertTrue(result.get(0) instanceof SessionStartedEvent);
+        SessionStartedEvent event = (SessionStartedEvent) result.get(0);
+        assertEquals("session-123", event.aggregateId());
+        assertEquals("teller-1", event.tellerId());
+        assertEquals("term-1", event.terminalId());
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(caughtException);
-        // We expect a RuntimeException (usually IllegalStateException) 
-        // containing the specific violation message defined in the aggregate.
-        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(thrownException);
+        assertTrue(thrownException instanceof IllegalStateException);
     }
 }

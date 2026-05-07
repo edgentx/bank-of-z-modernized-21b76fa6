@@ -1,22 +1,10 @@
 package com.example.domain.vforce360.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
-import java.util.UUID;
 
-public record DefectReportedEvent(
-    String aggregateId,
-    String title,
-    String project,
-    Instant occurredAt
-) implements DomainEvent {
-
-    public DefectReportedEvent {
-        if (aggregateId == null || aggregateId.isBlank()) {
-            aggregateId = UUID.randomUUID().toString();
-        }
-    }
-
+public record DefectReportedEvent(String defectId, String githubUrl, String slackBody, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
         return "DefectReported";
@@ -24,6 +12,6 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return defectId;
     }
 }

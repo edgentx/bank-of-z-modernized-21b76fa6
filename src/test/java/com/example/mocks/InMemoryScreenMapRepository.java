@@ -11,12 +11,17 @@ public class InMemoryScreenMapRepository implements ScreenMapRepository {
     private final Map<String, ScreenMapAggregate> store = new HashMap<>();
 
     @Override
-    public Optional<ScreenMapAggregate> findById(String id) {
-        return Optional.ofNullable(store.get(id));
+    public ScreenMapAggregate save(ScreenMapAggregate aggregate) {
+        store.put(aggregate.id(), aggregate);
+        return aggregate;
     }
 
     @Override
-    public void save(ScreenMapAggregate aggregate) {
-        store.put(aggregate.id(), aggregate);
+    public ScreenMapAggregate findById(String mapId) {
+        return store.get(mapId);
+    }
+    
+    public void clear() {
+        store.clear();
     }
 }

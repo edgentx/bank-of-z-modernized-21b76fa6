@@ -1,15 +1,15 @@
 package com.example.ports;
 
 /**
- * Port for sending Slack notifications.
- * Used to verify if a GitHub URL is included in the message body.
+ * Port interface for sending notifications to Slack.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends a notification to Slack.
-     * @param channel The target channel.
-     * @param messageBody The body of the message.
+     * Sends a message to a specific Slack channel.
+     *
+     * @param channel The target channel (e.g., "#vforce360-issues").
+     * @param body    The message body content.
      */
-    void sendNotification(String channel, String messageBody);
+    void postMessage(String channel, String body);
 }

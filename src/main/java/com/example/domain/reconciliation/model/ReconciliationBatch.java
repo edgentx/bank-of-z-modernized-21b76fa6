@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * ReconciliationBatch Aggregate
- * Handles the logic for forcing a batch to a balanced state and starting the batch reconciliation process.
+ * Handles the logic for forcing a batch to a balanced state and starting reconciliation.
  */
 public class ReconciliationBatch extends AggregateRoot {
     private final String batchId;
@@ -33,11 +33,11 @@ public class ReconciliationBatch extends AggregateRoot {
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
+        if (cmd instanceof ForceBalanceCmd c) {
+            return forceBalance(c);
+        }
         if (cmd instanceof StartReconciliationCmd c) {
             return startReconciliation(c);
-        }
-        if (cmd instanceof Force_balanceCmd c) { // renamed from forceBalance to match existing pattern if needed, but keeping existing logic
-            return forceBalance(c);
         }
         throw new UnknownCommandException(cmd);
     }
@@ -59,18 +59,24 @@ public class ReconciliationBatch extends AggregateRoot {
         }
 
         // Validate Command fields
-        if (cmd.batchWindow() == null || cmd.batchWindow().isBlank()) {
-            throw new IllegalArgumentException("BatchWindow is required to start reconciliation.");
+        if (cmd.windowStart() == null || cmd.windowEnd() == null) {
+            throw new IllegalArgumentException("Batch window start and end times must be provided.");
+        }
+
+        if (cmd.windowEnd().isBefore(cmd.windowStart())) {
+            throw new IllegalArgumentException("Batch window end time cannot be before start time.");
         }
 
         var event = new ReconciliationStartedEvent(
                 this.batchId,
-                cmd.batchWindow(),
+                cmd.windowStart(),
+                cmd.windowEnd(),
                 Instant.now()
         );
 
         // Apply state changes
-        this.status = Status.BALANCED; // Assuming 'started' transitions to a process state or balanced
+        // Note: Status remains OPEN, but we might track internal processing state here if needed.
+        // For now, emitting the event is the primary side effect.
         addEvent(event);
         incrementVersion();
 

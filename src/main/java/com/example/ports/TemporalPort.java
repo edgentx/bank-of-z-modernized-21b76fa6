@@ -8,9 +8,9 @@ import com.example.domain.reporting.model.ReportDefectCmd;
  */
 public interface TemporalPort {
     /**
-     * Simulates triggering the _report_defect workflow.
+     * Triggers the _report_defect workflow.
      * @param cmd The command to trigger the defect report.
-     * @return The resulting message body that would be sent to Slack.
+     * @return The resulting message body sent to Slack.
      */
     String executeReportDefectWorkflow(ReportDefectCmd cmd);
 }

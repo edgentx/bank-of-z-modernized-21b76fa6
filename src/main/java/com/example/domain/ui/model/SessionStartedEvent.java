@@ -5,14 +5,19 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Event emitted when a teller session is successfully started.
+ * Part of S-18: TellerSession user-interface-navigation.
+ */
 public record SessionStartedEvent(
-        String aggregateId,
-        String tellerId,
-        String terminalId,
-        Instant occurredAt
+    String aggregateId,
+    String tellerId,
+    String terminalId,
+    Instant occurredAt
 ) implements DomainEvent {
-    public SessionStartedEvent {
-        // Validation handled by aggregate, this is the event DTO
+
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId) {
+        this(aggregateId, tellerId, terminalId, Instant.now());
     }
 
     @Override

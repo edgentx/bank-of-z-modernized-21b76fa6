@@ -1,20 +1,23 @@
 package com.vforce360;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vforce360.ports.MarPort;
 import org.springframework.stereotype.Service;
 
 /**
  * Service responsible for processing and formatting MAR data.
- * NOTE: This file represents the "Empty Implementation" phase.
- * It currently contains logic that causes the test to fail (TDD Red Phase).
+ * Implements the Green Phase logic to transform JSON into HTML.
  */
 @Service
 public class MarService {
 
     private final MarPort marPort;
+    private final ObjectMapper objectMapper;
 
     public MarService(MarPort marPort) {
         this.marPort = marPort;
+        this.objectMapper = new ObjectMapper();
     }
 
     /**
@@ -24,9 +27,38 @@ public class MarService {
      * @return HTML formatted string ready for display.
      */
     public String getFormattedReport(String projectId) {
-        // RED PHASE INTENTIONAL BUG:
-        // Currently returning raw JSON instead of formatted HTML.
-        // This simulates the defect described in the story.
-        return marPort.getMarContent(projectId);
+        String rawContent = marPort.getMarContent(projectId);
+        
+        try {
+            // Parse the raw JSON into a generic tree
+            JsonNode rootNode = objectMapper.readTree(rawContent);
+            
+            // Build the HTML output
+            StringBuilder html = new StringBuilder();
+            html.append("<html><body>");
+            html.append("<h1>Modernization Assessment Report</h1>");
+            
+            // Render Summary
+            if (rootNode.has("summary")) {
+                html.append("<h2>Summary</h2>");
+                html.append("<p>").append(rootNode.get("summary").asText()).append("</p>");
+            }
+            
+            // Render Recommendations as a bulleted list
+            if (rootNode.has("recommendations")) {
+                html.append("<h2>Recommendations</h2>");
+                html.append("<ul>");
+                for (JsonNode rec : rootNode.get("recommendations")) {
+                    html.append("<li>").append(rec.asText()).append("</li>");
+                }
+                html.append("</ul>");
+            }
+            
+            html.append("</body></html>");
+            return html.toString();
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse MAR content", e);
+        }
     }
 }

@@ -1,5 +1,4 @@
 Feature: Implement PostWithdrawalCmd on Transaction (transaction-processing)
-  Feature: PostWithdrawalCmd
 
   Scenario: Successfully execute PostWithdrawalCmd
     Given a valid Transaction aggregate

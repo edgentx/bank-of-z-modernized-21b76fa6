@@ -1,31 +1,34 @@
 package com.example.domain.tellersession.model;
 
-import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.shared.AggregateRoot;
+
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
 /**
- * TellerSession aggregate.
- * S-20: Implement EndSessionCmd.
+ * Aggregate representing a Bank Teller's UI session.
+ * Manages authentication state, navigation context, and timeouts.
  */
-public class TellerSession extends AggregateRoot {
+public class TellerSessionAggregate extends AggregateRoot {
 
     private final String sessionId;
     private String tellerId;
-    private boolean authenticated;
-    private Instant lastActivity;
-    private boolean active;
-    private String currentState; // Represents operational context (e.g., Screen ID)
+    private String navigationContext;
+    private Instant lastActivityAt;
+    private boolean isActive;
 
-    // Configured timeout in minutes (injected or defaulted)
-    private static final long TIMEOUT_MINUTES = 30;
+    // Configuration: Session timeout duration
+    private static final Duration SESSION_TIMEOUT = Duration.ofMinutes(30);
 
-    public TellerSession(String sessionId) {
+    public TellerSessionAggregate(String sessionId) {
         this.sessionId = sessionId;
-        this.active = true;
+        // Initialize in a blank/unauthenticated state
+        this.lastActivityAt = Instant.now();
+        this.isActive = false;
     }
 
     @Override
@@ -33,63 +36,58 @@ public class TellerSession extends AggregateRoot {
         return sessionId;
     }
 
+    /**
+     * Test helper to simulate state hydration.
+     * In a real application, state is built by applying events from the EventStore.
+     */
+    public void hydrate(String tellerId, String navigationContext, Instant lastActivityAt) {
+        this.tellerId = tellerId;
+        this.navigationContext = navigationContext;
+        this.lastActivityAt = lastActivityAt;
+        if (tellerId != null && navigationContext != null) {
+            this.isActive = true;
+        }
+    }
+
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof EndSessionCmd c) {
-            return endSession(c);
+        if (cmd instanceof EndSessionCmd) {
+            return handleEndSession((EndSessionCmd) cmd);
         }
         throw new UnknownCommandException(cmd);
     }
 
-    private List<DomainEvent> endSession(EndSessionCmd cmd) {
-        // Invariant 1: A teller must be authenticated to initiate a session.
-        // (Assuming for ending a session, we validate the teller associated with it is authenticated)
-        if (!authenticated) {
-            throw new IllegalStateException("Teller must be authenticated to end the session.");
+    private List<DomainEvent> handleEndSession(EndSessionCmd cmd) {
+        // Invariant: A teller must be authenticated
+        if (tellerId == null || tellerId.isBlank()) {
+            throw new IllegalStateException("Cannot end session: No authenticated teller found.");
         }
 
-        // Invariant 2: Sessions must timeout after a configured period of inactivity.
-        Instant now = Instant.now();
-        if (lastActivity != null) {
-            if (lastActivity.plusSeconds(TIMEOUT_MINUTES * 60).isBefore(now)) {
-                throw new IllegalStateException("Session has timed out due to inactivity.");
-            }
+        // Invariant: Navigation state must be valid
+        if (navigationContext == null || navigationContext.isBlank()) {
+            throw new IllegalStateException("Cannot end session: Navigation context is corrupted or invalid.");
         }
 
-        // Invariant 3: Navigation state must accurately reflect the current operational context.
-        // Here we interpret the rejection criteria as: we cannot end a session if the state is invalid
-        // or if we are in a transient critical state not allowing exit.
-        // For this implementation, we'll assume the "Invalid State" is represented by a specific flag or null state if required.
-        // However, the prompt implies the aggregate *violates* the state. 
-        // We will enforce that we cannot end a session if the teller is in a transactional state (unless forced).
-        // To satisfy the specific rejection scenario, we check for a specific invalid flag.
-        if ("INVALID_CONTEXT".equals(this.currentState)) {
-             throw new IllegalStateException("Navigation state must accurately reflect the current operational context.");
+        // Invariant: Session must not be timed out (Business rule: usually you can't end a dead session, or you must log it)
+        // Here we enforce that we cannot perform operations on a timed-out session.
+        if (isTimedOut()) {
+            throw new IllegalStateException("Cannot end session: Session has timed out due to inactivity.");
         }
 
-        if (!active) {
-            throw new IllegalStateException("Session is already ended.");
-        }
-
-        // Apply event
-        DomainEvent event = new SessionEndedEvent("session.ended", this.sessionId, now);
+        SessionEndedEvent event = new SessionEndedEvent(sessionId, Instant.now());
         
-        // Update state
-        this.active = false;
-        // Clear sensitive state
-        this.tellerId = null; 
-        this.currentState = null;
+        // Apply state changes
+        this.isActive = false;
+        this.tellerId = null; // Clear sensitive state
+        this.navigationContext = null; // Clear navigation state
         
         addEvent(event);
         incrementVersion();
         return List.of(event);
     }
 
-    // Public getters/setters for test setup and validation
-    public void setAuthenticated(boolean authenticated) { this.authenticated = authenticated; }
-    public void setLastActivity(Instant lastActivity) { this.lastActivity = lastActivity; }
-    public void setCurrentState(String currentState) { this.currentState = currentState; }
-    public boolean isActive() { return active; }
-    public String getSessionId() { return sessionId; }
-    public String getCurrentState() { return currentState; }
+    private boolean isTimedOut() {
+        if (lastActivityAt == null) return true;
+        return Instant.now().isAfter(lastActivityAt.plus(SESSION_TIMEOUT));
+    }
 }

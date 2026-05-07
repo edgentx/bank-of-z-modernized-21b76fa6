@@ -2,16 +2,12 @@ package com.example.ports;
 
 /**
  * Port interface for sending notifications to Slack.
- * This decouples the business logic from the specific Slack client implementation.
+ * This allows us to mock the Slack Web API in tests.
  */
 public interface SlackNotificationPort {
-
     /**
-     * Sends a defect notification to the configured Slack channel.
-     *
-     * @param defectId The unique identifier of the defect (e.g., "VW-454").
-     * @param description A human-readable description of the defect.
-     * @param githubIssueUrl The direct URL to the GitHub issue tracking this defect.
+     * Sends a notification message to a channel.
+     * @param messageBody The markdown/text body of the message
      */
-    void sendDefectNotification(String defectId, String description, String githubIssueUrl);
+    void notify(String messageBody);
 }

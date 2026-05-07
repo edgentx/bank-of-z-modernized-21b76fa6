@@ -1,8 +1,10 @@
 package com.example.domain;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 public class PostWithdrawalCmd {
+
     private final String accountNumber;
     private final BigDecimal amount;
     private final String currency;
@@ -23,5 +25,18 @@ public class PostWithdrawalCmd {
 
     public String getCurrency() {
         return currency;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PostWithdrawalCmd that = (PostWithdrawalCmd) o;
+        return Objects.equals(accountNumber, that.accountNumber) && Objects.equals(amount, that.amount) && Objects.equals(currency, that.currency);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(accountNumber, amount, currency);
     }
 }

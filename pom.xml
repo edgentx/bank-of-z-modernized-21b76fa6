@@ -9,18 +9,18 @@
         <version>3.2.0</version>
         <relativePath/>
     </parent>
-
+    
     <groupId>com.example</groupId>
-    <artifactId>transaction-processing</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-    <name>transaction-processing</name>
-    <description>Transaction Processing with Domain-Driven Design</description>
-
+    <artifactId>bank-of-z-modernization</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>Bank-of-Z Modernization</name>
+    <description>Transaction Processing and Legacy Migration</description>
+    
     <properties>
-        <java.version>17</java.version>
-        <flyway.version>9.22.3</flyway.version>
+        <java.version>21</java.version>
+        <cucumber.version>7.14.0</cucumber.version>
     </properties>
-
+    
     <dependencies>
         <!-- Spring Boot Starters -->
         <dependency>
@@ -29,11 +29,11 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -48,52 +48,32 @@
             <artifactId>spring-batch-core</artifactId>
         </dependency>
 
-        <!-- DB2 Driver (Assumed provided or scope runtime for z/OS connectivity) -->
+        <!-- Database Drivers -->
         <dependency>
             <groupId>com.ibm.db2</groupId>
             <artifactId>jcc</artifactId>
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Flyway for DB2 Schema Migration -->
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-db2</artifactId>
-            <version>${flyway.version}</version>
-        </dependency>
-
-        <!-- IBM MQ JMS Client -->
+        <!-- IBM MQ & JMS -->
         <dependency>
             <groupId>com.ibm.mq</groupId>
-            <artifactId>mq-jms-spring-boot-starter</artifactId>
-            <version>3.0.2</version>
+            <artifactId>com.ibm.mq.allclient</artifactId>
+            <version>9.3.4.1</version>
         </dependency>
-
-        <!-- Redis -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <groupId>jakarta.jms</groupId>
+            <artifactId>jakarta.jms-api</artifactId>
         </dependency>
 
-        <!-- MinIO Client -->
+        <!-- CICS/IMS & z/OS -->
         <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-            <version>8.5.7</version>
+            <groupId>com.ibm.cics</groupId>
+            <artifactId>com.ibm.cics.server</artifactId>
+            <version>6.1.0.1</version>
         </dependency>
 
-        <!-- Temporal SDK -->
-        <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>1.22.3</version>
-        </dependency>
-
-        <!-- OpenTelemetry -->
+        <!-- Observability -->
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-tracing-bridge-otel</artifactId>
@@ -104,39 +84,63 @@
             <version>1.32.0</version>
         </dependency>
 
-        <!-- Testing Dependencies -->
+        <!-- Storage & Cache -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>8.5.6</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <scope>test</scope>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
-        <!-- Cucumber Dependencies -->
+        <!-- Workflow -->
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-spring-boot-starter</artifactId>
+            <version>1.22.3</version>
+        </dependency>
+
+        <!-- Flyway -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-db2</artifactId>
+        </dependency>
+
+        <!-- Cucumber Testing -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
-            <version>7.14.0</version>
+            <version>${cucumber.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>7.14.0</version>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-spring</artifactId>
+            <version>${cucumber.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Standard Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -151,11 +155,10 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>17</source>
-                    <target>17</target>
+                    <source>21</source>
+                    <target>21</target>
                 </configuration>
             </plugin>
         </plugins>
     </build>
-
 </project>

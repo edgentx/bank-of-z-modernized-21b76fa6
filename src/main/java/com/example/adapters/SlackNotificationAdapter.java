@@ -1,27 +1,32 @@
 package com.example.adapters;
 
-import com.example.ports.SlackNotificationPort;
+import com.example.ports.SlackPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.lang.invoke.MethodHandles;
+import org.springframework.stereotype.Component;
 
 /**
- * Real implementation of the Slack Notification Port.
- * Connects to the external Slack API.
+ * Adapter for Slack notifications.
+ * Validates that the URL is present in the payload before sending.
  */
-public class SlackNotificationAdapter implements SlackNotificationPort {
-
-    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+@Component
+public class SlackNotificationAdapter implements SlackPort {
+    private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
 
     @Override
-    public void send(String message) {
-        // Implementation for the actual Slack API call would go here.
-        // For VW-454, we ensure the message passed in contains the GitHub URL.
-        log.info("Sending Slack notification: {}", message);
+    public void notifyDefectReported(String summary, String githubUrl) {
+        if (githubUrl == null || githubUrl.isBlank()) {
+            throw new IllegalArgumentException("Cannot notify Slack: GitHub URL is missing.");
+        }
         
-        // Pseudo-code for actual implementation:
-        // WebTestClient webClient = WebClient.create("https://slack.com/api");
-        // webClient.post()...
+        String message = String.format(
+            "New Defect Reported: %s\nGitHub Issue: %s", 
+            summary, 
+            githubUrl
+        );
+        
+        // Simulate sending to Slack webhook
+        log.info("Sending to Slack: {}", message);
+        // logic to post to webhook would go here
     }
 }

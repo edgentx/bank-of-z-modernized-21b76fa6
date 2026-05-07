@@ -3,26 +3,15 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Objects;
 
-/**
- * Event emitted when a TellerSession is successfully terminated.
- * S-20: EndSessionCmd result.
- */
-public record SessionEndedEvent(
-        String eventId,
-        String aggregateId,
-        Instant occurredAt
-) implements DomainEvent {
+public class SessionEndedEvent implements DomainEvent {
+    private final String aggregateId;
+    private final Instant occurredAt;
 
-    public SessionEndedEvent {
-        if (eventId == null || eventId.isBlank()) {
-            eventId = UUID.randomUUID().toString();
-        }
-    }
-
-    public SessionEndedEvent(String aggregateId) {
-        this(UUID.randomUUID().toString(), aggregateId, Instant.now());
+    public SessionEndedEvent(String aggregateId, Instant occurredAt) {
+        this.aggregateId = Objects.requireNonNull(aggregateId);
+        this.occurredAt = Objects.requireNonNull(occurredAt);
     }
 
     @Override

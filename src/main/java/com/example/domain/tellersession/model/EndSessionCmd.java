@@ -4,6 +4,6 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to end a teller session.
- * Context: User-Interface-Navigation (S-20).
+ * Context: S-20 Implement EndSessionCmd on TellerSession
  */
 public record EndSessionCmd(String sessionId) implements Command {}

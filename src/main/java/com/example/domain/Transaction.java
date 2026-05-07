@@ -1,81 +1,47 @@
 package com.example.domain;
 
 import java.math.BigDecimal;
-import java.util.Currency;
-import java.util.UUID;
 
-/**
- * Transaction Aggregate.
- * Handles the logic for posting withdrawals (S-11).
- */
 public class Transaction {
+    
+    private final Account account;
+    private WithdrawalPostedEvent postedEvent; // State to check immutability
 
-    private UUID id;
-    private TransactionStatus status = TransactionStatus.PENDING;
-
-    // In a real application, currentBalance would be derived from the Account aggregate,
-    // which would likely be injected or loaded within the transaction context.
-    // For S-11 domain testing, we assume a default balance or injected state.
-    private static final BigDecimal MAX_WITHDRAWAL = new BigDecimal("50000.00");
-
-    public Transaction() {
-        this.id = UUID.randomUUID();
+    public Transaction(Account account) {
+        this.account = account;
     }
 
-    /**
-     * Executes the PostWithdrawalCmd command.
-     * Enforces invariants:
-     * 1. Amount > 0
-     * 2. Transaction not already posted (State invariant)
-     * 3. Valid Account Balance result (Business invariant)
-     *
-     * @param command The command to execute.
-     * @return The resulting S11Event.
-     * @throws IllegalArgumentException If business rules are violated.
-     * @throws IllegalStateException    If aggregate state prevents execution.
-     */
-    public S11Event execute(S11Command command) {
-        // Invariant 1: Transaction amounts must be greater than zero.
-        if (command.getAmount() == null || command.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Transaction amounts must be greater than zero.");
+    public WithdrawalPostedEvent getPostedEvent() {
+        return postedEvent;
+    }
+
+    public DomainEvent execute(PostWithdrawalCmd cmd) {
+        // Invariant 1: Already Posted
+        if (this.postedEvent != null) {
+            throw new DomainError("Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.");
         }
 
-        // Invariant 2: Transactions cannot be altered or deleted once posted.
-        if (this.status == TransactionStatus.POSTED) {
-            throw new IllegalStateException("Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.");
+        // Invariant 2: Amount > 0
+        if (cmd.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new DomainError("Transaction amounts must be greater than zero.");
         }
 
-        // Invariant 3: A transaction must result in a valid account balance.
-        // (Simulating a check against an overdraft limit or available funds)
-        // Here we enforce an arbitrary limit for the scenario.
-        if (command.getAmount().compareTo(MAX_WITHDRAWAL) > 0) {
-            throw new IllegalArgumentException("A transaction must result in a valid account balance (enforced via aggregate validation).");
+        // Invariant 3: Valid Balance (No Overdraft)
+        // Assuming a balance cannot go below 0
+        if (account.getBalance().compareTo(cmd.amount()) < 0) {
+            throw new DomainError("A transaction must result in a valid account balance (enforced via aggregate validation).");
         }
 
-        // Logic succeeded: Apply state transition and emit event
-        this.status = TransactionStatus.POSTED;
-
-        return new S11Event(
-                this.id,
-                command.getAccountNumber(),
-                command.getAmount(),
-                command.getCurrency()
+        // Apply Logic
+        account.debit(cmd.amount());
+        
+        this.postedEvent = new WithdrawalPostedEvent(
+            cmd.accountNumber(), 
+            cmd.amount(), 
+            cmd.currency(), 
+            account.getBalance()
         );
-    }
 
-    /**
-     * Internal helper for test setup to simulate a recovered aggregate that is already posted.
-     * This would normally happen via event sourcing (apply events) or DB loading.
-     */
-    void markPostedInternal() {
-        this.status = TransactionStatus.POSTED;
-    }
-
-    public UUID getId() {
-        return id;
-    }
-
-    public TransactionStatus getStatus() {
-        return status;
+        return this.postedEvent;
     }
 }

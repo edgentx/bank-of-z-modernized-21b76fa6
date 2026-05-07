@@ -3,8 +3,21 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
-public record SessionEndedEvent(String aggregateId, Instant occurredAt) implements DomainEvent {
+/**
+ * Event published when a TellerSession is successfully terminated.
+ * Part of Story S-20: EndSessionCmd on TellerSession.
+ */
+public record SessionEndedEvent(
+        String aggregateId,
+        Instant occurredAt
+) implements DomainEvent {
+    public SessionEndedEvent(String aggregateId, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.occurredAt = occurredAt != null ? occurredAt : Instant.now();
+    }
+
     @Override
     public String type() {
         return "session.ended";

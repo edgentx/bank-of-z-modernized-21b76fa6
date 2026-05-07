@@ -1,15 +1,11 @@
 package com.example;
 
-import com.example.adapters.TemporalWorkerAdapter;
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackNotifierPort;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
+import org.springframework.web.client.RestClient;
 
 @SpringBootApplication
-@ComponentScan(basePackages = {"com.example.domain", "com.example.adapters", "com.example.ports"})
 public class Application {
 
     public static void main(String[] args) {
@@ -17,7 +13,7 @@ public class Application {
     }
 
     @Bean
-    public TemporalWorkerAdapter temporalWorkerAdapter(GitHubPort gitHubPort, SlackNotifierPort slackNotifierPort) {
-        return new TemporalWorkerAdapter(gitHubPort, slackNotifierPort);
+    public RestClient.Builder restClientBuilder() {
+        return RestClient.builder();
     }
 }

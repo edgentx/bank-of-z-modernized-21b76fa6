@@ -2,40 +2,27 @@ package com.example.mocks;
 
 import com.example.ports.GitHubPort;
 
-import java.util.Optional;
-
 /**
  * Mock implementation of GitHubPort for testing.
+ * Simulates creating an issue and returns a predictable URL.
  */
 public class MockGitHubPort implements GitHubPort {
 
-    private String nextCreatedIssueUrl;
-    private String lastCreatedTitle;
-    private String lastCreatedBody;
+    private final String mockBaseUrl;
+    private int callCount = 0;
 
-    public void setNextCreatedIssueUrl(String url) {
-        this.nextCreatedIssueUrl = url;
+    public MockGitHubPort(String mockBaseUrl) {
+        this.mockBaseUrl = mockBaseUrl;
     }
 
     @Override
     public String createIssue(String title, String body) {
-        this.lastCreatedTitle = title;
-        this.lastCreatedBody = body;
-        // Simulate returning a valid GitHub URL
-        return nextCreatedIssueUrl != null ? nextCreatedIssueUrl : "https://github.com/example/repo/issues/1";
+        callCount++;
+        // Simulate returning a valid URL
+        return mockBaseUrl + "/" + callCount;
     }
 
-    @Override
-    public Optional<String> getIssueUrl(String issueId) {
-        // Not used in this specific flow, but part of the contract
-        return Optional.of("https://github.com/example/repo/issues/" + issueId);
-    }
-
-    public String getLastCreatedTitle() {
-        return lastCreatedTitle;
-    }
-
-    public String getLastCreatedBody() {
-        return lastCreatedBody;
+    public int getCallCount() {
+        return callCount;
     }
 }

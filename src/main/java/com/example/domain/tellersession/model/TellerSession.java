@@ -4,39 +4,32 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-
 import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 /**
- * TellerSession Aggregate.
- * Handles the lifecycle of a teller's UI session, enforcing invariants about
- * authentication, timeouts, and navigation state.
+ * TellerSession aggregate.
+ * Manages the state of a bank teller's terminal session, including authentication, timeouts, and UI navigation context.
  */
 public class TellerSession extends AggregateRoot {
 
     private final String sessionId;
     private String tellerId;
-    private TellerSessionState state;
+    private boolean authenticated;
+    private boolean active;
     private Instant lastActivityAt;
-    private final Duration timeoutDuration = Duration.ofMinutes(30);
-    private boolean isNavigationStateValid = true;
+    private Duration timeoutDuration;
+    private String navigationContext; // e.g., "MAIN_MENU", "CASH_DEPOSIT"
 
-    // Package-private constructor for test harnessing/stubbing
-    TellerSession(String sessionId, String tellerId) {
-        this.sessionId = sessionId;
-        this.tellerId = tellerId;
-        this.state = TellerSessionState.AUTHENTICATED;
-        this.lastActivityAt = Instant.now();
-    }
-
-    // Public constructor for reconstruction (e.g., from repository)
     public TellerSession(String sessionId) {
         this.sessionId = sessionId;
-        this.state = TellerSessionState.AUTHENTICATED; // Default for new aggregate
+        // Default invariants for a fresh session
+        this.authenticated = false;
+        this.active = true;
         this.lastActivityAt = Instant.now();
+        this.timeoutDuration = Duration.ofMinutes(15); // Standard timeout
+        this.navigationContext = "INITIAL";
     }
 
     @Override
@@ -46,74 +39,71 @@ public class TellerSession extends AggregateRoot {
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof EndSessionCmd c) {
-            return handleEndSession(c);
+        if (cmd instanceof EndSessionCmd) {
+            return endSession((EndSessionCmd) cmd);
         }
+        // NOTE: StartSessionCmd or other commands would be handled here in future stories
         throw new UnknownCommandException(cmd);
     }
 
-    private List<DomainEvent> handleEndSession(EndSessionCmd cmd) {
-        // Invariant Check 1: Teller must be authenticated
-        if (state != TellerSessionState.AUTHENTICATED) {
-            throw new IllegalStateException(
-                String.format("Cannot end session %s: Session is in state %s. Authenticated state required.",
-                    sessionId, state)
-            );
-        }
-
-        // Invariant Check 2: Session must not have timed out
+    private List<DomainEvent> endSession(EndSessionCmd cmd) {
+        // Invariant 1: Sessions must timeout after a configured period of inactivity.
         if (hasTimedOut()) {
-            this.state = TellerSessionState.TIMED_OUT;
-            throw new IllegalStateException(
-                String.format("Cannot end session %s: Session has timed out due to inactivity.", sessionId)
-            );
+            throw new IllegalStateException("Session has timed out due to inactivity.");
         }
 
-        // Invariant Check 3: Navigation state must be valid
-        if (!isNavigationStateValid) {
-            throw new IllegalStateException(
-                String.format("Cannot end session %s: Navigation state is corrupted or does not reflect operational context.", sessionId)
-            );
+        // Invariant 2: A teller must be authenticated to initiate a session.
+        // NOTE: This invariant phrasing in the AC implies checking if they are authenticated. 
+        // However, ending a session is often allowed even if unauthenticated (e.g. canceling login). 
+        // But strictly following the AC: "EndSessionCmd rejected — A teller must be authenticated..."
+        // Contextually, this usually applies to actions *within* a session, but we enforce it here if required.
+        // We will interpret this as: The session must be in a valid state to terminate cleanly, or 
+        // specifically that the invariant of "Authenticity" holds. 
+        // Given the specific AC, we will throw if !authenticated.
+        if (!authenticated) {
+             throw new IllegalStateException("Teller must be authenticated to end session formally.");
         }
 
-        // Apply logic
+        // Invariant 3: Navigation state must accurately reflect the current operational context.
+        // We check if the context is in a valid state to end (e.g., not mid-transaction).
+        if (navigationContext == null || navigationContext.equals("UNKNOWN")) {
+            throw new IllegalStateException("Navigation state is invalid.");
+        }
+
         var event = new SessionEndedEvent(this.sessionId, this.tellerId, Instant.now());
-        this.state = TellerSessionState.UNAUTHENTICATED; // Transition state effectively ending it
-        this.tellerId = null; // Clear sensitive state
-        
+        this.active = false;
         addEvent(event);
         incrementVersion();
         return List.of(event);
     }
 
     private boolean hasTimedOut() {
-        if (lastActivityAt == null) return true;
-        Instant now = Instant.now();
-        long elapsed = lastActivityAt.until(now, ChronoUnit.MINUTES);
-        return elapsed > timeoutDuration.toMinutes();
+        return lastActivityAt.plus(timeoutDuration).isBefore(Instant.now());
     }
 
-    // --- Test Utilities ---
-    // These methods are used to simulate invalid states for BDD scenario validation.
-
-    void markUnauthenticated() {
-        this.state = TellerSessionState.UNAUTHENTICATED;
+    // Test helpers / State accessors
+    public void markAuthenticated(String tellerId) {
+        this.tellerId = tellerId;
+        this.authenticated = true;
+    }
+    
+    public void setLastActivityAt(Instant time) {
+        this.lastActivityAt = time;
     }
 
-    void forceTimeoutState() {
-        // Simulate timeout by setting last activity far in the past
-        this.lastActivityAt = Instant.now().minus(timeoutDuration).minusSeconds(60);
+    public void setTimeoutDuration(Duration duration) {
+        this.timeoutDuration = duration;
     }
 
-    void corruptNavigationState() {
-        this.isNavigationStateValid = false;
+    public void setNavigationContext(String context) {
+        this.navigationContext = context;
+    }
+    
+    public boolean isActive() {
+        return active;
     }
 
-    public TellerSessionState getState() {
-        return state;
-    }
-
-    public String getTellerId() {
-        return tellerId;
+    public boolean isAuthenticated() {
+        return authenticated;
     }
 }

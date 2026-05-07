@@ -60,6 +60,14 @@
             <version>1.22.0</version>
             <scope>test</scope>
         </dependency>
+        
+        <!-- Flyway DB2 (NOT in Spring Boot BOM - Explicit Version Required) -->
+        <!-- Build Error Fix: Satisfy dependency resolution for flyway-db2 -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-db2</artifactId>
+            <version>9.22.3</version>
+        </dependency>
 
     </dependencies>
 </project>

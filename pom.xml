@@ -36,7 +36,7 @@
             <artifactId>temporal-sdk</artifactId>
             <version>1.22.1</version>
         </dependency>
-        <!-- Temporal Spring Boot Starter (Assuming compatible or explicit version added below) -->
+        <!-- Temporal Spring Boot Starter -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>

@@ -1,10 +1,9 @@
 package com.example.steps;
 
-import com.example.domain.reconciliation.model.InMemoryReconciliationBatchRepository;
 import com.example.domain.reconciliation.model.ReconciliationBatch;
-import com.example.domain.reconciliation.model.ReconciliationBatchRepository;
 import com.example.domain.reconciliation.model.ReconciliationStartedEvent;
 import com.example.domain.reconciliation.model.StartReconciliationCmd;
+import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -17,60 +16,61 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class S16Steps {
 
-    private ReconciliationBatch aggregate;
-    private final ReconciliationBatchRepository repo = new InMemoryReconciliationBatchRepository();
-    private Exception capturedException;
-    private List<com.example.domain.shared.DomainEvent> resultEvents;
+    private ReconciliationBatch batch;
+    private StartReconciliationCmd cmd;
+    private List<DomainEvent> resultingEvents;
+    private Exception caughtException;
 
     @Given("a valid ReconciliationBatch aggregate")
-    public void aValidReconciliationBatchAggregate() {
-        aggregate = new ReconciliationBatch("batch-1");
-        repo.save(aggregate);
+    public void a_valid_ReconciliationBatch_aggregate() {
+        batch = new ReconciliationBatch("batch-123");
     }
 
-    @Given("a valid batchWindow is provided")
-    public void aValidBatchWindowIsProvided() {
-        // Data setup for the command will be handled in the 'When' step
-        // We assume the window provided in the 'When' step is valid.
+    @Given("a ReconciliationBatch aggregate that violates: A reconciliation batch cannot be executed if a previous batch is still pending.")
+    public void a_ReconciliationBatch_aggregate_that_violates_previous_pending() {
+        batch = new ReconciliationBatch("batch-123");
+        batch.markPreviousBatchPending(true);
+    }
+
+    @Given("a ReconciliationBatch aggregate that violates: All transaction entries must be accounted for during the reconciliation period.")
+    public void a_ReconciliationBatch_aggregate_that_violates_entries_accounted() {
+        batch = new ReconciliationBatch("batch-123");
+        batch.markEntriesUnaccounted();
+    }
+
+    @And("a valid batchWindow is provided")
+    public void a_valid_batchWindow_is_provided() {
+        // cmd construction happens in the When step for simplicity in this context, 
+        // or we store the window parameters here.
     }
 
     @When("the StartReconciliationCmd command is executed")
-    public void theStartReconciliationCmdCommandIsExecuted() {
+    public void the_StartReconciliationCmd_command_is_executed() {
+        Instant start = Instant.now().minusSeconds(3600);
+        Instant end = Instant.now();
+        cmd = new StartReconciliationCmd("batch-123", start, end, "operator-1");
+
         try {
-            Instant start = Instant.parse("2023-01-01T00:00:00Z");
-            Instant end = Instant.parse("2023-01-01T23:59:59Z");
-            StartReconciliationCmd cmd = new StartReconciliationCmd("batch-1", start, end);
-            resultEvents = aggregate.execute(cmd);
+            resultingEvents = batch.execute(cmd);
         } catch (Exception e) {
-            capturedException = e;
+            caughtException = e;
         }
     }
 
     @Then("a reconciliation.started event is emitted")
-    public void aReconciliationStartedEventIsEmitted() {
-        assertNull(capturedException, "Should not have thrown an exception");
-        assertNotNull(resultEvents, "Events should not be null");
-        assertEquals(1, resultEvents.size(), "Should have emitted exactly one event");
-        assertTrue(resultEvents.get(0) instanceof ReconciliationStartedEvent, "Event should be ReconciliationStartedEvent");
-    }
+    public void a_reconciliation_started_event_is_emitted() {
+        assertNotNull(resultingEvents);
+        assertEquals(1, resultingEvents.size());
+        assertTrue(resultingEvents.get(0) instanceof ReconciliationStartedEvent);
 
-    @Given("a ReconciliationBatch aggregate that violates: A reconciliation batch cannot be executed if a previous batch is still pending.")
-    public void aReconciliationBatchAggregateThatViolatesPreviousBatchPending() {
-        aggregate = new ReconciliationBatch("batch-violation-pending");
-        aggregate.markPreviousBatchPending(true);
-        repo.save(aggregate);
-    }
-
-    @Given("a ReconciliationBatch aggregate that violates: All transaction entries must be accounted for during the reconciliation period.")
-    public void aReconciliationBatchAggregateThatViolatesEntriesAccounted() {
-        aggregate = new ReconciliationBatch("batch-violation-entries");
-        aggregate.markEntriesUnaccounted();
-        repo.save(aggregate);
+        ReconciliationStartedEvent event = (ReconciliationStartedEvent) resultingEvents.get(0);
+        assertEquals("reconciliation.started", event.type());
+        assertEquals("batch-123", event.aggregateId());
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(capturedException, "Should have thrown an exception");
-        assertTrue(capturedException instanceof IllegalStateException, "Exception should be IllegalStateException (Domain Error)");
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(caughtException);
+        assertTrue(caughtException instanceof IllegalStateException);
     }
 }

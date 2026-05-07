@@ -2,20 +2,17 @@ package com.example.domain.teller.model;
 
 import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Objects;
 
 public record SessionStartedEvent(
-    String sessionId,
-    String tellerId,
-    String terminalId,
-    Instant occurredAt
+        String aggregateId,
+        String tellerId,
+        String terminalId,
+        Instant occurredAt
 ) implements DomainEvent {
-
-    public SessionStartedEvent(String sessionId, String tellerId, String terminalId, Instant occurredAt) {
-        this.sessionId = sessionId;
-        this.tellerId = tellerId;
-        this.terminalId = terminalId;
-        this.occurredAt = occurredAt;
+    public SessionStartedEvent {
+        Objects.requireNonNull(aggregateId, "aggregateId cannot be null");
+        Objects.requireNonNull(occurredAt, "occurredAt cannot be null");
     }
 
     @Override
@@ -25,6 +22,6 @@ public record SessionStartedEvent(
 
     @Override
     public String aggregateId() {
-        return sessionId;
+        return aggregateId;
     }
 }

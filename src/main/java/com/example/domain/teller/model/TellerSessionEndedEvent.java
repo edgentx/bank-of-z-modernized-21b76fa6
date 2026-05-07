@@ -1,26 +1,30 @@
 package com.example.domain.teller.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
+import java.util.Objects;
 
-/**
- * Event emitted when a teller session is terminated.
- * S-20: user-interface-navigation.
- */
 public record TellerSessionEndedEvent(
-        String aggregateId,
-        String sessionId,
-        Instant occurredAt
+    String aggregateId,
+    Instant occurredAt
 ) implements DomainEvent {
     public TellerSessionEndedEvent {
         Objects.requireNonNull(aggregateId);
-        Objects.requireNonNull(sessionId);
         Objects.requireNonNull(occurredAt);
     }
 
     @Override
     public String type() {
-        return "session.ended";
+        return "teller.session.ended";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

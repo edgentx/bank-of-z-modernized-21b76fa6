@@ -3,22 +3,34 @@ package com.example.domain.reconciliation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
- * Event emitted when a reconciliation batch has started.
+ * Event emitted when a reconciliation batch process is successfully started.
  */
 public record ReconciliationStartedEvent(
-    String aggregateId,
-    String batchWindow,
-    Instant periodStart,
-    Instant periodEnd,
-    Instant occurredAt
+        String eventId,
+        String aggregateId,
+        Instant windowStart,
+        Instant windowEnd,
+        Instant occurredAt
 ) implements DomainEvent {
+    public ReconciliationStartedEvent(String aggregateId, Instant windowStart, Instant windowEnd, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, windowStart, windowEnd, occurredAt);
+    }
 
     @Override
     public String type() {
         return "reconciliation.started";
     }
 
-    // Override method to satisfy interface requirement if field name differs (record matches automatically if names match)
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
 }

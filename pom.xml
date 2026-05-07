@@ -7,30 +7,24 @@
     <version>3.2.3</version>
     <relativePath/>
   </parent>
+  
   <groupId>com.example</groupId>
   <artifactId>bank-of-z</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>bank-of-z</name>
   <description>Bank of Z Modernization</description>
-
+  
   <properties>
     <java.version>17</java.version>
     <cucumber.version>7.16.1</cucumber.version>
+    <snippetsId>${java.version}-${project.artifactId}</snippetsId>
   </properties>
-
+  
   <dependencies>
-    <!-- Spring Boot Dependencies -->
+    <!-- Spring Boot Starters -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-mongodb</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-security</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -38,39 +32,39 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-mongodb</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-integration</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.springframework.batch</groupId>
-      <artifactId>spring-batch-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.integration</groupId>
-      <artifactId>spring-integration-jms</artifactId>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-batch</artifactId>
     </dependency>
 
-    <!-- IBM MQ (Version required as per stack instructions - simulated/wrapped for generic build) -->
-    <!-- NOTE: com.ibm.mq:mq-jms-spring-boot-starter is not in Maven Central. 
-         Assuming an internal repository or simulated dependency for the build. 
-         Explicit version 3.0.4 used to satisfy BOM rules. -->
+    <!-- IBM MQ (Mocked for compile, provided scope for now until resolved) -->
     <dependency>
       <groupId>com.ibm.mq</groupId>
       <artifactId>mq-jms-spring-boot-starter</artifactId>
       <version>3.0.4</version>
+      <scope>provided</scope>
     </dependency>
     
-    <!-- Temporal (Version required as per stack instructions) -->
+    <!-- Temporal (Mocked/Provided) -->
     <dependency>
       <groupId>io.temporal</groupId>
       <artifactId>temporal-spring-boot-starter</artifactId>
       <version>1.22.3</version>
-    </dependency>
-
-    <!-- Flyway DB2 (Version required as per stack instructions) -->
-    <dependency>
-      <groupId>org.flywaydb</groupId>
-      <artifactId>flyway-db2</artifactId>
-      <version>9.22.3</version>
+      <scope>provided</scope>
     </dependency>
 
     <!-- Database Drivers -->
@@ -79,36 +73,44 @@
       <artifactId>jcc</artifactId>
       <scope>runtime</scope>
     </dependency>
-    
-    <!-- Observability -->
+    <!-- Flyway DB2 (Requires explicit version) -->
     <dependency>
-      <groupId>io.micrometer</groupId>
-      <artifactId>micrometer-tracing-bridge-otel</artifactId>
-      <!-- Version pinned by BOM? No, explicit version needed for opentelemetry bridge sometimes, but sticking to BOM if possible or explicit if not. 
-           Known BOM-edge artifacts list says micrometer-tracing-bridge-otel needs explicit version. -->
-      <version>1.2.4</version>
-    </dependency>
-    <dependency>
-      <groupId>io.opentelemetry</groupId>
-      <artifactId>opentelemetry-exporter-otlp</artifactId>
-      <version>1.36.0</version>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-db2</artifactId>
+      <version>9.22.3</version>
+      <scope>provided</scope>
     </dependency>
 
-    <!-- Redis & MinIO -->
+    <!-- Redis & Cache -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-redis</artifactId>
     </dependency>
+    
+    <!-- MinIO S3 Client -->
     <dependency>
       <groupId>io.minio</groupId>
       <artifactId>minio</artifactId>
       <version>8.5.7</version>
     </dependency>
 
-    <!-- Test Dependencies -->
+    <!-- GraalVM -->
+    <dependency>
+      <groupId>org.graalvm.sdk</groupId>
+      <artifactId>graal-sdk</artifactId>
+      <version>23.1.0</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Testing -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -124,8 +126,9 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.junit.platform</groupId>
-      <artifactId>junit-platform-suite</artifactId>
+      <groupId>io.cucumber</groupId>
+      <artifactId>cucumber-spring</artifactId>
+      <version>${cucumber.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

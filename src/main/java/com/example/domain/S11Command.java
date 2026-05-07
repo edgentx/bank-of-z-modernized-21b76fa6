@@ -1,34 +1,25 @@
 package com.example.domain;
 
 import java.math.BigDecimal;
-import java.util.Currency;
+import java.util.UUID;
 
-public class S11Command {
-    private String accountNumber;
-    private BigDecimal amount;
-    private Currency currency;
+/**
+ * Command hierarchy for Story S-11.
+ * Following the Execute pattern, the Aggregate accepts a generic Command
+ * and dispatches to the specific logic.
+ */
+public sealed interface S11Command permits S11Command.PostWithdrawalCmd {
 
-    public String getAccountNumber() {
-        return accountNumber;
+    record PostWithdrawalCmd(
+        UUID accountId,
+        BigDecimal amount,
+        String currency
+    ) implements S11Command {
+        public PostWithdrawalCmd {
+            if (accountId == null) throw new IllegalArgumentException("AccountId cannot be null");
+            if (amount == null) throw new IllegalArgumentException("Amount cannot be null");
+            if (currency == null || currency.isBlank()) throw new IllegalArgumentException("Currency cannot be blank");
+        }
     }
 
-    public void setAccountNumber(String accountNumber) {
-        this.accountNumber = accountNumber;
-    }
-
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
-    }
-
-    public Currency getCurrency() {
-        return currency;
-    }
-
-    public void setCurrency(Currency currency) {
-        this.currency = currency;
-    }
 }

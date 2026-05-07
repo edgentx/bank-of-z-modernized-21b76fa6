@@ -1,13 +1,15 @@
 package com.example.domain;
 
 import java.math.BigDecimal;
-import java.util.Currency;
-import java.util.Objects;
 
-public record PostDepositCmd(String accountNumber, BigDecimal amount, Currency currency) {
-    public PostDepositCmd {
-        Objects.requireNonNull(accountNumber, "Account number cannot be null");
-        Objects.requireNonNull(amount, "Amount cannot be null");
-        Objects.requireNonNull(currency, "Currency cannot be null");
+public class PostDepositCmd {
+    public String accountNumber;
+    public BigDecimal amount;
+    public String currency;
+
+    public PostDepositCmd(String accountNumber, BigDecimal amount, String currency) {
+        this.accountNumber = accountNumber;
+        this.amount = amount;
+        this.currency = currency;
     }
 }

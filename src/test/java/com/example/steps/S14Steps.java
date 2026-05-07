@@ -1,7 +1,9 @@
 package com.example.steps;
 
-import com.example.domain.shared.DomainEvent;
-import com.example.domain.transaction.model.*;
+import com.example.domain.shared.DomainException;
+import com.example.domain.transaction.model.CompleteTransferCmd;
+import com.example.domain.transaction.model.TransferAggregate;
+import com.example.domain.transaction.model.TransferCompletedEvent;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -14,89 +16,90 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class S14Steps {
 
-    private TransferAggregate transfer;
-    private List<DomainEvent> resultEvents;
+    private TransferAggregate aggregate;
+    private CompleteTransferCmd cmd;
+    private List<com.example.domain.shared.DomainEvent> resultEvents;
     private Exception caughtException;
 
-    // Scenario 1: Success
+    // State helpers for specific violations
+    private boolean violatesBalance = false;
+    private boolean violatesAtomicity = false;
+    private boolean violatesSameAccount = false;
+
     @Given("a valid Transfer aggregate")
-    public void a_valid_Transfer_aggregate() {
-        transfer = new TransferAggregate("tx-valid-123");
+    public void aValidTransferAggregate() {
+        this.aggregate = new TransferAggregate("tx-valid-123");
+    }
+
+    @Given("a Transfer aggregate that violates: Source and destination accounts cannot be the same.")
+    public void aTransferAggregateThatViolatesSourceAndDestinationAccountsCannotBeTheSame() {
+        this.aggregate = new TransferAggregate("tx-same-acct-123");
+        this.violatesSameAccount = true;
+    }
+
+    @Given("a Transfer aggregate that violates: Transfer amount must not exceed the available balance of the source account.")
+    public void aTransferAggregateThatViolatesTransferAmountMustNotExceedTheAvailableBalanceOfTheSourceAccount() {
+        this.aggregate = new TransferAggregate("tx-no-funds-123");
+        this.violatesBalance = true;
+    }
+
+    @Given("a Transfer aggregate that violates: A transfer must succeed or fail atomically for both accounts involved.")
+    public void aTransferAggregateThatViolatesATransferMustSucceedOrFailAtomicallyForBothAccountsInvolved() {
+        this.aggregate = new TransferAggregate("tx-atomic-fail-123");
+        this.violatesAtomicity = true;
     }
 
     @And("a valid transferReference is provided")
-    public void a_valid_transferReference_is_provided() {
-        // Implicitly handled by the command data in 'When'
-    }
-
-    // Scenario 2: Source/Dest Same
-    @Given("a Transfer aggregate that violates: Source and destination accounts cannot be the same.")
-    public void a_Transfer_aggregate_that_violates_source_and_destination_accounts_cannot_be_the_same() {
-        transfer = new TransferAggregate("tx-invalid-src-dest");
-    }
-
-    // Scenario 3: Balance Exceeded
-    @Given("a Transfer aggregate that violates: Transfer amount must not exceed the available balance of the source account.")
-    public void a_Transfer_aggregate_that_violates_balance() {
-        transfer = new TransferAggregate("tx-invalid-balance");
-    }
-
-    // Scenario 4: Atomicity
-    @Given("a Transfer aggregate that violates: A transfer must succeed or fail atomically for both accounts involved.")
-    public void a_Transfer_aggregate_that_violates_atomicity() {
-        transfer = new TransferAggregate("tx-invalid-atomic");
+    public void aValidTransferReferenceIsProvided() {
+        // Reference is implied by the ID, but we ensure cmd construction here if needed
     }
 
     @When("the CompleteTransferCmd command is executed")
-    public void the_CompleteTransferCmd_command_is_executed() {
-        caughtException = null;
-        try {
-            // Construct command based on the state of the transfer ID or a default valid set
-            // To make it simple, we use a builder pattern style or standard constructor
-            String ref = transfer.id(); 
-            
-            // We determine the command parameters based on the ID prefix set in the Given steps
-            // This is a bit of a hack for the Cucumber isolation, but keeps it simple
-            String src = "ACC-1";
-            String dest = "ACC-2";
-            BigDecimal amt = new BigDecimal("100.00");
-            
-            if (ref.startsWith("tx-invalid-src")) {
-                dest = "ACC-1"; // Same as source
-            } else if (ref.startsWith("tx-invalid-bal")) {
-                // The aggregate logic checks balance against a dummy/mock state
-                // We'll assume the command is valid, but the aggregate checks internal state
-                // For this example, we pass a negative amount to trigger balance logic if applicable, 
-                // or simply rely on the aggregate knowing the balance.
-                // Let's stick to the ID to determine behavior or a flag if we had one.
-                // The prompt implies the aggregate "violates" the rule, meaning it's in a bad state or receiving a bad command.
-                // The command handles the check. Let's pass a huge amount.
-                amt = new BigDecimal("99999999.00");
-            } else if (ref.startsWith("tx-invalid-atomic")) {
-                // The scenario says "A transfer must succeed or fail atomically"
-                // This usually implies checking state flags (e.g., debit/credit legs).
-                // We'll pass a specific reference that signals this condition if needed, 
-                // or assume the aggregate state handles it.
-            }
+    public void theCompleteTransferCmdCommandIsExecuted() {
+        String from = "acct-1";
+        String to = "acct-2";
+        BigDecimal amount = new BigDecimal("100.00");
+        String currency = "USD";
 
-            CompleteTransferCmd cmd = new CompleteTransferCmd(ref, src, dest, amt, "USD");
-            resultEvents = transfer.execute(cmd);
+        if (violatesSameAccount) {
+            to = "acct-1"; // Force violation
+        }
+
+        if (violatesBalance) {
+            amount = new BigDecimal("999999999.00"); // Force Insufficient balance exception in aggregate
+        }
+
+        if (violatesAtomicity) {
+            currency = "FAIL"; // Trigger atomic failure in aggregate
+        }
+
+        this.cmd = new CompleteTransferCmd(aggregate.id(), from, to, amount, currency);
+
+        try {
+            this.resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            caughtException = e;
+            this.caughtException = e;
         }
     }
 
     @Then("a transfer.completed event is emitted")
-    public void a_transfer_completed_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertFalse(resultEvents.isEmpty());
+    public void aTransferCompletedEventIsEmitted() {
+        assertNotNull(resultEvents, "Expected events to be emitted");
+        assertEquals(1, resultEvents.size());
         assertTrue(resultEvents.get(0) instanceof TransferCompletedEvent);
+
+        TransferCompletedEvent event = (TransferCompletedEvent) resultEvents.get(0);
+        assertEquals("transfer.completed", event.type());
+        assertEquals(aggregate.id(), event.aggregateId());
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(caughtException);
-        // In this architecture, domain violations throw exceptions (IllegalStateException/IllegalArgumentException)
-        assertTrue(caughtException instanceof IllegalArgumentException || caughtException instanceof IllegalStateException);
+    public void theCommandIsRejectedWithADomainError() {
+        assertNotNull(caughtException, "Expected an exception to be thrown");
+        // We accept IllegalArgumentException or IllegalStateException based on the invariant
+        assertTrue(
+            caughtException instanceof IllegalArgumentException || caughtException instanceof IllegalStateException,
+            "Expected domain error (IllegalArgumentException/IllegalStateException), got: " + caughtException.getClass().getSimpleName()
+        );
     }
 }

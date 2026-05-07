@@ -3,18 +3,17 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
-public class SessionStartedEvent implements DomainEvent {
-    private final String aggregateId;
-    private final String tellerId;
-    private final String terminalId;
-    private final Instant occurredAt;
-
+public record SessionStartedEvent(
+        String eventId,
+        String aggregateId,
+        String tellerId,
+        String terminalId,
+        Instant occurredAt
+) implements DomainEvent {
     public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.tellerId = tellerId;
-        this.terminalId = terminalId;
-        this.occurredAt = occurredAt;
+        this(UUID.randomUUID().toString(), aggregateId, tellerId, terminalId, occurredAt);
     }
 
     @Override
@@ -30,13 +29,5 @@ public class SessionStartedEvent implements DomainEvent {
     @Override
     public Instant occurredAt() {
         return occurredAt;
-    }
-
-    public String getTellerId() {
-        return tellerId;
-    }
-
-    public String getTerminalId() {
-        return terminalId;
     }
 }

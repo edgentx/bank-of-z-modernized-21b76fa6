@@ -1,22 +1,23 @@
-Feature: Validating VW-454 — GitHub URL in Slack body
+Feature: Validating VW-454 — GitHub URL in Slack body (end-to-end)
 
-  As a VForce360 Engineer
-  I want defect reports sent to Slack to include the GitHub issue URL
-  So that the issue can be tracked directly from the chat notification
+  Scenario: Successful defect reporting with GitHub URL in Slack body
+    Given a defect report is triggered with ID "VW-454"
+    And the defect title is "GitHub URL Missing"
+    When the system processes the report command
+    Then the resulting event should contain a GitHub URL
+    And the resulting event should contain a Slack body
+    And the Slack body should include the GitHub URL
+    And the Slack body should include the defect title
 
-  Scenario: Successfully report defect with valid GitHub URL
-    Given a defect report with title "VW-454" and GitHub URL "https://github.com/example/repo/issues/454"
-    When the defect is reported via temporal-worker exec
-    Then the Slack body contains GitHub issue link
+  Scenario: Regression verification of Slack payload content
+    Given a defect report is triggered with ID "VW-454-REG"
+    And the defect title is "Regression Test"
+    When the system processes the report command
+    And I verify the Slack payload sent to the mock adapter
+    Then the payload must explicitly contain the link line
 
-  Scenario: Fail to report defect without GitHub URL
-    Given a defect report with title "VW-454" and GitHub URL ""
-    When the defect is reported via temporal-worker exec
-    Then an error is thrown indicating missing GitHub URL
-    And Slack is not notified
-
-  Scenario: Fail to report defect with null GitHub URL
-    Given a defect report with title "VW-454" and GitHub URL null
-    When the defect is reported via temporal-worker exec
-    Then an error is thrown indicating missing GitHub URL
-    And Slack is not notified
+  Scenario: Invalid defect report missing title
+    Given a defect report is triggered with ID "VW-456"
+    And the defect title is ""
+    When the system processes the report command
+    Then the validation should fail if the title is missing

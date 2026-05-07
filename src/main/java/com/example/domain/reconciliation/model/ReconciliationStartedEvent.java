@@ -5,14 +5,21 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 
 /**
- * Domain event emitted when a reconciliation batch is successfully started.
+ * Event emitted when a reconciliation batch is started.
  */
-public record ReconciliationStartedEvent(
-        String aggregateId,
-        Instant batchWindowStart,
-        Instant batchWindowEnd,
-        Instant occurredAt
-) implements DomainEvent {
+public class ReconciliationStartedEvent implements DomainEvent {
+    private final String aggregateId;
+    private final Instant startWindow;
+    private final Instant endWindow;
+    private final Instant occurredAt;
+
+    public ReconciliationStartedEvent(String aggregateId, Instant startWindow, Instant endWindow, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.startWindow = startWindow;
+        this.endWindow = endWindow;
+        this.occurredAt = occurredAt;
+    }
+
     @Override
     public String type() {
         return "reconciliation.started";
@@ -26,5 +33,13 @@ public record ReconciliationStartedEvent(
     @Override
     public Instant occurredAt() {
         return occurredAt;
+    }
+
+    public Instant startWindow() {
+        return startWindow;
+    }
+
+    public Instant endWindow() {
+        return endWindow;
     }
 }

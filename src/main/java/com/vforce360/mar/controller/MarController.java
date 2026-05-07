@@ -29,7 +29,6 @@ public class MarController {
      */
     @GetMapping(value = "/{projectId}", produces = MediaType.TEXT_HTML_VALUE)
     public String viewReport(@PathVariable String projectId) {
-        // TODO: Implementation required to return HTML string
-        return "<h1>Not Implemented</h1>"; 
+        return service.getRenderedReport(projectId);
     }
 }

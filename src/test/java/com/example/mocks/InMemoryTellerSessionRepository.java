@@ -5,8 +5,10 @@ import com.example.domain.tellersession.repository.TellerSessionRepository;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class InMemoryTellerSessionRepository implements TellerSessionRepository {
+
     private final Map<String, TellerSessionAggregate> store = new HashMap<>();
 
     @Override
@@ -16,6 +18,7 @@ public class InMemoryTellerSessionRepository implements TellerSessionRepository 
 
     @Override
     public TellerSessionAggregate load(String id) {
-        return store.get(id);
+        return Optional.ofNullable(store.get(id))
+                .orElseThrow(() -> new IllegalArgumentException("TellerSession not found: " + id));
     }
 }

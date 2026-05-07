@@ -4,35 +4,20 @@ Feature: Implement StartSessionCmd on TellerSession (user-interface-navigation)
     Given a valid TellerSession aggregate
     And a valid tellerId is provided
     And a valid terminalId is provided
-    And the teller is authenticated
-    And the terminal is operational
     When the StartSessionCmd command is executed
     Then a session.started event is emitted
 
   Scenario: StartSessionCmd rejected — A teller must be authenticated to initiate a session.
-    Given a valid TellerSession aggregate
-    And a valid tellerId is provided
-    And a valid terminalId is provided
-    And the teller is NOT authenticated
+    Given a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.
     When the StartSessionCmd command is executed
     Then the command is rejected with a domain error
 
   Scenario: StartSessionCmd rejected — Sessions must timeout after a configured period of inactivity.
-    Given a valid TellerSession aggregate
-    And a valid tellerId is provided
-    And a valid terminalId is provided
-    And the teller is authenticated
-    And the terminal is operational
-    And the previous session has not timed out
+    Given a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.
     When the StartSessionCmd command is executed
     Then the command is rejected with a domain error
 
   Scenario: StartSessionCmd rejected — Navigation state must accurately reflect the current operational context.
-    Given a valid TellerSession aggregate
-    And a valid tellerId is provided
-    And a valid terminalId is provided
-    And the teller is authenticated
-    And the terminal is operational
-    And the navigation state is invalid
+    Given a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.
     When the StartSessionCmd command is executed
     Then the command is rejected with a domain error

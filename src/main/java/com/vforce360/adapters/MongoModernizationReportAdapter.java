@@ -1,35 +1,39 @@
 package com.vforce360.adapters;
 
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.bson.Document;
+import com.vforce360.mar.models.ModernizationAssessmentReport;
+import com.vforce360.ports.ModernizationReportPort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 
-import com.vforce360.model.MarReport;
-import com.vforce360.ports.MarReportPort;
+/**
+ * MongoDB implementation of ModernizationReportPort.
+ * Retrieves MAR data from the MongoDB database.
+ */
+public class MongoModernizationReportAdapter implements ModernizationReportPort {
 
-public class MongoModernizationReportAdapter implements MarReportPort {
+    private final MongoTemplate mongoTemplate;
 
-    private final MongoClient mongoClient;
-    private final ObjectMapper mapper;
-
-    public MongoModernizationReportAdapter(MongoClient mongoClient, ObjectMapper mapper) {
-        this.mongoClient = mongoClient;
-        this.mapper = mapper;
+    /**
+     * Constructor for dependency injection.
+     * @param mongoTemplate The MongoTemplate instance for database operations.
+     */
+    public MongoModernizationReportAdapter(MongoTemplate mongoTemplate) {
+        this.mongoTemplate = mongoTemplate;
     }
 
+    /**
+     * Retrieves the report for a given project ID.
+     * 
+     * @param projectId The unique identifier of the project.
+     * @return The ModernizationAssessmentReport object.
+     * @throws org.springframework.data.mongodb.core.MongoDataIntegrityViolationException if not found (optional behavior)
+     * or returns null depending on strictness. Here we assume the document exists.
+     */
     @Override
-    public MarReport findByProjectId(String projectId) {
-        MongoDatabase db = mongoClient.getDatabase("vforce360");
-        MongoCollection<Document> collection = db.getCollection("modernization_reports");
-        
-        Document doc = collection.find(new Document("projectId", projectId)).first();
-        if (doc == null) {
-            return null;
-        }
-        
-        // Convert BSON to POJO
-        return mapper.convertValue(doc, MarReport.class);
+    public ModernizationAssessmentReport getReport(String projectId) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("projectId").is(projectId));
+        return mongoTemplate.findOne(query, ModernizationAssessmentReport.class);
     }
 }

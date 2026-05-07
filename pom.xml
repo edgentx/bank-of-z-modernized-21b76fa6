@@ -6,21 +6,18 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.0</version>
+        <version>3.2.5</version>
         <relativePath/>
     </parent>
-    
     <groupId>com.example</groupId>
-    <artifactId>teller-session</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>Teller Session</name>
-    <description>Teller Session Domain</description>
-    
+    <artifactId>egdcrypto-bank-of-z-modernized</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <name>Bank of Z Modernization</name>
+    <description>Demonstration project for Bank of Z modernization with Java, Spring Boot, and DDD.</description>
     <properties>
         <java.version>17</java.version>
-        <cucumber.version>7.14.0</cucumber.version>
+        <cucumber.version>7.18.0</cucumber.version>
     </properties>
-    
     <dependencies>
         <!-- Spring Boot Dependencies -->
         <dependency>
@@ -31,12 +28,21 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
+        <!-- Only if web endpoints are eventually needed, though this story focuses on Domain -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+            <scope>provided</scope>
         </dependency>
-        
-        <!-- Cucumber Dependencies -->
+
+        <!-- Testing Dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Cucumber BDD Dependencies -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
@@ -50,38 +56,19 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-spring</artifactId>
-            <version>${cucumber.version}</version>
-            <scope>test</scope>
-        </dependency>
-        
-        <!-- JUnit Platform -->
-        <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
-        
-        <!-- Testing -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
-    
+
     <build>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <!-- Compiler Plugin to ensure Java 17 compliance -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -89,6 +76,11 @@
                     <source>17</source>
                     <target>17</target>
                 </configuration>
+            </plugin>
+            <!-- Surefire Plugin for Unit Tests -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

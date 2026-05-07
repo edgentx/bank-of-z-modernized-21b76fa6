@@ -2,8 +2,15 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
 
+import java.util.Objects;
+
 /**
- * Command to end an active teller session.
- * Story S-20: user-interface-navigation.
+ * Command to terminate a teller session.
+ * S-20: EndSessionCmd.
  */
-public record EndSessionCmd(String sessionId) implements Command {}
+public record EndSessionCmd(String sessionId, String tellerId) implements Command {
+    public EndSessionCmd {
+        Objects.requireNonNull(sessionId, "sessionId cannot be null");
+        Objects.requireNonNull(tellerId, "tellerId cannot be null");
+    }
+}

@@ -35,8 +35,7 @@
         </dependency>
         
         <!-- Mockito for mocking adapters -->
-        <!-- Note: spring-boot-starter-test includes mockito-core, but listing explicitly 
-             if we need specific versioning is fine. However, BOM covers spring-boot-starter-test. -->
+        <!-- Note: spring-boot-starter-test includes mockito-core, but listing explicitly -->
     </dependencies>
 
 </project>

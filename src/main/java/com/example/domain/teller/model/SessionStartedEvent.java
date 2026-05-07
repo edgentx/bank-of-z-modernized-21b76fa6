@@ -14,6 +14,7 @@ public record SessionStartedEvent(
     String terminalId,
     Instant occurredAt
 ) implements DomainEvent {
+
     public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
         this.aggregateId = aggregateId;
         this.tellerId = tellerId;

@@ -3,13 +3,25 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.Objects;
 
-public record MenuNavigatedEvent(
-        String aggregateId,
-        String menuId,
-        String action,
-        Instant occurredAt
-) implements DomainEvent {
+/**
+ * Event emitted when the Teller successfully navigates to a new menu state.
+ */
+public class MenuNavigatedEvent implements DomainEvent {
+
+    private final String aggregateId;
+    private final String menuId;
+    private final String action;
+    private final Instant occurredAt;
+
+    public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
+        this.aggregateId = Objects.requireNonNull(aggregateId);
+        this.menuId = Objects.requireNonNull(menuId);
+        this.action = Objects.requireNonNull(action);
+        this.occurredAt = Objects.requireNonNull(occurredAt);
+    }
+
     @Override
     public String type() {
         return "menu.navigated";
@@ -23,5 +35,13 @@ public record MenuNavigatedEvent(
     @Override
     public Instant occurredAt() {
         return occurredAt;
+    }
+
+    public String menuId() {
+        return menuId;
+    }
+
+    public String action() {
+        return action;
     }
 }

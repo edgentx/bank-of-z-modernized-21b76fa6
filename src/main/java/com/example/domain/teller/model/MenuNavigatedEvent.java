@@ -11,13 +11,25 @@ public record MenuNavigatedEvent(
         String action,
         Instant occurredAt
 ) implements DomainEvent {
+
     public MenuNavigatedEvent {
-        if (aggregateId == null) aggregateId = UUID.randomUUID().toString();
-        if (occurredAt == null) occurredAt = Instant.now();
+        if (aggregateId == null || aggregateId.isBlank()) {
+            throw new IllegalArgumentException("aggregateId cannot be null");
+        }
     }
 
     @Override
     public String type() {
         return "menu.navigated";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

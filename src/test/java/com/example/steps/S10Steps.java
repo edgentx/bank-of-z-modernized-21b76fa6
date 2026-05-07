@@ -1,6 +1,9 @@
 package com.example.steps;
 
-import com.example.domain.*;
+import com.example.domain.PostDepositCmd;
+import com.example.domain.Transaction;
+import com.example.domain.DepositPosted;
+import com.example.domain.TransactionError;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -14,76 +17,89 @@ public class S10Steps {
 
     private Transaction transaction;
     private PostDepositCmd command;
-    private DepositPostedEvent lastEvent;
-    private Exception domainException;
+    private DepositPosted event;
+    private TransactionError error;
 
+    // Scenario: Successfully execute PostDepositCmd
     @Given("a valid Transaction aggregate")
-    public void a_valid_Transaction_aggregate() {
+    public void a_valid_transaction_aggregate() {
         transaction = new Transaction(UUID.randomUUID());
     }
 
     @And("a valid accountNumber is provided")
-    public void a_valid_accountNumber_is_provided() {
-        // Handled in context setup or combined below, usually part of command construction
+    public void a_valid_account_number_is_provided() {
+        if (command == null) command = new PostDepositCmd();
+        command.setAccountNumber("ACC-12345");
     }
 
     @And("a valid amount is provided")
     public void a_valid_amount_is_provided() {
-        // Context setup
+        if (command == null) command = new PostDepositCmd();
+        command.setAmount(new BigDecimal("100.00"));
     }
 
     @And("a valid currency is provided")
     public void a_valid_currency_is_provided() {
-        // Context setup
+        if (command == null) command = new PostDepositCmd();
+        command.setCurrency("USD");
     }
 
     @When("the PostDepositCmd command is executed")
-    public void the_PostDepositCmd_command_is_executed() {
-        // Default valid command for positive path
-        if (command == null) {
-            command = new PostDepositCmd("ACC-123", new BigDecimal("100.00"), "USD");
-        }
+    public void the_post_deposit_cmd_command_is_executed() {
         try {
-            transaction.execute(command);
-            if (!transaction.getUncommittedEvents().isEmpty()) {
-                lastEvent = (DepositPostedEvent) transaction.getUncommittedEvents().get(0);
-            }
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            domainException = e;
+            event = transaction.execute(command);
+        } catch (TransactionError e) {
+            this.error = e;
         }
     }
 
     @Then("a deposit.posted event is emitted")
     public void a_deposit_posted_event_is_emitted() {
-        Assertions.assertNotNull(lastEvent, "Event should not be null");
-        Assertions.assertEquals("ACC-123", lastEvent.accountNumber());
-        Assertions.assertEquals(0, new BigDecimal("100.00").compareTo(lastEvent.amount()));
+        Assertions.assertNotNull(event, "Expected DepositPosted event, but got null or error");
+        Assertions.assertNull(error, "Expected no error, but got: " + error.getMessage());
+        Assertions.assertEquals("ACC-12345", event.getAccountNumber());
+        Assertions.assertEquals(0, new BigDecimal("100.00").compareTo(event.getAmount()));
+        Assertions.assertEquals("USD", event.getCurrency());
     }
 
+    // Scenario: PostDepositCmd rejected — Transaction amounts must be greater than zero.
     @Given("a Transaction aggregate that violates: Transaction amounts must be greater than zero.")
-    public void a_Transaction_aggregate_that_violates_amount() {
+    public void a_transaction_aggregate_that_violates_amount_must_be_greater_than_zero() {
         transaction = new Transaction(UUID.randomUUID());
-        command = new PostDepositCmd("ACC-123", new BigDecimal("-50.00"), "USD");
-    }
-
-    @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.")
-    public void a_Transaction_aggregate_that_violates_immutability() {
-        transaction = new Transaction(UUID.randomUUID());
-        // Simulate already posted by applying a prior event manually for test
-        transaction.markPosted(); 
-        command = new PostDepositCmd("ACC-123", new BigDecimal("100.00"), "USD");
-    }
-
-    @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance (enforced via aggregate validation).")
-    public void a_Transaction_aggregate_that_violates_balance() {
-        transaction = new Transaction(UUID.randomUUID());
-        // Use a special flag or setup in the aggregate to force this failure for the test
-        // In a real app, this might depend on external state, here we simulate via input validation or aggregate state
-        command = new PostDepositCmd("INVALID-BALANCE", new BigDecimal("100.00"), "USD");
+        command = new PostDepositCmd();
+        command.setAccountNumber("ACC-12345");
+        command.setAmount(BigDecimal.ZERO); // Violation
+        command.setCurrency("USD");
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(domainException, "Expected an exception to be thrown");
+        Assertions.assertNotNull(error, "Expected domain error, but command succeeded");
+        Assertions.assertNull(event, "Expected no event, but got: " + event);
+    }
+
+    // Scenario: PostDepositCmd rejected — Transactions cannot be altered or deleted once posted
+    @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.")
+    public void a_transaction_aggregate_that_violates_locked_state() {
+        transaction = new Transaction(UUID.randomUUID());
+        // Force transaction into a posted state (simulated)
+        transaction.markAsPosted(); 
+        command = new PostDepositCmd();
+        command.setAccountNumber("ACC-12345");
+        command.setAmount(new BigDecimal("50.00"));
+        command.setCurrency("USD");
+    }
+
+    // Scenario: PostDepositCmd rejected — A transaction must result in a valid account balance
+    @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance (enforced via aggregate validation).")
+    public void a_transaction_aggregate_that_violates_valid_balance() {
+        transaction = new Transaction(UUID.randomUUID());
+        // Simulate an account balance constraint violation (e.g., Max Balance)
+        transaction.setMaximumBalance(new BigDecimal("1000.00"));
+        
+        command = new PostDepositCmd();
+        command.setAccountNumber("ACC-12345");
+        command.setAmount(new BigDecimal("999999.00")); // Exceeds max
+        command.setCurrency("USD");
     }
 }

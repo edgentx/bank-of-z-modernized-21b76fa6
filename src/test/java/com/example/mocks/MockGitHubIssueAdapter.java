@@ -2,38 +2,26 @@ package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.net.URI;
 
 /**
- * Mock implementation of GitHubIssuePort for testing.
- * Allows verification of inputs and simulation of success/failure.
+ * Mock adapter for GitHub Issue creation.
+ * Returns a fake but valid URL for testing.
  */
 public class MockGitHubIssueAdapter implements GitHubIssuePort {
 
-    private final Set<String> createdTitles = new HashSet<>();
-    private String mockUrl = "https://github.com/mock-repo/issues/1";
-    private boolean shouldFail = false;
+    private URI mockUrl = URI.create("https://github.com/bank-of-z/issues/1");
 
     @Override
-    public String createIssue(String title, String body) {
-        if (shouldFail) {
-            throw new RuntimeException("Simulated GitHub API failure");
-        }
-        createdTitles.add(title);
-        // Return a predictable URL containing the defect ID (assuming title contains it)
-        return mockUrl + "?q=" + title.replace(" ", "%20");
+    public URI createIssue(String title, String body) {
+        // Simulate successful creation and return the configured mock URL.
+        return this.mockUrl;
     }
 
-    public boolean hasCreatedIssue(String title) {
-        return createdTitles.contains(title);
-    }
-
-    public void setMockUrl(String url) {
+    /**
+     * Helper method to configure what URL the mock should return.
+     */
+    public void setMockUrl(URI url) {
         this.mockUrl = url;
-    }
-
-    public void setShouldFail(boolean shouldFail) {
-        this.shouldFail = shouldFail;
     }
 }

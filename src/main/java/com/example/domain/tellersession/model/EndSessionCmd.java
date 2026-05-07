@@ -3,13 +3,7 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to terminate the current teller session.
- * Used to clear sensitive state and release locks.
+ * Command to end an active teller session.
+ * Story S-20: user-interface-navigation.
  */
-public record EndSessionCmd(String sessionId, String reason) implements Command {
-    public EndSessionCmd {
-        if (sessionId == null || sessionId.isBlank()) {
-            throw new IllegalArgumentException("sessionId cannot be null or blank");
-        }
-    }
-}
+public record EndSessionCmd(String sessionId) implements Command {}

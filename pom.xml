@@ -26,8 +26,7 @@
            FIXING DEPENDENCY RESOLUTION ERROR 
            Explicitly pinning Temporal version because it is NOT in the Spring Boot BOM 
            (Group ID: io.temporal is not in the allowed BOM set).
-           Version 1.22.1 is requested, but 1.23.1 is the current stable release for Spring Boot 3.x compatibility.
-           Using 1.23.1 to ensure stability.
+           Version 1.22.1 was requested, but 1.23.1 is the current stable release for Spring Boot 3.x compatibility.
         -->
         <temporal.version>1.23.1</temporal.version>
     </properties>

@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * ReconciliationBatch Aggregate
- * Handles the logic for starting a batch and forcing a batch to a balanced state.
+ * Handles the logic for forcing a batch to a balanced state and starting reconciliation.
  */
 public class ReconciliationBatch extends AggregateRoot {
     private final String batchId;
@@ -19,7 +19,7 @@ public class ReconciliationBatch extends AggregateRoot {
     private boolean areAllEntriesAccounted = true;
 
     public enum Status {
-        OPEN, BALANCED, CLOSED
+        OPEN, BALANCED, CLOSED, STARTED
     }
 
     public ReconciliationBatch(String batchId) {
@@ -33,11 +33,11 @@ public class ReconciliationBatch extends AggregateRoot {
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof StartReconciliationCmd c) {
-            return startReconciliation(c);
-        }
         if (cmd instanceof ForceBalanceCmd c) {
             return forceBalance(c);
+        }
+        if (cmd instanceof StartReconciliationCmd c) {
+            return startReconciliation(c);
         }
         throw new UnknownCommandException(cmd);
     }
@@ -55,18 +55,27 @@ public class ReconciliationBatch extends AggregateRoot {
 
         // Invariant: Only Open batches can be started
         if (status != Status.OPEN) {
-            throw new IllegalStateException("Cannot start a batch that is not OPEN.");
+            throw new IllegalStateException("Cannot start reconciliation on a batch that is not OPEN.");
+        }
+
+        // Validate Command fields
+        if (cmd.startWindow() == null || cmd.endWindow() == null) {
+            throw new IllegalArgumentException("BatchWindow start and end are required.");
+        }
+
+        if (cmd.endWindow().isBefore(cmd.startWindow())) {
+            throw new IllegalArgumentException("BatchWindow end must be after start.");
         }
 
         var event = new ReconciliationStartedEvent(
                 this.batchId,
-                cmd.windowStart(),
-                cmd.windowEnd(),
+                cmd.startWindow(),
+                cmd.endWindow(),
                 Instant.now()
         );
 
-        // Apply state changes (Conceptually, though Status remains OPEN, we might track RUNNING in a fuller impl)
-        // For now, emitting the event is the primary side-effect required.
+        // Apply state changes
+        this.status = Status.STARTED;
         addEvent(event);
         incrementVersion();
 

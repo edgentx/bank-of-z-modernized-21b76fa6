@@ -2,22 +2,20 @@ package com.example.steps;
 
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.uinavigation.model.RenderScreenCmd;
-import com.example.domain.uinavigation.model.ScreenMapAggregate;
-import com.example.domain.uinavigation.model.ScreenRenderedEvent;
-import io.cucumber.java.en.And;
+import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.uimodel.model.*;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
 
 public class S21Steps {
 
     private ScreenMapAggregate aggregate;
+    private Exception capturedException;
     private List<DomainEvent> resultEvents;
-    private Exception thrownException;
 
     @Given("a valid ScreenMap aggregate")
     public void a_valid_ScreenMap_aggregate() {
@@ -26,68 +24,77 @@ public class S21Steps {
 
     @Given("a valid screenId is provided")
     public void a_valid_screenId_is_provided() {
-        // Context setup handled in the 'When' step via Command construction
+        // Context usually loaded via constructor or setup
     }
 
     @Given("a valid deviceType is provided")
     public void a_valid_deviceType_is_provided() {
-        // Context setup handled in the 'When' step via Command construction
+        // Context usually loaded via constructor or setup
     }
 
     @When("the RenderScreenCmd command is executed")
     public void the_RenderScreenCmd_command_is_executed() {
+        RenderScreenCmd cmd = new RenderScreenCmd("screen-1", DeviceType.DESKTOP, 80, 25);
         try {
-            // Scenario 1: Valid command
-            Command cmd = new RenderScreenCmd("screen-1", "3270");
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            thrownException = e;
+            capturedException = e;
         }
     }
 
     @Then("a screen.rendered event is emitted")
     public void a_screen_rendered_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
+        Assertions.assertNull(capturedException, "Should not have thrown an exception");
+        Assertions.assertNotNull(resultEvents);
+        Assertions.assertEquals(1, resultEvents.size());
+        Assertions.assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
         ScreenRenderedEvent event = (ScreenRenderedEvent) resultEvents.get(0);
-        assertEquals("screen.rendered", event.type());
+        Assertions.assertEquals("screen-1", event.aggregateId());
+        Assertions.assertEquals("application/vnd.banksz.screen+json", event.layoutContentType());
     }
 
     @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void a_ScreenMap_aggregate_with_null_input() {
-        aggregate = new ScreenMapAggregate("screen-invalid");
+    public void a_ScreenMap_aggregate_that_violates_mandatory_fields() {
+        aggregate = new ScreenMapAggregate("screen-bad-mandatory");
     }
 
-    @When("the RenderScreenCmd command is executed with missing fields")
-    public void the_RenderScreenCmd_command_is_executed_with_missing_fields() {
+    @When("the command is executed with missing mandatory fields")
+    public void the_command_is_executed_with_missing_mandatory_fields() {
+        RenderScreenCmd cmd = new RenderScreenCmd("screen-bad-mandatory", null, 80, 25);
         try {
-            Command cmd = new RenderScreenCmd(null, "3270");
-            aggregate.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            thrownException = e;
+            resultEvents = aggregate.execute(cmd);
+        } catch (IllegalArgumentException | UnknownCommandException e) {
+            capturedException = e;
         }
     }
 
-    @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(thrownException);
-        assertTrue(thrownException instanceof IllegalArgumentException);
+    @Then("the command is rejected with a domain error for mandatory fields")
+    public void the_command_is_rejected_with_a_domain_error_for_mandatory_fields() {
+        Assertions.assertNotNull(capturedException);
+        Assertions.assertTrue(capturedException instanceof IllegalArgumentException);
+        Assertions.assertTrue(capturedException.getMessage().contains("deviceType required"));
     }
 
     @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void a_ScreenMap_aggregate_with_invalid_bms_constraints() {
-        aggregate = new ScreenMapAggregate("screen-bms-fail");
+    public void a_ScreenMap_aggregate_that_violates_bms_constraints() {
+        aggregate = new ScreenMapAggregate("screen-bad-bms");
     }
 
-    @When("the RenderScreenCmd command is executed with long device type")
-    public void the_RenderScreenCmd_command_is_executed_with_invalid_device_type() {
+    @When("the command is executed with invalid BMS field lengths")
+    public void the_command_is_executed_with_invalid_bms_field_lengths() {
+        // Legacy 3270 constraint violated: max width 80, max depth 43 (or 24/25 for standard)
+        RenderScreenCmd cmd = new RenderScreenCmd("screen-bad-bms", DeviceType.TN3270, 81, 25);
         try {
-            // Scenario 3: Invalid device type (BMS constraint violation: > 4 chars)
-            Command cmd = new RenderScreenCmd("screen-bms-fail", "MOBILE-TABLET-PRO");
-            aggregate.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            thrownException = e;
+            resultEvents = aggregate.execute(cmd);
+        } catch (IllegalArgumentException | UnknownCommandException e) {
+            capturedException = e;
         }
+    }
+
+    @Then("the command is rejected with a domain error for BMS constraints")
+    public void the_command_is_rejected_with_a_domain_error_for_bms_constraints() {
+        Assertions.assertNotNull(capturedException);
+        Assertions.assertTrue(capturedException instanceof IllegalArgumentException);
+        Assertions.assertTrue(capturedException.getMessage().contains("width must be"));
     }
 }

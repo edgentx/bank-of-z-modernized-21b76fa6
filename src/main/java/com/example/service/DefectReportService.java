@@ -1,49 +1,60 @@
 package com.example.service;
 
-import com.example.ports.GitHubIssuePort;
-import com.example.ports.SlackNotificationPort;
-import org.springframework.stereotype.Service;
+import com.example.domain.shared.Command;
+import com.example.domain.shared.UnknownCommandException;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackPort;
 
-import java.net.URI;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 
 /**
- * Service responsible for reporting defects.
- * Orchestrates creating a GitHub issue and notifying Slack.
+ * Service to handle defect reporting commands.
+ * Orchestrates GitHub issue creation and Slack notifications.
  */
-@Service
 public class DefectReportService {
 
-    private final GitHubIssuePort gitHubIssuePort;
-    private final SlackNotificationPort slackNotificationPort;
+    private final GitHubPort githubPort;
+    private final SlackPort slackPort;
 
-    /**
-     * Constructor for dependency injection.
-     *
-     * @param gitHubIssuePort       The port for creating GitHub issues.
-     * @param slackNotificationPort The port for sending Slack notifications.
-     */
-    public DefectReportService(GitHubIssuePort gitHubIssuePort, SlackNotificationPort slackNotificationPort) {
-        this.gitHubIssuePort = gitHubIssuePort;
-        this.slackNotificationPort = slackNotificationPort;
+    public DefectReportService(GitHubPort githubPort, SlackPort slackPort) {
+        this.githubPort = githubPort;
+        this.slackPort = slackPort;
     }
 
-    /**
-     * Reports a defect by creating an issue on GitHub and notifying Slack.
-     * Ensures the GitHub URL is included in the Slack message body (Fix for VW-454).
-     *
-     * @param title The title of the defect.
-     * @param body  The body/description of the defect.
-     */
-    public void reportDefect(String title, String body) {
-        // 1. Create the issue in GitHub
-        URI issueUrl = gitHubIssuePort.createIssue(title, body);
+    public void execute(Command cmd) {
+        if (cmd instanceof ReportDefectCmd c) {
+            reportDefect(c);
+        } else {
+            throw new UnknownCommandException(cmd);
+        }
+    }
 
-        // 2. Prepare the Slack notification
-        String message = "New defect reported: " + title;
-        // Ensure the URL is part of the details payload
-        String details = "Issue created: " + issueUrl.toString();
+    private void reportDefect(ReportectCmd c) {
+        // 1. Create the body for the GitHub issue
+        String formattedDate = DateTimeFormatter.ISO_INSTANT.format(c.reportedAt());
+        String issueBody = String.format(
+            "Severity: %s\nComponent: %s\nReported At: %s",
+            c.severity(),
+            c.component(),
+            formattedDate
+        );
 
-        // 3. Send notification
-        slackNotificationPort.postMessage(message, details);
+        // 2. Create issue in GitHub
+        String issueUrl = githubPort.createIssue(c.title(), issueBody);
+
+        // 3. Verify URL was returned
+        if (issueUrl == null || issueUrl.isBlank()) {
+            throw new IllegalStateException("GitHub URL was not returned by adapter");
+        }
+
+        // 4. Send notification to Slack with the GitHub URL
+        String slackMessage = String.format(
+            "Defect Reported: %s\nGitHub issue: %s",
+            c.title(),
+            issueUrl
+        );
+
+        slackPort.sendMessage("#vforce360-issues", slackMessage);
     }
 }

@@ -1,18 +1,17 @@
 package com.example.workflow;
 
-import java.net.URI;
+import com.example.domain.shared.DefectReportedEvent;
 
 /**
  * Workflow interface for reporting defects.
+ * This is the Temporal Workflow definition.
  */
 public interface ReportDefectWorkflow {
 
     /**
-     * Executes the report_defect workflow.
-     * Creates a GitHub issue and then sends a Slack notification.
+     * Reports a defect by creating a GitHub issue and notifying Slack.
      *
-     * @param defectId The ID of the defect (e.g. VW-454)
-     * @param message  The validation error message
+     * @param event The defect event containing details.
      */
-    void execute(String defectId, String message);
+    void reportDefect(DefectReportedEvent event);
 }

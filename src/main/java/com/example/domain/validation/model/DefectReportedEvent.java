@@ -6,14 +6,17 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event emitted when a defect is successfully reported to GitHub and Slack.
+ * Event emitted when a defect is successfully reported.
  */
 public record DefectReportedEvent(
-    String aggregateId,
-    String title,
+    String eventId,
+    String defectId,
     String githubUrl,
     Instant occurredAt
 ) implements DomainEvent {
+    public DefectReportedEvent(String defectId, String githubUrl, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), defectId, githubUrl, occurredAt);
+    }
 
     @Override
     public String type() {
@@ -22,11 +25,11 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return defectId();
     }
 
     @Override
     public Instant occurredAt() {
-        return occurredAt;
+        return occurredAt();
     }
 }

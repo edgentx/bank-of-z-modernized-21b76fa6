@@ -3,43 +3,26 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
-/**
- * Event emitted when a Teller Session is successfully started.
- * S-18: Session Started Event
- */
-public class SessionStartedEvent implements DomainEvent {
+public record SessionStartedEvent(
+        String eventId,
+        String aggregateId,
+        String tellerId,
+        String terminalId,
+        Instant occurredAt
+) implements DomainEvent {
+    public SessionStartedEvent {
+        if (eventId == null) eventId = UUID.randomUUID().toString();
+        if (occurredAt == null) occurredAt = Instant.now();
+    }
 
-    private final String aggregateId;
-    private final String tellerId;
-    private final String terminalId;
-    private final String navigationState;
-    private final Instant occurredAt;
-
-    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, String navigationState, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.tellerId = tellerId;
-        this.terminalId = terminalId;
-        this.navigationState = navigationState;
-        this.occurredAt = occurredAt;
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId) {
+        this(UUID.randomUUID().toString(), aggregateId, tellerId, terminalId, Instant.now());
     }
 
     @Override
     public String type() {
         return "session.started";
     }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
-
-    public String tellerId() { return tellerId; }
-    public String terminalId() { return terminalId; }
-    public String navigationState() { return navigationState; }
 }

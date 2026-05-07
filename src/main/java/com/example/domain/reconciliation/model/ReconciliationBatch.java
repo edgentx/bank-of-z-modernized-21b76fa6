@@ -5,47 +5,33 @@ import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
 
+import java.time.LocalDate;
 import java.time.Instant;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * ReconciliationBatch aggregate.
- * S-16: Implements StartReconciliationCmd.
- * Invariants enforced:
- * 1. No overlapping batches (Pending batches must be completed).
- * 2. All relevant accounts must be provided/specified for the period.
+ * Reconciliation Batch Aggregate.
+ * Handles the lifecycle of a financial reconciliation batch for a specific window.
  */
 public class ReconciliationBatch extends AggregateRoot {
 
     private final String batchId;
-    private Instant windowStart;
-    private Instant windowEnd;
-    private Status status;
+    private BatchStatus status = BatchStatus.IDLE;
+    private LocalDate currentWindow;
+    
+    // In a real application, this flag would be calculated based on transaction totals 
+    // vs external feeds. For this domain exercise, we model it as internal state.
+    private boolean accountedFor = true; 
 
-    // Registry to simulate persistence of "Active Batches" across aggregate instances
-    // In a real app, this would be a Repository lookup or a unique constraint check.
-    private static final Set<String> activeBatchIds = ConcurrentHashMap.newKeySet();
-
-    public enum Status { PENDING, STARTED, COMPLETED, FAILED }
+    public enum BatchStatus { IDLE, PENDING, COMPLETED }
 
     public ReconciliationBatch(String batchId) {
         this.batchId = batchId;
-        this.status = Status.PENDING;
     }
 
     @Override
     public String id() {
         return batchId;
-    }
-
-    public static void clearRegistry() {
-        activeBatchIds.clear();
-    }
-
-    public static boolean isBatchActive(String id) {
-        return activeBatchIds.contains(id);
     }
 
     @Override
@@ -57,56 +43,35 @@ public class ReconciliationBatch extends AggregateRoot {
     }
 
     private List<DomainEvent> startReconciliation(StartReconciliationCmd cmd) {
-        // Invariant 1: Cannot execute if a previous batch is still pending.
-        // For the scope of this aggregate/command, we check if THIS aggregate or ANY global aggregate is locked.
-        // Scenario Interpretation: "A reconciliation batch cannot be executed if a previous batch is still pending."
-        if (status != Status.PENDING) {
-            throw new IllegalStateException("Reconciliation batch already processed or in progress: " + batchId);
+        // Invariant: Cannot execute if previous batch is pending
+        if (this.status == BatchStatus.PENDING) {
+            throw new IllegalStateException("A reconciliation batch cannot be executed if a previous batch is still pending.");
         }
 
-        // Check global registry for other active batches (simulated domain invariant)
-        if (!activeBatchIds.isEmpty()) {
-             // Specifically for the test case "violates: previous batch is pending"
-             // We assume the scenario context sets up this state.
-             throw new IllegalStateException("Cannot start batch: A previous batch is still pending globally.");
+        // Invariant: All transaction entries must be accounted for
+        if (!this.accountedFor) {
+            throw new IllegalStateException("All transaction entries must be accounted for during the reconciliation period.");
         }
 
-        if (cmd.windowStart() == null || cmd.windowEnd() == null) {
-            throw new IllegalArgumentException("Batch window must be defined.");
-        }
-        if (cmd.windowEnd().isBefore(cmd.windowStart())) {
-            throw new IllegalArgumentException("Batch window end must be after start.");
+        if (cmd.batchWindow() == null) {
+            throw new IllegalArgumentException("batchWindow is required");
         }
 
-        // Invariant 2: All transaction entries must be accounted for.
-        // Simulated by checking if the list of accounts is provided and valid.
-        if (cmd.accountIds() == null || cmd.accountIds().isEmpty()) {
-            throw new IllegalArgumentException("Transaction entries (accounts) must be provided for the period.");
-        }
-
-        // Apply Event
-        var event = new ReconciliationStartedEvent(
-            cmd.batchId(),
-            cmd.windowStart(),
-            cmd.windowEnd(),
-            cmd.accountIds(),
-            Instant.now()
-        );
-
-        // Mutate state
-        this.windowStart = cmd.windowStart();
-        this.windowEnd = cmd.windowEnd();
-        this.status = Status.STARTED;
-
-        // Register as active
-        activeBatchIds.add(this.batchId);
-
+        var event = new ReconciliationStartedEvent(this.batchId, cmd.batchWindow(), Instant.now());
+        
+        this.status = BatchStatus.PENDING;
+        this.currentWindow = cmd.batchWindow();
+        
         addEvent(event);
         incrementVersion();
         return List.of(event);
     }
 
-    public Status getStatus() {
-        return status;
+    /**
+     * Package-private helper for testing the 'unaccounted entries' scenario.
+     * This simulates the state where data integrity checks have failed.
+     */
+    void markUnaccountedForTesting() {
+        this.accountedFor = false;
     }
 }

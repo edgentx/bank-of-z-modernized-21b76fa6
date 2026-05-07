@@ -3,11 +3,13 @@ package com.example.domain.validation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.Objects;
 
 public record ValidationReportedEvent(
-    String validationId,
-    String summary,
-    String severity,
+    String aggregateId,
+    String defectId,
+    String description,
+    String slackBody,
     Instant occurredAt
 ) implements DomainEvent {
     @Override
@@ -16,12 +18,12 @@ public record ValidationReportedEvent(
     }
 
     @Override
-    public String aggregateId() {
-        return validationId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 }

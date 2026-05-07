@@ -2,12 +2,14 @@ package com.example;
 
 import com.example.ports.GitHubPort;
 import com.example.ports.SlackNotificationPort;
+import org.springframework.stereotype.Service;
 
 /**
  * Service wrapper for the Temporal Worker logic regarding defect reporting.
  * This class acts as the System Under Test (SUT) to orchestrate the Ports.
  * In a real scenario, this would be the Workflow or Activity implementation.
  */
+@Service
 public class VForce360WorkerService {
 
     private final SlackNotificationPort slackNotificationPort;

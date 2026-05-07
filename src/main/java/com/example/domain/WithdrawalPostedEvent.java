@@ -1,16 +1,17 @@
 package com.example.domain;
 
 import java.math.BigDecimal;
+import java.util.Currency;
 import java.util.UUID;
 
-public class WithdrawalPostedEvent {
+public class WithdrawalPostedEvent implements TransactionEvent {
 
     private final UUID transactionId;
     private final String accountNumber;
     private final BigDecimal amount;
-    private final String currency;
+    private final Currency currency;
 
-    public WithdrawalPostedEvent(UUID transactionId, String accountNumber, BigDecimal amount, String currency) {
+    public WithdrawalPostedEvent(UUID transactionId, String accountNumber, BigDecimal amount, Currency currency) {
         this.transactionId = transactionId;
         this.accountNumber = accountNumber;
         this.amount = amount;
@@ -29,7 +30,7 @@ public class WithdrawalPostedEvent {
         return amount;
     }
 
-    public String getCurrency() {
+    public Currency getCurrency() {
         return currency;
     }
 }

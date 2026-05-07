@@ -2,5 +2,14 @@ package com.example.domain.reconciliation.model;
 
 import com.example.domain.shared.Command;
 
-public record StartReconciliationCmd(String batchId, String batchWindow) implements Command {
+import java.time.Instant;
+
+/**
+ * Command to start the reconciliation process for a specific batch window.
+ */
+public record StartReconciliationCmd(
+        String batchId,
+        Instant windowStart,
+        Instant windowEnd
+) implements Command {
 }

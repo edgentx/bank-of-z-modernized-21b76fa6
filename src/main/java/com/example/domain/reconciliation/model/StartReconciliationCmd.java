@@ -6,10 +6,20 @@ import java.time.Instant;
 
 /**
  * Command to start the reconciliation process for a specific batch window.
- * @param batchId The unique identifier of the batch.
- * @param batchWindowStart The start time of the reconciliation window.
- * @param batchWindowEnd The end time of the reconciliation window.
- * @param operatorId The ID of the operator initiating the reconciliation.
  */
-public record StartReconciliationCmd(String batchId, Instant batchWindowStart, Instant batchWindowEnd, String operatorId) implements Command {
+public record StartReconciliationCmd(String batchId, Instant start, Instant end) implements Command {
+    public StartReconciliationCmd {
+        if (batchId == null || batchId.isBlank()) {
+            throw new IllegalArgumentException("batchId cannot be null or empty");
+        }
+        if (start == null) {
+            throw new IllegalArgumentException("start time cannot be null");
+        }
+        if (end == null) {
+            throw new IllegalArgumentException("end time cannot be null");
+        }
+        if (end.isBefore(start)) {
+            throw new IllegalArgumentException("end time cannot be before start time");
+        }
+    }
 }

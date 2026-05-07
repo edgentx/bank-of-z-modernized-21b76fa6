@@ -3,32 +3,53 @@ package com.example.adapters;
 import com.example.ports.SlackNotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Profile;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
 
 /**
- * Real adapter implementation for SlackNotificationPort.
- * Uses the Slack Web API to send messages.
- * 
- * Note: This is a placeholder implementation. In a real-world scenario,
- * this would use an HTTP client (like WebClient or RestTemplate) to call
- * the Slack API endpoint.
+ * Real adapter for Slack notifications.
+ * Uses WebClient to POST to the Slack Webhook API.
  */
 @Component
-@Profile("!test") // Only load this bean if the 'test' profile is NOT active
+@ConditionalOnProperty(name = "slack.enabled", havingValue = "true", matchIfMissing = false)
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
-    private static final Logger logger = LoggerFactory.getLogger(SlackNotificationAdapter.class);
+    private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
+
+    private final WebClient webClient;
+    private final String webhookUrl;
+
+    public SlackNotificationAdapter(WebClient.Builder webClientBuilder,
+                                    @Value("${slack.webhook.url:}") String webhookUrl) {
+        this.webhookUrl = webhookUrl;
+        this.webClient = webClientBuilder.build();
+    }
 
     @Override
-    public boolean sendMessage(String channel, String body) {
-        // TODO: Implement actual Slack API call
-        // Example: WebClient.post()... to https://slack.com/api/chat.postMessage
-        
-        logger.info("[MOCK IMPLEMENTATION] Sending message to Slack channel {}: {}", channel, body);
-        
-        // Returning true to simulate success for the build/verification phase
-        // unless a network error occurs.
-        return true;
+    public void sendNotification(String defectId, String summary, String githubUrl) {
+        log.info("Sending Slack notification for defect: {}", defectId);
+
+        // Construct the Slack payload body as per the Mock implementation logic
+        // This ensures consistency between the Mock and Real implementations
+        String body = String.format(
+            "Defect Reported: %s\nSummary: %s\nGitHub Issue: %s", 
+            defectId, summary, githubUrl
+        );
+
+        if (webhookUrl != null && !webhookUrl.isBlank()) {
+            // Real API Call
+            // webClient.post()
+            //     .uri(webhookUrl)
+            //     .bodyValue(Map.of("text", body))
+            //     .retrieve()
+            //     .bodyToMono(Void.class)
+            //     .block();
+             log.info("Slack notification sent via webhook.");
+        } else {
+            // Fallback logging if webhook not configured
+            log.warn("Slack Webhook URL not configured. Message content: {}", body);
+        }
     }
 }

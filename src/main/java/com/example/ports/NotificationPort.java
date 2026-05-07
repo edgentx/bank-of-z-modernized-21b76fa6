@@ -1,9 +1,11 @@
 package com.example.ports;
 
+import com.example.vforce.shared.ReportDefectCommand;
+
 /**
- * Port for sending notifications to external systems like Slack.
- * This isolates the domain logic from the HTTP client implementation details.
+ * Port interface for sending notifications (e.g., Slack).
+ * Allows mocking in tests without real I/O.
  */
 public interface NotificationPort {
-    void sendNotification(String targetChannel, String messageBody);
+    void notifyChannel(ReportDefectCommand command);
 }

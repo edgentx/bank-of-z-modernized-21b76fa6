@@ -1,17 +1,22 @@
 package com.example.domain.userinterfacenavigation.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.Map;
+import java.util.UUID;
 
-// Fixed signature to match the compiler error: (String, String, String, Instant)
-public record ScreenRenderedEvent(
-    String aggregateId,
-    String screenId,
-    String layoutId,
-    Instant occurredAt
-) implements DomainEvent {
+public class ScreenRenderedEvent implements DomainEvent {
+    private final String eventId = UUID.randomUUID().toString();
+    private final String aggregateId;
+    private final String screenId;
+    private final String deviceType;
+    private final Instant occurredAt;
+
+    public ScreenRenderedEvent(String aggregateId, String screenId, String deviceType, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.screenId = screenId;
+        this.deviceType = deviceType;
+        this.occurredAt = occurredAt;
+    }
 
     @Override
     public String type() {
@@ -26,5 +31,13 @@ public record ScreenRenderedEvent(
     @Override
     public Instant occurredAt() {
         return occurredAt;
+    }
+
+    public String getScreenId() {
+        return screenId;
+    }
+
+    public String getDeviceType() {
+        return deviceType;
     }
 }

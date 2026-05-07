@@ -2,14 +2,14 @@ package com.example.ports;
 
 /**
  * Port for sending notifications to Slack.
- * Used by the Validation workflow to report defects.
  */
 public interface SlackNotificationPort {
+
     /**
-     * Posts a message to a Slack channel.
+     * Posts a message to a specific channel.
      *
-     * @param channel The target channel (e.g. #vforce360-issues)
-     * @param body    The message body content.
+     * @param channelId The ID of the Slack channel (e.g., "C0123456789").
+     * @param message   The formatted message body to send.
      */
-    void postMessage(String channel, String body);
+    void postMessage(String channelId, String message);
 }

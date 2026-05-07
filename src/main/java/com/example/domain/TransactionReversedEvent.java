@@ -2,7 +2,12 @@ package com.example.domain;
 
 import java.util.UUID;
 
-public class TransactionReversedEvent {
+/**
+ * Event emitted when a transaction is successfully reversed.
+ * Part of the S-12 Story implementation.
+ */
+public class TransactionReversedEvent implements S12Event {
+
     private final UUID transactionId;
     private final UUID originalTransactionId;
 

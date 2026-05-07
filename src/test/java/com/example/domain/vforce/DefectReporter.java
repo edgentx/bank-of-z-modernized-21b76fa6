@@ -3,19 +3,12 @@ package com.example.domain.vforce;
 import com.example.ports.GitHubPort;
 import com.example.ports.SlackNotificationPort;
 
+import java.util.Optional;
+
 /**
- * This class represents the logic that would be executed by the Temporal worker 
- * when handling the '_report_defect' workflow.
- * 
- * In the TDD Red phase, this implementation is often a stub or intentionally 
- * incorrect to force the test to fail. 
- * 
- * IMPORTANT: To ensure the test suite FAILS initially (Red Phase), 
- * I will implement this *incorrectly* first (e.g., omitting the URL).
- * 
- * However, the prompt asks for the *files* to make the tests work/run. 
- * I will provide a Stub implementation that causes the test to FAIL, 
- * demonstrating the TDD Red phase requirement.
+ * Domain service for reporting defects.
+ * Orchestrates the retrieval of GitHub issue URLs and notification via Slack.
+ * This logic is triggered by the Temporal workflow (_report_defect).
  */
 public class DefectReporter {
 
@@ -27,16 +20,24 @@ public class DefectReporter {
         this.gitHubPort = gitHubPort;
     }
 
+    /**
+     * Reports a defect to the specified Slack channel, including a link to the GitHub issue.
+     *
+     * @param issueId The ID of the issue (e.g., "VW-454")
+     * @param channel The Slack channel (e.g., "#vforce360-issues")
+     */
     public void reportDefect(String issueId, String channel) {
-        // RED PHASE IMPLEMENTATION (Intentionally failing)
-        // Current implementation does NOT include the URL in the body.
-        // This causes VW454ValidationTest.testReportDefect_ShouldIncludeGitHubUrlInSlackBody to fail.
+        Optional<String> issueUrlOptional = gitHubPort.getIssueUrl(issueId);
+        
+        String body;
+        if (issueUrlOptional.isPresent()) {
+            String url = issueUrlOptional.get();
+            body = "Defect Reported: " + issueId + " - GitHub issue: " + url;
+        } else {
+            // Fallback behavior if GitHub URL cannot be retrieved
+            body = "Defect Reported: " + issueId + " - (GitHub URL unavailable)";
+        }
 
-        String body = "Defect Reported: " + issueId + " - About to find out";
-        
-        // We deliberately ignore the result of gitHubPort.getIssueUrl(issueId) 
-        // or simply don't append it to the body string.
-        
         slackPort.postMessage(channel, body);
     }
 }

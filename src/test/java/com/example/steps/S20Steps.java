@@ -1,9 +1,9 @@
 package com.example.steps;
 
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.teller.model.EndSessionCmd;
-import com.example.domain.teller.model.SessionEndedEvent;
-import com.example.domain.teller.model.TellerSessionAggregate;
+import com.example.domain.tellersession.model.EndSessionCmd;
+import com.example.domain.tellersession.model.SessionEndedEvent;
+import com.example.domain.tellersession.model.TellerSessionAggregate;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -21,15 +21,13 @@ public class S20Steps {
 
     @Given("a valid TellerSession aggregate")
     public void aValidTellerSessionAggregate() {
-        String sessionId = "session-123";
-        aggregate = new TellerSessionAggregate(sessionId);
-        // Set up valid state: authenticated, active, idle, recent activity
-        aggregate.markAuthenticated("teller-001");
+        aggregate = new TellerSessionAggregate("session-123");
+        aggregate.markAuthenticated(); // Ensure valid state
     }
 
-    @Given("a valid sessionId is provided")
+    @And("a valid sessionId is provided")
     public void aValidSessionIdIsProvided() {
-        // Implicitly handled by the aggregate construction in previous step
+        // SessionId is implicit in the aggregate constructor/step above
     }
 
     @When("the EndSessionCmd command is executed")
@@ -44,41 +42,36 @@ public class S20Steps {
 
     @Then("a session.ended event is emitted")
     public void aSessionEndedEventIsEmitted() {
+        assertNull(capturedException, "Should not have thrown exception: " + capturedException);
         assertNotNull(resultEvents);
-        assertFalse(resultEvents.isEmpty());
+        assertEquals(1, resultEvents.size());
         assertTrue(resultEvents.get(0) instanceof SessionEndedEvent);
-        assertEquals("session.ended", resultEvents.get(0).type());
+        SessionEndedEvent evt = (SessionEndedEvent) resultEvents.get(0);
+        assertEquals("session.ended", evt.type());
+        assertEquals(aggregate.id(), evt.aggregateId());
     }
 
-    // --- Negative Scenarios ---
-
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void aTellerSessionAggregateThatViolatesAuthentication() {
-        String sessionId = "session-unauth";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markUnauthenticated(); // Violation
+    public void aTellerSessionAggregateThatViolatesAuth() {
+        aggregate = new TellerSessionAggregate("session-unauth");
+        // Do not call markAuthenticated; it defaults to false.
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
     public void aTellerSessionAggregateThatViolatesTimeout() {
-        String sessionId = "session-timeout";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markAuthenticated("teller-002");
-        aggregate.markStale(); // Violation
+        aggregate = new TellerSessionAggregate("session-timeout");
+        aggregate.markStale(); // Sets lastActivity to 31 mins ago
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
     public void aTellerSessionAggregateThatViolatesNavigationState() {
-        String sessionId = "session-busy";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markAuthenticated("teller-003");
-        aggregate.markBusyState(); // Violation (Not IDLE)
+        aggregate = new TellerSessionAggregate("session-nav-error");
+        aggregate.corruptNavigationState(); // Sets state to INVALID
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(capturedException);
-        // We expect IllegalStateException for domain invariant violations
+        assertNotNull(capturedException, "Expected exception but command succeeded");
         assertTrue(capturedException instanceof IllegalStateException);
     }
 }

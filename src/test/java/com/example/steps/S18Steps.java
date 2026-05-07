@@ -2,43 +2,49 @@ package com.example.steps;
 
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.tellersession.model.SessionStartedEvent;
-import com.example.domain.tellersession.model.StartSessionCmd;
-import com.example.domain.tellersession.model.TellerSessionAggregate;
+import com.example.domain.teller.model.SessionStartedEvent;
+import com.example.domain.teller.model.StartSessionCmd;
+import com.example.domain.teller.model.TellerSessionAggregate;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Assertions;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.List;
 
 public class S18Steps {
 
     private TellerSessionAggregate aggregate;
-    private StartSessionCmd cmd;
+    private Command command;
+    private List<DomainEvent> resultingEvents;
     private Exception caughtException;
-    private java.util.List<DomainEvent> result;
 
     @Given("a valid TellerSession aggregate")
-    public void a_valid_TellerSession_aggregate() {
+    public void a_valid_teller_session_aggregate() {
         aggregate = new TellerSessionAggregate("session-123");
-        aggregate.markAuthenticated(); // Assume auth is valid for the 'happy path' setup
+        aggregate.markAsAuthenticated(); // Assume authenticated for valid case
     }
 
-    @Given("a valid tellerId is provided")
-    public void a_valid_tellerId_is_provided() {
-        // ID is usually part of the command construction, logic handled in 'When'
+    @And("a valid tellerId is provided")
+    public void a_valid_teller_id_is_provided() {
+        // Teller ID is part of the command construction, handled in 'When'
     }
 
-    @Given("a valid terminalId is provided")
-    public void a_valid_terminalId_is_provided() {
-        // ID is usually part of the command construction, logic handled in 'When'
+    @And("a valid terminalId is provided")
+    public void a_valid_terminal_id_is_provided() {
+        // Terminal ID is part of the command construction, handled in 'When'
     }
 
     @When("the StartSessionCmd command is executed")
-    public void the_StartSessionCmd_command_is_executed() {
+    public void the_start_session_cmd_command_is_executed() {
+        // Default to valid data if not set by specific violation context
+        String tellerId = "teller-1";
+        String terminalId = "TERM-01";
+        command = new StartSessionCmd(tellerId, terminalId);
+        
         try {
-            cmd = new StartSessionCmd("session-123", "teller-1", "term-42");
-            result = aggregate.execute(cmd);
+            resultingEvents = aggregate.execute(command);
         } catch (Exception e) {
             caughtException = e;
         }
@@ -46,38 +52,63 @@ public class S18Steps {
 
     @Then("a session.started event is emitted")
     public void a_session_started_event_is_emitted() {
-        assertNotNull(result);
-        assertFalse(result.isEmpty());
-        assertTrue(result.get(0) instanceof SessionStartedEvent);
-        assertEquals("session.started", result.get(0).type());
+        Assertions.assertNotNull(resultingEvents);
+        Assertions.assertFalse(resultingEvents.isEmpty());
+        Assertions.assertTrue(resultingEvents.get(0) instanceof SessionStartedEvent);
+        Assertions.assertEquals("session.started", resultingEvents.get(0).type());
     }
 
-    // --- Negative Scenarios ---
-
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_TellerSession_aggregate_that_violates_authentication() {
-        aggregate = new TellerSessionAggregate("session-404");
-        // 'authenticated' defaults to false in constructor
+    public void a_teller_session_aggregate_that_violates_authentication() {
+        aggregate = new TellerSessionAggregate("session-401");
+        aggregate.markAsUnauthenticated();
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_TellerSession_aggregate_that_violates_timeout() {
+    public void a_teller_session_aggregate_that_violates_timeout() {
         aggregate = new TellerSessionAggregate("session-timeout");
-        aggregate.markAuthenticated(); // Ensure auth passes
-        aggregate.markInactive(); // Set last activity to way back
+        aggregate.markAsAuthenticated();
+        aggregate.markAsStale(); // Helper method in aggregate to simulate old timestamp
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_TellerSession_aggregate_that_violates_navigation_state() {
-        aggregate = new TellerSessionAggregate("session-conflict");
-        aggregate.markAuthenticated();
-        aggregate.markActive(); // Make it already active
+    public void a_teller_session_aggregate_that_violates_nav_state() {
+        aggregate = new TellerSessionAggregate("session-nav-error");
+        aggregate.markAsAuthenticated();
+    }
+
+    // Override the When step for the negative case to trigger the violation logic if needed,
+    // or rely on the aggregate state setup above.
+    // For the Navigation state violation, we need to send a BAD terminalId in the command.
+    @When("the StartSessionCmd command is executed with invalid context")
+    public void the_start_session_cmd_command_is_executed_with_invalid_context() {
+        // Use a terminal ID that violates the validation rule (e.g., not TERM-*)
+        command = new StartSessionCmd("teller-1", "INVALID-TERM");
+        try {
+            resultingEvents = aggregate.execute(command);
+        } catch (Exception e) {
+            caughtException = e;
+        }
+    }
+
+    // Cucumber will match this regex to the scenario steps
+    @When("the StartSessionCmd command is executed")
+    public void the_start_session_cmd_command_is_executed_generic() {
+        // Re-use standard execution logic for other failures (Auth, Timeout)
+        // But for the specific "Navigation state" scenario, Cucumber might pick the wrong one if we aren't careful.
+        // However, based on the scenarios provided:
+        // "Navigation state..." -> uses specific invalid context step.
+        // The rest use standard execution.
+        
+        // If we are in the Nav state scenario, the command was already created in the specific When hook.
+        // But Cucumber hooks execute in order.
+        // Let's unify: The default When handles Auth and Timeout because they rely on AGGREGATE state.
+        // The Nav scenario relies on COMMAND state.
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(caughtException);
-        // We expect either IllegalStateException or IllegalArgumentException depending on implementation choice
-        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
+        Assertions.assertNotNull(caughtException);
+        Assertions.assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
     }
 }

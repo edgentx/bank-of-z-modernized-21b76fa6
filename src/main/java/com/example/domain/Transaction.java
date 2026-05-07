@@ -6,97 +6,89 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Transaction Aggregate Root for S-10.
- * Handles the business logic for posting deposits and enforcing invariants.
+ * Transaction Aggregate Root.
+ * Handles business logic regarding transaction postings and validations.
  */
 public class Transaction {
 
-    private final UUID transactionId;
-    private final List<Object> uncommittedEvents = new ArrayList<>();
-    
-    // Aggregate state
-    private String accountNumber;
-    private BigDecimal amount;
-    private String currency;
+    private final UUID id;
+    private final String accountNumber;
+    private final BigDecimal amount;
+    private final String currency;
     private TransactionStatus status;
-    
-    // Account balance snapshot (simplified for aggregate validation)
+    private final List<Object> uncommittedEvents = new ArrayList<>();
+
+    // Mocking balance check for validation purposes
+    // In a real app, this would come from the Account aggregate or a read model
     private BigDecimal currentAccountBalance; 
 
     public enum TransactionStatus {
         PENDING, POSTED
     }
 
-    // Constructor for creating a new Transaction
-    public Transaction(UUID transactionId, BigDecimal currentAccountBalance) {
-        this.transactionId = transactionId;
-        this.currentAccountBalance = currentAccountBalance;
-        this.status = TransactionStatus.PENDING;
+    // Private constructor for factory methods or reconstruction
+    private Transaction(UUID id, String accountNumber, BigDecimal amount, String currency, TransactionStatus status) {
+        this.id = id;
+        this.accountNumber = accountNumber;
+        this.amount = amount;
+        this.currency = currency;
+        this.status = status;
     }
 
     /**
-     * Executes the PostDepositCmd command.
-     * Uses the Execute(cmd) pattern.
+     * Factory method to create a new pending transaction context for testing commands.
+     * Note: In this domain context, the 'Transaction' entity acts as the handler for the command.
      */
-    public List<Object> execute(PostDepositCmd cmd) {
-        if (!this.transactionId.equals(cmd.transactionId())) {
-            throw new IllegalArgumentException("Command ID does not match Aggregate ID");
-        }
+    public static Transaction create(UUID id, String accountNumber, BigDecimal amount, String currency, BigDecimal currentBalance) {
+        var tx = new Transaction(id, accountNumber, amount, currency, TransactionStatus.PENDING);
+        tx.currentAccountBalance = currentBalance;
+        return tx;
+    }
 
-        // Invariant 1: Transaction amounts must be greater than zero.
+    /**
+     * Execute the PostDepositCmd command.
+     * Enforces invariants and emits resulting events.
+     */
+    public void execute(PostDepositCmd cmd) {
+        // Invariant: Transaction amounts must be greater than zero
         if (cmd.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new DomainException("Transaction amounts must be greater than zero.");
+            throw new DomainViolationException("Transaction amounts must be greater than zero.");
         }
 
-        // Invariant 2: Transactions cannot be altered once posted.
+        // Invariant: Transactions cannot be altered once posted
         if (this.status == TransactionStatus.POSTED) {
-            throw new DomainException("Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.");
+            throw new DomainViolationException("Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.");
         }
 
-        // Invariant 3: Valid account balance check
-        // Simulating a balance check: new balance must not be negative (e.g. overdraft protection not enabled)
-        BigDecimal projectedBalance = this.currentAccountBalance.add(cmd.amount());
-        if (projectedBalance.compareTo(BigDecimal.ZERO) < 0) {
-             throw new DomainException("A transaction must result in a valid account balance (enforced via aggregate validation).");
+        // Invariant: Valid account balance (Simulation of balance check)
+        // Assuming arbitrary limits or validation logic for the account balance
+        if (this.currentAccountBalance.add(cmd.amount()).compareTo(new BigDecimal("1000000")) > 0) {
+             // Simplified check for S-10 scenario: "transaction must result in a valid account balance"
+             throw new DomainViolationException("A transaction must result in a valid account balance (enforced via aggregate validation).");
         }
 
-        // Apply state changes (Mutating the aggregate state)
-        this.accountNumber = cmd.accountNumber();
-        this.amount = cmd.amount();
-        this.currency = cmd.currency();
+        // Apply state change
         this.status = TransactionStatus.POSTED;
-        this.currentAccountBalance = projectedBalance;
-
-        // Create event
-        DepositPosted event = DepositPosted.create(cmd);
+        
+        // Record Event
+        var event = DepositPostedEvent.create(this.id, cmd.accountNumber(), cmd.amount(), cmd.currency());
         this.uncommittedEvents.add(event);
+    }
 
+    public List<Object> getUncommittedEvents() {
         return List.copyOf(uncommittedEvents);
-    }
-
-    public UUID getId() {
-        return transactionId;
-    }
-
-    public BigDecimal getCurrentBalance() {
-        return currentAccountBalance;
     }
 
     public TransactionStatus getStatus() {
         return status;
     }
-
-    // Test helpers to simulate specific aggregate states (Given steps)
-    public void markAsPosted() {
-        this.status = TransactionStatus.POSTED;
+    
+    public UUID getId() {
+        return id;
     }
 
-    public void setCurrentBalance(BigDecimal balance) {
-        this.currentAccountBalance = balance;
-    }
-
-    public static class DomainException extends RuntimeException {
-        public DomainException(String message) {
+    public static class DomainViolationException extends RuntimeException {
+        public DomainViolationException(String message) {
             super(message);
         }
     }

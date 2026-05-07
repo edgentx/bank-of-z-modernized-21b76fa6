@@ -10,7 +10,6 @@ import java.time.Instant;
 public record StartReconciliationCmd(
         String batchId,
         Instant windowStart,
-        Instant windowEnd,
-        String operatorId
+        Instant windowEnd
 ) implements Command {
 }

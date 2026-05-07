@@ -2,7 +2,9 @@ package com.example.domain.customer.repository;
 
 import com.example.domain.customer.model.CustomerAggregate;
 
+import java.util.Optional;
+
 public interface CustomerRepository {
-    CustomerAggregate save(CustomerAggregate aggregate);
-    CustomerAggregate findById(String id);
+    void save(CustomerAggregate aggregate);
+    Optional<CustomerAggregate> findById(String id);
 }

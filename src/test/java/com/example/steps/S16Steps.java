@@ -1,86 +1,84 @@
 package com.example.steps;
 
-import com.example.domain.reconciliation.model.*;
-import com.example.domain.shared.Command;
+import com.example.domain.reconciliation.model.ReconciliationBatch;
+import com.example.domain.reconciliation.model.ReconciliationStartedEvent;
+import com.example.domain.reconciliation.model.StartReconciliationCmd;
 import com.example.domain.shared.DomainEvent;
 import com.example.mocks.InMemoryReconciliationBatchRepository;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S16Steps {
 
-    private ReconciliationBatch batch;
-    private final InMemoryReconciliationBatchRepository repo = new InMemoryReconciliationBatchRepository();
-    private Exception capturedException;
-    private List<DomainEvent> resultEvents;
+    private ReconciliationBatch aggregate;
+    private final InMemoryReconciliationBatchRepository repository = new InMemoryReconciliationBatchRepository();
+    private Exception thrownException;
+    private List<DomainEvent> resultingEvents;
 
-    @Given("a valid ReconciliationBatch aggregate")
-    public void aValidReconciliationBatchAggregate() {
-        batch = new ReconciliationBatch("batch-123");
-        repo.save(batch);
+    // Helper to reset state
+    private void createNewAggregate() {
+        this.aggregate = new ReconciliationBatch("batch-123");
+        this.thrownException = null;
+        this.resultingEvents = null;
     }
 
-    @Given("a valid batchWindow is provided")
-    public void aValidBatchWindowIsProvided() {
-        // Context setup: implied by command creation in When step
+    @Given("a valid ReconciliationBatch aggregate")
+    public void a_valid_ReconciliationBatch_aggregate() {
+        createNewAggregate();
+    }
+
+    @And("a valid batchWindow is provided")
+    public void a_valid_batchWindow_is_provided() {
+        // Implicitly used in the 'When' step via the Command
+    }
+
+    @Given("a ReconciliationBatch aggregate that violates: A reconciliation batch cannot be executed if a previous batch is still pending.")
+    public void a_ReconciliationBatch_aggregate_that_violates_previous_pending() {
+        createNewAggregate();
+        aggregate.markPreviousBatchPending(true);
+    }
+
+    @Given("a ReconciliationBatch aggregate that violates: All transaction entries must be accounted for during the reconciliation period.")
+    public void a_ReconciliationBatch_aggregate_that_violates_entries_accounted() {
+        createNewAggregate();
+        aggregate.markEntriesUnaccounted();
     }
 
     @When("the StartReconciliationCmd command is executed")
-    public void theStartReconciliationCmdCommandIsExecuted() {
+    public void the_StartReconciliationCmd_command_is_executed() {
+        Instant start = Instant.now().minus(1, ChronoUnit.DAYS);
+        Instant end = Instant.now();
+        StartReconciliationCmd cmd = new StartReconciliationCmd(aggregate.id(), start, end);
+
         try {
-            // Reload to ensure we are testing persistence state (optional but good practice)
-            ReconciliationBatch aggregate = repo.findById("batch-123").orElseThrow();
-            
-            Command cmd = new StartReconciliationCmd(
-                "batch-123", 
-                Instant.now(), 
-                Instant.now().plusSeconds(3600), 
-                "op-1"
-            );
-            
-            resultEvents = aggregate.execute(cmd);
-            repo.save(aggregate);
+            resultingEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            capturedException = e;
+            thrownException = e;
         }
     }
 
     @Then("a reconciliation.started event is emitted")
-    public void aReconciliationStartedEventIsEmitted() {
-        Assertions.assertNull(capturedException, "Should not have thrown exception");
-        Assertions.assertNotNull(resultEvents);
-        Assertions.assertEquals(1, resultEvents.size());
-        Assertions.assertTrue(resultEvents.get(0) instanceof ReconciliationStartedEvent);
-    }
-
-    @Given("a ReconciliationBatch aggregate that violates: A reconciliation batch cannot be executed if a previous batch is still pending.")
-    public void aReconciliationBatchAggregateThatViolatesPreviousPending() {
-        batch = new ReconciliationBatch("batch-violation-1");
-        batch.markPreviousBatchPending(true);
-        repo.save(batch);
-    }
-
-    @Given("a ReconciliationBatch aggregate that violates: All transaction entries must be accounted for during the reconciliation period.")
-    public void aReconciliationBatchAggregateThatViolatesEntriesAccounted() {
-        batch = new ReconciliationBatch("batch-violation-2");
-        batch.markEntriesUnaccounted();
-        repo.save(batch);
+    public void a_reconciliation_started_event_is_emitted() {
+        assertNotNull(resultingEvents, "Events list should not be null");
+        assertEquals(1, resultingEvents.size(), "Expected exactly one event");
+        assertTrue(resultingEvents.get(0) instanceof ReconciliationStartedEvent, "Expected ReconciliationStartedEvent");
+        
+        ReconciliationStartedEvent event = (ReconciliationStartedEvent) resultingEvents.get(0);
+        assertEquals("batch-123", event.aggregateId());
+        assertNotNull(event.occurredAt());
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(capturedException);
-        // In Java, domain errors are typically IllegalStateException or IllegalArgumentException
-        Assertions.assertTrue(
-            capturedException instanceof IllegalStateException || 
-            capturedException instanceof IllegalArgumentException
-        );
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(thrownException, "Expected an exception to be thrown");
+        assertTrue(thrownException instanceof IllegalStateException, "Expected IllegalStateException");
     }
 }

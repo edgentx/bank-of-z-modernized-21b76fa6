@@ -1,16 +1,30 @@
 package com.example.domain.validation.model;
 
 import com.example.domain.shared.DomainEvent;
-import java.time.Instant;
-import java.util.UUID;
 
+import java.time.Instant;
+
+/**
+ * Domain event emitted when a defect is successfully validated and reported.
+ */
 public record DefectReportedEvent(
-    String aggregateId,
+    String validationId,
     String title,
     String githubIssueUrl,
     Instant occurredAt
 ) implements DomainEvent {
-    @Override public String type() { return "DefectReported"; }
-    @Override public String aggregateId() { return aggregateId(); }
-    @Override public Instant occurredAt() { return occurredAt; }
+    @Override
+    public String type() {
+        return "DefectReported";
+    }
+
+    @Override
+    public String aggregateId() {
+        return validationId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
 }

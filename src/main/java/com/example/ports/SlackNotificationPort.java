@@ -1,14 +1,17 @@
 package com.example.ports;
 
 /**
- * Port interface for sending Slack notifications.
- * Used to decouple the domain logic from the specific Slack integration implementation.
+ * Port interface for sending notifications to Slack.
+ * This decouples the business logic from the specific Slack client implementation.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends a notification message to a specific Slack channel.
-     * @param messageBody The formatted message to send.
+     * Sends a defect notification to the configured Slack channel.
+     *
+     * @param defectId The unique identifier of the defect (e.g., "VW-454").
+     * @param description A human-readable description of the defect.
+     * @param githubIssueUrl The direct URL to the GitHub issue tracking this defect.
      */
-    void notifyChannel(String messageBody);
+    void sendDefectNotification(String defectId, String description, String githubIssueUrl);
 }

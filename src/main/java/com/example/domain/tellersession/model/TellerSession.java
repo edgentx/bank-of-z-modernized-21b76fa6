@@ -1,34 +1,31 @@
 package com.example.domain.tellersession.model;
 
+import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.shared.AggregateRoot;
-
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
 /**
- * Aggregate representing a Bank Teller's UI session.
- * Manages authentication state, navigation context, and timeouts.
+ * TellerSession aggregate.
+ * Manages state for a Bank Teller's terminal session.
  */
-public class TellerSessionAggregate extends AggregateRoot {
-
+public class TellerSession extends AggregateRoot {
     private final String sessionId;
     private String tellerId;
-    private String navigationContext;
-    private Instant lastActivityAt;
-    private boolean isActive;
+    private String branchId;
+    private boolean active;
+    private boolean timedOut;
+    private boolean authenticated;
+    private boolean navigationStateValid;
 
-    // Configuration: Session timeout duration
-    private static final Duration SESSION_TIMEOUT = Duration.ofMinutes(30);
-
-    public TellerSessionAggregate(String sessionId) {
+    public TellerSession(String sessionId) {
         this.sessionId = sessionId;
-        // Initialize in a blank/unauthenticated state
-        this.lastActivityAt = Instant.now();
-        this.isActive = false;
+        this.active = false;
+        this.timedOut = false;
+        this.authenticated = false;
+        this.navigationStateValid = true;
     }
 
     @Override
@@ -36,58 +33,52 @@ public class TellerSessionAggregate extends AggregateRoot {
         return sessionId;
     }
 
-    /**
-     * Test helper to simulate state hydration.
-     * In a real application, state is built by applying events from the EventStore.
-     */
-    public void hydrate(String tellerId, String navigationContext, Instant lastActivityAt) {
-        this.tellerId = tellerId;
-        this.navigationContext = navigationContext;
-        this.lastActivityAt = lastActivityAt;
-        if (tellerId != null && navigationContext != null) {
-            this.isActive = true;
-        }
-    }
-
+    // Command Execution
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof EndSessionCmd) {
-            return handleEndSession((EndSessionCmd) cmd);
+        if (cmd instanceof EndSessionCmd c) {
+            return handleEndSession(c);
         }
         throw new UnknownCommandException(cmd);
     }
 
     private List<DomainEvent> handleEndSession(EndSessionCmd cmd) {
-        // Invariant: A teller must be authenticated
-        if (tellerId == null || tellerId.isBlank()) {
-            throw new IllegalStateException("Cannot end session: No authenticated teller found.");
+        // Invariant: Authenticated
+        if (!authenticated) {
+            throw new IllegalStateException("Cannot end session: Teller is not authenticated.");
         }
 
-        // Invariant: Navigation state must be valid
-        if (navigationContext == null || navigationContext.isBlank()) {
-            throw new IllegalStateException("Cannot end session: Navigation context is corrupted or invalid.");
-        }
-
-        // Invariant: Session must not be timed out (Business rule: usually you can't end a dead session, or you must log it)
-        // Here we enforce that we cannot perform operations on a timed-out session.
-        if (isTimedOut()) {
+        // Invariant: Not Timed Out
+        if (timedOut) {
             throw new IllegalStateException("Cannot end session: Session has timed out due to inactivity.");
         }
 
-        SessionEndedEvent event = new SessionEndedEvent(sessionId, Instant.now());
-        
-        // Apply state changes
-        this.isActive = false;
-        this.tellerId = null; // Clear sensitive state
-        this.navigationContext = null; // Clear navigation state
-        
+        // Invariant: Navigation State Valid
+        if (!navigationStateValid) {
+            throw new IllegalStateException("Cannot end session: Navigation state is inconsistent with operational context.");
+        }
+
+        var event = new SessionEndedEvent(sessionId, tellerId, Instant.now());
+        this.active = false;
+        this.authenticated = false;
         addEvent(event);
         incrementVersion();
         return List.of(event);
     }
 
-    private boolean isTimedOut() {
-        if (lastActivityAt == null) return true;
-        return Instant.now().isAfter(lastActivityAt.plus(SESSION_TIMEOUT));
+    // Test / Setup helper methods
+    public void initializeSession(String tellerId, String branchId) {
+        this.tellerId = tellerId;
+        this.branchId = branchId;
+        this.active = true;
+        this.authenticated = true;
+    }
+
+    public void forceTimeoutForTesting() {
+        this.timedOut = true;
+    }
+
+    public void corruptNavigationStateForTesting() {
+        this.navigationStateValid = false;
     }
 }

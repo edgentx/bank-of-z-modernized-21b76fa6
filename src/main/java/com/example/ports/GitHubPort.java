@@ -1,16 +1,19 @@
 package com.example.ports;
 
+import java.net.URI;
+
 /**
- * Port for interacting with GitHub issues.
+ * Port interface for creating GitHub issues.
+ * This decouples the domain logic from the specific GitHub API client implementation.
  */
 public interface GitHubPort {
 
     /**
-     * Creates a GitHub issue.
+     * Creates a new issue in the repository.
      *
-     * @param title The title of the issue.
-     * @param body  The body description of the issue.
-     * @return The HTML URL of the created issue.
+     * @param title       The title of the issue.
+     * @param description The body/description of the issue.
+     * @return The URL of the created issue.
      */
-    String createIssue(String title, String body);
+    URI createIssue(String title, String description);
 }

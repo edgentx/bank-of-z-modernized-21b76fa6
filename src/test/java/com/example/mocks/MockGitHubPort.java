@@ -1,33 +1,42 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
+import java.util.HashMap;
+import java.util.Map;
 
+/**
+ * Mock implementation of GitHubPort.
+ * Returns predictable URLs for testing without hitting api.github.com.
+ */
 public class MockGitHubPort implements GitHubPort {
 
-    private String lastTitle;
-    private String lastBody;
-    private String fakeUrl = "https://github.com/fake-repo/issues/1";
+    private final Map<String, String> mockUrls = new HashMap<>();
+    private boolean createIssueCalled = false;
+    private String lastGeneratedUrl;
+
+    public void setMockCreatedIssueUrl(String defectId, String url) {
+        mockUrls.put(defectId, url);
+    }
 
     @Override
-    public String createIssue(String title, String body) {
-        this.lastTitle = title;
-        this.lastBody = body;
-        return this.fakeUrl;
+    public String createIssue(String defectId, String title, String body) {
+        createIssueCalled = true;
+        // Return a predictable default or the mocked one
+        lastGeneratedUrl = mockUrls.getOrDefault(defectId, "https://github.com/bank-of-z/vforce360/issues/0");
+        return lastGeneratedUrl;
     }
 
-    public String getLastTitle() {
-        return lastTitle;
+    public boolean wasCreateIssueCalled() {
+        return createIssueCalled;
     }
 
-    public String getLastBody() {
-        return lastBody;
+    public String getLastGeneratedUrl() {
+        return lastGeneratedUrl;
     }
 
-    /**
-     * Sets the URL to be returned by the mock (simulating GitHub response).
-     * Useful for testing URL formatting specifically.
-     */
-    public void setFakeUrl(String fakeUrl) {
-        this.fakeUrl = fakeUrl;
+    public void reset() {
+        createIssueCalled = false;
+        lastGeneratedUrl = null;
+        mockUrls.clear();
     }
 }

@@ -1,65 +1,82 @@
 package com.example.domain;
 
 import java.math.BigDecimal;
-import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
 
+/**
+ * Transaction Aggregate Root.
+ * Handles business logic regarding transaction posting and invariants.
+ */
 public class Transaction {
 
-    private final UUID id;
-    private BigDecimal currentBalance;
-    private boolean isPosted = false;
+    private final String id;
+    private final String accountNumber;
+    private final BigDecimal currentBalance; // Snapshot for validation context
+    private final List<Object> uncommittedEvents = new ArrayList<>();
+    private boolean posted = false;
 
-    // Invariant: Maximum balance allowed
-    private static final BigDecimal MAX_BALANCE = new BigDecimal("1000.00");
-
-    public Transaction(UUID id) {
+    // Constructor for creating a NEW transaction to be posted
+    public Transaction(String id, String accountNumber, BigDecimal currentBalance) {
         this.id = id;
+        this.accountNumber = accountNumber;
+        this.currentBalance = currentBalance;
     }
 
-    // Method to set balance (for testing purposes)
-    public void setCurrentBalance(BigDecimal balance) {
-        this.currentBalance = balance;
+    public String getId() {
+        return id;
     }
 
-    public BigDecimal getCurrentBalance() {
-        return currentBalance;
+    public List<Object> getUncommittedEvents() {
+        return List.copyOf(uncommittedEvents);
     }
 
-    public boolean isPosted() {
-        return isPosted;
-    }
-
-    public void markAsPosted() {
-        this.isPosted = true;
+    public void clearEvents() {
+        uncommittedEvents.clear();
     }
 
     /**
-     * Execute pattern implementation.
+     * Execute method for the PostDepositCmd.
+     * Enforces invariants before applying state change.
      */
-    public DepositPostedEvent execute(PostDepositCommand cmd) {
-        // Invariant Check 1: Transaction amounts must be greater than zero
-        if (cmd.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new TransactionError("Transaction amounts must be greater than zero.");
+    public void execute(PostDepositCmd cmd) {
+        // Invariant: Transactions cannot be altered once posted
+        if (this.posted) {
+            throw new DomainException("Transactions cannot be altered or deleted once posted");
         }
 
-        // Invariant Check 2: Transactions cannot be altered once posted
-        if (this.isPosted) {
-            throw new TransactionError("Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.");
+        // Invariant: Transaction amounts must be greater than zero
+        if (cmd.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new DomainException("Transaction amounts must be greater than zero");
         }
 
-        // Calculate prospective balance
-        BigDecimal prospectiveBalance = this.currentBalance.add(cmd.getAmount());
+        // Calculate potential balance
+        BigDecimal newBalance = this.currentBalance.add(cmd.amount());
 
-        // Invariant Check 3: Must result in valid account balance
-        if (prospectiveBalance.compareTo(MAX_BALANCE) > 0) {
-            throw new TransactionError("A transaction must result in a valid account balance (enforced via aggregate validation).");
+        // Invariant: A transaction must result in a valid account balance
+        // (Example Rule: Balance cannot be negative for this account type)
+        if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
+            throw new DomainException("A transaction must result in a valid account balance (Insufficient Funds)");
         }
 
-        // Apply State Change
-        this.currentBalance = prospectiveBalance;
-        this.isPosted = true; // Assuming a transaction is immutable/final once posted in this context
+        // If invariants pass, apply the event
+        apply(new DepositPostedEvent(
+                this.id,
+                cmd.accountNumber(),
+                cmd.amount(),
+                cmd.currency(),
+                java.time.Instant.now()
+        ));
+    }
 
-        // Emit Event
-        return new DepositPostedEvent(this.id, cmd.getAccountNumber(), cmd.getAmount(), cmd.getCurrency(), this.currentBalance);
+    private void apply(DepositPostedEvent event) {
+        this.uncommittedEvents.add(event);
+        this.posted = true; // Update state
+    }
+
+    public static class DomainException extends RuntimeException {
+        public DomainException(String message) {
+            super(message);
+        }
     }
 }

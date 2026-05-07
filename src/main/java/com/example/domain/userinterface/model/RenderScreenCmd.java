@@ -2,7 +2,14 @@ package com.example.domain.userinterface.model;
 
 import com.example.domain.shared.Command;
 
+import java.util.Map;
+
 /**
- * Command to request a screen rendering.
+ * Command to render a specific screen layout adapted for a user's device.
  */
-public record RenderScreenCmd(String aggregateId, String screenId, String deviceType) implements Command {}
+public record RenderScreenCmd(
+        String screenMapId,
+        String screenId,
+        String deviceType,
+        Map<String, String> fields
+) implements Command {}

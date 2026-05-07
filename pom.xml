@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.5</version>
+        <version>3.2.0</version>
         <relativePath/>
     </parent>
     
@@ -13,59 +13,69 @@
     <artifactId>transaction-processing</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>transaction-processing</name>
-    <description>Transaction Processing Domain</description>
+    <description>Transaction Processing Project with BDD</description>
     
     <properties>
-        <java.version>17</java.version>
-        <flyway.version>9.22.3</flyway.version>
+        <java.version>21</java.version>
+        <cucumber.version>7.14.0</cucumber.version>
     </properties>
     
     <dependencies>
-        <!-- Spring Boot Dependencies (BOM Managed) -->
+        <!-- Spring Boot Dependencies (Managed by BOM) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
+        
+        <!-- Spring Data JPA (for Domain Annotations) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
-        
-        <!-- Cucumber Dependencies (BOM Managed via Spring Boot) -->
+
+        <!-- Cucumber Dependencies (Explicit Version Required as GroupId is not in Spring BOM) -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
+            <version>${cucumber.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
+            <version>${cucumber.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-spring</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- JUnit Platform (Required for Cucumber Engine) -->
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <!-- Flyway DB2 (EXPLICIT VERSION REQUIRED - Rule 9) -->
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-db2</artifactId>
-            <version>${flyway.version}</version>
-        </dependency>
     </dependencies>
-    
+
     <build>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

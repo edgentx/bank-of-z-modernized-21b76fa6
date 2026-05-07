@@ -1,93 +1,63 @@
 package com.example.domain.validation;
 
-import com.example.domain.validation.model.ValidationAggregate;
 import com.example.domain.validation.model.ReportDefectCmd;
-import com.example.domain.validation.model.DefectReportedEvent;
-import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.validation.model.ValidationAggregate;
+import com.example.domain.validation.model.ValidationReportedEvent;
 import org.junit.jupiter.api.Test;
+
+import java.time.Instant;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for ValidationAggregate.
- * Ensures the defect reporting logic enforces invariants and emits correct events.
+ * Story: S-FB-1 - Fix: Validating VW-454 (GitHub URL in Slack body)
  */
 class ValidationAggregateTest {
 
     @Test
-    void shouldReportDefectSuccessfully() {
+    void testReportDefect_generatesEventWithValidUrl() {
         // Arrange
-        var aggregate = new ValidationAggregate("val-1");
-        var cmd = new ReportDefectCmd(
-            "val-1",
-            "VW-454",
-            "GitHub URL missing in Slack",
-            "LOW"
-        );
+        String defectId = "VW-454";
+        String description = "GitHub URL in Slack body";
+        ValidationAggregate aggregate = new ValidationAggregate(defectId);
+        ReportDefectCmd cmd = new ReportDefectCmd(defectId, description);
 
         // Act
         var events = aggregate.execute(cmd);
 
         // Assert
         assertEquals(1, events.size());
-        var event = (DefectReportedEvent) events.get(0);
+        ValidationReportedEvent event = (ValidationReportedEvent) events.get(0);
         
-        assertEquals("val-1", event.aggregateId());
-        assertEquals("VW-454", event.issueReference());
-        assertEquals("LOW", event.severity());
-        assertNotNull(event.occurredAt());
+        assertNotNull(event.slackBody());
+        String body = event.slackBody();
         
-        // Verify Aggregate State
-        assertTrue(aggregate.isReported());
-        assertEquals("VW-454", aggregate.getIssueReference());
+        // Validate URL presence (Expected Behavior)
+        assertTrue(body.contains("http"), "Slack body should contain a protocol (http/https)");
+        assertTrue(body.contains(defectId), "Slack body should contain the Defect ID");
+        assertTrue(body.contains("github"), "Slack body should reference GitHub");
     }
 
     @Test
-    void shouldThrowWhenIssueReferenceIsMissing() {
+    void testReportDefect_throwsOnNullDefectId() {
         // Arrange
-        var aggregate = new ValidationAggregate("val-1");
-        var cmd = new ReportDefectCmd(
-            "val-1",
-            null, // Missing Reference
-            "Description",
-            "LOW"
-        );
+        ValidationAggregate aggregate = new ValidationAggregate("any-id");
+        ReportDefectCmd cmd = new ReportDefectCmd(null, "Some description");
 
         // Act & Assert
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-            aggregate.execute(cmd);
-        });
-        
-        assertTrue(ex.getMessage().contains("issueReference required"));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aggregate.execute(cmd));
+        assertTrue(ex.getMessage().contains("defectId"));
     }
 
     @Test
-    void shouldThrowWhenSeverityIsInvalid() {
+    void testReportDefect_throwsOnBlankDescription() {
         // Arrange
-        var aggregate = new ValidationAggregate("val-1");
-        var cmd = new ReportDefectCmd(
-            "val-1",
-            "VW-454",
-            "Description",
-            "INVALID"
-        );
+        ValidationAggregate aggregate = new ValidationAggregate("any-id");
+        ReportDefectCmd cmd = new ReportDefectCmd("VW-455", "   ");
 
         // Act & Assert
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-            aggregate.execute(cmd);
-        });
-        
-        assertTrue(ex.getMessage().contains("severity must be LOW, MEDIUM, or HIGH"));
-    }
-
-    @Test
-    void shouldHandleUnknownCommand() {
-        // Arrange
-        var aggregate = new ValidationAggregate("val-1");
-        var unknownCmd = new Object(); // Not a valid command
-
-        // Using the domain wrapper for Command interface to strictly test Aggregate contract
-        // In a real scenario, we would pass a Command implementation that isn't handled.
-        // For this structure, we rely on the execute signature.
-        // Assuming UnknownCommandException is thrown if command type doesn't match.
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aggregate.execute(cmd));
+        assertTrue(ex.getMessage().contains("description"));
     }
 }

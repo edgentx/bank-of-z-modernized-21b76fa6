@@ -1,19 +1,17 @@
 package com.example.domain.validation.model;
 
 import com.example.domain.shared.Command;
-
 import java.util.Map;
 
 /**
- * Command to report a defect.
- * Part of the Validation aggregate (VW-454).
+ * Command to report a defect via the temporal-worker exec.
+ * Story: S-FB-1
  */
 public record ReportDefectCmd(
-        String defectId,
-        String projectId,
-        String title,
-        String severity,
-        String githubUrl,
-        Map<String, String> metadata
-) implements Command {
-}
+    String defectId,
+    String title,
+    String description,
+    String severity,
+    String component,
+    String projectId
+) implements Command {}

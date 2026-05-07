@@ -4,8 +4,8 @@ import com.example.domain.shared.Command;
 
 import java.time.Instant;
 
-public record StartReconciliationCmd(
-        String batchId,
-        Instant startWindow,
-        Instant endWindow
-) implements Command {}
+/**
+ * Command to start the batch reconciliation process for a given period.
+ */
+public record StartReconciliationCmd(String batchId, Instant windowStart, Instant windowEnd) implements Command {
+}

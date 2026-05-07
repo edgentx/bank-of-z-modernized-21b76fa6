@@ -1,16 +1,14 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.ConfigurationParameter;
-import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasspathResource;
+import org.junit.platform.suite.api.SelectClasses;
 import org.junit.platform.suite.api.Suite;
 
-import static io.cucumber.junit.platform.engine.CucumberJUnitPlatformRunnerOptions.GLUE_PROPERTY_NAME;
-
+/**
+ * Test Suite for Story S-FB-1.
+ * Verifies that the GitHub URL is present in the Slack notification body.
+ */
 @Suite
-@IncludeEngines("cucumber")
-@SelectClasspathResource("features")
-@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
+@SelectClasses(SFB1Steps.class)
 public class SFB1TestSuite {
-    // This suite runs the feature files located in src/test/resources/features
+    // JUnit 5 Suite configuration
 }

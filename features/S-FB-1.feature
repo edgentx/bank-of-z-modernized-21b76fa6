@@ -1,9 +1,12 @@
-Feature: VForce360 Regression Tests
-  As a System Engineer
-  I want to ensure defect reports are valid
-  So that links in Slack notifications work correctly
+Feature: Validating VW-454 — GitHub URL in Slack body (end-to-end)
 
-  Scenario: Verify GitHub URL in Slack body for defect report
-    Given a defect report is triggered via temporal-worker exec
-    When the defect processing completes
-    Then the Slack body contains GitHub issue link
+  Background:
+    Given a defect report command for issue "VW-454" with URL "https://github.com/bank-of-z/issues/issues/454"
+
+  Scenario: Valid GitHub URL is present in Slack body
+    When the defect is reported with title "VW-454" and GitHub URL "https://github.com/bank-of-z/issues/issues/454"
+    Then the Slack body should contain "GitHub Issue: <https://github.com/bank-of-z/issues/issues/454>"
+
+  Scenario: Invalid GitHub URL is rejected
+    When the defect is reported with title "VW-454" and GitHub URL "https://jira.example.com/browse/VW-454"
+    Then the validation should fail with error containing "valid GitHub Issue URL"

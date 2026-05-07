@@ -2,12 +2,14 @@ package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
 
-import java.time.Instant;
-
+/**
+ * Command to initiate a new teller session on a specific terminal.
+ */
 public record StartSessionCmd(
-    String tellerId,
-    String terminalId,
-    boolean isAuthenticated, // Derived from AuthZ pathway
-    String initialContext,
-    Instant requestedAt
-) implements Command {}
+        String sessionId,
+        String tellerId,
+        String terminalId,
+        boolean isAuthenticated,
+        String currentContext
+) implements Command {
+}

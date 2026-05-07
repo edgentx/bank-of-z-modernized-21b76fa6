@@ -2,50 +2,62 @@ package com.example.domain;
 
 import java.math.BigDecimal;
 import java.util.Currency;
+import java.util.UUID;
 
 public class Transaction {
 
-    private BigDecimal availableBalance = BigDecimal.ZERO;
-    private boolean isPosted = false;
+    private final UUID id;
+    private final String accountNumber;
+    private final BigDecimal currentBalance;
+    private final TransactionStatus status;
 
-    // Default constructor
-    public Transaction() {
+    public Transaction(UUID id, String accountNumber, BigDecimal currentBalance, TransactionStatus status) {
+        this.id = id;
+        this.accountNumber = accountNumber;
+        this.currentBalance = currentBalance;
+        this.status = status;
     }
 
-    // Allow setting balance for testing the overdraft invariant
-    public void setAvailableBalance(BigDecimal balance) {
-        this.availableBalance = balance;
+    public UUID getId() {
+        return id;
     }
 
-    // Mark as posted for testing immutability invariant
-    public void markAsPosted() {
-        this.isPosted = true;
+    public TransactionStatus getStatus() {
+        return status;
     }
 
-    public WithdrawalPostedEvent execute(PostWithdrawalCmd cmd) {
-        // Invariant 1: Transactions cannot be altered or deleted once posted
-        if (this.isPosted) {
-            throw new DomainViolationException("Transactions cannot be altered or deleted once posted");
+    /**
+     * Execute pattern entry point.
+     */
+    public S11Event execute(S11Command command) {
+        // Dispatch to specific handler
+        return handlePostWithdrawal(command);
+    }
+
+    private S11Event handlePostWithdrawal(S11Command cmd) {
+        // Invariant 1: Transaction amounts must be greater than zero
+        if (cmd.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Transaction amounts must be greater than zero.");
         }
 
-        // Invariant 2: Transaction amounts must be greater than zero
-        if (cmd.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new DomainViolationException("Transaction amounts must be greater than zero");
+        // Invariant 2: Transactions cannot be altered once posted
+        if (this.status == TransactionStatus.POSTED) {
+            throw new IllegalStateException("Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.");
         }
 
-        // Invariant 3: A transaction must result in a valid account balance
-        // Note: In a real scenario, this would likely fetch the current balance from an Account aggregate or repository.
-        // Here we check against the aggregate's held state for simplicity of the unit test.
-        BigDecimal projectedBalance = availableBalance.subtract(cmd.amount());
-        if (projectedBalance.compareTo(BigDecimal.ZERO) < 0) {
-            throw new DomainViolationException("A transaction must result in a valid account balance (Insufficient funds)");
+        // Invariant 3: Transaction must result in a valid account balance (e.g. no overdraft)
+        BigDecimal resultingBalance = this.currentBalance.subtract(cmd.getAmount());
+        if (resultingBalance.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalStateException("A transaction must result in a valid account balance (enforced via aggregate validation).");
         }
 
-        // Apply state changes
-        this.availableBalance = projectedBalance;
-        this.isPosted = true;
-
-        // Emit Event
-        return new WithdrawalPostedEvent(cmd.accountNumber(), cmd.amount(), cmd.currency());
+        // Success: Create event
+        return new S11Event(
+            this.id,
+            cmd.getAccountNumber(),
+            cmd.getAmount(),
+            cmd.getCurrency(),
+            resultingBalance
+        );
     }
 }

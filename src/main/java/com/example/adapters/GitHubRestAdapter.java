@@ -1,71 +1,76 @@
 package com.example.adapters;
 
-import com.example.ports.GitHubIssueTracker;
+import com.example.ports.GitHubRepositoryPort;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 
-import java.util.Map;
+import java.io.IOException;
 
 /**
- * Real implementation for GitHub Issue creation.
- * Communicates with GitHub REST API.
+ * Real adapter implementation for GitHub Issue tracking using the REST API.
  */
 @Component
-public class GitHubRestAdapter implements GitHubIssueTracker {
+public class GitHubRestAdapter implements GitHubRepositoryPort {
 
+    private final OkHttpClient httpClient;
+    private final ObjectMapper objectMapper;
     private final String apiUrl;
-    private final String authToken;
-    private final RestTemplate restTemplate;
+    private final String apiToken;
 
-    public GitHubRestAdapter(@Value("${github.api.url}") String apiUrl,
-                             @Value("${github.auth.token}") String authToken,
-                             RestTemplate restTemplate) {
+    public GitHubRestAdapter(
+            @Value("${github.api.url}") String apiUrl,
+            @Value("${github.api.token}") String apiToken,
+            OkHttpClient httpClient,
+            ObjectMapper objectMapper) {
         this.apiUrl = apiUrl;
-        this.authToken = authToken;
-        this.restTemplate = restTemplate;
+        this.apiToken = apiToken;
+        this.httpClient = httpClient;
+        this.objectMapper = objectMapper;
     }
 
     @Override
-    public String createIssue(String project, String title, String description) {
-        // If credentials are missing (common in local dev), return a dummy URL to satisfy flow
-        if (authToken == null || authToken.isBlank()) {
-            System.out.println("[GITHUB SIMULATION] Issue created: " + title);
-            return "https://github.com/bank-of-z/vforce360/issues/MOCK";
+    public String createIssue(String title, String body) {
+        if (apiUrl == null || apiUrl.isBlank()) {
+            throw new IllegalStateException("GitHub API URL is not configured.");
         }
-
-        // Construct GitHub REST API request
-        // POST /repos/{owner}/{repo}/issues
-        String url = apiUrl + "/repos/bank-of-z/vforce360/issues";
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(authToken);
-        // GitHub API Preview requires Accept header sometimes
-        headers.set("Accept", "application/vnd.github.v3+json");
-
-        Map<String, Object> body = Map.of(
-            "title", title,
-            "body", description != null ? description : "",
-            "labels", new String[]{"defect", "validation"}
-        );
-
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+        if (apiToken == null || apiToken.isBlank()) {
+            throw new IllegalStateException("GitHub API Token is not configured.");
+        }
 
         try {
-            var response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
-            // Response body contains { "html_url": "...", "number": 123 }
-            Object htmlUrlObj = response.getBody().get("html_url");
-            if (htmlUrlObj != null) {
-                return htmlUrlObj.toString();
-            }
-        } catch (Exception e) {
-            System.err.println("Failed to create GitHub issue: " + e.getMessage());
-        }
+            String jsonPayload = objectMapper.writeValueAsString(
+                    new IssueRequest(title, body)
+            );
 
-        // Fallback
-        return "https://github.com/bank-of-z/vforce360/issues/unknown";
+            RequestBody requestBody = RequestBody.create(jsonPayload, MediaType.parse("application/json"));
+            Request request = new Request.Builder()
+                    .url(apiUrl)
+                    .addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + apiToken)
+                    .addHeader("Accept", "application/vnd.github.v3+json")
+                    .post(requestBody)
+                    .build();
+
+            try (Response response = httpClient.newCall(request).execute()) {
+                if (response.isSuccessful() && response.body() != null) {
+                    JsonNode json = objectMapper.readTree(response.body().string());
+                    return json.get("html_url").asText();
+                } else {
+                    throw new RuntimeException("Failed to create GitHub issue. Code: " + response.code());
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error communicating with GitHub API", e);
+        }
     }
+
+    @Override
+    public boolean isValidIssueUrl(String url) {
+        return url != null && url.startsWith("https://github.com/") && url.contains("/issues/");
+    }
+
+    private record IssueRequest(String title, String body) {}
 }

@@ -1,49 +1,57 @@
 package com.example.adapters;
 
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackNotificationPort;
-import io.temporal.spring.boot.WorkflowImpl;
+import com.example.application.DefectReportingActivity;
+import com.example.domain.verification.model.ReportDefectCommand;
+import io.temporal.workflow.SignalMethod;
+import io.temporal.workflow.WorkflowInterface;
+import io.temporal.workflow.WorkflowMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * Implementation of the defect reporting workflow.
- * Orchestrates between GitHub and Slack.
+ * Temporal Workflow definition for reporting defects.
+ * Coordinates the execution of the Activity.
  */
-// @WorkflowImpl is a Temporal annotation for registering the workflow implementation
-public class TemporalReportDefectWorkflow {
+@WorkflowInterface
+public interface TemporalReportDefectWorkflow {
 
-    private static final Logger log = LoggerFactory.getLogger(TemporalReportDefectWorkflow.class);
-
-    private final GitHubPort gitHub;
-    private final SlackNotificationPort slack;
-
-    public TemporalReportDefectWorkflow(GitHubPort gitHub, SlackNotificationPort slack) {
-        this.gitHub = gitHub;
-        this.slack = slack;
-    }
+    @WorkflowMethod
+    void executeReportDefect(ReportDefectCommand command);
 
     /**
-     * Executes the defect reporting flow.
-     * 1. Creates an issue in GitHub.
-     * 2. Notifies Slack with the issue URL appended to the body.
-     *
-     * @param projectId The ID of the project.
-     * @param title The title of the defect.
-     * @param body The body of the defect.
+     * Workflow Implementation.
      */
-    public void execute(String projectId, String title, String body) {
-        log.info("Executing defect report for project: {}", projectId);
+    class WorkflowImpl implements TemporalReportDefectWorkflow {
 
-        // 1. Create GitHub Issue
-        String issueUrl = gitHub.createIssue(title, body);
-        log.info("GitHub issue created: {}", issueUrl);
+        private static final Logger log = LoggerFactory.getLogger(WorkflowImpl.class);
 
-        // 2. Prepare Slack body including the GitHub URL (Fix for VW-454)
-        String slackBody = body + "\n" + issueUrl;
+        private final DefectReportingActivity activity;
+        // State kept during workflow execution
+        private final List<String> statusMessages = new ArrayList<>();
 
-        // 3. Send Notification
-        slack.sendDefectNotification(projectId, slackBody);
-        log.info("Slack notification sent for project: {}", projectId);
+        // Workflow constructor injected by Temporal
+        public WorkflowImpl(DefectReportingActivity activity) {
+            this.activity = activity;
+        }
+
+        @Override
+        public void executeReportDefect(ReportDefectCommand command) {
+            log.info("Starting workflow for defect: {}", command.defectId());
+            statusMessages.add("Started");
+
+            // Execute the activity which calls VerificationService
+            activity.reportDefect(command);
+
+            statusMessages.add("Completed");
+            log.info("Workflow completed for defect: {}", command.defectId());
+        }
+
+        @SignalMethod
+        void addStatus(String msg) {
+            statusMessages.add(msg);
+        }
     }
 }

@@ -1,11 +1,17 @@
 package com.example.ports;
 
-import com.example.domain.validation.model.DefectReportedEvent;
-
 /**
- * Port interface for Slack notifications.
- * Used to mock the external Slack API in tests.
+ * Port for sending Slack notifications.
+ * Used to verify defect VW-454.
  */
 public interface SlackNotificationPort {
-    void sendNotification(DefectReportedEvent event);
+
+    /**
+     * Sends a message to a Slack channel.
+     *
+     * @param channelId The target channel ID.
+     * @param messageBody The formatted body of the message.
+     * @return true if sending was successful, false otherwise.
+     */
+    boolean sendMessage(String channelId, String messageBody);
 }

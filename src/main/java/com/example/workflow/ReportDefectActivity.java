@@ -1,55 +1,38 @@
 package com.example.workflow;
 
-import com.example.domain.shared.validation.ReportDefectCommand;
-import com.example.ports.GitHubIssuePort;
-import com.example.ports.SlackNotificationPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.domain.verification.service.VerificationService;
+import io.temporal.activity.ActivityInterface;
+import io.temporal.activity.ActivityMethod;
+import io.temporal.spring.boot.ActivityImpl;
 import org.springframework.stereotype.Component;
 
 /**
- * Temporal Activity implementation for defect reporting.
- * This class bridges the Temporal workflow with the domain logic and external ports.
- * In a full Temporal setup, this would be registered with the Worker.
+ * Temporal Activity Definition for reporting a defect.
+ * This interfaces with the VerificationService domain logic.
  */
-@Component
-public class ReportDefectActivity {
+@ActivityInterface
+public interface ReportDefectActivity {
 
-    private static final Logger log = LoggerFactory.getLogger(ReportDefectActivity.class);
-
-    private final GitHubIssuePort gitHubPort;
-    private final SlackNotificationPort slackPort;
-
-    public ReportDefectActivity(GitHubIssuePort gitHubPort, SlackNotificationPort slackPort) {
-        this.gitHubPort = gitHubPort;
-        this.slackPort = slackPort;
-    }
+    @ActivityMethod
+    void executeReport(String validationId, String description, String reporter, String severity);
 
     /**
-     * Executes the defect reporting logic.
-     * Corresponds to the 'report_defect' trigger mentioned in the defect reproduction steps.
-     *
-     * @param command The command containing defect details.
+     * Implementation of the Temporal Activity.
+     * Wraps the Spring Bean VerificationService.
      */
-    public void execute(ReportDefectCommand command) {
-        log.info("Executing defect report for ID: {}", command.defectId());
+    @Component
+    @ActivityImpl(taskQueue = "DEFECT_TASK_QUEUE")
+    class ReportDefectActivityImpl implements ReportDefectActivity {
 
-        // 1. Create GitHub Issue (Simulated)
-        // Note: We enrich the title with the ID for better tracking in GitHub
-        String issueTitle = command.title() + " [" + command.defectId() + "]";
-        String issueBody = "Defect reported via VForce360 PM diagnostic conversation.\n" +
-                           "Severity: " + command.severity() + "\n" +
-                           "Project: " + command.projectId();
+        private final VerificationService verificationService;
 
-        String issueUrl = gitHubPort.createIssue(issueTitle, issueBody);
-        log.info("GitHub issue created: {}", issueUrl);
+        public ReportDefectActivityImpl(VerificationService verificationService) {
+            this.verificationService = verificationService;
+        }
 
-        // 2. Post to Slack (Simulated)
-        // The critical requirement for VW-454 is that the link MUST be in the Slack body.
-        String slackBody = "Defect Reported: " + command.title() + "\n" +
-                           "GitHub Issue: " + issueUrl;
-
-        slackPort.postMessage("#vforce360-issues", slackBody);
-        log.info("Slack notification sent to #vforce360-issues");
+        @Override
+        public void executeReport(String validationId, String description, String reporter, String severity) {
+            verificationService.reportDefectViaTemporal(validationId, description, reporter, severity);
+        }
     }
 }

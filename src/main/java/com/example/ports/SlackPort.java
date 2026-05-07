@@ -1,7 +1,14 @@
 package com.example.ports;
 
-import java.util.Map;
-
+/**
+ * Port for sending notifications to Slack.
+ * Used by domain services to report defects.
+ */
 public interface SlackPort {
-    void sendMessage(String channel, Map<String, String> message);
+    /**
+     * Posts a message to a configured Slack channel.
+     *
+     * @param text The body of the message to send.
+     */
+    void sendMessage(String text);
 }

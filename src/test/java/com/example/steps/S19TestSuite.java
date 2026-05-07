@@ -5,12 +5,11 @@ import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
-/**
- * JUnit 5 Suite configuration to run Cucumber S-19 tests.
- */
+import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
+
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features/S-19.feature")
-@ConfigurationParameter(key = "cucumber.glue", value = "com.example.steps")
+@SelectClasspathResource("features")
+@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
 public class S19TestSuite {
 }

@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * ReconciliationBatch Aggregate
- * Handles the logic for starting the reconciliation process and forcing a batch to a balanced state.
+ * Handles the logic for forcing a batch to a balanced state and starting the reconciliation process.
  */
 public class ReconciliationBatch extends AggregateRoot {
     private final String batchId;
@@ -33,11 +33,11 @@ public class ReconciliationBatch extends AggregateRoot {
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof StartReconciliationCmd c) {
-            return startReconciliation(c);
-        }
         if (cmd instanceof ForceBalanceCmd c) {
             return forceBalance(c);
+        }
+        if (cmd instanceof StartReconciliationCmd c) {
+            return startReconciliation(c);
         }
         throw new UnknownCommandException(cmd);
     }
@@ -53,23 +53,24 @@ public class ReconciliationBatch extends AggregateRoot {
             throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
         }
 
-        // Invariant: Only Open batches can be started
+        // Invariant: Only Open batches can start reconciliation
         if (status != Status.OPEN) {
             throw new IllegalStateException("Cannot start reconciliation on a batch that is not OPEN.");
         }
 
         // Validate Command fields
-        if (cmd.windowStart() == null || cmd.windowEnd() == null) {
-            throw new IllegalArgumentException("Batch window boundaries (start/end) are required.");
-        }
-        if (cmd.windowStart().isAfter(cmd.windowEnd())) {
-            throw new IllegalArgumentException("Window start must be before end.");
+        if (cmd.batchWindowStart() == null || cmd.batchWindowEnd() == null) {
+            throw new IllegalArgumentException("Batch window boundaries must be provided.");
         }
 
-        var event = new ReconciliationStartedEvent(
+        if (cmd.batchWindowEnd().isBefore(cmd.batchWindowStart())) {
+            throw new IllegalArgumentException("Batch window end cannot be before start.");
+        }
+
+        var event = new ReconciliationBatchStartedEvent(
                 this.batchId,
-                cmd.windowStart(),
-                cmd.windowEnd(),
+                cmd.batchWindowStart(),
+                cmd.batchWindowEnd(),
                 Instant.now()
         );
 

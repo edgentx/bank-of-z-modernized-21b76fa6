@@ -9,7 +9,8 @@ import java.time.Instant;
  */
 public record ReconciliationBatchStartedEvent(
         String aggregateId,
-        String batchWindow,
+        Instant batchWindowStart,
+        Instant batchWindowEnd,
         Instant occurredAt
 ) implements DomainEvent {
 
@@ -21,5 +22,10 @@ public record ReconciliationBatchStartedEvent(
     @Override
     public String aggregateId() {
         return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

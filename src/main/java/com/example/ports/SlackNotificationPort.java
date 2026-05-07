@@ -1,17 +1,15 @@
 package com.example.ports;
 
 /**
- * Port for sending Slack notifications.
- * Used to decouple the domain logic from the specific Slack API implementation.
+ * Port for sending notifications to Slack.
+ * Used by the defect reporting workflow.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Posts a message to a specific Slack channel.
+     * Sends a notification to the configured Slack channel.
      *
-     * @param channelId The target channel ID.
-     * @param messageBody The formatted message body.
-     * @throws IllegalArgumentException if the message body is invalid.
+     * @param messageBody The body of the message to send. Expected to contain the GitHub URL.
      */
-    void postMessage(String channelId, String messageBody);
+    void sendNotification(String messageBody);
 }

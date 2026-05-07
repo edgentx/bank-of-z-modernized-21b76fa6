@@ -1,4 +1,4 @@
-Feature: Implement NavigateMenuCmd on TellerSession (user-interface-navigation)
+Feature: NavigateMenuCmd
 
   Scenario: Successfully execute NavigateMenuCmd
     Given a valid TellerSession aggregate

@@ -1,13 +1,16 @@
 package com.example.mocks;
 
-import com.example.domain.transfer.model.TransferAggregate;
-import com.example.domain.transfer.repository.TransferRepository;
+import com.example.domain.transaction.model.TransferAggregate;
+import com.example.domain.transaction.repository.TransferRepository;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
+/**
+ * In-memory implementation of TransferRepository for testing.
+ */
 public class InMemoryTransferRepository implements TransferRepository {
+
     private final Map<String, TransferAggregate> store = new HashMap<>();
 
     @Override
@@ -16,7 +19,12 @@ public class InMemoryTransferRepository implements TransferRepository {
     }
 
     @Override
-    public Optional<TransferAggregate> findById(String id) {
-        return Optional.ofNullable(store.get(id));
+    public TransferAggregate load(String transferId) {
+        TransferAggregate aggregate = store.get(transferId);
+        if (aggregate == null) {
+            // Return a fresh aggregate if it doesn't exist (testing convenience)
+            return new TransferAggregate(transferId);
+        }
+        return aggregate;
     }
 }

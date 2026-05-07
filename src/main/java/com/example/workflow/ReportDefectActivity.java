@@ -1,38 +1,25 @@
 package com.example.workflow;
 
-import com.example.domain.verification.service.VerificationService;
+import com.example.application.DefectReportingService;
+import com.example.domain.vforce360.model.ReportDefectCmd;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
-import io.temporal.spring.boot.ActivityImpl;
 import org.springframework.stereotype.Component;
 
-/**
- * Temporal Activity Definition for reporting a defect.
- * This interfaces with the VerificationService domain logic.
- */
+@Component
 @ActivityInterface
-public interface ReportDefectActivity {
+public class ReportDefectActivity {
+
+    private final DefectReportingService defectReportingService;
+
+    public ReportDefectActivity(DefectReportingService defectReportingService) {
+        this.defectReportingService = defectReportingService;
+    }
 
     @ActivityMethod
-    void executeReport(String validationId, String description, String reporter, String severity);
-
-    /**
-     * Implementation of the Temporal Activity.
-     * Wraps the Spring Bean VerificationService.
-     */
-    @Component
-    @ActivityImpl(taskQueue = "DEFECT_TASK_QUEUE")
-    class ReportDefectActivityImpl implements ReportDefectActivity {
-
-        private final VerificationService verificationService;
-
-        public ReportDefectActivityImpl(VerificationService verificationService) {
-            this.verificationService = verificationService;
-        }
-
-        @Override
-        public void executeReport(String validationId, String description, String reporter, String severity) {
-            verificationService.reportDefectViaTemporal(validationId, description, reporter, severity);
-        }
+    public String reportDefectViaTemporal(String title, String body, String project, String severity) {
+        ReportDefectCmd cmd = new ReportDefectCmd(title, body, project, severity);
+        defectReportingService.reportDefect(cmd);
+        return "Reported: " + title;
     }
 }

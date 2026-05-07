@@ -1,9 +1,11 @@
 package com.example.steps;
 
+import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
 @Suite
-@SelectClasspathResource("features/S-14.feature")
+@IncludeEngines("cucumber")
+@SelectClasspathResource("features")
 public class S14TestSuite {
 }

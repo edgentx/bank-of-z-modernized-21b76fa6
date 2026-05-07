@@ -22,6 +22,7 @@
     <properties>
         <java.version>17</java.version>
         <spring-cloud.version>2023.0.0</spring-cloud.version>
+        <temporal.version>1.23.1</temporal.version>
     </properties>
 
     <dependencies>
@@ -54,12 +55,17 @@
             <groupId>org.springframework.integration</groupId>
             <artifactId>spring-integration-core</artifactId>
         </dependency>
-        
+
         <!-- Temporal (Outside Spring BOM - Explicit Version Required) -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>1.23.1</version>
+            <version>${temporal.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-sdk</artifactId>
+            <version>${temporal.version}</version>
         </dependency>
 
         <!-- Third-Party Dependencies (Outside Spring BOM - Explicit Version Required) -->
@@ -68,7 +74,7 @@
             <artifactId>mongodb-driver-sync</artifactId>
             <version>4.11.1</version>
         </dependency>
-        
+
         <!-- Testing (BOM Managed) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -2,12 +2,21 @@ package com.example.domain;
 
 import java.math.BigDecimal;
 import java.util.Currency;
-import java.util.Objects;
 
-public record PostWithdrawalCmd(String accountNumber, BigDecimal amount, Currency currency) {
+public record PostWithdrawalCmd(
+        String accountNumber,
+        BigDecimal amount,
+        Currency currency
+) {
     public PostWithdrawalCmd {
-        Objects.requireNonNull(accountNumber, "accountNumber cannot be null");
-        Objects.requireNonNull(amount, "amount cannot be null");
-        Objects.requireNonNull(currency, "currency cannot be null");
+        if (accountNumber == null || accountNumber.isBlank()) {
+            throw new IllegalArgumentException("Account number cannot be null");
+        }
+        if (amount == null) {
+            throw new IllegalArgumentException("Amount cannot be null");
+        }
+        if (currency == null) {
+            throw new IllegalArgumentException("Currency cannot be null");
+        }
     }
 }

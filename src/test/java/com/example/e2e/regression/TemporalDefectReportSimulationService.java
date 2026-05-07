@@ -35,9 +35,9 @@ public class TemporalDefectReportSimulationService {
         String url = gitHubPort.getIssueUrl(issueId);
 
         // Step 2: Construct Slack Body
-        // TODO: IMPLEMENT FIX HERE. Currently just says "Defect Reported".
-        // The test expects 'url' to be part of this string.
-        String messageBody = "Defect Reported: " + issueId + ". See GitHub for details."; // BROKEN IMPLEMENTATION
+        // FIX: Append the GitHub URL to the message body as required by the test.
+        // The test checks for the presence of the URL and a specific Slack link format <url>.
+        String messageBody = "Defect Reported: " + issueId + ". See GitHub for details: <" + url + ">";
 
         // Step 3: Post to Slack
         slackPort.postMessage(channelId, messageBody);

@@ -1,4 +1,5 @@
 Feature: Implement EndSessionCmd on TellerSession (user-interface-navigation)
+
   Feature: EndSessionCmd
 
     Scenario: Successfully execute EndSessionCmd

@@ -3,16 +3,17 @@ package com.example.domain.validation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
+/**
+ * Event emitted when a defect is successfully reported to GitHub and Slack.
+ */
 public record DefectReportedEvent(
     String aggregateId,
     String title,
-    String description,
+    String githubUrl,
     Instant occurredAt
 ) implements DomainEvent {
-    public DefectReportedEvent(String id, String title, String desc) {
-        this(id, title, desc, Instant.now());
-    }
 
     @Override
     public String type() {

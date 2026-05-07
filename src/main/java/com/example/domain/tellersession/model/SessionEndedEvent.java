@@ -5,8 +5,7 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 
 /**
- * Event emitted when a teller session is ended.
- * Context: S-20 Implement EndSessionCmd on TellerSession
+ * Event emitted when a teller session is terminated.
  */
 public record SessionEndedEvent(
         String aggregateId,

@@ -8,20 +8,17 @@ import com.example.domain.shared.UnknownCommandException;
 import java.time.Instant;
 import java.util.List;
 
-/**
- * Teller Session Aggregate.
- * Manages the lifecycle of a teller's interaction with the system (user-interface-navigation).
- */
 public class TellerSession extends AggregateRoot {
 
     private final String sessionId;
-    private String tellerId;
-    private String terminalId;
-    private boolean active;
+    private String activeTellerId;
+    private String activeTerminalId;
+    private Instant lastActivityAt;
+    private boolean isActive;
 
     public TellerSession(String sessionId) {
         this.sessionId = sessionId;
-        this.active = false;
+        this.isActive = false;
     }
 
     @Override
@@ -39,47 +36,40 @@ public class TellerSession extends AggregateRoot {
 
     private List<DomainEvent> startSession(StartSessionCmd cmd) {
         // Invariant: A teller must be authenticated to initiate a session.
-        if (!cmd.isAuthenticated()) {
-            throw new IllegalStateException("A teller must be authenticated to initiate a session.");
+        if (cmd.tellerId() == null || cmd.tellerId().isBlank()) {
+            throw new IllegalArgumentException("Teller must be authenticated.");
         }
 
         // Invariant: Sessions must timeout after a configured period of inactivity.
-        // (Simulated check based on command flags for domain rule enforcement)
-        if (cmd.isTimedOut()) {
-            throw new IllegalStateException("Sessions must timeout after a configured period of inactivity.");
+        // Assuming the command carries the desired timeout. If the timeout is in the past, reject.
+        if (cmd.sessionTimeoutAt() != null && cmd.sessionTimeoutAt().isBefore(Instant.now())) {
+            throw new IllegalStateException("Session timeout configuration invalid.");
         }
 
         // Invariant: Navigation state must accurately reflect the current operational context.
-        if (cmd.isNavStateInvalid()) {
-            throw new IllegalStateException("Navigation state must accurately reflect the current operational context.");
+        // Assuming the command carries the expected navigation state. If it conflicts, reject.
+        if (cmd.expectedNavigationState() != null && !cmd.expectedNavigationState().equals("IDLE")) {
+            throw new IllegalStateException("Navigation state must be IDLE to start a session.");
         }
 
-        // Business Logic
-        if (active) {
-            throw new IllegalStateException("Session already active for " + sessionId);
-        }
-        if (cmd.tellerId() == null || cmd.tellerId().isBlank()) {
-            throw new IllegalArgumentException("tellerId cannot be null or empty");
-        }
-        if (cmd.terminalId() == null || cmd.terminalId().isBlank()) {
-            throw new IllegalArgumentException("terminalId cannot be null or empty");
+        if (this.isActive) {
+            throw new IllegalStateException("Session already active.");
         }
 
-        SessionStartedEvent event = new SessionStartedEvent(this.sessionId, cmd.tellerId(), cmd.terminalId(), Instant.now());
-        this.tellerId = cmd.tellerId();
-        this.terminalId = cmd.terminalId();
-        this.active = true;
+        var event = new SessionStartedEvent(
+                cmd.sessionId(),
+                cmd.tellerId(),
+                cmd.terminalId(),
+                Instant.now()
+        );
+
+        this.activeTellerId = cmd.tellerId();
+        this.activeTerminalId = cmd.terminalId();
+        this.lastActivityAt = Instant.now();
+        this.isActive = true;
 
         addEvent(event);
         incrementVersion();
         return List.of(event);
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-
-    public String getTellerId() {
-        return tellerId;
     }
 }

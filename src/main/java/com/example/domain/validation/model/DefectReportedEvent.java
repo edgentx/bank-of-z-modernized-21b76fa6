@@ -3,19 +3,16 @@ package com.example.domain.validation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
-/**
- * Event published when a defect is reported.
- */
 public record DefectReportedEvent(
-    String aggregateId, // Project ID
+    String aggregateId,
     String title,
     String description,
-    String severity,
-    String component,
     Instant occurredAt
 ) implements DomainEvent {
+    public DefectReportedEvent(String id, String title, String desc) {
+        this(id, title, desc, Instant.now());
+    }
 
     @Override
     public String type() {

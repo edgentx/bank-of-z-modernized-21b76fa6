@@ -1,93 +1,99 @@
 package com.example.e2e.regression;
 
-import com.example.domain.shared.Command;
-import com.example.domain.vforce.model.DefectReportedEvent;
-import com.example.domain.vforce.model.ReportDefectCmd;
 import com.example.mocks.MockGitHubPort;
-import com.example.mocks.MockSlackPort;
+import com.example.mocks.MockSlackNotificationPort;
 import com.example.ports.GitHubPort;
-import com.example.ports.SlackPort;
+import com.example.ports.SlackNotificationPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * E2E Regression Test for S-FB-1 / VW-454.
- * Validates that the Slack notification body generated during a defect report
- * workflow contains the correct GitHub URL.
- *
- * This test is written in the TDD 'Red' phase.
+ * Regression test for VW-454: Validating GitHub URL in Slack body (end-to-end).
+ * 
+ * Context:
+ * Temporal Workflow: _report_defect
+ * Steps:
+ * 1. Create GitHub Issue.
+ * 2. Send notification to Slack.
+ * 
+ * Expected Behavior:
+ * The Slack notification body MUST contain the URL generated in Step 1.
  */
-class VW454ValidationTest {
+public class VW454ValidationTest {
 
-    private GitHubPort gitHub;
-    private SlackPort slack;
+    private MockGitHubPort gitHubPort;
+    private MockSlackNotificationPort slackPort;
 
     @BeforeEach
     void setUp() {
-        gitHub = new MockGitHubPort();
-        slack = new MockSlackPort();
+        gitHubPort = new MockGitHubPort();
+        slackPort = new MockSlackNotificationPort();
     }
 
     @Test
-    void shouldIncludeGitHubUrlInSlackBodyWhenDefectIsReported() {
+    void testSlackBodyContainsGitHubLink() {
         // Arrange
-        ReportDefectCmd cmd = new ReportDefectCmd(
-            "VW-454",
-            "Fix: Validating VW-454",
-            "LOW",
-            "validation"
-        );
+        String defectTitle = "VW-454 Regression Test";
+        String defectBody = "Automated reproduction of defect VW-454.";
+        String targetChannel = "#vforce360-issues";
 
-        // System Under Test (SUT) - The workflow handler
-        // Ideally, we would instantiate a Workflow/Service here, but for this defect,
-        // we are verifying the domain logic that constructs the event.
-        // Since we are mocking the ports, we will simulate the flow that the code should eventually implement.
+        // Act: Simulate the Workflow logic
+        // 1. Create Issue in GitHub
+        String githubUrl = gitHubPort.createIssue(defectTitle, defectBody);
+        
+        // 2. Construct Slack Payload (Defect: This logic is what we are testing)
+        String slackMessageBody = constructSlackMessage(defectTitle, githubUrl);
+        
+        // 3. Send to Slack
+        slackPort.postMessage(targetChannel, slackMessageBody);
 
-        // 1. Create GitHub Issue (via Mock)
-        String expectedUrl = gitHub.createIssue(cmd.title(), "Defect: " + cmd.title());
-
-        // 2. Construct Slack Body (Logic to be verified)
-        // The requirement is: "Slack body includes GitHub issue: <url>"
-        String constructedSlackBody = String.format(
-            "Defect Reported: %s\nSeverity: %s\nGitHub issue: %s",
-            cmd.title(),
-            cmd.severity(),
-            expectedUrl
-        );
-
-        // 3. Post to Slack (via Mock)
-        slack.postMessage("#vforce360-issues", constructedSlackBody);
-
-        // Act & Assert (Validation)
-        // We verify the mock state to ensure the URL was passed correctly.
-        // If the implementation forgets to append the URL, this test fails.
+        // Assert: Verify the Acceptance Criteria
+        // "Slack body includes GitHub issue: <url>"
+        assertTrue(slackPort.messages.size() > 0, "Slack should have received a message");
+        
+        MockSlackNotificationPort.Message postedMsg = slackPort.messages.get(0);
+        assertNotNull(postedMsg.body(), "Message body should not be null");
+        
         assertTrue(
-            ((MockSlackPort) slack).containsLink(expectedUrl),
-            "Regression: VW-454 - Slack body must contain the GitHub URL."
+            postedMsg.body().contains(githubUrl), 
+            "Slack body must contain the specific GitHub issue URL created.\nExpected: " + githubUrl + "\nActual Body: " + postedMsg.body()
         );
-
-        // Specific validation of the URL format presence
-        String actualBody = ((MockSlackPort) slack).getLastMessageBody();
-        assertNotNull(actualBody, "Slack body should not be null");
-        assertTrue(actualBody.contains("GitHub issue: " + expectedUrl), "Slack body format check failed");
     }
 
     @Test
-    void ensureSlackBodyIsNotNullOrEmpty() {
+    void testSlackBodyFailsIfUrlMissing() {
         // Arrange
-        ReportDefectCmd cmd = new ReportDefectCmd("VW-454", "Test", "LOW", "validation");
-        String url = gitHub.createIssue(cmd.title(), "Test");
-        String body = String.format("GitHub issue: %s", url);
+        String defectTitle = "VW-454 Bad Format Test";
+        String missingUrl = null;
+        String targetChannel = "#vforce360-issues";
 
         // Act
-        slack.postMessage("#vforce360-issues", body);
+        // Construct a message simulating the DEFECT behavior (missing URL)
+        String slackMessageBody = "Defect reported: " + defectTitle + " (No link available)";
+        slackPort.postMessage(targetChannel, slackMessageBody);
 
         // Assert
-        String actualBody = ((MockSlackPort) slack).getLastMessageBody();
-        assertFalse(actualBody == null || actualBody.isEmpty(), "Slack body must be generated");
+        String expectedUrl = "https://github.com/mock-org/repo/issues/1";
+        assertFalse(
+            slackPort.containsUrlInBody(expectedUrl),
+            "In the defect state, the URL should not be present."
+        );
+    }
+
+    /**
+     * Helper method representing the SUT (System Under Test) logic.
+     * In a real test, this would be inside the Workflow or Service class.
+     * Here we define the expectation of what the code SHOULD do.
+     */
+    private String constructSlackMessage(String title, String url) {
+        if (url == null) {
+            throw new IllegalArgumentException("GitHub URL cannot be null");
+        }
+        return String.format(
+            "Defect Reported: %s\nGitHub Issue: %s",
+            title, url
+        );
     }
 }

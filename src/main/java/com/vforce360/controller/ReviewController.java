@@ -7,9 +7,11 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.ModelAndView;
 
 /**
  * Controller for the MAR Review section.
+ * Renders the Markdown content as HTML using Thymeleaf.
  */
 @Controller
 @RequestMapping("/api/projects")
@@ -20,12 +22,17 @@ public class ReviewController {
 
     /**
      * Endpoint to view the MAR review.
-     * Currently returns raw JSON text instead of HTML, failing the S-1 test.
+     * Returns a Thymeleaf view name, passing the Markdown content as a model attribute.
      */
     @GetMapping(value = "/{projectId}/mar/review", produces = MediaType.TEXT_HTML_VALUE)
-    public String viewMarReview(@PathVariable String projectId) {
-        // RED PHASE: Simply returning the raw JSON string from the service.
-        // The browser will display this as text, failing the test check for HTML tags.
-        return reportService.getFormattedReport(projectId);
+    public ModelAndView viewMarReview(@PathVariable String projectId) {
+        // 1. Get formatted Markdown content from service
+        String markdownContent = reportService.getFormattedReport(projectId);
+
+        // 2. Return View Name and Model
+        // The ViewResolver will look for mar_review.html in src/main/resources/templates/
+        ModelAndView mav = new ModelAndView("mar_review");
+        mav.addObject("reportContent", markdownContent);
+        return mav;
     }
 }

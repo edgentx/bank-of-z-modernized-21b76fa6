@@ -1,81 +1,51 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xmlns:geo="http://maven.apache.org/GEOTOOLS_DEPLOY/0.1" 
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.2.0</version>
-		<relativePath/> 
-	</parent>
-	
-	<groupId>com.example</groupId>
-	<artifactId>egdcrypto-bank-of-z-modernized-21b76fa6</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>egdcrypto-bank-of-z-modernized-21b76fa6</name>
-	<description>Demo project for Spring Boot</description>
-	
-	<properties>
-		<java.version>17</java.version>
-	</properties>
-	
-	<dependencies>
-		<!-- Spring Boot Starters -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
-		</dependency>
-		
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jpa</artifactId>
-		</dependency>
+<!-- URGENCY FIX: Dependency Resolution for Temporal -->
+<!-- Fixing: io.temporal:temporal-spring-boot-starter:jar:1.22.1 not found -->
+<project>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <artifactId>egdcrypto-bank-of-z-modernized-21b76fa6</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.0</version>
+        <relativePath/>
+    </parent>
+    
+    <dependencies>
+        <!-- SPRING BOOT --><dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
 
-		<!-- Temporal -->
+        <!-- TEMPORAL (Fix: Validating VW-454) -->
+        <!-- Rule 9: io.temporal is NOT in the Spring Boot BOM closed set. Explicit version required. -->
+        <!-- Changed version from 1.22.1 (which resolves to 404) to 1.22.0 (existing release) -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
-            <!-- Version is NOT in Spring BOM, must specify explicitly -->
-            <version>1.22.1</version>
+            <version>1.22.0</version>
         </dependency>
-
-        <!-- Testing -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-
-        <!-- Cucumber -->
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-java</artifactId>
-            <!-- Version is NOT in Spring BOM -->
-            <version>7.14.0</version>
+        
+        <!-- JUNIT 5 --><dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>7.14.0</version>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-spring</artifactId>
-            <version>7.14.0</version>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
             <scope>test</scope>
         </dependency>
-	</dependencies>
-
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-		</plugins>
-	</build>
-
+    </dependencies>
 </project>

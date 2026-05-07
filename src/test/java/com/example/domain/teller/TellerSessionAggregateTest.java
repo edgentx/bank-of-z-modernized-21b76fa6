@@ -1,141 +1,120 @@
 package com.example.domain.teller;
 
+import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.teller.model.SessionStartedEvent;
 import com.example.domain.teller.model.StartSessionCmd;
-import com.example.domain.teller.model.TellerSessionAggregate;
+import com.example.domain.teller.model.TellerSession;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * Test suite for TellerSession Aggregate (Story S-18).
- * Covers StartSessionCmd scenarios.
+ * TDD Test Suite for S-18: TellerSession Aggregate.
+ * Tests the StartSessionCmd command and SessionStartedEvent event.
  */
 class TellerSessionAggregateTest {
 
-    private static final String SESSION_ID = "session-123";
-    private static final String TELLER_ID = "teller-01";
-    private static final String TERMINAL_ID = "term-42";
+    private static final String VALID_TELLER_ID = "TELLER_01";
+    private static final String VALID_TERMINAL_ID = "TERM_3270_A";
+    private static final String SESSION_ID = "SESSION_123";
+
+    private TellerSession aggregate;
+
+    @BeforeEach
+    void setUp() {
+        // Create a fresh aggregate for each test.
+        // The aggregate constructor logic will be implemented in the Green phase.
+        aggregate = new TellerSession(SESSION_ID);
+    }
 
     @Test
-    void shouldStartSessionWhenCommandIsValid() {
-        // Given
-        var aggregate = new TellerSessionAggregate(SESSION_ID);
-        var cmd = new StartSessionCmd(SESSION_ID, TELLER_ID, TERMINAL_ID, true);
+    @DisplayName("Scenario: Successfully execute StartSessionCmd")
+    void testSuccessfulExecution() {
+        // Given a valid TellerSession aggregate
+        // And a valid tellerId is provided
+        // And a valid terminalId is provided
+        StartSessionCmd cmd = new StartSessionCmd(VALID_TELLER_ID, VALID_TERMINAL_ID);
 
-        // When
-        var events = aggregate.execute(cmd);
+        // When the StartSessionCmd command is executed
+        List<DomainEvent> events = aggregate.execute(cmd);
 
-        // Then
-        assertEquals(1, events.size());
-        assertTrue(events.get(0) instanceof SessionStartedEvent);
+        // Then a session.started event is emitted
+        assertThat(events).hasSize(1);
+        assertThat(events.get(0)).isInstanceOf(SessionStartedEvent.class);
 
         SessionStartedEvent event = (SessionStartedEvent) events.get(0);
-        assertEquals("session.started", event.type());
-        assertEquals(SESSION_ID, event.aggregateId());
-        assertEquals(TELLER_ID, event.tellerId());
-        assertEquals(TERMINAL_ID, event.terminalId());
-        assertNotNull(event.occurredAt());
+        assertThat(event.type()).isEqualTo("session.started");
+        assertThat(event.aggregateId()).isEqualTo(SESSION_ID);
+        assertThat(event.tellerId()).isEqualTo(VALID_TELLER_ID);
+        assertThat(event.terminalId()).isEqualTo(VALID_TERMINAL_ID);
+        assertThat(event.occurredAt()).isNotNull();
+        assertThat(event.occurredAt()).isBeforeOrEqualTo(Instant.now());
     }
 
     @Test
-    void shouldRejectIfTellerNotAuthenticated() {
-        // Given
-        var aggregate = new TellerSessionAggregate(SESSION_ID);
-        var cmd = new StartSessionCmd(SESSION_ID, TELLER_ID, TERMINAL_ID, false); // Not Authenticated
+    @DisplayName("Scenario: StartSessionCmd rejected — Teller must be authenticated")
+    void testAuthenticationRequired() {
+        // Given a TellerSession aggregate that violates authentication
+        // Simulating an unauthenticated state (e.g., via constructor or state manipulation)
+        TellerSession unauthenticatedAggregate = new TellerSession(SESSION_ID, false, true, true);
 
-        // When & Then
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
-            aggregate.execute(cmd);
-        });
+        StartSessionCmd cmd = new StartSessionCmd(VALID_TELLER_ID, VALID_TERMINAL_ID);
 
-        assertEquals("Teller must be authenticated to initiate a session.", ex.getMessage());
+        // When the StartSessionCmd command is executed
+        // Then the command is rejected with a domain error
+        assertThatThrownBy(() -> unauthenticatedAggregate.execute(cmd))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("authenticated");
     }
 
     @Test
-    void shouldRejectIfNavigationStateInvalid() {
-        // Given
-        // We simulate a state where navigation is not IDLE via a custom test setup or
-        // by assuming the aggregate constructor defaults to IDLE, so this specific invariant
-        // check acts as a future-proofing guard.
-        // Since the constructor forces IDLE, we test the logic by checking that
-        // if we were in a different state (theoretically), it would fail.
-        // For now, we verify the happy path accepts IDLE.
-        
-        // However, to strictly test the rejection, we would need to modify state 
-        // via reflection or a test-specific method if the constructor didn't default to IDLE.
-        // Assuming the aggregate is correctly implemented, if we somehow set state to "BASK_MENU":
-        // This test documents the invariant.
-        
-        // A practical test for this invariant:
-        var aggregate = new TellerSessionAggregate(SESSION_ID);
-        // If the aggregate has logic that prevents state changes that make nav invalid, 
-        // this test ensures that logic exists.
-        // Since we can't easily force a bad state in the TDD Red Phase without the code existing,
-        // we test the command validation logic.
-        
-        // Let's rely on the Invariant enforced in the execute method.
-        // Since the current impl is 'IDLE', we test the boundary: Null/Blank command params 
-        // are handled by IllegalArgumentException, but Navigation State is specific.
-        
-        // To test the rejection: We cannot easily set the private `currentNavigationState` without reflection.
-        // We will use reflection to simulate a 'dirty' state to prove the guard works.
-        try {
-            var field = TellerSessionAggregate.class.getDeclaredField("currentNavigationState");
-            field.setAccessible(true);
-            field.set(aggregate, "SOME_OTHER_STATE");
+    @DisplayName("Scenario: StartSessionCmd rejected — Sessions must timeout after inactivity")
+    void testTimeoutInvariant() {
+        // Given a TellerSession aggregate that violates timeout constraints
+        // (e.g., marked as stale/timed out)
+        TellerSession staleAggregate = new TellerSession(SESSION_ID, true, false, true);
 
-            var cmd = new StartSessionCmd(SESSION_ID, TELLER_ID, TERMINAL_ID, true);
+        StartSessionCmd cmd = new StartSessionCmd(VALID_TELLER_ID, VALID_TERMINAL_ID);
 
-            IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
-                aggregate.execute(cmd);
-            });
-
-            assertTrue(ex.getMessage().contains("Navigation state invalid"));
-        } catch (Exception e) {
-            fail("Test setup failed: " + e.getMessage());
-        }
+        // When the StartSessionCmd command is executed
+        // Then the command is rejected with a domain error
+        assertThatThrownBy(() -> staleAggregate.execute(cmd))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("timeout")
+                .hasMessageContaining("inactive");
     }
 
     @Test
-    void shouldRejectIfTimedOut() {
-        // Given
-        var aggregate = new TellerSessionAggregate(SESSION_ID);
-        
-        // Simulate an old active session
-        try {
-            var isActiveField = TellerSessionAggregate.class.getDeclaredField("isActive");
-            isActiveField.setAccessible(true);
-            isActiveField.set(aggregate, true);
+    @DisplayName("Scenario: StartSessionCmd rejected — Navigation state must reflect context")
+    void testNavigationStateInvariant() {
+        // Given a TellerSession aggregate that violates navigation state integrity
+        // (e.g., terminal is in an invalid state for a session start)
+        TellerSession badNavAggregate = new TellerSession(SESSION_ID, true, true, false);
 
-            var lastActivityField = TellerSessionAggregate.class.getDeclaredField("lastActivityAt");
-            lastActivityField.setAccessible(true);
-            // Set time to 20 minutes ago (Timeout is 15)
-            lastActivityField.set(aggregate, Instant.now().minusSeconds(20 * 60));
+        StartSessionCmd cmd = new StartSessionCmd(VALID_TELLER_ID, VALID_TERMINAL_ID);
 
-            var cmd = new StartSessionCmd(SESSION_ID, TELLER_ID, TERMINAL_ID, true);
-
-            // When & Then
-            IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
-                aggregate.execute(cmd);
-            });
-
-            assertTrue(ex.getMessage().contains("Session has timed out"));
-        } catch (Exception e) {
-            fail("Test setup failed: " + e.getMessage());
-        }
+        // When the StartSessionCmd command is executed
+        // Then the command is rejected with a domain error
+        assertThatThrownBy(() -> badNavAggregate.execute(cmd))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("navigation");
     }
 
     @Test
-    void shouldThrowUnknownCommandForUnsupportedCmds() {
-        // Given
-        var aggregate = new TellerSessionAggregate(SESSION_ID);
-        Object fakeCmd = new Object();
+    @DisplayName("Feature: Unknown commands should be rejected")
+    void testUnknownCommand() {
+        // Given an arbitrary command that isn't StartSessionCmd
+        Object unknownCmd = new Object() {};
 
-        // When & Then
-        assertThrows(UnknownCommandException.class, () -> aggregate.execute((com.example.domain.shared.Command) fakeCmd));
+        // When executed
+        // Then it should throw UnknownCommandException
+        assertThrows(UnknownCommandException.class, () -> aggregate.execute((com.example.domain.shared.Command) unknownCmd));
     }
 }

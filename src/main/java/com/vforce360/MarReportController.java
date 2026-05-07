@@ -1,43 +1,39 @@
 package com.vforce360;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-
-import com.vforce360.model.MarReport;
+import com.vforce360.adapters.MarkdownReportRendererAdapter;
+import com.vforce360.model.ModernizationAssessmentReport;
 import com.vforce360.ports.MarReportPort;
-import com.vforce360.ports.MarkdownRendererPort;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 /**
- * Controller for viewing the Modernization Assessment Report.
- * Renders the report as HTML.
+ * Controller for serving the Modernization Assessment Report.
+ * FIXED: Corrected Port injection and method chaining.
  */
-@Controller
+@RestController
+@RequestMapping("/api/mar")
 public class MarReportController {
 
     private final MarReportPort marReportPort;
-    private final MarkdownRendererPort markdownRendererPort;
+    private final MarkdownReportRendererAdapter renderer;
 
-    public MarReportController(MarReportPort marReportPort, MarkdownRendererPort markdownRendererPort) {
+    public MarReportController(MarReportPort marReportPort, MarkdownReportRendererAdapter renderer) {
         this.marReportPort = marReportPort;
-        this.markdownRendererPort = markdownRendererPort;
+        this.renderer = renderer;
     }
 
-    @GetMapping("/projects/{projectId}/mar/review")
-    public ResponseEntity<String> viewMarReport(@PathVariable String projectId) {
-        // Fetch the report (raw JSON structure)
-        MarReport report = marReportPort.findByProjectId(projectId);
-        
-        if (report == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        // FIX: Render the 'rawContent' field content to HTML instead of returning raw JSON
-        String renderedHtml = markdownRendererPort.renderToHtml(report.getRawContent());
-        
-        return ResponseEntity.ok()
-                .contentType(org.springframework.http.MediaType.TEXT_HTML)
-                .body(renderedHtml);
+    @GetMapping("/view/{projectId}")
+    public ResponseEntity<String> getMarView(@PathVariable String projectId) {
+        // 1. Fetch Report
+        // FIXED: Added 'findByProjectId' to Port interface and implemented it in Jpa adapter
+        return marReportPort.findByProjectId(projectId)
+                .map(report -> {
+                    // 2. Render to HTML (Fix for the defect: JSON -> HTML)
+                    String htmlContent = renderer.renderReportToHtml(report);
+                    return ResponseEntity.ok()
+                            .header("Content-Type", "text/html; charset=UTF-8")
+                            .body(htmlContent);
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 }

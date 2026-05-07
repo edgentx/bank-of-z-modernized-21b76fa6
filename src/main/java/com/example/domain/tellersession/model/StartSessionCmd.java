@@ -1,16 +1,18 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
-import java.time.Instant;
 
-/**
- * Command to start a new Teller Session.
- */
 public record StartSessionCmd(
-    String sessionId,
-    String tellerId,
-    String terminalId,
-    boolean isAuthenticated,
-    Instant lastActivityTimestamp,
-    boolean isContextValid
-) implements Command {}
+        String sessionId,
+        String tellerId,
+        String terminalId,
+        boolean isAuthenticated,
+        boolean isTimedOut,
+        boolean isNavContextValid
+) implements Command {
+    
+    // Primary constructor for standard valid execution
+    public StartSessionCmd(String sessionId, String tellerId, String terminalId) {
+        this(sessionId, tellerId, terminalId, true, false, true);
+    }
+}

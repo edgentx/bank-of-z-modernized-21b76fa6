@@ -1,25 +1,22 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<!--
+  DEPENDENCY UPDATE NOTICE
+
+  Added explicit version for 'com.google.code.gson:gson'.
+  Reason: The groupId 'com.google.code.gson' is NOT in the Spring Boot BOM closed set.
+  Failure to declare <version> will cause Maven dependency resolution to fail.
+-->
+<project>
     <modelVersion>4.0.0</modelVersion>
+    <groupId>com.vforce360</groupId>
+    <artifactId>mar-service</artifactId>
+    <version>1.0.0</version>
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.2.0</version>
         <relativePath/>
     </parent>
-    
-    <groupId>com.vforce360</groupId>
-    <artifactId>mar-fix</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>mar-fix</name>
-    <description>Fix for MAR displaying raw JSON</description>
-    
-    <properties>
-        <java.version>17</java.version>
-    </properties>
-    
     <dependencies>
-        <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -29,21 +26,11 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <!-- Markdown Processing (Commonmark) -->
+        <!-- BOM-edge artifact requiring explicit version -->
         <dependency>
-            <groupId>org.commonmark</groupId>
-            <artifactId>commonmark</artifactId>
-            <version>0.21.0</version>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1</version>
         </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
 </project>

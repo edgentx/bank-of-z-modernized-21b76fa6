@@ -16,7 +16,6 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <temporal.version>1.22.1</temporal.version>
     </properties>
 
     <dependencies>
@@ -31,20 +30,20 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Temporal (BOM does not apply to io.temporal) -->
+        <!-- Temporal Dependencies (Explicit versions required) -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>${temporal.version}</version>
+            <version>1.22.1</version>
         </dependency>
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-testing</artifactId>
-            <version>${temporal.version}</version>
+            <version>1.22.1</version>
             <scope>test</scope>
         </dependency>
 
-        <!-- JUnit 5 (Included in starter-test, but good to be explicit for rules interpretation) -->
+        <!-- JUnit 5 (Included in starter-test, but good to be explicit) -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -54,10 +53,20 @@
 
     <repositories>
         <repository>
-            <id>temporal-snapshots</id>
-            <url>https://maven.temporal.io/snapshots</url>
-            <releases><enabled>false</enabled></releases>
-            <snapshots><enabled>true</enabled></snapshots>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/milestone</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>spring-snapshots</id>
+            <name>Spring Snapshots</name>
+            <url>https://repo.spring.io/snapshot</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
         </repository>
     </repositories>
 </project>

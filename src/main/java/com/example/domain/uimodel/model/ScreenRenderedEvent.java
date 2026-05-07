@@ -6,33 +6,21 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event emitted when a screen is successfully rendered.
+ * Domain event emitted when a screen is successfully rendered.
  */
 public record ScreenRenderedEvent(
-    String aggregateId,
-    String screenId,
-    String deviceType,
-    Instant occurredAt
+        String aggregateId,
+        DeviceType deviceType,
+        Instant occurredAt
 ) implements DomainEvent {
-    public ScreenRenderedEvent(String aggregateId, String screenId, String deviceType, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.screenId = screenId;
-        this.deviceType = deviceType;
-        this.occurredAt = occurredAt;
-    }
 
     @Override
     public String type() {
         return "screen.rendered";
     }
 
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    // For safety/consistency with interface definition, though record handles constructor
+    public static ScreenRenderedEvent create(String screenId, DeviceType deviceType, Instant occurredAt) {
+        return new ScreenRenderedEvent(screenId, deviceType, occurredAt);
     }
 }

@@ -2,20 +2,8 @@ package com.example.domain.notification.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.StringJoiner;
-
 /**
  * Command to report a defect.
+ * Triggered by temporal-worker or diagnostic processes.
  */
-public record ReportDefectCmd(
-    String notificationId,
-    String title,
-    String description,
-    String githubIssueUrl
-) implements Command {
-    public ReportDefectCmd {
-        if (notificationId == null || notificationId.isBlank()) {
-            throw new IllegalArgumentException("notificationId cannot be null");
-        }
-    }
-}
+public record ReportDefectCmd(String defectId) implements Command {}

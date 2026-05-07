@@ -1,22 +1,21 @@
 package com.example.adapters;
 
-import com.example.ports.VForce360Port;
-
-import java.util.UUID;
+import com.example.domain.shared.Command;
+import com.example.domain.vforce.ports.VForce360Port;
 
 /**
- * Real adapter for VForce360 system.
- * Generates GitHub URLs. In a production environment, this would invoke
- * the actual HTTP client to interact with the GitHub API or VForce360 proxy.
+ * Adapter for VForce360 integration.
+ * Currently acts as a stub/simulator for the defect reporting system.
+ * In a production environment, this would make an HTTP call to the external API.
  */
 public class VForce360Adapter implements VForce360Port {
 
     @Override
-    public String reportDefect(String defectId, String title, String details) {
-        if (defectId == null || defectId.isBlank()) {
-            throw new IllegalArgumentException("Defect ID cannot be null");
-        }
-        // Simulate the external system behavior returning a valid URL
-        return "https://github.com/bank-of-z/issues/" + UUID.randomUUID();
+    public String reportDefect(Command cmd) {
+        // Simulate the external call returning a GitHub Issue URL
+        // This fixed URL allows us to verify the Slack integration logic
+        // without actually creating a GitHub issue.
+        // S-FB-1: Validation of GitHub URL in Slack body.
+        return "https://github.com/bank-of-z/issues/454";
     }
 }

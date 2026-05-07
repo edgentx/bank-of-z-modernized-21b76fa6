@@ -2,24 +2,32 @@ package com.example.mocks;
 
 import com.example.ports.GitHubPort;
 
-/**
- * Mock implementation of GitHubPort for testing.
- */
 public class MockGitHubPort implements GitHubPort {
-    private String urlToReturn = "https://github.com/example/issues/1";
-    private boolean createIssueCalled = false;
+
+    private String lastTitle;
+    private String lastBody;
+    private String fakeUrl = "https://github.com/fake-repo/issues/1";
 
     @Override
     public String createIssue(String title, String body) {
-        this.createIssueCalled = true;
-        return urlToReturn;
+        this.lastTitle = title;
+        this.lastBody = body;
+        return this.fakeUrl;
     }
 
-    public void setMockUrl(String url) {
-        this.urlToReturn = url;
+    public String getLastTitle() {
+        return lastTitle;
     }
 
-    public boolean wasCreateIssueCalled() {
-        return createIssueCalled;
+    public String getLastBody() {
+        return lastBody;
+    }
+
+    /**
+     * Sets the URL to be returned by the mock (simulating GitHub response).
+     * Useful for testing URL formatting specifically.
+     */
+    public void setFakeUrl(String fakeUrl) {
+        this.fakeUrl = fakeUrl;
     }
 }

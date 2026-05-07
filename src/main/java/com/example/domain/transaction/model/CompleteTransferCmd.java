@@ -1,5 +1,15 @@
 package com.example.domain.transaction.model;
 
 import com.example.domain.shared.Command;
+import java.math.BigDecimal;
 
-public record CompleteTransferCmd(String transferReference) implements Command {}
+/**
+ * Command to complete a transfer.
+ */
+public record CompleteTransferCmd(
+    String transferReference,
+    String sourceAccount,
+    String destinationAccount,
+    BigDecimal amount,
+    String currency
+) implements Command {}

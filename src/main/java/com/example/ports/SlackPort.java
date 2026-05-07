@@ -1,17 +1,25 @@
 package com.example.ports;
 
 /**
- * Port for posting messages to Slack.
- * Abstracted to allow mocking in tests and verification of message content.
+ * Port for sending Slack notifications.
+ * This interface must be implemented by the actual adapter and mocked in tests.
  */
 public interface SlackPort {
-    
+
     /**
-     * Posts a message to a specific Slack channel.
+     * Sends a notification to a specific Slack channel.
      *
-     * @param channelId The ID of the channel (e.g., "C12345678").
-     * @param messageBody The content of the message.
-     * @throws IllegalArgumentException if channelId or messageBody is null/blank.
+     * @param channel The target channel (e.g. "#vforce360-issues")
+     * @param body    The content of the message.
      */
-    void postMessage(String channelId, String messageBody);
+    void sendMessage(String channel, String body);
+
+    /**
+     * Retrieves the last message body sent to the specified channel during the test context.
+     * Used for assertions in tests.
+     *
+     * @param channel The target channel.
+     * @return The last message body sent, or null if no message has been sent.
+     */
+    String getLastMessageBody(String channel);
 }

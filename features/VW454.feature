@@ -1,6 +1,6 @@
-Feature: Defect Reporting Integration
+Feature: Validating VW-454 — GitHub URL in Slack body
 
-  Scenario: Validating VW-454 — GitHub URL in Slack body
-    Given the defect reporting temporal worker is initialized
-    When _report_defect is triggered with title "Login Failure" and details "Auth service returns 500"
-    Then the Slack body should include the GitHub issue link
+  Scenario: Reporting a defect should result in a Slack notification with a GitHub link
+    Given the temporal worker executes the defect reporting workflow
+    When _report_defect is triggered via temporal-worker exec
+    Then the Slack body contains the GitHub issue URL

@@ -2,16 +2,17 @@ package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
 
+import java.time.Instant;
+
 /**
- * Command to initiate a new Teller Session.
- * Assumes authentication has occurred at the gateway/tier-0 level.
+ * Command to initiate a Teller Session.
+ * Acts as the DTO input for the aggregate.
  */
 public record StartSessionCmd(
-        String sessionId,
-        String tellerId,
-        String terminalId,
-        boolean authenticated, // Verified flag from AuthZ service
-        String currentNavigationState, // Current 3270 screen context
-        int timeoutConfigMinutes // Configured timeout from Spring properties
-) implements Command {
-}
+    String sessionId,
+    String tellerId,
+    String terminalId,
+    boolean isAuthenticated,
+    String initialNavigationState,
+    Instant requestTimestamp
+) implements Command {}

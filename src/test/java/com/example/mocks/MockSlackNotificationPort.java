@@ -4,38 +4,31 @@ import com.example.ports.SlackNotificationPort;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Mock adapter for SlackNotificationPort.
- * Captures messages sent during tests to verify content.
- */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class Message {
-        public final String channel;
-        public final String text;
-
-        public Message(String channel, String text) {
-            this.channel = channel;
-            this.text = text;
-        }
-    }
-
-    private final List<Message> messages = new ArrayList<>();
+    private final List<String> postedMessages = new ArrayList<>();
+    private String lastChannelId;
 
     @Override
-    public void sendMessage(String channel, String text) {
-        this.messages.add(new Message(channel, text));
+    public void postMessage(String channelId, String messageBody) {
+        this.lastChannelId = channelId;
+        this.postedMessages.add(messageBody);
     }
 
-    public List<Message> getMessages() {
-        return new ArrayList<>(messages);
+    public List<String> getPostedMessages() {
+        return new ArrayList<>(postedMessages);
     }
 
-    public void clear() {
-        messages.clear();
+    public String getLastMessageBody() {
+        return postedMessages.isEmpty() ? null : postedMessages.get(postedMessages.size() - 1);
     }
 
-    public boolean hasMessageContaining(String substring) {
-        return messages.stream().anyMatch(m -> m.text.contains(substring));
+    public String getLastChannelId() {
+        return lastChannelId;
+    }
+
+    public void reset() {
+        postedMessages.clear();
+        lastChannelId = null;
     }
 }

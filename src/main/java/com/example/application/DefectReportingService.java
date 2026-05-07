@@ -1,63 +1,82 @@
 package com.example.application;
 
 import com.example.domain.vforce360.model.DefectReportedEvent;
-import com.example.domain.vforce360.model.ReportDefectCmd;
-import com.example.domain.vforce360.model.ValidationAggregate;
 import com.example.ports.GitHubPort;
 import com.example.ports.SlackNotificationPort;
-import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Application service handling the defect reporting workflow.
- * Orchestrates Aggregate execution, GitHub creation, and Slack notification.
+ * Application service handling the logic for reporting defects.
+ * Orchestrates the creation of a GitHub issue and the subsequent notification via Slack.
  */
-@Service
 public class DefectReportingService {
 
-    private final GitHubPort githubPort;
+    private static final Logger log = LoggerFactory.getLogger(DefectReportingService.class);
+
+    private final GitHubPort gitHubPort;
     private final SlackNotificationPort slackNotificationPort;
 
-    public DefectReportingService(GitHubPort githubPort,
-                                  SlackNotificationPort slackNotificationPort) {
-        this.githubPort = githubPort;
+    public DefectReportingService(GitHubPort gitHubPort, SlackNotificationPort slackNotificationPort) {
+        this.gitHubPort = gitHubPort;
         this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Handles the reporting of a defect.
-     * 1. Executes command on Aggregate.
-     * 2. Creates GitHub Issue.
-     * 3. Sends Slack notification with the GitHub URL.
+     * Handles the DefectReportedEvent by creating a GitHub issue and notifying Slack.
+     *
+     * @param event The domain event containing defect details.
      */
-    public void reportDefect(ReportDefectCmd cmd) {
-        // 1. Execute Domain Logic
-        ValidationAggregate aggregate = new ValidationAggregate(cmd.validationId());
-        var events = aggregate.execute(cmd);
+    public void handleDefectReportedEvent(DefectReportedEvent event) {
+        log.info("Handling defect reported event for project: {}", event.aggregateId());
 
-        // We expect a single event for this command
-        if (events.isEmpty()) {
-            throw new IllegalStateException("Expected a DefectReportedEvent");
+        String issueUrl;
+        try {
+            // 1. Create Issue in GitHub
+            issueUrl = gitHubPort.createIssue(
+                    event.title(),
+                    formatDescription(event),
+                    Map.of("severity", event.severity())
+            );
+            log.info("GitHub issue created: {}", issueUrl);
+        } catch (Exception e) {
+            log.error("Failed to create GitHub issue for defect: {}", event.defectId(), e);
+            // Per requirement/verification in tests, we bubble the exception up if GitHub fails
+            throw new RuntimeException("GitHub issue creation failed", e);
         }
 
-        // Safe cast as we control the aggregate logic
-        DefectReportedEvent event = (DefectReportedEvent) events.get(0);
+        // 2. Notify Slack with the URL
+        String slackMessage = formatSlackMessage(event, issueUrl);
+        slackNotificationPort.postMessage(slackMessage);
+    }
 
-        // 2. Create GitHub Issue
-        // Using description for body, summary for title
-        String issueUrl = githubPort.createIssue(
-            "Defect: " + event.description().substring(0, Math.min(50, event.description().length())),
-            event.description()
+    private String formatDescription(DefectReportedEvent event) {
+        return String.format(
+                """ 
+                **Defect ID:** %s
+                **Reporter:** %s
+                **Severity:** %s
+                
+                ---
+                
+                %s
+                """,
+                event.defectId(),
+                event.reporter(),
+                event.severity(),
+                event.description()
         );
+    }
 
-        // 3. Notify Slack (VW-454: Body must include GitHub URL)
-        String slackMessage = String.format(
-            "Defect Reported by %s (Severity: %s):\n%s\nGitHub Issue: %s",
-            event.reporter(),
-            event.severity(),
-            event.description(),
-            issueUrl
+    private String formatSlackMessage(DefectReportedEvent event, String issueUrl) {
+        return String.format(
+                "New defect reported for project *%s* (Severity: %s).\n" +
+                "*Title:* %s\n" +
+                "GitHub Issue: %s",
+                event.aggregateId(),
+                event.severity(),
+                event.title(),
+                issueUrl
         );
-
-        slackNotificationPort.postMessage("#vforce360-issues", slackMessage);
     }
 }

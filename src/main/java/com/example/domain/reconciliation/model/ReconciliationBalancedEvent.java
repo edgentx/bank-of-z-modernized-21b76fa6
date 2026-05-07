@@ -5,20 +5,15 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.Objects;
 
-/**
- * Event emitted when a ReconciliationBatch is successfully balanced.
- */
 public record ReconciliationBalancedEvent(
-        String aggregateId,
+        String batchId,
         String operatorId,
         String justification,
         Instant occurredAt
 ) implements DomainEvent {
-
     public ReconciliationBalancedEvent {
-        Objects.requireNonNull(aggregateId, "aggregateId cannot be null");
+        Objects.requireNonNull(batchId, "batchId cannot be null");
         Objects.requireNonNull(operatorId, "operatorId cannot be null");
-        Objects.requireNonNull(justification, "justification cannot be null");
         Objects.requireNonNull(occurredAt, "occurredAt cannot be null");
     }
 
@@ -29,6 +24,11 @@ public record ReconciliationBalancedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return batchId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

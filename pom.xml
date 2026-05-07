@@ -6,127 +6,37 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.3</version>
+        <version>3.2.0</version>
         <relativePath/>
     </parent>
-    
     <groupId>com.example</groupId>
-    <artifactId>bank-of-z</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>bank-of-z</name>
-    <description>Bank of Z Modernized</description>
-    
+    <artifactId>teller-system</artifactId>
+    <version>1.0.0</version>
+    <name>Teller System Domain</name>
+    <description>Bank Teller Session and Transaction Domain</description>
     <properties>
-        <java.version>17</java.version>
-        <spring-modulith.version>1.1.4</spring-modulith.version>
-        <cucumber.version>7.16.1</cucumber.version>
+        <java.version>21</java.version>
+        <cucumber.version>7.14.0</cucumber.version>
     </properties>
-    
     <dependencies>
-        <!-- Spring Boot Starters -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-integration</artifactId>
-        </dependency>
-        
-        <!-- Spring Modulith -->
-        <dependency>
-            <groupId>org.springframework.modulith</groupId>
-            <artifactId>spring-modulith-starter-core</artifactId>
-            <version>${spring-modulith.version}</version>
-        </dependency>
-        
-        <!-- Database (DB2) -->
-        <dependency>
             <groupId>com.ibm.db2</groupId>
             <artifactId>jcc</artifactId>
             <scope>runtime</scope>
         </dependency>
-        
-        <!-- IBM MQ -->
-        <dependency>
-            <groupId>com.ibm.mq</groupId>
-            <artifactId>mq-jms-spring-boot-starter</artifactId>
-            <version>3.0.5</version>
-        </dependency>
-
-        <!-- COBOL/PL/I Batch Migration (Spring Batch) -->
-        <dependency>
-            <groupId>org.springframework.batch</groupId>
-            <artifactId>spring-batch-core</artifactId>
-        </dependency>
-
-        <!-- Durable Workflows (Temporal) -->
-        <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>1.22.3</version>
-        </dependency>
-
-        <!-- 3270/TN3270 web terminal emulator -->
-        <dependency>
-            <groupId>org.fusesource</groupId>
-            <artifactId>tn3270</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-
-        <!-- Flyway (DB2 schema migration versioning) -->
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-db2</artifactId>
-        </dependency>
-
-        <!-- MinIO (S3-compatible) -->
-        <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-            <version>8.5.7</version>
-        </dependency>
-
-        <!-- OpenTelemetry (distributed tracing) -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-otel</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <version>1.32.0</version>
-        </dependency>
-
-        <!-- Redis (session caching) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-
-        <!-- MongoDB (VForce360 shared) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
-
-        <!-- Cucumber (BDD) -->
+        <!-- Cucumber Dependencies -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
@@ -144,15 +54,12 @@
             <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <!-- General Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
-
     <build>
         <plugins>
             <plugin>

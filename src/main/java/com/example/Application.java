@@ -5,11 +5,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 /**
- * Bank-of-Z Application Entry Point
- * Handles core domain logic, legacy integration (CICS/IMS), and VForce360 diagnostics.
+ * Main Spring Boot Application entry point.
+ * Enables JPA, MongoDB, and Temporal integration.
  */
 @SpringBootApplication
-@ComponentScan(basePackages = {"com.example.domain", "com.example.ports", "com.example.adapters"})
+@ComponentScan(basePackages = {"com.example.domain", "com.example.adapters", "com.example.config", "com.example.workflows"})
 public class Application {
 
     public static void main(String[] args) {

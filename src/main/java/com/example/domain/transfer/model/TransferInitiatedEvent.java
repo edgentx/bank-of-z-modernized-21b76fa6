@@ -7,18 +7,16 @@ import java.time.Instant;
 import java.util.UUID;
 
 public class TransferInitiatedEvent implements DomainEvent {
-    private final String eventId;
     private final String aggregateId;
-    private final String fromAccountId;
-    private final String toAccountId;
+    private final String fromAccount;
+    private final String toAccount;
     private final BigDecimal amount;
     private final Instant occurredAt;
 
-    public TransferInitiatedEvent(String aggregateId, String fromAccountId, String toAccountId, BigDecimal amount, Instant occurredAt) {
-        this.eventId = UUID.randomUUID().toString();
+    public TransferInitiatedEvent(String aggregateId, String fromAccount, String toAccount, BigDecimal amount, Instant occurredAt) {
         this.aggregateId = aggregateId;
-        this.fromAccountId = fromAccountId;
-        this.toAccountId = toAccountId;
+        this.fromAccount = fromAccount;
+        this.toAccount = toAccount;
         this.amount = amount;
         this.occurredAt = occurredAt;
     }
@@ -38,7 +36,7 @@ public class TransferInitiatedEvent implements DomainEvent {
         return occurredAt;
     }
 
-    public String fromAccountId() { return fromAccountId; }
-    public String toAccountId() { return toAccountId; }
+    public String fromAccount() { return fromAccount; }
+    public String toAccount() { return toAccount; }
     public BigDecimal amount() { return amount; }
 }

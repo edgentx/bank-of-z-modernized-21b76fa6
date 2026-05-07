@@ -1,22 +1,15 @@
 package com.example.ports;
 
-import java.util.Optional;
-
 /**
- * Port for interacting with GitHub issues.
- * Used to generate URLs for defects.
+ * Port interface for creating GitHub issues.
  */
 public interface GitHubPort {
-    /**
-     * Retrieves the HTML URL for a specific GitHub issue.
-     *
-     * @param issueId The unique identifier of the issue (e.g., "VW-454")
-     * @return Optional containing the URL, or empty if not found
-     */
-    Optional<String> getIssueUrl(String issueId);
 
     /**
-     * Creates a new issue and returns its URL.
+     * Creates a new issue on GitHub.
+     * @param title The issue title
+     * @param body The issue body
+     * @return The URL of the created issue
      */
-    Optional<String> createIssueAndReturnUrl(String title, String body);
+    String createIssue(String title, String body);
 }

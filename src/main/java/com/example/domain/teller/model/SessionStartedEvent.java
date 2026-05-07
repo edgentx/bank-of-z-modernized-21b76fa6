@@ -9,11 +9,13 @@ public record SessionStartedEvent(
         String aggregateId,
         String tellerId,
         String terminalId,
-        Instant occurredAt,
-        String eventId
+        Instant occurredAt
 ) implements DomainEvent {
     public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
-        this(aggregateId, tellerId, terminalId, occurredAt, UUID.randomUUID().toString());
+        this.aggregateId = aggregateId;
+        this.tellerId = tellerId;
+        this.terminalId = terminalId;
+        this.occurredAt = occurredAt;
     }
 
     @Override

@@ -1,4 +1,3 @@
-<!-- UPGRADED pom.xml to include Flexmark dependency for Markdown parsing -->
 <project>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.vforce360</groupId>

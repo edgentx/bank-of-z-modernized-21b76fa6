@@ -1,6 +1,6 @@
 package com.example.adapters;
 
-import com.example.domain.vforce360.model.DefectReportedEvent;
+import com.example.ports.GitHubPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -10,65 +10,48 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 
 /**
- * Adapter for GitHub Issues API.
- * S-FB-1: Validates VW-454 by ensuring GitHub URLs are generated correctly.
+ * Real implementation of GitHubPort using RestTemplate.
+ * Wiring is handled by Spring Boot configuration.
  */
 @Component
-public class GithubIssueAdapter {
+public class GithubIssueAdapter implements GitHubPort {
 
     private final RestTemplate restTemplate;
-    private static final String GITHUB_API_URL = "https://api.github.com/repos";
-    // Ideally configured via application.properties, using defaults for fix implementation
-    private final String repoOwner = "egdcrypto";
-    private final String repoName = "bank-of-z-modernized";
+    private final String githubApiUrl;
+    private final String authToken;
 
-    // Constructor injection allows for easy mocking in tests
-    public GithubIssueAdapter() {
-        this.restTemplate = new RestTemplate();
-    }
-
-    public GithubIssueAdapter(RestTemplate restTemplate) {
+    public GithubIssueAdapter(RestTemplate restTemplate,
+                              String githubApiUrl,
+                              String authToken) {
         this.restTemplate = restTemplate;
+        this.githubApiUrl = githubApiUrl;
+        this.authToken = authToken;
     }
 
-    /**
-     * Creates a GitHub issue based on the domain event.
-     * Returns the HTML URL of the created issue.
-     */
-    public String createIssue(DefectReportedEvent event) {
-        String url = String.format("%s/%s/%s/issues", GITHUB_API_URL, repoOwner, repoName);
-
-        // Construct payload according to GitHub API standards
-        Map<String, Object> payload = Map.of(
-            "title", event.title(),
-            "body", formatBody(event),
-            "labels", java.util.List.of("defect", "vforce360")
+    @Override
+    public String createIssue(String title, String description) {
+        // Constructing the GitHub API request body
+        // We use a Map here which Jackson will serialize to JSON
+        Map<String, Object> requestBody = Map.of(
+            "title", title,
+            "body", description
         );
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        // Note: Authentication header would be added here for a real implementation
-        // headers.setBearerAuth(token);
+        headers.setBearerAuth(authToken);
 
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
         // Execute POST request
+        // We assume the response is a Map containing the "html_url" field
         @SuppressWarnings("rawtypes")
-        Map response = restTemplate.postForObject(url, request, Map.class);
+        Map response = restTemplate.postForObject(githubApiUrl, entity, Map.class);
 
         if (response != null && response.containsKey("html_url")) {
             return (String) response.get("html_url");
         }
 
-        throw new RuntimeException("Failed to create GitHub issue: No URL returned");
-    }
-
-    private String formatBody(DefectReportedEvent event) {
-        return String.format(
-            "**Description:**%s%n%n**Reporter:** %s%n%n**Aggregate ID:** %s",
-            event.description(),
-            event.reporter(),
-            event.aggregateId()
-        );
+        throw new RuntimeException("Failed to create GitHub issue or retrieve URL");
     }
 }

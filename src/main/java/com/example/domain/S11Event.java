@@ -1,34 +1,29 @@
 package com.example.domain;
 
 import java.math.BigDecimal;
-import java.util.Currency;
+import java.time.Instant;
+import java.util.UUID;
 
-public class S11Event {
-    private final String type;
-    private final String accountNumber;
-    private final BigDecimal amount;
-    private final Currency currency;
+/**
+ * Event hierarchy for Story S-11.
+ * Events represent state changes that have occurred.
+ */
+public sealed interface S11Event permits S11Event.WithdrawalPosted {
 
-    public S11Event(String type, String accountNumber, BigDecimal amount, Currency currency) {
-        this.type = type;
-        this.accountNumber = accountNumber;
-        this.amount = amount;
-        this.currency = currency;
+    UUID eventId() default UUID.randomUUID();
+    Instant timestamp() default Instant.now();
+
+    record WithdrawalPosted(
+        UUID eventId,
+        Instant timestamp,
+        UUID transactionId,
+        UUID accountId,
+        BigDecimal amount,
+        String currency
+    ) implements S11Event {
+        public WithdrawalPosted {
+            // Defensive copy if needed, though records are immutable
+        }
     }
 
-    public String getType() {
-        return type;
-    }
-
-    public String getAccountNumber() {
-        return accountNumber;
-    }
-
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    public Currency getCurrency() {
-        return currency;
-    }
 }

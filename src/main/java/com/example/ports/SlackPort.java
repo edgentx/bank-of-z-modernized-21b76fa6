@@ -1,25 +1,16 @@
 package com.example.ports;
 
+import java.util.Map;
+
 /**
- * Port for sending Slack notifications.
- * This interface must be implemented by the actual adapter and mocked in tests.
+ * Interface for Slack notification operations.
+ * Used by the Validation workflow to alert engineers.
  */
 public interface SlackPort {
 
     /**
-     * Sends a notification to a specific Slack channel.
-     *
-     * @param channel The target channel (e.g. "#vforce360-issues")
-     * @param body    The content of the message.
+     * Sends a notification message to a Slack channel.
+     * @param context Map containing 'body', 'channel', and optional 'projectId'.
      */
-    void sendMessage(String channel, String body);
-
-    /**
-     * Retrieves the last message body sent to the specified channel during the test context.
-     * Used for assertions in tests.
-     *
-     * @param channel The target channel.
-     * @return The last message body sent, or null if no message has been sent.
-     */
-    String getLastMessageBody(String channel);
+    void sendMessage(Map<String, Object> context);
 }

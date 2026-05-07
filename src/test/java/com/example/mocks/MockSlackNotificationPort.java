@@ -6,36 +6,44 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to Slack to verify content without I/O.
+ * Captures posted messages to validate content (VW-454).
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
-    public static class Message {
-        public final String channel;
-        public final String text;
 
-        public Message(String channel, String text) {
+    public static class PostedMessage {
+        public final String channel;
+        public final String body;
+
+        public PostedMessage(String channel, String body) {
             this.channel = channel;
-            this.text = text;
+            this.body = body;
         }
     }
 
-    private final List<Message> sentMessages = new ArrayList<>();
+    private final List<PostedMessage> messages = new ArrayList<>();
 
     @Override
-    public void sendText(String channel, String text) {
-        this.sentMessages.add(new Message(channel, text));
+    public void postMessage(String channel, String messageBody) {
+        messages.add(new PostedMessage(channel, messageBody));
     }
 
-    public List<Message> getSentMessages() {
-        return new ArrayList<>(sentMessages);
+    public List<PostedMessage> getMessages() {
+        return messages;
     }
 
-    public void clear() {
-        sentMessages.clear();
+    /**
+     * Helper for VW-454 validation: checks if the last message contains the URL.
+     */
+    public boolean lastMessageContainsUrl(String url) {
+        if (messages.isEmpty()) return false;
+        return messages.get(messages.size() - 1).body.contains(url);
     }
 
-    public Message getLastMessage() {
-        if (sentMessages.isEmpty()) return null;
-        return sentMessages.get(sentMessages.size() - 1);
+    /**
+     * Helper for VW-454 validation: checks if the last message was for the specific channel.
+     */
+    public boolean lastMessageWasToChannel(String channel) {
+        if (messages.isEmpty()) return false;
+        return messages.get(messages.size() - 1).channel.equals(channel);
     }
 }

@@ -1,46 +1,44 @@
 package com.example.mocks;
 
-import com.example.ports.SlackNotificationPort;
+import com.example.domain.shared.slack.SlackNotificationPort;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock adapter for SlackNotificationPort.
- * Captures messages sent to Slack to verify behavior in tests without I/O.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Captures messages posted during the test lifecycle for assertion.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class SentMessage {
+    public static class PostedMessage {
         public final String channel;
-        public final String message;
+        public final String body;
 
-        public SentMessage(String channel, String message) {
+        public PostedMessage(String channel, String body) {
             this.channel = channel;
-            this.message = message;
+            this.body = body;
         }
     }
 
-    private final List<SentMessage> sentMessages = new ArrayList<>();
+    private final List<PostedMessage> messages = new ArrayList<>();
 
     @Override
-    public void send(String channel, String message) {
-        this.sentMessages.add(new SentMessage(channel, message));
+    public boolean postMessage(String channel, String body) {
+        // Simulate basic validation logic found in real adapters
+        if (channel == null || body == null) return false;
+        messages.add(new PostedMessage(channel, body));
+        return true;
     }
 
-    public List<SentMessage> getSentMessages() {
-        return new ArrayList<>(sentMessages);
+    public List<PostedMessage> getMessages() {
+        return messages;
     }
 
     public void clear() {
-        sentMessages.clear();
+        messages.clear();
     }
 
-    /**
-     * Helper to assert the last message contained a specific string.
-     */
-    public boolean lastMessageContains(String substring) {
-        if (sentMessages.isEmpty()) return false;
-        String lastMsg = sentMessages.get(sentMessages.size() - 1).message;
-        return lastMsg != null && lastMsg.contains(substring);
+    public boolean containsUrl(String url) {
+        return messages.stream().anyMatch(msg -> msg.body.contains(url));
     }
 }

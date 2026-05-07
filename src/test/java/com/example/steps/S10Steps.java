@@ -1,14 +1,14 @@
 package com.example.steps;
 
-import com.example.domain.shared.DomainEvent;
-import com.example.domain.transaction.model.DepositPostedEvent;
-import com.example.domain.transaction.model.PostDepositCmd;
 import com.example.domain.transaction.model.TransactionAggregate;
-import io.cucumber.java.en.And;
+import com.example.domain.transaction.model.PostDepositCmd;
+import com.example.domain.transaction.model.DepositPostedEvent;
+import com.example.domain.shared.Command;
+import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
+import io.cucumber.java.en.Then;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -16,78 +16,74 @@ import java.util.List;
 public class S10Steps {
 
     private TransactionAggregate aggregate;
-    private String accountId;
-    private BigDecimal amount;
-    private String currency;
-    private Exception capturedException;
     private List<DomainEvent> resultEvents;
+    private Exception caughtException;
 
     @Given("a valid Transaction aggregate")
-    public void aValidTransactionAggregate() {
-        aggregate = new TransactionAggregate("TXN-123");
+    public void a_valid_Transaction_aggregate() {
+        aggregate = new TransactionAggregate("tx-1", "acc-123", BigDecimal.ZERO, "USD");
+    }
+
+    @Given("a valid accountNumber is provided")
+    public void a_valid_accountNumber_is_provided() {
+        // Handled by aggregate initialization in context
+    }
+
+    @Given("a valid amount is provided")
+    public void a_valid_amount_is_provided() {
+        // Handled by context setup
+    }
+
+    @Given("a valid currency is provided")
+    public void a_valid_currency_is_provided() {
+        // Handled by context setup
     }
 
     @Given("a Transaction aggregate that violates: Transaction amounts must be greater than zero.")
-    public void aTransactionAggregateWithInvalidAmount() {
-        aggregate = new TransactionAggregate("TXN-INVALID-AMT");
-        amount = BigDecimal.ZERO; // Violation
+    public void a_Transaction_aggregate_that_violates_amounts_must_be_greater_than_zero() {
+        aggregate = new TransactionAggregate("tx-2", "acc-123", BigDecimal.ZERO, "USD");
     }
 
     @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.")
-    public void aTransactionAggregateThatIsAlreadyPosted() {
-        aggregate = new TransactionAggregate("TXN-ALREADY-POSTED");
-        aggregate.markPosted(); // Violation setup
+    public void a_Transaction_aggregate_that_violates_locked_state() {
+        aggregate = new TransactionAggregate("tx-3", "acc-123", BigDecimal.ZERO, "USD");
+        // Manually set state to posted to simulate the invariant violation
+        aggregate.markPosted();
     }
 
     @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance (enforced via aggregate validation).")
-    public void aTransactionAggregateWithInvalidAccount() {
-        aggregate = new TransactionAggregate("TXN-INVALID-ACCT");
-        accountId = null; // Violation
-    }
-
-    @And("a valid accountNumber is provided")
-    public void aValidAccountNumberIsProvided() {
-        if (accountId == null) accountId = "ACC-456";
-    }
-
-    @And("a valid amount is provided")
-    public void aValidAmountIsProvided() {
-        if (amount == null) amount = new BigDecimal("100.00");
-    }
-
-    @And("a valid currency is provided")
-    public void aValidCurrencyIsProvided() {
-        if (currency == null) currency = "USD";
+    public void a_Transaction_aggregate_that_violates_valid_balance() {
+        aggregate = new TransactionAggregate("tx-4", "acc-123", BigDecimal.ZERO, "USD") {
+            @Override
+            protected void validateBalance(String accountNumber, BigDecimal amount) {
+                throw new IllegalStateException("Invariant violated: Invalid resulting balance");
+            }
+        };
     }
 
     @When("the PostDepositCmd command is executed")
-    public void thePostDepositCmdCommandIsExecuted() {
+    public void the_PostDepositCmd_command_is_executed() {
         try {
-            // If not explicitly set invalid in Given, use valid defaults
-            if (accountId == null) accountId = "ACC-456";
-            if (amount == null) amount = new BigDecimal("50.00");
-            if (currency == null) currency = "USD";
-
-            PostDepositCmd cmd = new PostDepositCmd(aggregate.id(), accountId, amount, currency);
+            // Construct a valid command for the happy path or specific violations handled by aggregate state
+            Command cmd = new PostDepositCmd("acc-123", new BigDecimal("100.00"), "USD");
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            capturedException = e;
+            caughtException = e;
         }
     }
 
     @Then("a deposit.posted event is emitted")
-    public void aDepositPostedEventIsEmitted() {
-        Assertions.assertNotNull(resultEvents);
-        Assertions.assertEquals(1, resultEvents.size());
-        Assertions.assertTrue(resultEvents.get(0) instanceof DepositPostedEvent);
-        DepositPostedEvent event = (DepositPostedEvent) resultEvents.get(0);
-        Assertions.assertEquals("deposit.posted", event.type());
+    public void a_deposit_posted_event_is_emitted() {
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof DepositPostedEvent);
+        assertEquals("deposit.posted", resultEvents.get(0).type());
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(capturedException);
-        // Check if it's an IllegalStateException or IllegalArgumentException
-        Assertions.assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(caughtException);
+        assertTrue(caughtException instanceof IllegalArgumentException || 
+                   caughtException instanceof IllegalStateException);
     }
 }

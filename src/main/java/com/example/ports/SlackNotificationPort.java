@@ -1,15 +1,11 @@
 package com.example.ports;
 
+import com.example.domain.validation.DefectReportedEvent;
+
 /**
- * Port for sending Slack notifications.
- * Implementations must handle the actual HTTP transmission to Slack Webhooks.
+ * Port for sending notifications to external messaging services (e.g., Slack).
+ * This abstraction allows the domain to trigger notifications without depending on concrete implementations.
  */
 public interface SlackNotificationPort {
-    /**
-     * Sends a notification to Slack.
-     *
-     * @param channel The target Slack channel (e.g., #vforce360-issues).
-     * @param body    The message body/content.
-     */
-    void sendNotification(String channel, String body);
+    void notifyDefectReported(DefectReportedEvent event);
 }

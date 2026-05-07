@@ -8,16 +8,18 @@
         <version>3.2.0</version>
         <relativePath/>
     </parent>
+    
     <groupId>com.example</groupId>
-    <artifactId>teller-system</artifactId>
+    <artifactId>teller-core</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>teller-system</name>
-    <description>Teller System for Bank-of-Z Modernization</description>
+    <name>Teller Core Domain</name>
+    <description>Bank of Z Teller Core Domain &amp; BDD Suite</description>
+    
     <properties>
         <java.version>17</java.version>
-        <flyway.version>9.22.3</flyway.version>
         <cucumber.version>7.14.0</cucumber.version>
     </properties>
+    
     <dependencies>
         <!-- Spring Boot Starters -->
         <dependency>
@@ -48,22 +50,42 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
+        
+        <!-- IBM MQ & z/OS (Simulated for local build, explicit versions usually required here) -->
         <dependency>
-            <groupId>org.springframework.session</groupId>
-            <artifactId>spring-session-data-redis</artifactId>
+            <groupId>com.ibm.mq</groupId>
+            <artifactId>com.ibm.mq.allclient</artifactId>
+            <version>9.3.4.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ibm.mq</groupId>
+            <artifactId>mq-jms-spring-boot-starter</artifactId>
+            <version>3.0.4</version>
         </dependency>
 
         <!-- Database Drivers -->
         <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <!-- DB2 Driver is usually proprietary, placeholder for compile scope if needed, or provided -->
-        <dependency>
             <groupId>com.ibm.db2</groupId>
             <artifactId>jcc</artifactId>
-            <scope>runtime</scope>
+            <version>11.5.8.0</version>
+        </dependency>
+        
+        <!-- Observability -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+            <version>1.36.0</version>
+        </dependency>
+
+        <!-- Storage -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>8.5.6</version>
         </dependency>
 
         <!-- Flyway -->
@@ -73,40 +95,18 @@
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-db2</artifactId>
-            <version>${flyway.version}</version>
+            <artifactId>flyway-db2-spring-boot-starter</artifactId>
+            <version>9.22.3</version>
         </dependency>
 
-        <!-- IBM MQ & z/OS Connect -->
+        <!-- Temporal -->
         <dependency>
-            <groupId>com.ibm.mq</groupId>
-            <artifactId>mq-jms-spring-boot-starter</artifactId>
-            <version>3.0.5</version>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.jms</groupId>
-            <artifactId>jakarta.jms-api</artifactId>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-spring-boot-starter</artifactId>
+            <version>1.22.3</version>
         </dependency>
 
-        <!-- MinIO -->
-        <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-            <version>8.5.7</version>
-        </dependency>
-
-        <!-- Observability -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-otel</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <version>1.34.1</version>
-        </dependency>
-
-        <!-- Testing (Cucumber) -->
+        <!-- Cucumber (BDD Testing) -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
@@ -120,20 +120,19 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-spring</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- JUnit 5 -->
+        <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-test</artifactId>
-            <scope>test</scope>
-        </dependency>
+
     </dependencies>
 
     <build>

@@ -2,13 +2,8 @@ package com.example.domain.defect.model;
 
 import com.example.domain.shared.Command;
 
-/**
- * Command to report a defect observed in the VForce360 system.
- */
 public record ReportDefectCmd(
-    String defectId,
-    String summary,
-    String description,
-    String severity,
-    String component
+        String defectId,
+        String title,
+        String description
 ) implements Command {}

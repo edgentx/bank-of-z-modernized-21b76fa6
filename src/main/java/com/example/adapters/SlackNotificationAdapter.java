@@ -6,20 +6,38 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Real Adapter for Slack Notification.
- * In a production environment, this would use a Slack WebClient (e.g. SDK)
- * to POST the message to a Webhook or API.
+ * Real adapter implementation for sending notifications to Slack.
+ * In a production environment, this would integrate with the Slack Web API.
  */
 @Component
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
     private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
 
+    /**
+     * Sends a message to a configured Slack channel.
+     * <p>
+     * Note: This is a placeholder implementation for the adapter pattern.
+     * Real implementation would use WebClient or a Slack client library to POST to a webhook.
+     *
+     * @param messageBody The formatted content of the message.
+     * @throws IllegalArgumentException if messageBody is null or blank.
+     */
     @Override
     public void sendMessage(String messageBody) {
-        // Real implementation would call Slack API here.
-        // e.g. slackClient.post(webhookUrl, messageBody);
-        log.info("Sending Slack message: {}", messageBody);
-        // No-op for regression test execution if Mock is used, but this fulfills the contract.
+        if (messageBody == null || messageBody.isBlank()) {
+            throw new IllegalArgumentException("messageBody cannot be blank");
+        }
+
+        // Log the action to simulate external interaction without dependencies
+        log.info("[Slack Adapter] Sending message: {}", messageBody);
+
+        // Real implementation example:
+        // webClient.post()
+        //     .uri(slackWebhookUrl)
+        //     .bodyValue(BodyInserters.fromValue(Map.of("text", messageBody)))
+     //    .retrieve()
+     //    .bodyToMono(Void.class)
+     //    .block();
     }
 }

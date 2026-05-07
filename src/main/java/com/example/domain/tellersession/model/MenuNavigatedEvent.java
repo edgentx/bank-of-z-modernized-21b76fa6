@@ -6,15 +6,25 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event emitted when a teller successfully navigates to a new screen.
+ * Domain event emitted when a teller successfully navigates to a new screen.
  */
 public record MenuNavigatedEvent(
     String aggregateId,
-    String tellerId,
     String targetMenuId,
     String action,
     Instant occurredAt
 ) implements DomainEvent {
+
+    public MenuNavigatedEvent {
+        // Ensure basic validation
+        if (aggregateId == null || aggregateId.isBlank()) {
+            throw new IllegalArgumentException("aggregateId cannot be null");
+        }
+        if (occurredAt == null) {
+            occurredAt = Instant.now();
+        }
+    }
+
     @Override
     public String type() {
         return "menu.navigated";

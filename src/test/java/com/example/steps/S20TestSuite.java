@@ -12,5 +12,4 @@ import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
 @SelectClasspathResource("features")
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
 public class S20TestSuite {
-    // This class acts as the test runner for the S-20 feature file
 }

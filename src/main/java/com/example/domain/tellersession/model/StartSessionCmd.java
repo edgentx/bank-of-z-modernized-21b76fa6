@@ -4,11 +4,10 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to initiate a Teller Session.
- * Context: S-18 - user-interface-navigation
+ * S-18: user-interface-navigation
  */
-public record StartSessionCmd(
-    String sessionId,
-    String tellerId,
-    String terminalId,
-    boolean isAuthenticated
-) implements Command {}
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {
+    public StartSessionCmd {
+        // Basic validation is handled in the aggregate, but we can do sanity checks here if desired.
+    }
+}

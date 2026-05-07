@@ -1,27 +1,23 @@
 package com.example.domain;
 
 import java.math.BigDecimal;
-import java.util.UUID;
+import java.util.Currency;
 
 public class Transaction {
 
-    private final UUID transactionId;
-    private boolean posted = false;
-    private boolean allowOverdraft = true;
-    private BigDecimal currentBalance = BigDecimal.ZERO;
+    private String id;
+    private BigDecimal currentBalance;
+    private boolean isPosted;
 
-    public Transaction(UUID transactionId) {
-        this.transactionId = transactionId;
+    public Transaction() {
+        this.currentBalance = BigDecimal.ZERO;
+        this.isPosted = false;
     }
 
-    /**
-     * Execute pattern dispatch.
-     * In a larger system, this might use a Visitor or Map<Class<?>, Function<Command, Event>>.
-     */
-    public WithdrawalPostedEvent execute(PostWithdrawalCmd cmd) {
+    public S11Event execute(S11Command cmd) {
         // Invariant: Transactions cannot be altered or deleted once posted
-        if (this.posted) {
-            throw new IllegalStateException("Transaction is immutable once posted.");
+        if (this.isPosted) {
+            throw new IllegalStateException("Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.");
         }
 
         // Invariant: Transaction amounts must be greater than zero
@@ -30,47 +26,30 @@ public class Transaction {
         }
 
         // Invariant: A transaction must result in a valid account balance
-        // (Simulating aggregate validation logic here)
-        if (!isAllowOverdraft()) {
-            BigDecimal projectedBalance = this.currentBalance.subtract(cmd.getAmount());
-            if (projectedBalance.compareTo(BigDecimal.ZERO) < 0) {
-                throw new IllegalStateException("A transaction must result in a valid account balance.");
-            }
+        // Assuming this aggregate tracks the balance or validates against provided context.
+        // For this scenario, we validate against internal state.
+        if (currentBalance.subtract(cmd.getAmount()).compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalStateException("A transaction must result in a valid account balance (enforced via aggregate validation).");
         }
 
-        // Logic: Apply the state change (in reality, this would emit an event applied to the aggregate)
-        // For this phase, we return the event directly as requested by the story.
-        this.markPosted(); // Side effect of execution for testing state
-
-        return new WithdrawalPostedEvent(
-            UUID.randomUUID(),
-            cmd.getAccountNumber(),
-            cmd.getAmount(),
-            cmd.getCurrency()
-        );
+        // Logic for successful debit
+        // In a real system, this might persist state or transition the aggregate.
+        // Here we update the balance locally for the validation context of subsequent calls, though the scenario implies single shot.
+        this.currentBalance = this.currentBalance.subtract(cmd.getAmount());
+        
+        return new S11Event("withdrawal.posted", cmd.getAccountNumber(), cmd.getAmount(), cmd.getCurrency());
     }
 
+    // Helpers for testing
     public void markPosted() {
-        this.posted = true;
+        this.isPosted = true;
     }
 
-    public boolean isPosted() {
-        return posted;
-    }
-
-    public boolean isAllowOverdraft() {
-        return allowOverdraft;
-    }
-
-    public void setAllowOverdraft(boolean allowOverdraft) {
-        this.allowOverdraft = allowOverdraft;
+    public void setCurrentBalance(BigDecimal balance) {
+        this.currentBalance = balance;
     }
 
     public BigDecimal getCurrentBalance() {
         return currentBalance;
-    }
-
-    public void setCurrentBalance(BigDecimal currentBalance) {
-        this.currentBalance = currentBalance;
     }
 }

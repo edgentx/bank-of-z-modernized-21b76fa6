@@ -1,39 +1,38 @@
 package com.example.domain.verification.service;
 
-import org.springframework.stereotype.Service;
+import com.example.application.DefectReportingService;
+import com.example.domain.vforce360.model.ReportDefectCmd;
 import com.example.ports.SlackNotificationPort;
+import org.springframework.stereotype.Service;
 
 /**
- * Service handling verification workflows.
- * VW-454: Ensures Slack notifications include relevant GitHub issue links.
+ * Verification service to trigger defect reporting.
+ * This bridges the temporal workflow to the application service.
  */
 @Service
 public class VerificationService {
 
+    private final DefectReportingService defectReportingService;
     private final SlackNotificationPort slackNotificationPort;
 
-    public VerificationService(SlackNotificationPort slackNotificationPort) {
+    public VerificationService(DefectReportingService defectReportingService,
+                                SlackNotificationPort slackNotificationPort) {
+        this.defectReportingService = defectReportingService;
         this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Reports a defect or verification issue to the VForce360 channel.
-     * @param defectTitle The title of the defect.
-     * @param defectUrl The GitHub URL associated with this defect/issue.
+     * Triggers the defect reporting flow.
      */
-    public void reportDefect(String defectTitle, String defectUrl) {
-        // Validate inputs to ensure the URL is present
-        if (defectUrl == null || defectUrl.isBlank()) {
-            throw new IllegalArgumentException("GitHub Issue URL cannot be blank when reporting defect.");
-        }
-        if (defectTitle == null || defectTitle.isBlank()) {
-            throw new IllegalArgumentException("Defect Title cannot be blank.");
-        }
+    public void reportDefectViaTemporal(String validationId, String description, String reporter, String severity) {
+        ReportDefectCmd cmd = new ReportDefectCmd(validationId, description, reporter, severity);
+        defectReportingService.reportDefect(cmd);
+    }
 
-        // Format the message body
-        String messageBody = String.format("VForce360 Alert: %s%nGitHub Issue: <%s>", defectTitle, defectUrl);
-
-        // Send via the port
-        slackNotificationPort.notifyChannel(messageBody);
+    /**
+     * Helper to notify a channel directly, used by other verification flows.
+     */
+    public void notifyChannel(String message) {
+        slackNotificationPort.postMessage("#vforce360-issues", message);
     }
 }

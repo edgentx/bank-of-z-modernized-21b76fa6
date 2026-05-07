@@ -2,17 +2,21 @@ package com.example.domain;
 
 import java.math.BigDecimal;
 import java.util.UUID;
+import java.time.Instant;
 
-public class DepositPostedEvent {
-    public final UUID transactionId;
-    public final String accountNumber;
-    public final BigDecimal amount;
-    public final String currency;
+/**
+ * Event emitted when a deposit is successfully posted to the ledger.
+ * Implements DomainEvent marker interface.
+ */
+public record DepositPostedEvent(
+    UUID transactionId,
+    String accountNumber,
+    BigDecimal amount,
+    String currencyCode,
+    Instant occurredAt
+) implements DomainEvent {
 
-    public DepositPostedEvent(UUID transactionId, String accountNumber, BigDecimal amount, String currency) {
-        this.transactionId = transactionId;
-        this.accountNumber = accountNumber;
-        this.amount = amount;
-        this.currency = currency;
+    public DepositPostedEvent(UUID transactionId, String accountNumber, BigDecimal amount, String currencyCode) {
+        this(transactionId, accountNumber, amount, currencyCode, Instant.now());
     }
 }

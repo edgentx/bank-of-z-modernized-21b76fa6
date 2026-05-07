@@ -6,42 +6,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock adapter for Slack notifications.
- * Captures messages sent to Slack for verification in tests.
+ * Mock implementation of SlackPort for testing.
  */
 public class MockSlackPort implements SlackPort {
 
-    private boolean notifyCalled;
-    private String lastChannel;
-    private String lastMessageBody;
-    private final List<String> callLog = new ArrayList<>();
+    public final List<String> sentMessages = new ArrayList<>();
 
     @Override
-    public void sendNotification(String channel, String messageBody) {
-        this.notifyCalled = true;
-        this.lastChannel = channel;
-        this.lastMessageBody = messageBody;
-        this.callLog.add("sendNotification to " + channel);
+    public void sendMessage(String message) {
+        sentMessages.add(message);
     }
 
-    // --- Test Helper Methods ---
-
-    public boolean wasNotifyCalled() {
-        return notifyCalled;
+    public boolean contains(String text) {
+        return sentMessages.stream().anyMatch(msg -> msg.contains(text));
     }
 
-    public String getLastChannel() {
-        return lastChannel;
-    }
-
-    public String getLastMessageBody() {
-        return lastMessageBody;
-    }
-
-    public void reset() {
-        this.notifyCalled = false;
-        this.lastChannel = null;
-        this.lastMessageBody = null;
-        this.callLog.clear();
+    public String getLastMessage() {
+        if (sentMessages.isEmpty()) return null;
+        return sentMessages.get(sentMessages.size() - 1);
     }
 }

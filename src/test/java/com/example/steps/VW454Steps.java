@@ -1,57 +1,58 @@
 package com.example.steps;
 
-import com.example.domain.vforce.model.ReportDefectCmd;
-import com.example.domain.vforce.ports.GitHubIssuePort;
-import com.example.domain.vforce.ports.SlackNotificationPort;
-import com.example.mocks.MockGitHubIssuePort;
-import com.example.mocks.MockSlackNotificationPort;
+import com.example.application.DefectReportingService;
+import com.example.domain.shared.Command;
+import com.example.domain.vforce360.model.ReportDefectCmd;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackNotificationPort;
+import com.example.ports.VForce360Repository;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
-import static org.junit.jupiter.api.Assertions.*;
+import io.cucumber.java.en.When;
+import org.springframework.beans.factory.annotation.Autowired;
 
-/**
- * Cucumber Steps for validating VW-454.
- * Regression test ensuring GitHub URL appears in Slack body.
- */
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 public class VW454Steps {
 
-    // We use the Mocks directly here to validate the "Contract" behavior in isolation.
-    // In a real app, these would be injected into a Service/Workflow class.
-    private final MockGitHubIssuePort mockGitHub = new MockGitHubIssuePort();
-    private final MockSlackNotificationPort mockSlack = new MockSlackNotificationPort();
+    @Autowired
+    private DefectReportingService service;
 
-    private String resultingSlackMessage;
-    private boolean sendSuccess;
+    @Autowired
+    private GitHubPort gitHubPort;
 
-    @Given("the defect reporting temporal worker is initialized")
-    public void init() {
-        mockGitHub.setFixedUrl("https://github.com/fake-org/repo/issues/454");
-        mockSlack.clear();
+    @Autowired
+    private SlackNotificationPort slackNotificationPort;
+
+    @Autowired
+    private VForce360Repository repository;
+
+    @Given("the system is ready to report defects")
+    public void the_system_is_ready() {
+        // NOP - Spring context initializes mocks
     }
 
-    @When("_report_defect is triggered with title {string} and details {string}")
-    public void trigger_report_defect(String title, String details) {
-        // This logic represents the behavior we are testing (Red Phase: logic doesn't exist in app yet)
-        // 1. Call GitHub
-        String issueUrl = mockGitHub.createIssue(title, details);
-
-        // 2. Construct Slack Body (Current Defect: URL is missing)
-        String slackBody = "New Defect Reported:\nTitle: " + title + "\nDetails: " + details;
+    @When("the defect report is triggered with title {string} and body {string}")
+    public void the_defect_report_is_triggered(String title, String body) {
+        when(gitHubPort.createIssue(any(), any(), any())).thenReturn("https://github.com/test/issues/454");
         
-        // 3. Send Slack
-        sendSuccess = mockSlack.sendDefectReport(slackBody);
-        resultingSlackMessage = slackBody;
+        ReportDefectCmd cmd = new ReportDefectCmd(title, body, "VForce360", "LOW");
+        service.reportDefect(cmd);
     }
 
-    @Then("the Slack body should include the GitHub issue link")
-    public void verify_slack_body_includes_link() {
-        // Expected: Body contains the URL returned by the GitHub mock
-        String expectedUrl = mockGitHub.setFixedUrl("https://github.com/fake-org/repo/issues/454"); // Reset for consistency or retrieve from context
-        // Actually retrieving what the mock was set to return:
-        
-        // For this test, we expect the content sent to Slack to contain the URL
-        assertTrue(mockSlack.getSentMessages().get(0).contains("https://github.com/fake-org/repo/issues/454"), 
-            "Slack body should contain GitHub URL");
+    @Then("the Slack notification body should contain the GitHub issue URL")
+    public void the_slack_notification_body_should_contain_the_github_url() {
+        // Verify that the sendNotification method was called with a string containing the URL
+        verify(slackNotificationPort).sendNotification(contains("https://github.com/test/issues/454"));
+    }
+
+    @Then("the Slack notification body should not be null")
+    public void the_slack_notification_body_should_not_be_null() {
+        verify(slackNotificationPort).sendNotification(any());
     }
 }

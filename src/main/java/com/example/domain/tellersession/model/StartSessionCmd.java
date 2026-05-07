@@ -4,11 +4,7 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to initiate a teller session.
- * Record carrying primitive values as per DDD conventions.
+ * Story: S-18
  */
-public record StartSessionCmd(
-    String tellerId,
-    String terminalId,
-    boolean isAuthenticated,
-    String currentNavState
-) implements Command {}
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {
+}

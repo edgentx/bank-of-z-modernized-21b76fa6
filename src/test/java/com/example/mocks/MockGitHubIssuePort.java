@@ -1,17 +1,19 @@
 package com.example.mocks;
 
-import com.example.domain.vforce.ports.GitHubIssuePort;
+import com.example.ports.GitHubIssuePort;
 
+/**
+ * Mock implementation of GitHubIssuePort for testing.
+ * Returns predictable URLs.
+ */
 public class MockGitHubIssuePort implements GitHubIssuePort {
-    private String urlToReturn = "https://github.com/test-repo/issues/1";
 
     @Override
-    public String createIssue(String title, String body) {
-        // Simulate successful creation
-        return urlToReturn;
-    }
-
-    public void setUrlToReturn(String url) {
-        this.urlToReturn = url;
+    public String getIssueUrl(String issueId) {
+        // Simulating real logic: return a formatted URL based on input
+        if (issueId == null || issueId.isBlank()) {
+            throw new IllegalArgumentException("issueId cannot be blank");
+        }
+        return "https://github.com/example-org/repo/issues/" + issueId;
     }
 }

@@ -118,6 +118,9 @@
             <artifactId>mongodb-driver-sync</artifactId>
             <version>4.11.0</version>
         </dependency>
+        <!-- Temporal Dependencies -->
+        <!-- io.temporal:temporal-spring-boot-starter is NOT in the standard Spring Boot BOM. -->
+        <!-- Explicit version declaration is required to resolve the build error. -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-sdk</artifactId>

@@ -1,7 +1,6 @@
 package com.example.domain.tellermemory.repository;
 
-import com.example.domain.teller.model.TellerSessionAggregate;
-import com.example.domain.teller.repository.TellerSessionRepository;
+import com.example.domain.tellermemory.model.TellerSessionAggregate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;

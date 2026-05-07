@@ -1,115 +1,141 @@
 package com.example.domain.teller;
 
-import com.example.domain.teller.model.StartSessionCmd;
+import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.teller.model.SessionStartedEvent;
+import com.example.domain.teller.model.StartSessionCmd;
+import com.example.domain.teller.model.TellerSessionAggregate;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Test suite for TellerSessionAggregate.
- * Covers acceptance criteria for StartSessionCmd.
+ * TDD Test Suite for S-18: StartSessionCmd
+ * Tests are written for the Red phase (expecting implementation to make them pass).
  */
 class TellerSessionAggregateTest {
 
-    // Scenario: Successfully execute StartSessionCmd
+    // 1. Scenario: Successfully execute StartSessionCmd
     @Test
-    void testSuccessfulStartSession() {
-        // Arrange
-        String sessionId = "session-123";
-        String tellerId = "teller-01";
-        String terminalId = "term-42";
-        Duration timeout = Duration.ofMinutes(30);
-        Instant authTime = Instant.now();
+    void shouldEmitSessionStartedEventWhenValid() {
+        // Given
+        var aggregateId = "session-123";
+        var tellerId = "teller-001";
+        var terminalId = "term-42";
+        var cmd = new StartSessionCmd(
+            aggregateId,
+            tellerId,
+            terminalId,
+            true,  // isAuthenticated
+            Instant.now(), // lastActivityAt
+            "HOME" // Initial valid state
+        );
+        var aggregate = new TellerSessionAggregate(aggregateId);
 
-        TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
-        StartSessionCmd cmd = new StartSessionCmd(sessionId, tellerId, terminalId, timeout, authTime);
+        // When
+        List<DomainEvent> events = aggregate.execute(cmd);
 
-        // Act
-        List<com.example.domain.shared.DomainEvent> events = aggregate.execute(cmd);
-
-        // Assert
+        // Then
         assertEquals(1, events.size());
         assertTrue(events.get(0) instanceof SessionStartedEvent);
         
-        SessionStartedEvent event = (SessionStartedEvent) events.get(0);
-        assertEquals(sessionId, event.aggregateId());
+        var event = (SessionStartedEvent) events.get(0);
         assertEquals("session.started", event.type());
+        assertEquals(aggregateId, event.aggregateId());
         assertEquals(tellerId, event.tellerId());
         assertEquals(terminalId, event.terminalId());
-    }
-
-    // Scenario: StartSessionCmd rejected — A teller must be authenticated
-    @Test
-    void testRejectedWhenNotAuthenticated() {
-        // Arrange
-        String sessionId = "session-456";
-        // authenticatedAt is null implies not authenticated in this context
-        StartSessionCmd cmd = new StartSessionCmd(sessionId, "teller-01", "term-42", Duration.ofMinutes(30), null);
-        TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
-
-        // Act & Assert
-        IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
-            () -> aggregate.execute(cmd)
-        );
+        assertEquals("HOME", event.navigationState());
+        assertNotNull(event.occurredAt());
         
-        assertTrue(exception.getMessage().contains("must be authenticated"));
+        // Verify Aggregate State
+        assertTrue(aggregate.isSessionActive());
+        assertEquals(1, aggregate.getVersion());
     }
 
-    // Scenario: StartSessionCmd rejected — Sessions must timeout
+    // 2. Scenario: StartSessionCmd rejected — A teller must be authenticated to initiate a session.
     @Test
-    void testRejectedWhenTimeoutInvalid() {
-        // Arrange
-        String sessionId = "session-789";
-        // Zero or Negative duration violates the invariant
-        Duration invalidTimeout = Duration.ZERO;
-        StartSessionCmd cmd = new StartSessionCmd(
-            sessionId, 
-            "teller-01", 
-            "term-42", 
-            invalidTimeout, 
-            Instant.now()
+    void shouldRejectIfNotAuthenticated() {
+        // Given
+        var aggregateId = "session-123";
+        var cmd = new StartSessionCmd(
+            aggregateId,
+            "teller-001",
+            "term-42",
+            false, // NOT authenticated
+            Instant.now(),
+            "HOME"
         );
-        TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
+        var aggregate = new TellerSessionAggregate(aggregateId);
 
-        // Act & Assert
-        IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
-            () -> aggregate.execute(cmd)
-        );
-
-        assertTrue(exception.getMessage().contains("timeout"));
-    }
-
-    // Scenario: StartSessionCmd rejected — Navigation state
-    @Test
-    void testRejectedWhenNavigationStateInvalid() {
-        // Arrange
-        String sessionId = "session-nav-01";
-        TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
+        // When & Then
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+            aggregate.execute(cmd);
+        });
         
-        // Simulate invalid navigation context via test hook
-        aggregate.markNavigationContextInvalid();
+        assertTrue(ex.getMessage().contains("A teller must be authenticated"));
+    }
 
-        StartSessionCmd cmd = new StartSessionCmd(
-            sessionId, 
-            "teller-01", 
-            "term-42", 
-            Duration.ofMinutes(30), 
-            Instant.now()
+    // 3. Scenario: StartSessionCmd rejected — Sessions must timeout after a configured period of inactivity.
+    @Test
+    void shouldRejectIfTimedOut() {
+        // Given
+        var aggregateId = "session-123";
+        // Simulate a timestamp that is definitely older than the default 30 min timeout
+        var pastActivity = Instant.now().minusSeconds(3600); // 1 hour ago
+        var cmd = new StartSessionCmd(
+            aggregateId,
+            "teller-001",
+            "term-42",
+            true,
+            pastActivity, 
+            "HOME"
         );
+        var aggregate = new TellerSessionAggregate(aggregateId);
 
-        // Act & Assert
-        IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
-            () -> aggregate.execute(cmd)
+        // When & Then
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+            aggregate.execute(cmd);
+        });
+
+        assertTrue(ex.getMessage().contains("Sessions must timeout"));
+    }
+
+    // 4. Scenario: StartSessionCmd rejected — Navigation state must accurately reflect the current operational context.
+    @Test
+    void shouldRejectIfNavigationStateInvalid() {
+        // Given
+        var aggregateId = "session-123";
+        var cmd = new StartSessionCmd(
+            aggregateId,
+            "teller-001",
+            "term-42",
+            true,
+            Instant.now(),
+            "INVALID_STATE" // Not HOME
         );
+        var aggregate = new TellerSessionAggregate(aggregateId);
 
-        assertTrue(exception.getMessage().contains("Navigation state"));
+        // When & Then
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+            aggregate.execute(cmd);
+        });
+
+        assertTrue(ex.getMessage().contains("Navigation state must accurately reflect"));
+    }
+
+    // Edge: Unknown command
+    @Test
+    void shouldThrowUnknownCommandForUnsupportedCmd() {
+        // Given
+        var aggregate = new TellerSessionAggregate("s-1");
+        var unsupportedCmd = new Object() implements com.example.domain.shared.Command {};
+
+        // When & Then
+        assertThrows(UnknownCommandException.class, () -> {
+            aggregate.execute(unsupportedCmd);
+        });
     }
 }

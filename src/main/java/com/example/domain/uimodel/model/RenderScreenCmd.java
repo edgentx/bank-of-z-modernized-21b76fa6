@@ -2,9 +2,5 @@ package com.example.domain.uimodel.model;
 
 import com.example.domain.shared.Command;
 
-public record RenderScreenCmd(
-    String screenMapId,
-    String screenId,
-    String deviceType,
-    String layoutJson
-) implements Command {}
+public record RenderScreenCmd(String aggregateId, String screenId, String deviceType) implements Command {
+}

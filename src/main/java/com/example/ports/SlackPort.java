@@ -1,7 +1,15 @@
 package com.example.ports;
 
-/** Port for posting Slack notifications. */
+/**
+ * Port interface for sending notifications to Slack.
+ * This abstraction allows us to mock the Slack client in tests.
+ */
 public interface SlackPort {
-    /** Posts a message and returns the formatted body sent. */
-    String postMessage(String channel, String text);
+    
+    /**
+     * Sends a message to the configured Slack channel.
+     *
+     * @param message The message body to send.
+     */
+    void sendMessage(String message);
 }

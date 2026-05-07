@@ -3,33 +3,30 @@ package com.example.mocks;
 import com.example.ports.SlackPort;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
- * Mock implementation of SlackPort.
- * Captures messages sent during workflow execution for assertion.
+ * Mock implementation of SlackPort for testing.
+ * Captures messages sent to Slack to verify content.
  */
 public class MockSlackPort implements SlackPort {
 
-    private final List<Map<String, Object>> sentMessages = new ArrayList<>();
+    private final List<String> sentMessages = new ArrayList<>();
 
     @Override
-    public void sendMessage(Map<String, Object> context) {
-        sentMessages.add(context);
+    public void sendMessage(String text) {
+        System.out.println("[MockSlack] Captured message: " + text);
+        sentMessages.add(text);
     }
 
-    public boolean wasNotificationSent() {
-        return !sentMessages.isEmpty();
+    public List<String> getSentMessages() {
+        return new ArrayList<>(sentMessages);
     }
 
-    public Map<String, Object> getLastMessageContext() {
-        if (sentMessages.isEmpty()) {
-            return null;
-        }
-        return sentMessages.get(sentMessages.size() - 1);
+    public boolean wasUrlSent(String url) {
+        return sentMessages.stream().anyMatch(msg -> msg.contains(url));
     }
 
-    public void reset() {
+    public void clear() {
         sentMessages.clear();
     }
 }

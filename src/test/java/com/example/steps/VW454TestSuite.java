@@ -1,15 +1,15 @@
 package com.example.steps;
 
+import org.junit.runner.RunWith;
 import io.cucumber.junit.Cucumber;
 import io.cucumber.junit.CucumberOptions;
-import org.junit.runner.RunWith;
 
 @RunWith(Cucumber.class)
 @CucumberOptions(
-    features = {"../../features/VW-454.feature"}, // Pointing to the feature file
+    features = "features/S-FB-1.feature", 
     glue = {"com.example.steps"},
-    plugin = {"pretty", "html:target/cucumber-report/VW454"}
+    plugin = {"pretty", "html:target/cucumber-reports/S-FB-1.html"}
 )
 public class VW454TestSuite {
-    // Test runner configuration
+    // This class serves as the test runner for the Cucumber feature file.
 }

@@ -1,28 +1,45 @@
 package com.example.adapters;
 
-import com.example.ports.SlackNotificationPort;
-import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
+import com.example.ports.SlackNotifier;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
-import java.util.Map;
+import java.io.IOException;
 
 /**
- * Adapter for sending notifications to Slack.
- * Implements the SlackNotificationPort interface.
+ * Real implementation of SlackNotifier using OkHttp.
  */
-@Component
-public class WebClientSlackAdapter implements SlackNotificationPort {
+public class WebClientSlackAdapter implements SlackNotifier {
 
-    private final WebClient webClient;
+    private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+    private final String webhookUrl;
+    private final OkHttpClient client;
 
-    public WebClientSlackAdapter(WebClient.Builder webClientBuilder) {
-        // Assuming a base URL is configured elsewhere or defaulting
-        this.webClient = webClientBuilder.baseUrl("https://slack.com/api").build();
+    public WebClientSlackAdapter(String webhookUrl, OkHttpClient client) {
+        this.webhookUrl = webhookUrl;
+        this.client = client;
     }
 
     @Override
-    public void sendNotification(Map<String, String> messagePayload) {
-        // Actual implementation would POST to Slack API
-        // System.out.println("Sending to Slack: " + messagePayload);
+    public void send(String body) {
+        // Construct Slack JSON payload
+        String jsonPayload = "{\"text\": \"" + body + "\"}";
+
+        RequestBody reqBody = RequestBody.create(jsonPayload, JSON);
+        Request request = new Request.Builder()
+                .url(webhookUrl)
+                .post(reqBody)
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new RuntimeException("Failed to send Slack notification: " + response.code());
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error sending Slack notification", e);
+        }
     }
 }

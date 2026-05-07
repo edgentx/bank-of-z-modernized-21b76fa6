@@ -12,7 +12,9 @@ public record SessionEndedEvent(
     public SessionEndedEvent(String aggregateId) {
         this(aggregateId, Instant.now());
     }
-    @Override public String type() { return "session.ended"; }
-    @Override public String aggregateId() { return aggregateId; }
-    @Override public Instant occurredAt() { return occurredAt; }
+
+    @Override
+    public String type() {
+        return "session.ended";
+    }
 }

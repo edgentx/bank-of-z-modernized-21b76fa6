@@ -1,11 +1,14 @@
 package com.example.domain.userinterfacenavigation.model;
 
 import com.example.domain.shared.Command;
-import java.util.List;
 
+/**
+ * Command to render a specific screen layout adapted for a device.
+ * Part of S-21: RenderScreenCmd on ScreenMap.
+ */
 public record RenderScreenCmd(
-    String screenMapId,
+    String aggregateId,
     String screenId,
     String deviceType,
-    List<ScreenMapAggregate.FieldDefinition> fields
+    String rawLayoutData
 ) implements Command {}

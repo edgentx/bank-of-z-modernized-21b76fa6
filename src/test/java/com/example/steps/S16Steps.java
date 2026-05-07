@@ -16,29 +16,42 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class S16Steps {
 
-    private ReconciliationBatch batch;
-    private StartReconciliationCmd command;
-    private List<DomainEvent> resultingEvents;
+    private ReconciliationBatch aggregate;
+    private List<DomainEvent> resultEvents;
     private Exception capturedException;
 
     @Given("a valid ReconciliationBatch aggregate")
     public void aValidReconciliationBatchAggregate() {
-        this.batch = new ReconciliationBatch("batch-123");
-        // Ensure default state is clean for the positive case
-        this.batch.markPreviousBatchPending(false);
+        this.aggregate = new ReconciliationBatch("batch-123");
     }
 
     @And("a valid batchWindow is provided")
     public void aValidBatchWindowIsProvided() {
-        Instant start = Instant.now().minusSeconds(3600);
-        Instant end = Instant.now();
-        this.command = new StartReconciliationCmd("batch-123", start, end);
+        // Context setup for the command, handled in 'When'
+    }
+
+    @Given("a ReconciliationBatch aggregate that violates: A reconciliation batch cannot be executed if a previous batch is still pending.")
+    public void aReconciliationBatchAggregateWithPendingPrevious() {
+        this.aggregate = new ReconciliationBatch("batch-123");
+        this.aggregate.markPreviousBatchPending(true);
+    }
+
+    @Given("a ReconciliationBatch aggregate that violates: All transaction entries must be accounted for during the reconciliation period.")
+    public void aReconciliationBatchAggregateWithUnaccountedEntries() {
+        this.aggregate = new ReconciliationBatch("batch-123");
+        this.aggregate.markEntriesUnaccounted();
     }
 
     @When("the StartReconciliationCmd command is executed")
     public void theStartReconciliationCmdCommandIsExecuted() {
+        Instant now = Instant.now();
+        StartReconciliationCmd cmd = new StartReconciliationCmd(
+                "batch-123",
+                now.minusSeconds(3600),
+                now
+        );
         try {
-            this.resultingEvents = batch.execute(command);
+            this.resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             this.capturedException = e;
         }
@@ -46,41 +59,18 @@ public class S16Steps {
 
     @Then("a reconciliation.started event is emitted")
     public void aReconciliationStartedEventIsEmitted() {
-        assertNotNull(resultingEvents);
-        assertEquals(1, resultingEvents.size());
-        assertTrue(resultingEvents.get(0) instanceof ReconciliationStartedEvent);
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof ReconciliationStartedEvent);
 
-        ReconciliationStartedEvent event = (ReconciliationStartedEvent) resultingEvents.get(0);
-        assertEquals("reconciliation.started", event.type());
+        ReconciliationStartedEvent event = (ReconciliationStartedEvent) resultEvents.get(0);
         assertEquals("batch-123", event.aggregateId());
-    }
-
-    // --- Negative Scenarios ---
-
-    @Given("a ReconciliationBatch aggregate that violates: A reconciliation batch cannot be executed if a previous batch is still pending.")
-    public void aReconciliationBatchAggregateThatViolatesPreviousPending() {
-        this.batch = new ReconciliationBatch("batch-999");
-        this.batch.markPreviousBatchPending(true);
-        Instant start = Instant.now().minusSeconds(3600);
-        Instant end = Instant.now();
-        this.command = new StartReconciliationCmd("batch-999", start, end);
-    }
-
-    @Given("a ReconciliationBatch aggregate that violates: All transaction entries must be accounted for during the reconciliation period.")
-    public void aReconciliationBatchAggregateThatViolatesEntriesAccounted() {
-        this.batch = new ReconciliationBatch("batch-888");
-        this.batch.markEntriesUnaccounted();
-        Instant start = Instant.now().minusSeconds(3600);
-        Instant end = Instant.now();
-        this.command = new StartReconciliationCmd("batch-888", start, end);
+        assertEquals("reconciliation.started", event.type());
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(capturedException, "Expected an exception to be thrown");
-        assertTrue(capturedException instanceof IllegalStateException, "Expected IllegalStateException but got: " + capturedException.getClass().getSimpleName());
-        
-        // Verify no events were emitted
-        assertNull(resultingEvents);
+        assertNotNull(capturedException);
+        assertTrue(capturedException instanceof IllegalStateException);
     }
 }

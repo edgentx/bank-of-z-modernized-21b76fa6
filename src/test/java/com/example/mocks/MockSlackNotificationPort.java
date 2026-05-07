@@ -1,43 +1,44 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages in memory to verify output without external calls.
+ * Captures payloads to verify content without external I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class SentMessage {
-        public final String channel;
-        public final String body;
-
-        public SentMessage(String channel, String body) {
-            this.channel = channel;
-            this.body = body;
-        }
-    }
-
-    private final List<SentMessage> messages = new ArrayList<>();
+    private final List<String> capturedPayloads = new ArrayList<>();
+    private boolean shouldThrowException = false;
 
     @Override
-    public void sendNotification(String channel, String body) {
-        this.messages.add(new SentMessage(channel, body));
+    public void send(String payload) throws Exception {
+        if (shouldThrowException) {
+            throw new Exception("Simulated Slack API failure");
+        }
+        capturedPayloads.add(payload);
     }
 
-    public List<SentMessage> getMessages() {
-        return messages;
+    public List<String> getCapturedPayloads() {
+        return new ArrayList<>(capturedPayloads);
     }
 
-    public void clear() {
-        messages.clear();
+    public void reset() {
+        capturedPayloads.clear();
+        shouldThrowException = false;
     }
 
-    public String getLastMessageBody() {
-        if (messages.isEmpty()) return null;
-        return messages.get(messages.size() - 1).body;
+    public void setShouldThrowException(boolean shouldThrowException) {
+        this.shouldThrowException = shouldThrowException;
+    }
+
+    /**
+     * Helper to check if any captured payload contains the specific text.
+     */
+    public boolean wasUrlSent(String url) {
+        return capturedPayloads.stream()
+                .anyMatch(payload -> payload.contains(url));
     }
 }

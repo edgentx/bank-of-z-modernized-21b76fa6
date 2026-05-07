@@ -2,6 +2,7 @@ package com.example.application;
 
 import com.example.ports.GitHubPort;
 import com.example.ports.NotificationPort;
+import com.example.vforce.github.IssueLink;
 import com.example.vforce.shared.ReportDefectCommand;
 import io.temporal.spring.boot.ActivityImpl;
 

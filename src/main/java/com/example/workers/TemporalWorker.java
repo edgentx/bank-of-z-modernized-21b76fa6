@@ -1,46 +1,65 @@
 package com.example.workers;
 
-import com.example.ports.DefectReporterPort;
-import io.temporal.spring.boot.ActivityImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.application.ReportDefectWorkflowService;
+import com.example.ports.GithubPort;
+import com.example.ports.SlackPort;
+import io.temporal.worker.Worker;
+import io.temporal.worker.WorkerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-/**
- * Temporal Worker implementation.
- * Contains activities that can be invoked by Temporal workflows.
- */
+import jakarta.annotation.PreDestroy;
+
 @Component
 public class TemporalWorker {
 
-    private static final Logger log = LoggerFactory.getLogger(TemporalWorker.class);
-    private final DefectReporterPort defectReporter;
+    private final WorkerFactory factory;
+    private final ReportDefectWorkflowService workflowService;
+    private final GithubPort githubPort;
+    private final SlackPort slackPort;
 
     @Autowired
-    public TemporalWorker(DefectReporterPort defectReporter) {
-        this.defectReporter = defectReporter;
+    public TemporalWorker(WorkerFactory factory, ReportDefectWorkflowService workflowService, GithubPort githubPort, SlackPort slackPort) {
+        this.factory = factory;
+        this.workflowService = workflowService;
+        this.githubPort = githubPort;
+        this.slackPort = slackPort;
+        register();
+        factory.start();
     }
 
-    /**
-     * Temporal Activity implementation: _report_defect
-     * Triggered by Temporal Workflow execution.
-     * 
-     * @param channelId The Slack channel ID.
-     * @param issueUrl The GitHub issue URL.
-     */
-    @ActivityImpl(taskQueue = "TASK_QUEUE_VFORCE360")
-    public void _report_defect(String channelId, String issueUrl) {
-        log.info("Executing _report_defect for channel {} with URL {}", channelId, issueUrl);
-        
-        // Basic validation before calling port
-        if (channelId == null || channelId.isBlank()) {
-            throw new IllegalArgumentException("channelId cannot be null or blank");
-        }
-        if (issueUrl == null || issueUrl.isBlank()) {
-            throw new IllegalArgumentException("issueUrl cannot be null or blank");
+    private void register() {
+        Worker worker = factory.newWorker("REPORT_DEFECT_TASK_QUEUE");
+        // Register Activities
+        worker.registerActivitiesImplementations(new ActivityImpl(githubPort, slackPort));
+        // Register Workflow
+        worker.registerWorkflowImplementationFactory(ReportDefectWorkflowImpl.class,
+            () -> new ReportDefectWorkflowImpl(workflowService));
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        factory.shutdown();
+    }
+
+    public static class ActivityImpl implements ReportDefectActivity {
+        private final GithubPort githubPort;
+        private final SlackPort slackPort;
+
+        public ActivityImpl(GithubPort githubPort, SlackPort slackPort) {
+            this.githubPort = githubPort;
+            this.slackPort = slackPort;
         }
 
-        defectReporter.reportDefect(channelId, issueUrl);
+        @Override
+        public String createIssue(String title, String description) {
+            return githubPort.createIssue(title, description);
+        }
+
+        @Override
+        public void notifySlack(String channel, String message) {
+            Map<String, String> msg = Map.of("text", message);
+            slackPort.sendMessage(channel, msg);
+        }
     }
 }

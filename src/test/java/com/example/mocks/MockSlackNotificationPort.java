@@ -1,23 +1,29 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-import java.util.ArrayList;
-import java.util.List;
 
+/**
+ * Mock implementation of SlackNotificationPort for testing.
+ * Captures messages to verify content and channel.
+ */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public final List<String> postedBodies = new ArrayList<>();
-    public final List<String> postedChannels = new ArrayList<>();
+    private String lastChannelId;
+    private String lastMessage;
+    private boolean shouldFail = false;
 
     @Override
-    public boolean postMessage(String channelId, String messageBody) {
-        this.postedChannels.add(channelId);
-        this.postedBodies.add(messageBody);
-        return true;
+    public void postMessage(String channelId, String message) {
+        if (shouldFail) {
+            throw new RuntimeException("Mock Slack Failure");
+        }
+        this.lastChannelId = channelId;
+        this.lastMessage = message;
     }
 
-    public void reset() {
-        postedBodies.clear();
-        postedChannels.clear();
-    }
+    // Getters for Assertions
+    public String getLastChannelId() { return lastChannelId; }
+    public String getLastMessage() { return lastMessage; }
+
+    public void setShouldFail(boolean fail) { this.shouldFail = fail; }
 }

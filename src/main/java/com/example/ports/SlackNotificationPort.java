@@ -2,15 +2,15 @@ package com.example.ports;
 
 /**
  * Port for sending notifications to Slack.
- * Used by the temporal worker to report defects.
+ * Used to decouple the application logic from the specific Slack API implementation.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends a message to a configured Slack channel.
+     * Sends a notification to the configured Slack channel.
      *
-     * @param messageBody The formatted content of the message (Markdown). Contains the GitHub link.
-     * @throws IllegalArgumentException if messageBody is null or blank.
+     * @param message The body of the message to send.
+     * @throws IllegalArgumentException if the message is null or empty.
      */
-    void sendMessage(String messageBody);
+    void sendNotification(String message);
 }

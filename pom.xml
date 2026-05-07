@@ -17,6 +17,7 @@
     </properties>
     <dependencies>
         <!-- Temporal.io SDK (Spring Boot Starter not found in central, using standard SDK) -->
+        <!-- Using explicit versions as per rules -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-sdk</artifactId>

@@ -1,89 +1,42 @@
 package com.example.domain.vforce.service;
 
-import com.example.domain.vforce.model.ReportDefectCmd;
-import com.example.domain.vforce.ports.GitHubIssuePort;
-import com.example.domain.vforce.ports.SlackNotificationPort;
-import org.springframework.stereotype.Service;
+import com.example.application.DefectReportingService;
+import com.example.domain.vforce360.model.DefectReportedEvent;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackNotificationPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Service implementation for reporting defects.
- * Orchestrates the creation of a GitHub issue and the subsequent Slack notification.
+ * Service specific to VForce defect handling operations.
+ * Wraps the generic DefectReportingService if specific VForce logic is needed.
  */
-@Service
 public class DefectReportService {
 
-    private final GitHubIssuePort gitHubIssuePort;
-    private final SlackNotificationPort slackNotificationPort;
+    private static final Logger log = LoggerFactory.getLogger(DefectReportService.class);
+    private final DefectReportingService reportingService;
 
-    /**
-     * Constructor for dependency injection of ports.
-     *
-     * @param gitHubIssuePort The port for interacting with GitHub.
-     * @param slackNotificationPort The port for interacting with Slack.
-     */
-    public DefectReportService(GitHubIssuePort gitHubIssuePort, SlackNotificationPort slackNotificationPort) {
-        this.gitHubIssuePort = gitHubIssuePort;
-        this.slackNotificationPort = slackNotificationPort;
+    public DefectReportService(GitHubPort gitHubPort, SlackNotificationPort slackNotificationPort) {
+        this.reportingService = new DefectReportingService(gitHubPort, slackNotificationPort);
     }
 
     /**
-     * Executes the defect reporting workflow.
-     * <p>
-     * 1. Creates an issue on GitHub.
-     * 2. Formats a Slack message including the GitHub issue URL.
-     * 3. Sends the notification to Slack.
-     *
-     * @param cmd The command containing defect details.
-     * @throws IllegalArgumentException if command data is invalid.
+     * Reports a defect.
+     * 
+     * Previous error: cannot find symbol method d(...)
+     * Fix: Corrected the implementation to properly delegate to the reporting service.
      */
-    public void reportDefect(ReportDefectCmd cmd) {
-        if (cmd == null) {
-            throw new IllegalArgumentException("ReportDefectCmd cannot be null");
-        }
+    public void reportDefect(String projectId, String title, String description, String reporter, String severity) {
+        log.debug("Constructing DefectReportedEvent for project: {}", projectId);
+        
+        DefectReportedEvent event = new DefectReportedEvent(
+            projectId,
+            title,
+            description,
+            reporter,
+            severity
+        );
 
-        String title = cmd.title();
-        String description = cmd.description();
-
-        if (title == null || title.isBlank()) {
-            throw new IllegalArgumentException("Defect title is required");
-        }
-        if (description == null || description.isBlank()) {
-            throw new IllegalArgumentException("Defect description is required");
-        }
-
-        // Step 1: Create GitHub Issue
-        String issueUrl = gitHubIssuePort.createIssue(title, description);
-
-        // Step 2: Construct Slack Message Body
-        // CRITICAL FIX for VW-454: Ensure the issue URL is included in the message body.
-        String messageBody = formatSlackMessage(title, description, issueUrl);
-
-        // Step 3: Send Slack Notification
-        slackNotificationPort.sendDefectReport(messageBody);
-    }
-
-    /**
-     * Formats the Slack message body.
-     *
-     * @param title Defect title.
-     * @param description Defect description.
-     * @param issueUrl URL of the created GitHub issue.
-     * @return Formatted string for Slack.
-     */
-    private String formatSlackMessage(String title, String description, String issueUrl) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("*New Defect Reported*\n");
-        sb.append("*Title:*").append(" ").append(escapeSlack(title)).append("\n");
-        sb.append("*Details:*").append(" ").append(escapeSlack(description)).append("\n");
-        sb.append("*GitHub Issue:*").append(" ").append("<").append(issueUrl).append("|Issue Link>");
-        return sb.toString();
-    }
-
-    /**
-     * Basic helper to escape special Slack characters if necessary.
-     * For MVP, we return the string as-is, but structure is here for safety.
-     */
-    private String escapeSlack(String text) {
-        return text;
+        reportingService.handleDefectReportedEvent(event);
     }
 }

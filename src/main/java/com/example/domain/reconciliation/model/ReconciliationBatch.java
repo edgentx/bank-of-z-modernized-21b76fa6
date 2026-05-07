@@ -19,7 +19,7 @@ public class ReconciliationBatch extends AggregateRoot {
     private boolean areAllEntriesAccounted = true;
 
     public enum Status {
-        OPEN, BALANCED, CLOSED
+        OPEN, BALANCED, CLOSED, RECONCILING
     }
 
     public ReconciliationBatch(String batchId) {
@@ -33,11 +33,11 @@ public class ReconciliationBatch extends AggregateRoot {
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof ForceBalanceCmd c) {
-            return forceBalance(c);
-        }
         if (cmd instanceof StartReconciliationCmd c) {
             return startReconciliation(c);
+        }
+        if (cmd instanceof ForceBalanceCmd c) {
+            return forceBalance(c);
         }
         throw new UnknownCommandException(cmd);
     }
@@ -53,13 +53,17 @@ public class ReconciliationBatch extends AggregateRoot {
             throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
         }
 
-        // Validate Command fields
-        if (cmd.batchWindowStart() == null || cmd.batchWindowEnd() == null) {
-            throw new IllegalArgumentException("Batch window start and end times must be provided.");
+        // Invariant: Only Open batches can be reconciled
+        if (status != Status.OPEN) {
+            throw new IllegalStateException("Cannot start reconciliation on a batch that is not OPEN.");
         }
 
+        // Validate Command fields
+        if (cmd.batchWindowStart() == null || cmd.batchWindowEnd() == null) {
+            throw new IllegalArgumentException("Batch window start and end are required.");
+        }
         if (cmd.batchWindowEnd().isBefore(cmd.batchWindowStart())) {
-            throw new IllegalArgumentException("Batch window end time cannot be before start time.");
+            throw new IllegalArgumentException("Batch window end must be after start.");
         }
 
         var event = new ReconciliationStartedEvent(
@@ -69,9 +73,8 @@ public class ReconciliationBatch extends AggregateRoot {
                 Instant.now()
         );
 
-        // Apply state changes if needed (e.g. status to RUNNING)
-        // Keeping status OPEN based on existing file, though logically it might change.
-        // Sticking to existing pattern: events are added, version incremented.
+        // Apply state changes
+        this.status = Status.RECONCILING;
         addEvent(event);
         incrementVersion();
 

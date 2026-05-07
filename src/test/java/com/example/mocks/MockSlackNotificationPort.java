@@ -1,42 +1,43 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to Slack for assertion.
+ * Mock adapter for the Slack Notification Port.
+ * Records payloads sent during the test execution without performing I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class SentMessage {
-        public final String projectId;
-        public final String message;
-
-        public SentMessage(String projectId, String message) {
-            this.projectId = projectId;
-            this.message = message;
-        }
-    }
-
-    private final List<SentMessage> messages = new ArrayList<>();
+    private final List<String> sentPayloads = new ArrayList<>();
+    private boolean shouldFail = false;
 
     @Override
-    public void sendDefectNotification(String projectId, String message) {
-        this.messages.add(new SentMessage(projectId, message));
+    public boolean sendNotification(String payload) {
+        if (shouldFail) return false;
+        sentPayloads.add(payload);
+        return true;
     }
 
-    public List<SentMessage> getMessages() {
-        return new ArrayList<>(messages);
+    /**
+     * Returns the list of payloads captured during the test.
+     */
+    public List<String> getSentPayloads() {
+        return sentPayloads;
     }
 
+    /**
+     * Utility to simulate API failures.
+     */
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
+    }
+
+    /**
+     * Clears the captured history.
+     */
     public void clear() {
-        messages.clear();
-    }
-
-    public boolean hasReceivedMessageContaining(String substring) {
-        return messages.stream().anyMatch(m -> m.message.contains(substring));
+        sentPayloads.clear();
     }
 }

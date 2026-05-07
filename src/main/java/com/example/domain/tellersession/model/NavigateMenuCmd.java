@@ -2,15 +2,23 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
 
+import java.util.Objects;
+
 /**
- * Command to navigate the teller interface to a specific menu or action.
- * S-19
+ * Command to navigate the teller terminal to a specific legacy menu screen.
+ * S-19: User Interface Navigation.
  */
-public record NavigateMenuCmd(String sessionId, String menuId, String action) implements Command {
-    // Validation can be added here if necessary, though usually done in aggregate
+public record NavigateMenuCmd(
+        String sessionId,
+        String menuId,
+        String action,
+        boolean isAuthenticated,
+        long lastActivityTimestampMillis
+) implements Command {
+
     public NavigateMenuCmd {
-        if (sessionId == null || sessionId.isBlank()) throw new IllegalArgumentException("sessionId required");
-        if (menuId == null || menuId.isBlank()) throw new IllegalArgumentException("menuId required");
-        if (action == null || action.isBlank()) throw new IllegalArgumentException("action required");
+        Objects.requireNonNull(sessionId, "sessionId cannot be null");
+        Objects.requireNonNull(menuId, "menuId cannot be null");
+        Objects.requireNonNull(action, "action cannot be null");
     }
 }

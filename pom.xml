@@ -13,7 +13,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.0</version> <!-- Ensure this matches your stack -->
+        <version>3.2.0</version>
         <relativePath/>
     </parent>
 
@@ -61,10 +61,7 @@
         </dependency>
 
         <!-- IBM MQ (EXPLICIT VERSION REQUIRED - Not in Spring BOM) -->
-        <!-- Note: The user's error log showed mq-jms-spring-boot-starter:3.2.0 missing. 
-             Typically this comes from a private IBM repo or a specific public one. 
-             For this fix, we assume a standard groupId often used or keep what the user had 
-             but add the version tag as per rules. -->
+        <!-- Using standard IBM MQ Spring Starter dependency -->
         <dependency>
             <groupId>com.ibm.mq</groupId>
             <artifactId>mq-jms-spring-boot-starter</artifactId>

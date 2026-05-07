@@ -1,22 +1,9 @@
 package com.example.mocks;
-
 import com.example.domain.statement.model.StatementAggregate;
 import com.example.domain.statement.repository.StatementRepository;
-
-import java.util.HashMap;
-import java.util.Map;
-
+import java.util.*;
 public class InMemoryStatementRepository implements StatementRepository {
     private final Map<String, StatementAggregate> store = new HashMap<>();
-
-    @Override
-    public StatementAggregate save(StatementAggregate aggregate) {
-        store.put(aggregate.id(), aggregate);
-        return aggregate;
-    }
-
-    @Override
-    public StatementAggregate findById(String id) {
-        return store.get(id);
-    }
+    @Override public void save(StatementAggregate a) { store.put(a.id(), a); }
+    @Override public Optional<StatementAggregate> findById(String id) { return Optional.ofNullable(store.get(id)); }
 }

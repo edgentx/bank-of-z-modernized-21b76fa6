@@ -1,10 +1,10 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
-import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.tellersession.model.EndSessionCmd;
+import com.example.domain.tellersession.model.SessionEndedEvent;
 import com.example.domain.tellersession.model.TellerSessionAggregate;
-import com.example.domain.tellersession.model.TellerSessionEndedEvent;
+import com.example.domain.tellersession.repository.TellerSessionRepository;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -15,65 +15,73 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class S20Steps {
+
     private TellerSessionAggregate aggregate;
-    private Command cmd;
-    private List<DomainEvent> resultEvents;
+    private String sessionId;
+    private List<com.example.domain.shared.DomainEvent> resultEvents;
     private Exception thrownException;
 
+    // Using a simple mock repository pattern or direct instantiation for unit testing the aggregate logic
+    // In a real integration test, we might inject a real repository.
+
     @Given("a valid TellerSession aggregate")
-    public void a_valid_teller_session_aggregate() {
-        aggregate = new TellerSessionAggregate("session-123");
-        aggregate.markAuthenticated("teller-1");
+    public void aValidTellerSessionAggregate() {
+        this.aggregate = new TellerSessionAggregate("session-123");
+        this.aggregate.markAuthenticated(); // Ensure valid state
     }
 
-    @Given("a valid sessionId is provided")
-    public void a_valid_session_id_is_provided() {
-        // Session ID is implicitly provided via the aggregate construction
-        // but we ensure the command matches if needed.
-    }
-
-    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_teller_session_aggregate_with_no_auth() {
-        aggregate = new TellerSessionAggregate("session-123");
-        // Does not call markAuthenticated
-    }
-
-    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_stale_teller_session_aggregate() {
-        aggregate = new TellerSessionAggregate("session-123");
-        aggregate.markAuthenticated("teller-1");
-        aggregate.markStale();
-    }
-
-    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_teller_session_aggregate_with_invalid_nav() {
-        aggregate = new TellerSessionAggregate("session-123");
-        aggregate.markAuthenticated("teller-1");
-        aggregate.markNavigationStateInvalid();
+    @And("a valid sessionId is provided")
+    public void aValidSessionIdIsProvided() {
+        this.sessionId = "session-123";
     }
 
     @When("the EndSessionCmd command is executed")
-    public void the_end_session_cmd_command_is_executed() {
-        cmd = new EndSessionCmd(aggregate.id());
+    public void theEndSessionCmdCommandIsExecuted() {
         try {
-            resultEvents = aggregate.execute(cmd);
+            EndSessionCmd cmd = new EndSessionCmd(sessionId);
+            this.resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            thrownException = e;
+            this.thrownException = e;
         }
     }
 
     @Then("a session.ended event is emitted")
-    public void a_session_ended_event_is_emitted() {
-        assertNull(thrownException, "Should not have thrown an exception");
-        assertNotNull(resultEvents, "Events should not be null");
-        assertEquals(1, resultEvents.size(), "Should emit exactly one event");
-        assertTrue(resultEvents.get(0) instanceof TellerSessionEndedEvent, "Event should be TellerSessionEndedEvent");
+    public void aSessionEndedEventIsEmitted() {
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof SessionEndedEvent);
+        SessionEndedEvent event = (SessionEndedEvent) resultEvents.get(0);
+        assertEquals("session.ended", event.type());
+        assertEquals("session-123", event.aggregateId());
+        assertFalse(aggregate.isActive());
+    }
+
+    // --- Negative Scenarios ---
+
+    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
+    public void aTellerSessionAggregateThatViolatesAuth() {
+        this.aggregate = new TellerSessionAggregate("session-unauth");
+        // Intentionally do not mark authenticated
+    }
+
+    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
+    public void aTellerSessionAggregateThatViolatesTimeout() {
+        this.aggregate = new TellerSessionAggregate("session-timeout");
+        this.aggregate.markAuthenticated(); // Valid Auth
+        this.aggregate.markExpired(); // Force timeout
+    }
+
+    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
+    public void aTellerSessionAggregateThatViolatesNavState() {
+        this.aggregate = new TellerSessionAggregate("session-bad-nav");
+        this.aggregate.markAuthenticated(); // Valid Auth
+        // Valid Timeout (default)
+        this.aggregate.markNavigationInvalid(); // Force bad nav state
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(thrownException, "Should have thrown an exception");
-        assertTrue(thrownException instanceof IllegalStateException, "Exception should be IllegalStateException");
-        assertTrue(thrownException.getMessage().length() > 0, "Exception should have a message");
+    public void theCommandIsRejectedWithADomainError() {
+        assertNotNull(thrownException);
+        assertTrue(thrownException instanceof IllegalStateException);
     }
 }

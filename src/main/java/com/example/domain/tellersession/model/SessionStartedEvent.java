@@ -2,38 +2,27 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.DomainEvent;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Objects;
 
-/**
- * Domain event emitted when a teller successfully starts a session.
- * Triggers state updates in downstream projection (MongoDB VForce360).
- */
 public record SessionStartedEvent(
         String aggregateId,
         String tellerId,
         String terminalId,
+        Duration timeout,
         Instant occurredAt
 ) implements DomainEvent {
-    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.tellerId = tellerId;
-        this.terminalId = terminalId;
-        this.occurredAt = occurredAt;
+    public SessionStartedEvent {
+        Objects.requireNonNull(aggregateId, "aggregateId required");
+        Objects.requireNonNull(tellerId, "tellerId required");
+        Objects.requireNonNull(terminalId, "terminalId required");
+        Objects.requireNonNull(timeout, "timeout required");
+        Objects.requireNonNull(occurredAt, "occurredAt required");
     }
 
     @Override
     public String type() {
         return "session.started";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

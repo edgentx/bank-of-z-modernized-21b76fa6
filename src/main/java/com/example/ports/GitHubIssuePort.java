@@ -1,9 +1,17 @@
 package com.example.ports;
 
 /**
- * Port for creating GitHub issues.
- * Returns the HTML URL of the created issue to be used in notifications.
+ * Port for creating issues in GitHub.
  */
 public interface GitHubIssuePort {
-    String createIssue(String title, String body);
+    
+    /**
+     * Creates a new issue in GitHub.
+     *
+     * @param defectId    The ID of the defect
+     * @param title       The title of the issue
+     * @param body        The body content of the issue
+     * @return            The URL of the created issue
+     */
+    String createIssue(String defectId, String title, String body);
 }

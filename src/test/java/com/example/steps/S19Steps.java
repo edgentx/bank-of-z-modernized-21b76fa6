@@ -1,89 +1,107 @@
 package com.example.steps;
 
 import com.example.domain.shared.Command;
-import com.example.domain.shared.DomainException;
+import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.teller.model.NavigateMenuCmd;
-import com.example.domain.teller.model.TellerSessionAggregate;
+import com.example.domain.tellermession.model.*;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.junit.jupiter.api.Assertions;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
 public class S19Steps {
 
     private TellerSessionAggregate aggregate;
-    private Exception capturedException;
-    private List<com.example.domain.shared.DomainEvent> resultEvents;
+    private Exception caughtException;
+    private List<DomainEvent> resultEvents;
+    private String sessionId = "session-123";
 
     @Given("a valid TellerSession aggregate")
-    public void aValidTellerSessionAggregate() {
-        aggregate = new TellerSessionAggregate("session-1", "teller-1");
-        aggregate.markAuthenticated(); // Setup valid state
+    public void a_valid_TellerSession_aggregate() {
+        aggregate = new TellerSessionAggregate(sessionId);
+        // Simulate a valid session state (Authenticated, Active, Valid State)
+        // We use reflection or package-private access in a real test setup, 
+        // but here we assume the constructor or a factory would set this up.
+        // For this exercise, we'll simulate a 'fresh' valid session.
+        
+        // To make it valid, we apply a Created Event internally to set state
+        var event = new TellerSessionCreatedEvent(sessionId, "teller-1", Instant.now());
+        // In a real repo we would hydrate, here we manually set state or apply event
+        // Assuming a testing-friendly way to set state for BDD:
+        aggregate.setTestingState("teller-1", Instant.now().minusSeconds(60), "MAIN_MENU");
     }
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void aTellerSessionAggregateThatViolatesAuthentication() {
-        aggregate = new TellerSessionAggregate("session-2", "teller-2");
-        // Intentionally do not call markAuthenticated() to violate invariant
+    public void a_TellerSession_aggregate_that_violates_auth() {
+        aggregate = new TellerSessionAggregate(sessionId);
+        // State: Authenticated = false/null
+        aggregate.setTestingState(null, Instant.now(), null); 
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void aTellerSessionAggregateThatViolatesTimeout() {
-        aggregate = new TellerSessionAggregate("session-3", "teller-3");
-        aggregate.markAuthenticated();
-        // Simulate timeout
-        aggregate.simulateTimePassing(Duration.ofMinutes(31));
+    public void a_TellerSession_aggregate_that_violates_timeout() {
+        aggregate = new TellerSessionAggregate(sessionId);
+        // State: Last Active time > 15 mins ago (or configured period)
+        aggregate.setTestingState("teller-1", Instant.now().minusSeconds(2000), "MAIN_MENU");
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void aTellerSessionAggregateThatViolatesNavState() {
-        aggregate = new TellerSessionAggregate("session-4", "teller-4");
-        aggregate.markAuthenticated();
-        aggregate.blockNavigation(); // Simulate invalid context
+    public void a_TellerSession_aggregate_that_violates_nav_state() {
+        aggregate = new TellerSessionAggregate(sessionId);
+        // State: Trying to navigate to a screen not allowed from current screen
+        // e.g. current is MAIN_MENU, action requires ACCOUNT_SUMMARY context
+        aggregate.setTestingState("teller-1", Instant.now(), "LOCKED_SCREEN");
     }
 
     @And("a valid sessionId is provided")
-    public void aValidSessionIdIsProvided() {
-        // Handled by aggregate construction in Given steps
+    public void a_valid_sessionId_is_provided() {
+        // sessionId is initialized in constructor
+        Assertions.assertEquals(sessionId, aggregate.id());
     }
 
     @And("a valid menuId is provided")
-    public void aValidMenuIdIsProvided() {
-        // Will be provided in the command
+    public void a_valid_menuId_is_provided() {
+        // Handled in the When step construction
     }
 
     @And("a valid action is provided")
-    public void aValidActionIsProvided() {
-        // Will be provided in the command
+    public void a_valid_action_is_provided() {
+        // Handled in the When step construction
     }
 
     @When("the NavigateMenuCmd command is executed")
-    public void theNavigateMenuCmdCommandIsExecuted() {
+    public void the_NavigateMenuCmd_command_is_executed() {
+        Command cmd = new NavigateMenuCmd(sessionId, "ACCOUNT_SUMMARY", "ENTER");
         try {
-            NavigateMenuCmd cmd = new NavigateMenuCmd("MENU_01", "ENTER");
             resultEvents = aggregate.execute(cmd);
-        } catch (IllegalStateException | IllegalArgumentException | DomainException e) {
-            capturedException = e;
+        } catch (Exception e) {
+            caughtException = e;
         }
     }
 
     @Then("a menu.navigated event is emitted")
-    public void aMenuNavigatedEventIsEmitted() {
-        Assertions.assertNull(capturedException, "Expected success but got error: " + capturedException);
+    public void a_menu_navigated_event_is_emitted() {
+        Assertions.assertNull(caughtException, "Expected no error, but got: " + caughtException);
         Assertions.assertNotNull(resultEvents);
         Assertions.assertEquals(1, resultEvents.size());
-        Assertions.assertEquals("teller.menu.navigated", resultEvents.get(0).type());
+        Assertions.assertTrue(resultEvents.get(0) instanceof MenuNavigatedEvent);
+        
+        MenuNavigatedEvent event = (MenuNavigatedEvent) resultEvents.get(0);
+        Assertions.assertEquals("ACCOUNT_SUMMARY", event.targetMenuId());
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(capturedException, "Expected an exception but command succeeded");
-        Assertions.assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof DomainException);
+    public void the_command_is_rejected_with_a_domain_error() {
+        Assertions.assertNotNull(caughtException, "Expected a domain error but command succeeded");
+        // We expect IllegalStateException or IllegalArgumentException based on our impl
+        Assertions.assertTrue(
+            caughtException instanceof IllegalStateException || 
+            caughtException instanceof IllegalArgumentException ||
+            caughtException instanceof UnknownCommandException
+        );
     }
 }

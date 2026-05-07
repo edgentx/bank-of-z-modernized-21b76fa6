@@ -3,30 +3,26 @@ package com.example.steps;
 import com.example.domain.reconciliation.model.*;
 import com.example.domain.reconciliation.repository.ReconciliationBatchRepository;
 import com.example.mocks.InMemoryReconciliationBatchRepository;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Assertions;
 
 import java.time.Instant;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 public class S16Steps {
-    private final ReconciliationBatchRepository repository = new InMemoryReconciliationBatchRepository();
+
+    private ReconciliationBatchRepository repository = new InMemoryReconciliationBatchRepository();
     private ReconciliationBatch aggregate;
-    private List<com.example.domain.shared.DomainEvent> resultEvents;
     private Exception caughtException;
+    private List<com.example.domain.shared.DomainEvent> resultEvents;
 
     @Given("a valid ReconciliationBatch aggregate")
     public void a_valid_ReconciliationBatch_aggregate() {
         aggregate = new ReconciliationBatch("batch-123");
         repository.save(aggregate);
-    }
-
-    @Given("a valid batchWindow is provided")
-    public void a_valid_batchWindow_is_provided() {
-        // Context setup usually handled in the When step via Command constructor
     }
 
     @Given("a ReconciliationBatch aggregate that violates: A reconciliation batch cannot be executed if a previous batch is still pending.")
@@ -43,14 +39,24 @@ public class S16Steps {
         repository.save(aggregate);
     }
 
+    @And("a valid batchWindow is provided")
+    public void a_valid_batchWindow_is_provided() {
+        // Context setup, usually implicit in the command construction in the 'When' step
+    }
+
     @When("the StartReconciliationCmd command is executed")
     public void the_StartReconciliationCmd_command_is_executed() {
-        Instant start = Instant.now().minusSeconds(3600);
-        Instant end = Instant.now();
-        StartReconciliationCmd cmd = new StartReconciliationCmd("batch-123", start, end);
-        
         try {
-            resultEvents = aggregate.execute(cmd);
+            Instant start = Instant.now().minusSeconds(3600);
+            Instant end = Instant.now();
+            StartReconciliationCmd cmd = new StartReconciliationCmd("batch-123", start, end);
+            
+            // Reload to ensure clean state from repo
+            var agg = repository.findById("batch-123").orElseThrow();
+            resultEvents = agg.execute(cmd);
+            
+            // Save updated state
+            repository.save(agg);
         } catch (Exception e) {
             caughtException = e;
         }
@@ -58,18 +64,20 @@ public class S16Steps {
 
     @Then("a reconciliation.started event is emitted")
     public void a_reconciliation_started_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof ReconciliationStartedEvent);
+        Assertions.assertNotNull(resultEvents);
+        Assertions.assertEquals(1, resultEvents.size());
+        Assertions.assertTrue(resultEvents.get(0) instanceof ReconciliationStartedEvent);
         
         ReconciliationStartedEvent event = (ReconciliationStartedEvent) resultEvents.get(0);
-        assertEquals("reconciliation.started", event.type());
-        assertEquals("batch-123", event.aggregateId());
+        Assertions.assertEquals("reconciliation.started", event.type());
+        Assertions.assertEquals("batch-123", event.aggregateId());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(caughtException);
-        assertTrue(caughtException instanceof IllegalStateException);
+        Assertions.assertNotNull(caughtException);
+        // In this domain implementation, errors are modeled as IllegalStateException (a form of domain error)
+        Assertions.assertTrue(caughtException instanceof IllegalStateException);
+        Assertions.assertTrue(caughtException.getMessage().contains("Cannot execute batch"));
     }
 }

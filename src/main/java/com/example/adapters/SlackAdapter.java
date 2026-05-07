@@ -1,37 +1,50 @@
 package com.example.adapters;
 
 import com.example.ports.SlackPort;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
-
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
 import java.util.Map;
 
-/**
- * Real-world adapter for Slack Webhook API.
- * Handles HTTP POST to send notifications.
- */
-@Component
 public class SlackAdapter implements SlackPort {
-
-    private final RestTemplate restTemplate;
+    private final OkHttpClient client;
     private final String webhookUrl;
+    private final ObjectMapper mapper = new ObjectMapper();
 
-    public SlackAdapter(RestTemplate restTemplate,
-                        @Value("${slack.webhook-url}") String webhookUrl) {
-        this.restTemplate = restTemplate;
+    public SlackAdapter(OkHttpClient client, String webhookUrl) {
+        this.client = client;
         this.webhookUrl = webhookUrl;
     }
 
     @Override
-    public void sendMessage(Map<String, Object> context) {
-        // In a real implementation, we would format the payload for Slack API:
-        // Map<String, Object> payload = new HashMap<>();
-        // payload.put("text", context.get("body"));
-        // payload.put("channel", context.get("channel"));
-        // restTemplate.postForEntity(webhookUrl, payload, String.class);
-        
-        // No-op for implementation stub, the logic resides in the workflow
-        // ensuring the context contains the correct data structure.
+    public void sendMessage(String channel, Map<String, String> message) {
+        try {
+            // Slack Webhook payload structure
+            Map<String, Object> payload = Map.of(
+                "channel", channel,
+                "text", message.get("text")
+            );
+
+            RequestBody jsonBody = RequestBody.create(
+                mapper.writeValueAsString(payload),
+                okhttp3.MediaType.get("application/json; charset=utf-8")
+            );
+
+            Request request = new Request.Builder()
+                .url(webhookUrl)
+                .post(jsonBody)
+                .build();
+
+            try (Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    throw new RuntimeException("Failed to send Slack message: " + response.code());
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error sending Slack message", e);
+        }
     }
 }

@@ -1,30 +1,34 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotifier;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
- * Mock implementation of SlackNotifier for testing.
- * Stores messages in memory to verify content.
+ * Mock adapter for SlackNotifier.
+ * Used in testing to verify that messages are generated correctly
+ * without performing actual network I/O to Slack.
  */
 public class MockSlackNotifier implements SlackNotifier {
 
-    private final List<String> messages = new ArrayList<>();
+    private String lastMessageBody;
+    private boolean sendCalled = false;
 
     @Override
-    public void send(String message) {
-        messages.add(message);
+    public void send(SlackMessage message) {
+        this.sendCalled = true;
+        this.lastMessageBody = message.body();
+        // No real HTTP call
     }
 
-    public String getLastPostedMessage() {
-        if (messages.isEmpty()) {
-            return null;
-        }
-        return messages.get(messages.size() - 1);
+    public boolean wasSendCalled() {
+        return sendCalled;
     }
 
-    public void clear() {
-        messages.clear();
+    public String getLastMessageBody() {
+        return lastMessageBody;
+    }
+
+    public void reset() {
+        this.lastMessageBody = null;
+        this.sendCalled = false;
     }
 }

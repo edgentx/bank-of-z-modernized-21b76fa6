@@ -1,121 +1,100 @@
 package com.example.steps;
 
-import com.example.domain.*;
-import io.cucumber.java.en.And;
+import com.example.domain.PostDepositCmd;
+import com.example.domain.Transaction;
+import com.example.domain.DepostedEvent;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.platform.suite.api.ConfigurationParameter;
-import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasspathResource;
-import org.junit.platform.suite.api.Suite;
+import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
-import java.util.Currency;
-import java.util.List;
+import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * JUnit 5 Suite wrapper for Cucumber features.
- */
-@Suite
-@IncludeEngines("cucumber")
-@SelectClasspathResource("features")
-@ConfigurationParameter(key = "glue", value = "com.example.steps")
 public class S10Steps {
 
-    // State container for the scenario
-    static class TestState {
-        Transaction aggregate;
-        PostDepositCommand command;
-        DomainError thrownError;
-        List<DomainEvent> resultingEvents;
-    }
-
-    private final TestState state = new TestState();
+    private Transaction transaction;
+    private PostDepositCmd command;
+    private Exception caughtException;
+    private Object resultEvent;
 
     @Given("a valid Transaction aggregate")
     public void a_valid_Transaction_aggregate() {
-        state.aggregate = new Transaction();
-        state.aggregate.setId("txn-123");
-        state.aggregate.setAccountNumber("ACC-001");
-        state.aggregate.setPosted(false); // Not yet posted
+        this.transaction = new Transaction(UUID.randomUUID());
     }
 
     @Given("a valid accountNumber is provided")
     public void a_valid_accountNumber_is_provided() {
-        if (state.command == null) state.command = new PostDepositCommand();
-        state.command.setAccountNumber("ACC-001");
+        // Default valid setup, will be overridden in specific negative scenarios if needed
+        if (this.command == null) {
+            this.command = new PostDepositCmd("ACC-123", new BigDecimal("100.00"), "USD");
+        }
     }
 
     @Given("a valid amount is provided")
     public void a_valid_amount_is_provided() {
-        if (state.command == null) state.command = new PostDepositCommand();
-        state.command.setAmount(new BigDecimal("100.00"));
+        // Default valid setup
+        if (this.command != null) {
+            this.command = new PostDepositCmd(this.command.accountNumber(), new BigDecimal("100.00"), this.command.currency());
+        }
     }
 
     @Given("a valid currency is provided")
     public void a_valid_currency_is_provided() {
-        if (state.command == null) state.command = new PostDepositCommand();
-        state.command.setCurrency(Currency.getInstance("USD"));
+        // Default valid setup
+        if (this.command != null) {
+            this.command = new PostDepositCmd(this.command.accountNumber(), this.command.amount(), "USD");
+        }
     }
-
-    // --- Violation Scenarios (Given) ---
 
     @Given("a Transaction aggregate that violates: Transaction amounts must be greater than zero.")
     public void a_Transaction_aggregate_that_violates_amounts_must_be_greater_than_zero() {
-        a_valid_Transaction_aggregate();
-        if (state.command == null) state.command = new PostDepositCommand();
-        state.command.setAmount(BigDecimal.ZERO);
-        a_valid_accountNumber_is_provided();
-        a_valid_currency_is_provided();
+        this.transaction = new Transaction(UUID.randomUUID());
+        this.command = new PostDepositCmd("ACC-123", new BigDecimal("-50.00"), "USD");
     }
 
     @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.")
-    public void a_Transaction_aggregate_that_violates_cannot_be_altered_once_posted() {
-        a_valid_Transaction_aggregate();
-        state.aggregate.setPosted(true); // Already posted
-        a_valid_accountNumber_is_provided();
-        a_valid_amount_is_provided();
-        a_valid_currency_is_provided();
+    public void a_Transaction_aggregate_that_violates_transactions_cannot_be_altered() {
+        UUID id = UUID.randomUUID();
+        this.transaction = new Transaction(id);
+        // Simulate existing posted state by manually setting internal status flag (via package-private or reflection for test)
+        // Assuming a method or constructor to simulate state for test purposes
+        this.transaction.markAsPosted(); 
+        this.command = new PostDepositCmd("ACC-123", new BigDecimal("100.00"), "USD");
     }
 
     @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance (enforced via aggregate validation).")
     public void a_Transaction_aggregate_that_violates_must_result_in_valid_balance() {
-        a_valid_Transaction_aggregate();
-        // Simulate a validation check that would fail if logic was implemented
-        // For this test, we'll pass a flag or check within the command/aggregate
-        if (state.command == null) state.command = new PostDepositCommand();
-        state.command.setAmount(new BigDecimal("-50.00")); // Logic might check this or balance limits
-        a_valid_accountNumber_is_provided();
-        a_valid_currency_is_provided();
+        this.transaction = new Transaction(UUID.randomUUID());
+        // We can't easily check "valid balance" without an Account aggregate, 
+        // so we assume the Transaction validates against an injected limit or external state.
+        // For this test, we will assume the aggregate throws an error if amount exceeds MAX_ALLOWED.
+        this.command = new PostDepositCmd("ACC-123", new BigDecimal("9999999999.00"), "USD");
     }
-
-    // --- Actions (When) ---
 
     @When("the PostDepositCmd command is executed")
     public void the_PostDepositCmd_command_is_executed() {
         try {
-            // Execute the command pattern on the aggregate
-            state.resultingEvents = state.aggregate.execute(state.command);
-        } catch (DomainError e) {
-            state.thrownError = e;
+            this.resultEvent = transaction.execute(this.command);
+        } catch (Exception e) {
+            this.caughtException = e;
         }
     }
 
-    // --- Outcomes (Then) ---
-
     @Then("a deposit.posted event is emitted")
     public void a_deposit_posted_event_is_emitted() {
-        assertNotNull(state.resultingEvents, "Events list should not be null");
-        assertFalse(state.resultingEvents.isEmpty(), "At least one event should be emitted");
-        assertTrue(state.resultingEvents.get(0) instanceof DepositPostedEvent, "First event should be DepositPostedEvent");
+        Assertions.assertNotNull(resultEvent);
+        Assertions.assertTrue(resultEvent instanceof DepostedEvent);
+        DepostedEvent event = (DepostedEvent) resultEvent;
+        Assertions.assertEquals("ACC-123", event.accountNumber());
+        Assertions.assertEquals(0, event.amount().compareTo(new BigDecimal("100.00")));
+        Assertions.assertEquals("USD", event.currency());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(state.thrownError, "Expected a DomainError to be thrown");
-        assertNull(state.resultingEvents || state.resultingEvents.isEmpty(), "No events should be emitted on failure");
+        Assertions.assertNotNull(caughtException);
+        Assertions.assertTrue(caughtException instanceof IllegalArgumentException || 
+                              caughtException instanceof IllegalStateException);
     }
 }

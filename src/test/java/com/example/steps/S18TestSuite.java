@@ -1,12 +1,13 @@
 package com.example.steps;
 
-import io.cucumber.spring.CucumberContextConfiguration;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.junit.platform.suite.api.ConfigurationParameter;
+import org.junit.platform.suite.api.SelectClasspathResource;
+import org.junit.platform.suite.api.Suite;
 
-@CucumberContextConfiguration
-@SpringBootTest(classes = com.example.Application.class)
-@ActiveProfiles("test")
+import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
+
+@Suite
+@SelectClasspathResource("features")
+@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
 public class S18TestSuite {
-    // Bootstrap configuration for Cucumber tests
 }

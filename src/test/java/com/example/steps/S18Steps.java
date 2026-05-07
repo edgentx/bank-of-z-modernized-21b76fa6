@@ -1,88 +1,132 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.tellerauthentication.model.TellerAuthenticatedEvent;
-import com.example.domain.ui.model.SessionStartedEvent;
-import com.example.domain.ui.model.StartSessionCmd;
-import com.example.domain.ui.model.TellerSession;
+import com.example.domain.tellersession.model.SessionStartedEvent;
+import com.example.domain.tellersession.model.StartSessionCmd;
+import com.example.domain.tellersession.model.TellerSessionAggregate;
+import com.example.domain.tellersession.repository.TellerSessionRepository;
+import com.example.mocks.InMemoryTellerSessionRepository;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.Instant;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * BDD Step Definitions for S-18: TellerSession StartSessionCmd.
+ */
+@SpringBootTest
 public class S18Steps {
 
-    private TellerSession aggregate;
-    private List<DomainEvent> result;
+    // Test Context
+    private TellerSessionAggregate aggregate;
+    private final TellerSessionRepository repository = new InMemoryTellerSessionRepository();
+    
+    // Inputs
+    private String currentTellerId;
+    private String currentTerminalId;
+    
+    // Outputs
+    private List<DomainEvent> resultingEvents;
     private Exception thrownException;
 
+    // --- Given Steps ---
+
     @Given("a valid TellerSession aggregate")
-    public void a_valid_teller_session_aggregate() {
-        aggregate = new TellerSession("session-1");
-        // Simulate authentication event to put aggregate in valid state
-        aggregate.apply(new TellerAuthenticatedEvent("session-1", "teller-1", Instant.now()));
-    }
-
-    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_teller_session_aggregate_that_violates_authentication() {
-        aggregate = new TellerSession("session-2");
-        // Intentionally do not apply authentication event
-    }
-
-    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_teller_session_aggregate_that_violates_timeout() {
-        aggregate = new TellerSession("session-3");
-        // Authenticated, but simulated stale state (logic handled in aggregate)
-        aggregate.apply(new TellerAuthenticatedEvent("session-3", "teller-1", Instant.now().minusSeconds(3600)));
-    }
-
-    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_teller_session_aggregate_that_violates_nav_state() {
-        aggregate = new TellerSession("session-4");
-        aggregate.apply(new TellerAuthenticatedEvent("session-4", "teller-1", Instant.now()));
-        // Force invalid state directly for test purposes if constructor/apply allows, 
-        // or rely on the aggregate business logic to detect the mismatch when cmd executes.
-        // Here we assume the aggregate checks valid context states (e.g. Maintenance Mode vs Normal).
-        // Since we can't easily set complex invalid state without setters, we assume the command execution
-        // might check global config. For this step, we verify the rejection logic.
+    public void aValidTellerSessionAggregate() {
+        String sessionId = "session-test-123";
+        aggregate = repository.loadOrCreate(sessionId);
+        // Default valid state setup
+        aggregate.markAuthenticated(true); // Assume pre-authenticated for success case
+        aggregate.setOperationalContext("IDLE");
     }
 
     @Given("a valid tellerId is provided")
-    public void a_valid_teller_id_is_provided() {
-        // Context setup handled in Scenario initial Given
+    public void aValidTellerIdIsProvided() {
+        this.currentTellerId = "TELLER-001";
     }
 
     @Given("a valid terminalId is provided")
-    public void a_valid_terminal_id_is_provided() {
-        // Context setup handled in Scenario initial Given
+    public void aValidTerminalIdIsProvided() {
+        this.currentTerminalId = "TERM-A01";
     }
 
+    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
+    public void aTellerSessionAggregateThatViolatesAuthentication() {
+        String sessionId = "session-auth-fail";
+        aggregate = repository.loadOrCreate(sessionId);
+        aggregate.markAuthenticated(false); // Violation
+        aggregate.setOperationalContext("IDLE");
+    }
+
+    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
+    public void aTellerSessionAggregateThatViolatesTimeout() {
+        String sessionId = "session-timeout";
+        aggregate = repository.loadOrCreate(sessionId);
+        aggregate.markAuthenticated(true);
+        aggregate.setOperationalContext("IDLE");
+        // Set last activity to 2 hours ago (Violation)
+        aggregate.setLastActivityAt(Instant.now().minusSeconds(7200));
+    }
+
+    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
+    public void aTellerSessionAggregateThatViolatesNavigationState() {
+        String sessionId = "session-nav-error";
+        aggregate = repository.loadOrCreate(sessionId);
+        aggregate.markAuthenticated(true);
+        aggregate.setOperationalContext("TRANSACTION_IN_PROGRESS"); // Violation: Should be IDLE
+    }
+
+    // --- When Steps ---
+
     @When("the StartSessionCmd command is executed")
-    public void the_start_session_cmd_command_is_executed() {
+    public void theStartSessionCmdCommandIsExecuted() {
         try {
-            Command cmd = new StartSessionCmd("session-id", "teller-1", "terminal-1");
-            result = aggregate.execute(cmd);
+            StartSessionCmd cmd = new StartSessionCmd(aggregate.id(), currentTellerId, currentTerminalId);
+            resultingEvents = aggregate.execute(cmd);
+            repository.save(aggregate);
         } catch (Exception e) {
             thrownException = e;
         }
     }
 
+    // --- Then Steps ---
+
     @Then("a session.started event is emitted")
-    public void a_session_started_event_is_emitted() {
-        Assertions.assertNotNull(result);
-        Assertions.assertFalse(result.isEmpty());
-        Assertions.assertTrue(result.get(0) instanceof SessionStartedEvent);
+    public void aSessionStartedEventIsEmitted() {
+        assertNotNull(resultingEvents, "Events list should not be null");
+        assertEquals(1, resultingEvents.size(), "Exactly one event should be emitted");
+        
+        DomainEvent event = resultingEvents.get(0);
+        assertTrue(event instanceof SessionStartedEvent, "Event must be SessionStartedEvent");
+        
+        SessionStartedEvent startedEvent = (SessionStartedEvent) event;
+        assertEquals("session.started", startedEvent.type());
+        assertEquals(aggregate.id(), startedEvent.aggregateId());
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(thrownException);
-        // Could be IllegalStateException, IllegalArgumentException, or custom DomainException
-        Assertions.assertTrue(thrownException instanceof IllegalStateException || thrownException instanceof IllegalArgumentException);
+    public void theCommandIsRejectedWithADomainError() {
+        assertNotNull(thrownException, "Exception should have been thrown");
+        // We check for IllegalStateException or RuntimeException indicating domain rule violation
+        assertTrue(thrownException instanceof IllegalStateException, 
+                   "Exception should be IllegalStateException");
+        
+        // Verify event list is null or empty because command failed
+        assertTrue(resultingEvents == null || resultingEvents.isEmpty(), 
+                   "No events should be emitted on command rejection");
+    }
+
+    @Then("the command is rejected with a domain error")
+    public void theCommandIsRejectedWithADomainError(String expectedMessagePart) {
+        theCommandIsRejectedWithADomainError();
+        assertTrue(thrownException.getMessage().contains(expectedMessagePart),
+                   "Exception message should contain: " + expectedMessagePart);
     }
 }

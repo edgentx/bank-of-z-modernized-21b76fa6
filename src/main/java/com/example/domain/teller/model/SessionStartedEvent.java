@@ -11,9 +11,9 @@ public record SessionStartedEvent(
         String terminalId,
         Instant occurredAt
 ) implements DomainEvent {
-
     public SessionStartedEvent {
-        // Simple validation within the record constructor if needed
+        // Basic validation
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
     }
 
     @Override

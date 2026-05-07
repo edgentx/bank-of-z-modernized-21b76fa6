@@ -8,67 +8,48 @@ import org.slf4j.LoggerFactory;
 import java.util.Optional;
 
 /**
- * Service for handling defect reporting workflows.
- * Orchestrates creating an issue in GitHub and notifying Slack.
- * 
- * This class implements the logic required to pass the VW-454 regression test.
+ * Domain service for reporting defects.
+ * Orchestrates creating a GitHub issue and notifying Slack.
  */
 public class DefectReportService {
 
     private static final Logger log = LoggerFactory.getLogger(DefectReportService.class);
-    
+    private static final String SLACK_CHANNEL_SUFFIX = "-issues";
+
     private final GitHubPort gitHubPort;
     private final SlackNotificationPort slackPort;
 
-    /**
-     * Constructor for dependency injection.
-     * 
-     * @param gitHubPort The port interface for GitHub operations.
-     * @param slackPort The port interface for Slack operations.
-     */
     public DefectReportService(GitHubPort gitHubPort, SlackNotificationPort slackPort) {
         this.gitHubPort = gitHubPort;
         this.slackPort = slackPort;
     }
 
     /**
-     * Reports a defect by creating a GitHub issue and then notifying Slack.
-     * 
-     * VW-454 Behavior: The Slack message body must contain the GitHub URL.
-     * 
-     * @param title The title of the defect.
-     * @param body  The description/body of the defect.
+     * Reports a defect by creating a GitHub issue and posting a notification to Slack.
+     *
+     * @param summary The summary/title of the defect.
+     * @param description The detailed description of the defect.
      */
-    public void reportDefect(String title, String body) {
-        log.info("Attempting to report defect: {}", title);
+    public void reportDefect(String summary, String description) {
+        log.info("Reporting defect: {}", summary);
 
-        // 1. Attempt to create the GitHub issue
-        Optional<String> gitHubUrlOpt = gitHubPort.createIssue(title, body);
+        // 1. Create GitHub Issue
+        Optional<String> issueUrl = gitHubPort.createIssue(summary, description);
 
-        if (gitHubUrlOpt.isEmpty()) {
-            log.warn("Failed to create GitHub issue for defect '{}'. Aborting Slack notification.", title);
-            // As per acceptance criteria/shouldHandleGitHubFailureGracefully test:
-            // If GitHub fails, do not send Slack.
-            return;
+        // 2. Construct Slack Message
+        String slackMessage;
+        if (issueUrl.isPresent()) {
+            slackMessage = "Defect reported. GitHub issue: " + issueUrl.get();
+        } else {
+            slackMessage = "Defect reported (Failed to create GitHub issue)";
         }
 
-        String gitHubUrl = gitHubUrlOpt.get();
-        log.info("GitHub issue created successfully: {}", gitHubUrl);
+        // 3. Send Notification
+        // Channel is derived based on project context, here using a generic suffix
+        boolean sent = slackPort.postMessage(SLACK_CHANNEL_SUFFIX, slackMessage);
 
-        // 2. Prepare Slack message including the GitHub URL
-        // This satisfies the core requirement of VW-454
-        String slackMessage = String.format(
-            "Defect Reported: %s\nGitHub Issue: %s",
-            title,
-            gitHubUrl
-        );
-
-        // 3. Send notification
-        boolean sent = slackPort.send(slackMessage);
-        if (sent) {
-            log.info("Slack notification sent successfully.");
-        } else {
-            log.error("Failed to send Slack notification for defect '{}'.", title);
+        if (!sent) {
+            log.warn("Failed to send Slack notification for defect: {}", summary);
         }
     }
 }

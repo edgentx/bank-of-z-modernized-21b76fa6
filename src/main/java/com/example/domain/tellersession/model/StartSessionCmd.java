@@ -3,13 +3,7 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to initiate a teller session.
- * Wraps the ID of the teller and the terminal they are logging into.
+ * Command to initiate a new Teller session.
+ * Used by: S-18 (StartSessionCmd)
  */
-public record StartSessionCmd(
-    String tellerId,
-    String terminalId,
-    boolean isAuthenticated,
-    String currentNavigationState,
-    long lastActivityTimestamp
-) implements Command {}
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {}

@@ -1,34 +1,27 @@
 package com.example.domain;
 
-import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 
-public class DepositPostedEvent implements S10Event {
-    private final UUID transactionId;
-    private final BigDecimal amount;
-    private final String currency;
-    private final String accountNumber;
+public record DepositPostedEvent(
+        UUID eventId,
+        TransactionId transactionId,
+        AccountNumber accountNumber,
+        Money amount,
+        Instant occurredOn
+) implements DomainEvent {
 
-    public DepositPostedEvent(UUID transactionId, BigDecimal amount, String currency, String accountNumber) {
-        this.transactionId = transactionId;
-        this.amount = amount;
-        this.currency = currency;
-        this.accountNumber = accountNumber;
+    public DepositPostedEvent {
+        if (eventId == null) eventId = UUID.randomUUID();
+        if (occurredOn == null) occurredOn = Instant.now();
     }
 
-    public UUID getTransactionId() {
-        return transactionId;
+    public static DepositPostedEvent create(TransactionId transactionId, AccountNumber accountNumber, Money amount) {
+        return new DepositPostedEvent(UUID.randomUUID(), transactionId, accountNumber, amount, Instant.now());
     }
 
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    public String getCurrency() {
-        return currency;
-    }
-
-    public String getAccountNumber() {
-        return accountNumber;
+    @Override
+    public String getEventType() {
+        return "deposit.posted";
     }
 }

@@ -2,11 +2,15 @@ package com.example.domain.reconciliation.model;
 
 import com.example.domain.shared.Command;
 
-import java.time.LocalDate;
+import java.time.Instant;
 
 /**
- * Command to start a new reconciliation batch.
- * @param batchId The ID of the aggregate.
- * @param batchWindow The date window for the reconciliation.
+ * Command to start a reconciliation batch.
  */
-public record StartReconciliationCmd(String batchId, LocalDate batchWindow) implements Command {}
+public record StartReconciliationCmd(
+    String batchId,
+    String batchWindow,
+    Instant periodStart,
+    Instant periodEnd,
+    boolean entriesAccountedFor // Simulated check result from domain service or infrastructure
+) implements Command {}

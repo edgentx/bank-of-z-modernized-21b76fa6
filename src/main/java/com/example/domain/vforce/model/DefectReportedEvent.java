@@ -4,27 +4,36 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Event emitted when a defect is reported to the VForce360 system.
+ * Contains the GitHub issue URL for traceability.
+ */
 public record DefectReportedEvent(
-    String defectId,
-    String title,
-    String severity,
-    String component,
-    String githubIssueUrl, // The URL we are validating
-    String slackBody,
+    String aggregateId,
+    String type,
+    String description,
+    String githubIssueUrl,
     Instant occurredAt
 ) implements DomainEvent {
-    @Override
-    public String type() {
-        return "DefectReported";
+    public DefectReportedEvent {
+        if (aggregateId == null || aggregateId.isBlank()) throw new IllegalArgumentException("aggregateId required");
+        if (type == null || type.isBlank()) throw new IllegalArgumentException("type required");
+        if (occurredAt == null) throw new IllegalArgumentException("occurredAt required");
+        // githubIssueUrl can be null if GitHub creation failed, but the event still must be emitted.
     }
 
-    @Override
-    public String aggregateId() {
-        return defectId;
+    // Factory to simplify creation in aggregates
+    public static DefectReportedEvent create(String description, String githubUrl) {
+        return new DefectReportedEvent(
+            UUID.randomUUID().toString(),
+            "DefectReported",
+            description,
+            githubUrl,
+            Instant.now()
+        );
     }
 
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
+    @Override public String type() { return type; }
+    @Override public String aggregateId() { return aggregateId; }
+    @Override public Instant occurredAt() { return occurredAt; }
 }

@@ -1,4 +1,4 @@
-Feature: InitiateTransferCmd
+Feature: Implement InitiateTransferCmd on Transfer (transaction-processing)
 
   Scenario: Successfully execute InitiateTransferCmd
     Given a valid Transfer aggregate

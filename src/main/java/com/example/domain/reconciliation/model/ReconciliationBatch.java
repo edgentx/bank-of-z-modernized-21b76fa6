@@ -19,7 +19,7 @@ public class ReconciliationBatch extends AggregateRoot {
     private boolean areAllEntriesAccounted = true;
 
     public enum Status {
-        OPEN, BALANCED, CLOSED, STARTED
+        OPEN, BALANCED, CLOSED
     }
 
     public ReconciliationBatch(String batchId) {
@@ -53,20 +53,22 @@ public class ReconciliationBatch extends AggregateRoot {
             throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
         }
 
-        // Invariant: Only Open batches can be started
-        if (status != Status.OPEN) {
-            throw new IllegalStateException("Cannot start reconciliation on a batch that is not OPEN.");
+        // Invariant: Batch Window must be valid
+        if (cmd.windowStart() == null || cmd.windowEnd() == null) {
+            throw new IllegalArgumentException("Batch window start and end are required.");
+        }
+        
+        if (cmd.windowEnd().isBefore(cmd.windowStart())) {
+             throw new IllegalArgumentException("Batch window end must be after start.");
         }
 
         var event = new ReconciliationStartedEvent(
                 this.batchId,
-                cmd.start(),
-                cmd.end(),
+                cmd.windowStart(),
+                cmd.windowEnd(),
                 Instant.now()
         );
 
-        // Apply state changes
-        this.status = Status.STARTED;
         addEvent(event);
         incrementVersion();
 

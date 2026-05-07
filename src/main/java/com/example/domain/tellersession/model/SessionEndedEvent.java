@@ -5,33 +5,20 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Event emitted when a teller session is terminated.
+ */
 public record SessionEndedEvent(
     String aggregateId,
     String sessionId,
-    String tellerId,
     Instant occurredAt
 ) implements DomainEvent {
-    public SessionEndedEvent {
-        // Ensure non-null for record validity
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId cannot be null");
-    }
-
-    public SessionEndedEvent(String aggregateId, String sessionId, String tellerId) {
-        this(aggregateId, sessionId, tellerId, Instant.now());
+    public SessionEndedEvent(String aggregateId) {
+        this(aggregateId, UUID.randomUUID().toString(), Instant.now());
     }
 
     @Override
     public String type() {
         return "session.ended";
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
     }
 }

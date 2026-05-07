@@ -4,14 +4,13 @@ import com.example.domain.shared.DomainEvent;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Objects;
 
 /**
- * Event emitted when a transfer has been successfully initiated.
- * S-13: Implement InitiateTransferCmd on Transfer (transaction-processing).
+ * Domain event emitted when a transfer is initiated.
+ * Part of S-13: Implement InitiateTransferCmd on Transfer.
  */
 public record TransferInitiatedEvent(
-        String eventId,
         String aggregateId,
         String fromAccountId,
         String toAccountId,
@@ -21,17 +20,12 @@ public record TransferInitiatedEvent(
 ) implements DomainEvent {
 
     public TransferInitiatedEvent {
-        Objects.requireNonNull(eventId, "eventId required");
-        Objects.requireNonNull(aggregateId, "aggregateId required");
-        Objects.requireNonNull(fromAccountId, "fromAccountId required");
-        Objects.requireNonNull(toAccountId, "toAccountId required");
-        Objects.requireNonNull(amount, "amount required");
-        Objects.requireNonNull(currency, "currency required");
-        Objects.requireNonNull(occurredAt, "occurredAt required");
-    }
-
-    public TransferInitiatedEvent(String aggregateId, String fromAccountId, String toAccountId, BigDecimal amount, String currency, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), aggregateId, fromAccountId, toAccountId, amount, currency, occurredAt);
+        Objects.requireNonNull(aggregateId, "aggregateId cannot be null");
+        Objects.requireNonNull(fromAccountId, "fromAccountId cannot be null");
+        Objects.requireNonNull(toAccountId, "toAccountId cannot be null");
+        Objects.requireNonNull(amount, "amount cannot be null");
+        Objects.requireNonNull(currency, "currency cannot be null");
+        Objects.requireNonNull(occurredAt, "occurredAt cannot be null");
     }
 
     @Override

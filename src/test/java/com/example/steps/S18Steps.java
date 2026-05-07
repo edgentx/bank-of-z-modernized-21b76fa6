@@ -1,107 +1,95 @@
 package com.example.steps;
 
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.teller.model.SessionStartedEvent;
-import com.example.domain.teller.model.StartSessionCmd;
-import com.example.domain.teller.model.TellerSessionAggregate;
-import com.example.domain.teller.repository.TellerSessionRepository;
-import com.example.mocks.InMemoryTellerSessionRepository;
+import com.example.domain.tellersession.model.SessionStartedEvent;
+import com.example.domain.tellersession.model.StartSessionCmd;
+import com.example.domain.tellersession.model.TellerSessionAggregate;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import java.time.Instant;
+
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class S18Steps {
 
-    private TellerSessionRepository repository = new InMemoryTellerSessionRepository();
     private TellerSessionAggregate aggregate;
-    private String sessionId = "session-123";
-    private String tellerId = "teller-01";
-    private String terminalId = "term-42";
-    private Exception capturedException;
-    private List<DomainEvent> resultEvents;
+    private StartSessionCmd command;
+    private List<DomainEvent> resultingEvents;
+    private Exception domainException;
 
     @Given("a valid TellerSession aggregate")
-    public void aValidTellerSessionAggregate() {
-        aggregate = repository.create(sessionId);
+    public void a_valid_teller_session_aggregate() {
+        aggregate = new TellerSessionAggregate("session-123");
+        // By default, we set up a valid state for success scenario
+        aggregate.markAuthenticated();
+    }
+
+    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
+    public void a_teller_session_aggregate_not_authenticated() {
+        aggregate = new TellerSessionAggregate("session-401");
+        // Do NOT mark authenticated
+    }
+
+    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
+    public void a_teller_session_aggregate_timed_out() {
+        aggregate = new TellerSessionAggregate("session-408");
+        aggregate.markAuthenticated();
+        aggregate.simulateTimeout();
+    }
+
+    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
+    public void a_teller_session_aggregate_invalid_context() {
+        aggregate = new TellerSessionAggregate("session-nav-err");
+        aggregate.markAuthenticated();
+        aggregate.invalidateNavigationContext();
     }
 
     @And("a valid tellerId is provided")
-    public void aValidTellerIdIsProvided() {
-        // tellerId is defaulted
+    public void a_valid_teller_id_is_provided() {
+        // Implicitly handled in When step construction, or stored if needed
+        // For this implementation, we construct the command directly in the When step
     }
 
     @And("a valid terminalId is provided")
-    public void aValidTerminalIdIsProvided() {
-        // terminalId is defaulted
-    }
-
-    @And("the teller is authenticated")
-    public void theTellerIsAuthenticated() {
-        aggregate.setContext(true, true); // Auth = true, Op = true
-    }
-
-    @And("the terminal is operational")
-    public void theTerminalIsOperational() {
-        aggregate.setContext(true, true); // Auth = true, Op = true
-    }
-
-    @And("the teller is NOT authenticated")
-    public void theTellerIsNotAuthenticated() {
-        aggregate.setContext(false, true); // Auth = false, Op = true
-    }
-
-    @And("the previous session has not timed out")
-    public void thePreviousSessionHasNotTimedOut() {
-        // Simulate an active session (last activity = now)
-        aggregate.markActive(Instant.now());
-    }
-
-    @And("the navigation state is invalid")
-    public void theNavigationStateIsInvalid() {
-        aggregate.setContext(true, false); // Auth = true, Op = false (Bad Context)
+    public void a_valid_terminal_id_is_provided() {
+        // Implicitly handled in When step construction
     }
 
     @When("the StartSessionCmd command is executed")
-    public void theStartSessionCmdCommandIsExecuted() {
+    public void the_start_session_cmd_command_is_executed() {
+        command = new StartSessionCmd(aggregate.id(), "teller-101", "terminal-T01");
         try {
-            var cmd = new StartSessionCmd(sessionId, tellerId, terminalId);
-            resultEvents = aggregate.execute(cmd);
-            // Apply side effects for subsequent steps if needed
-            if (!resultEvents.isEmpty()) {
-                 // In a real repo, we'd load events. Here we just assume success updates internal state if not throwing.
-                 // The aggregate method updates state synchronously.
-            }
+            resultingEvents = aggregate.execute(command);
         } catch (Exception e) {
-            capturedException = e;
+            domainException = e;
         }
     }
 
     @Then("a session.started event is emitted")
-    public void aSessionStartedEventIsEmitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof SessionStartedEvent);
-
-        SessionStartedEvent event = (SessionStartedEvent) resultEvents.get(0);
+    public void a_session_started_event_is_emitted() {
+        assertNotNull(resultingEvents);
+        assertEquals(1, resultingEvents.size());
+        assertTrue(resultingEvents.get(0) instanceof SessionStartedEvent);
+        
+        SessionStartedEvent event = (SessionStartedEvent) resultingEvents.get(0);
         assertEquals("session.started", event.type());
-        assertEquals(sessionId, event.aggregateId());
-        assertEquals(tellerId, event.tellerId());
-        assertEquals(terminalId, event.terminalId());
+        assertEquals("teller-101", event.tellerId());
+        assertEquals("terminal-T01", event.terminalId());
+        
+        // Verify Aggregate State Mutation
+        assertTrue(aggregate.isActive());
+        assertEquals("teller-101", aggregate.getTellerId());
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(capturedException);
-        // We expect IllegalStateException per our aggregate implementation
-        assertTrue(capturedException instanceof IllegalStateException);
-        // Check message content to ensure it's the right violation
-        String msg = capturedException.getMessage();
-        assertTrue(msg != null && !msg.isEmpty());
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(domainException);
+        assertTrue(domainException instanceof IllegalStateException);
+        assertNull(resultingEvents);
     }
+
+    // --- Helper for test lifecycle if needed, though Cucumber handles new instances per scenario ---
 }

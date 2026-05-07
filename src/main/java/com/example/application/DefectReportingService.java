@@ -5,6 +5,8 @@ import com.example.domain.validation.ValidationAggregate;
 import com.example.ports.NotificationPort;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * Application Service handling the business logic flow for reporting defects.
  * Orchestrates the aggregate and the notification side-effects.
@@ -49,6 +51,7 @@ public class DefectReportingService {
         );
 
         // Step 2: Notify Slack with the link (Acceptance Criteria)
+        // Using Slack message formatting: <URL|text> or <URL> for simple links
         String slackBody = String.format(
             "Defect Reported: %s\nSeverity: %s\nGitHub Issue: <%s>",
             event.title(),

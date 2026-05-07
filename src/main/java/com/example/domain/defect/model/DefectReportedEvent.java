@@ -1,37 +1,23 @@
 package com.example.domain.defect.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Event emitted when a defect is reported.
+ * Event emitted when a defect is successfully reported.
  */
 public record DefectReportedEvent(
-        String eventId,
-        String defectId,
-        String title,
-        String slackChannelId,
-        String messageBody,
-        Instant occurredAt
+    String eventId,
+    String defectId,
+    String summary,
+    String severity,
+    String gitHubIssueUrl,
+    Instant occurredAt
 ) implements DomainEvent {
 
-    public DefectReportedEvent {
-        Objects.requireNonNull(eventId, "eventId is required");
-        Objects.requireNonNull(defectId, "defectId is required");
-    }
-
-    public static DefectReportedEvent create(String defectId, String title, String slackChannelId, String messageBody) {
-        return new DefectReportedEvent(
-                UUID.randomUUID().toString(),
-                defectId,
-                title,
-                slackChannelId,
-                messageBody,
-                Instant.now()
-        );
+    public DefectReportedEvent(String defectId, String summary, String severity, String gitHubIssueUrl, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), defectId, summary, severity, gitHubIssueUrl, occurredAt);
     }
 
     @Override
@@ -41,11 +27,11 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return defectId;
+        return defectId();
     }
 
     @Override
     public Instant occurredAt() {
-        return occurredAt;
+        return occurredAt();
     }
 }

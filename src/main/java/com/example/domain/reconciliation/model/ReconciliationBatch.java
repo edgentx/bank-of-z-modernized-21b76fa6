@@ -13,11 +13,14 @@ import java.util.List;
  * Handles the logic for forcing a batch to a balanced state.
  */
 public class ReconciliationBatch extends AggregateRoot {
-
     private final String batchId;
-    private boolean balanced = false;
-    private boolean previousBatchPending = false;
-    private boolean entriesAccountedFor = false;
+    private Status status = Status.OPEN;
+    private boolean isPreviousBatchPending = false;
+    private boolean areAllEntriesAccounted = true;
+
+    public enum Status {
+        OPEN, BALANCED, CLOSED
+    }
 
     public ReconciliationBatch(String batchId) {
         this.batchId = batchId;
@@ -37,37 +40,51 @@ public class ReconciliationBatch extends AggregateRoot {
     }
 
     private List<DomainEvent> forceBalance(ForceBalanceCmd cmd) {
-        // Invariant: A reconciliation batch cannot be executed if a previous batch is still pending.
-        if (previousBatchPending) {
-            throw new IllegalStateException("Cannot force balance: previous batch is still pending.");
+        // Invariant: Cannot execute if a previous batch is still pending
+        if (isPreviousBatchPending) {
+            throw new IllegalStateException("Cannot execute batch: Previous batch is still pending.");
         }
 
-        // Invariant: All transaction entries must be accounted for during the reconciliation period.
-        if (!entriesAccountedFor) {
-            throw new IllegalStateException("Cannot force balance: transaction entries are not accounted for.");
+        // Invariant: All transaction entries must be accounted for
+        if (!areAllEntriesAccounted) {
+            throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
         }
 
-        if (balanced) {
-            throw new IllegalStateException("Batch is already balanced.");
+        // Invariant: Only Open batches can be forced to balance
+        if (status != Status.OPEN) {
+            throw new IllegalStateException("Cannot force balance on a batch that is not OPEN.");
         }
 
-        var event = new ReconciliationBalancedEvent(batchId, cmd.operatorId(), cmd.justification(), Instant.now());
-        this.balanced = true;
+        // Validate Command fields
+        if (cmd.justification() == null || cmd.justification().isBlank()) {
+            throw new IllegalArgumentException("Justification is required to force balance.");
+        }
+
+        var event = new ReconciliationBalancedEvent(
+                this.batchId,
+                cmd.operatorId(),
+                cmd.justification(),
+                Instant.now()
+        );
+
+        // Apply state changes
+        this.status = Status.BALANCED;
         addEvent(event);
         incrementVersion();
+
         return List.of(event);
     }
 
-    // State setters for testing
-    public void setPreviousBatchPending(boolean pending) {
-        this.previousBatchPending = pending;
+    // Setters for test setup (simulating loading from history)
+    public void markPreviousBatchPending(boolean isPending) {
+        this.isPreviousBatchPending = isPending;
     }
 
-    public void setEntriesAccountedFor(boolean accounted) {
-        this.entriesAccountedFor = accounted;
+    public void markEntriesUnaccounted() {
+        this.areAllEntriesAccounted = false;
     }
-    
-    public boolean isBalanced() {
-        return balanced;
+
+    public Status getStatus() {
+        return status;
     }
 }

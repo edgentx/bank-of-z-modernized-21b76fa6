@@ -1,17 +1,15 @@
 package com.example.ports;
 
 /**
- * Port for interacting with GitHub Issues.
- * Used by Temporal workflows/activities.
+ * Port interface for creating GitHub issues.
+ * Used by the ReportDefectWorkflow to log defects.
  */
 public interface GithubIssuePort {
-
     /**
-     * Creates a new issue in the configured repository.
-     *
-     * @param title The issue title.
-     * @param body  The issue body.
-     * @return The full URL of the created issue (e.g., "https://github.com/org/repo/issues/123").
+     * Creates a new issue in the repository.
+     * @param title The issue title (e.g. VW-454)
+     * @param body The issue body/description
+     * @return The URL of the created issue, or null if creation failed.
      */
     String createIssue(String title, String body);
 }

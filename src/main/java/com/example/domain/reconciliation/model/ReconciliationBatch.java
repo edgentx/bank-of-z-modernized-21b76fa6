@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * ReconciliationBatch Aggregate
- * Handles the logic for starting and forcing a batch reconciliation.
+ * Handles the logic for forcing a batch to a balanced state and starting reconciliation.
  */
 public class ReconciliationBatch extends AggregateRoot {
     private final String batchId;
@@ -19,7 +19,7 @@ public class ReconciliationBatch extends AggregateRoot {
     private boolean areAllEntriesAccounted = true;
 
     public enum Status {
-        OPEN, STARTED, BALANCED, CLOSED
+        OPEN, BALANCED, CLOSED
     }
 
     public ReconciliationBatch(String batchId) {
@@ -33,11 +33,10 @@ public class ReconciliationBatch extends AggregateRoot {
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof StartReconciliationCmd c) {
-            return startReconciliation(c);
-        }
         if (cmd instanceof ForceBalanceCmd c) {
             return forceBalance(c);
+        } else if (cmd instanceof StartReconciliationCmd c) {
+            return startReconciliation(c);
         }
         throw new UnknownCommandException(cmd);
     }
@@ -53,30 +52,26 @@ public class ReconciliationBatch extends AggregateRoot {
             throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
         }
 
-        // Invariant: Only Open batches can be started
+        // Invariant: Cannot start if batch is not OPEN
         if (status != Status.OPEN) {
             throw new IllegalStateException("Cannot start reconciliation on a batch that is not OPEN.");
         }
 
-        // Validate Command fields
-        if (cmd.windowStart() == null || cmd.windowEnd() == null) {
-            throw new IllegalArgumentException("Batch window must be defined.");
+        if (cmd.batchWindowStart() == null || cmd.batchWindowEnd() == null) {
+            throw new IllegalArgumentException("Batch window start and end are required.");
         }
-        if (cmd.operatorId() == null || cmd.operatorId().isBlank()) {
-            throw new IllegalArgumentException("Operator ID is required.");
+
+        if (cmd.batchWindowEnd().isBefore(cmd.batchWindowStart())) {
+            throw new IllegalArgumentException("Batch window end cannot be before start.");
         }
 
         var event = new ReconciliationStartedEvent(
                 this.batchId,
-                cmd.batchId(),
-                cmd.windowStart(),
-                cmd.windowEnd(),
-                cmd.operatorId(),
+                cmd.batchWindowStart(),
+                cmd.batchWindowEnd(),
                 Instant.now()
         );
 
-        // Apply state changes
-        this.status = Status.STARTED;
         addEvent(event);
         incrementVersion();
 
@@ -94,9 +89,9 @@ public class ReconciliationBatch extends AggregateRoot {
             throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
         }
 
-        // Invariant: Only Open or Started batches can be forced to balance? Assuming Started based on flow.
-        if (status == Status.CLOSED) {
-            throw new IllegalStateException("Cannot force balance on a CLOSED batch.");
+        // Invariant: Only Open batches can be forced to balance
+        if (status != Status.OPEN) {
+            throw new IllegalStateException("Cannot force balance on a batch that is not OPEN.");
         }
 
         // Validate Command fields

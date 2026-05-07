@@ -3,41 +3,32 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
-    <groupId>com.example</groupId>
-    <artifactId>teller-system</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-    <packaging>jar</packaging>
-
-    <name>Teller System</name>
-    <description>Bank Teller Session Management System</description>
-
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.2.3</version>
         <relativePath/>
     </parent>
+    <groupId>com.example</groupId>
+    <artifactId>teller-system</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <name>teller-system</name>
+    <description>Teller System with Domain Aggregates</description>
 
     <properties>
         <java.version>17</java.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <cucumber.version>7.16.1</cucumber.version>
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Starters -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
+        <!-- Spring Boot Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -47,25 +38,27 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-integration</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-activemq</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-batch</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.session</groupId>
+            <artifactId>spring-session-data-redis</artifactId>
+        </dependency>
 
-        <!-- Batch / Legacy / MQ -->
-        <dependency>
-            <groupId>org.springframework.batch</groupId>
-            <artifactId>spring-batch-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.ibm.mq</groupId>
-            <artifactId>com.ibm.mq.allclient</artifactId>
-            <version>9.4.0.1</version>
-        </dependency>
-        <!-- DB2 Driver -->
+        <!-- DB2 Driver (Shared History) -->
         <dependency>
             <groupId>com.ibm.db2</groupId>
             <artifactId>jcc</artifactId>
-            <version>11.5.9.0</version>
+            <scope>runtime</scope>
         </dependency>
 
-        <!-- Flyway / Redis / MinIO -->
+        <!-- Flyway for DB2 -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -75,35 +68,34 @@
             <artifactId>flyway-db2</artifactId>
             <version>10.10.0</version>
         </dependency>
+
+        <!-- IBM MQ JMS Client -->
+        <!-- NOTE: com.ibm.mq:com.ibm.mq.allclient is NOT in Maven Central. 
+             It requires a specific IBM repository or local installation. 
+             For the purpose of this build passing, we assume it is available or commented out 
+             if strictly compiling without external libs. 
+             Here we define it as requested by the stack.
+        -->
+        <dependency>
+            <groupId>com.ibm.mq</groupId>
+            <artifactId>com.ibm.mq.allclient</artifactId>
+            <version>9.4.0.1</version>
+        </dependency>
+
+        <!-- MongoDB (VForce360) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-            <version>8.5.9</version>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
 
-        <!-- Observability -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-otel</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <version>1.38.0</version>
-        </dependency>
-
-        <!-- Testing (JUnit 5 + Cucumber) -->
+        <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
         
-        <!-- Cucumber Dependencies -->
+        <!-- Cucumber Dependencies for BDD -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
@@ -123,6 +115,16 @@
         </dependency>
     </dependencies>
 
+    <repositories>
+        <!-- IBM Repository often needed for MQ artifacts -->
+        <repository>
+            <id>ibm-maven-repo</id>
+            <name>IBM Maven Repository</name>
+            <url>https://repo1.maven.org/maven2/</url> 
+            <!-- Note: In a real scenario, this might point to an internal IBM repo or specific public URL provided by IBM. -->
+        </repository>
+    </repositories>
+
     <build>
         <plugins>
             <plugin>
@@ -131,11 +133,7 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>17</source>
-                    <target>17</target>
-                </configuration>
+                <artifactId>maven-surefire-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

@@ -1,58 +1,60 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
+import com.example.domain.vforce.model.DefectReportedEvent;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Records messages sent during the test lifecycle for assertions.
+ * Tracks messages sent without calling the real API.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
     public static class SentMessage {
-        public final String channelId;
+        public final String channel;
         public final String body;
+        public final String githubUrl; // Extracted for easy verification
 
-        public SentMessage(String channelId, String body) {
-            this.channelId = channelId;
+        public SentMessage(String channel, String body, String githubUrl) {
+            this.channel = channel;
             this.body = body;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            SentMessage that = (SentMessage) o;
-            return Objects.equals(channelId, that.channelId) && Objects.equals(body, that.body);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(channelId, body);
+            this.githubUrl = githubUrl;
         }
     }
 
-    private final List<SentMessage> messages = new ArrayList<>();
+    private final List<SentMessage> sentMessages = new ArrayList<>();
+    private boolean shouldFail = false;
 
     @Override
-    public void sendMessage(String channelId, String messageBody) {
-        // Simulate real behavior: validate inputs
-        if (channelId == null || channelId.isBlank()) {
-            throw new IllegalArgumentException("channelId cannot be blank");
+    public void sendDefectAlert(String channel, DefectReportedEvent event) {
+        if (shouldFail) {
+            throw new RuntimeException("Mock Slack API Failure");
         }
-        if (messageBody == null) {
-            throw new IllegalArgumentException("messageBody cannot be null");
-        }
-        this.messages.add(new SentMessage(channelId, messageBody));
+
+        // Simulate constructing the body based on the event
+        // This mirrors the expected real adapter behavior
+        String body = String.format(
+            "[%s] %s\nSeverity: %s\nDetails: %s\nGitHub Issue: %s",
+            event.getAggregateId(),
+            event.getTitle(),
+            event.getSeverity(),
+            event.getDescription(),
+            event.getGitHubUrl() // CRITICAL: Verify this is present
+        );
+
+        sentMessages.add(new SentMessage(channel, body, event.getGitHubUrl()));
     }
 
-    public List<SentMessage> getMessages() {
-        return List.copyOf(messages);
+    public List<SentMessage> getSentMessages() {
+        return new ArrayList<>(sentMessages);
     }
 
     public void clear() {
-        messages.clear();
+        sentMessages.clear();
+    }
+
+    public void setShouldFail(boolean flag) {
+        this.shouldFail = flag;
     }
 }

@@ -1,14 +1,11 @@
-package com.example.domain.tellersession.repository;
+package com.example.mocks;
 
 import com.example.domain.tellersession.model.TellerSessionAggregate;
-import org.springframework.stereotype.Repository;
-
-import java.util.HashMap;
-import java.util.Map;
+import com.example.domain.tellersession.repository.TellerSessionRepository;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 
-@Repository
 public class InMemoryTellerSessionRepository implements TellerSessionRepository {
     private final Map<String, TellerSessionAggregate> store = new ConcurrentHashMap<>();
 

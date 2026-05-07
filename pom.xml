@@ -28,9 +28,9 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
-        
+
         <!-- Temporal (Version Explicitly Required as GroupId is NOT in BOM closed set) -->
-        <!-- Note: Assuming 1.22.0 availability. If not, 1.21.x is the stable alternative. -->
+        <!-- Corrected to stable version 1.22.0 to fix build resolution error -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>

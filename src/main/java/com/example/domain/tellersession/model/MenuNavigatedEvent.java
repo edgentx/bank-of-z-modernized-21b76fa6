@@ -7,31 +7,20 @@ import java.util.UUID;
 
 /**
  * Event emitted when a teller successfully navigates to a new menu.
+ * S-19: user-interface-navigation
  */
 public record MenuNavigatedEvent(
-    String eventId,
-    String sessionId,
+    String aggregateId,
     String menuId,
     String action,
     Instant occurredAt
 ) implements DomainEvent {
-
-    public MenuNavigatedEvent(String sessionId, String menuId, String action, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), sessionId, menuId, action, occurredAt);
+    public MenuNavigatedEvent {
+        // Defensive defaults if needed, though constructors usually handle this
     }
 
     @Override
     public String type() {
         return "menu.navigated";
-    }
-
-    @Override
-    public String aggregateId() {
-        return sessionId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

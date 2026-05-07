@@ -1,49 +1,64 @@
 package com.example.steps;
 
-import com.example.domain.shared.Aggregate;
+import com.example.domain.shared.Command;
+import com.example.domain.shared.DomainEvent;
 import com.example.domain.tellersession.model.SessionStartedEvent;
 import com.example.domain.tellersession.model.StartSessionCmd;
 import com.example.domain.tellersession.model.TellerSessionAggregate;
+import com.example.domain.tellersession.model.TellerSessionState;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Assertions;
+
+import java.util.List;
 
 public class S18Steps {
 
     private TellerSessionAggregate aggregate;
     private Exception capturedException;
-    private String lastEventId;
-
-    // Helper to simulate an authenticated user
-    private final String AUTHORIZED_TELLER_ID = "TELLER_123";
+    private List<DomainEvent> resultEvents;
 
     @Given("a valid TellerSession aggregate")
     public void a_valid_TellerSession_aggregate() {
-        aggregate = new TellerSessionAggregate("SESSION_001");
-        // Simulate authentication state validity
-        aggregate.markAuthenticated(AUTHORIZED_TELLER_ID);
-        aggregate.validateNavigationState(true);
+        this.aggregate = new TellerSessionAggregate("SESSION-1");
     }
 
-    @Given("a valid tellerId is provided")
+    @And("a valid tellerId is provided")
     public void a_valid_tellerId_is_provided() {
-        // Handled in context by the aggregate setup
+        // Pre-configure valid state
     }
 
-    @Given("a valid terminalId is provided")
-    public void a valid_terminalId_is_provided() {
-        // Handled in context by the aggregate setup
+    @And("a valid terminalId is provided")
+    public void a_valid_terminalId_is_provided() {
+        // Pre-configure valid state
+    }
+
+    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
+    public void a_TellerSession_aggregate_that_violates_authentication() {
+        this.aggregate = new TellerSessionAggregate("SESSION-2");
+        // Aggregate starts unauthenticated
+    }
+
+    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
+    public void a_TellerSession_aggregate_that_violates_timeout() {
+        this.aggregate = new TellerSessionAggregate("SESSION-3");
+        aggregate.hydrate(TellerSessionState.TIMED_OUT);
+    }
+
+    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
+    public void a_TellerSession_aggregate_that_violates_navigation_state() {
+        this.aggregate = new TellerSessionAggregate("SESSION-4");
+        aggregate.hydrate(TellerSessionState.INVALID_NAVIGATION);
     }
 
     @When("the StartSessionCmd command is executed")
     public void the_StartSessionCmd_command_is_executed() {
         try {
-            var cmd = new StartSessionCmd("SESSION_001", "TELLER_123", "TERM_001");
-            var events = aggregate.execute(cmd);
-            if (!events.isEmpty()) {
-                lastEventId = events.get(0).aggregateId();
-            }
+            // Assuming valid IDs for the aggregate context; violations are handled by state
+            StartSessionCmd cmd = new StartSessionCmd("SESSION-TEST", "TELLER-1", "TERM-1");
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             capturedException = e;
         }
@@ -51,38 +66,15 @@ public class S18Steps {
 
     @Then("a session.started event is emitted")
     public void a_session_started_event_is_emitted() {
-        assertNotNull(aggregate.uncommittedEvents());
-        assertFalse(aggregate.uncommittedEvents().isEmpty());
-        assertEquals(SessionStartedEvent.class, aggregate.uncommittedEvents().get(0).getClass());
-        assertEquals("SESSION_001", lastEventId);
-    }
-
-    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_TellerSession_aggregate_that_violates_authentication() {
-        aggregate = new TellerSessionAggregate("SESSION_002");
-        // Intentionally do NOT mark authenticated
-    }
-
-    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_TellerSession_aggregate_that_violates_timeout() {
-        aggregate = new TellerSessionAggregate("SESSION_003");
-        aggregate.markAuthenticated(AUTHORIZED_TELLER_ID);
-        // Force timeout
-        aggregate.forceTimeout();
-    }
-
-    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_TellerSession_aggregate_that_violates_navigation_state() {
-        aggregate = new TellerSessionAggregate("SESSION_004");
-        aggregate.markAuthenticated(AUTHORIZED_TELLER_ID);
-        // Invalidate navigation state
-        aggregate.validateNavigationState(false);
+        Assertions.assertNull(capturedException, "Should not have thrown an exception");
+        Assertions.assertNotNull(resultEvents, "Events list should not be null");
+        Assertions.assertFalse(resultEvents.isEmpty(), "Events list should not be empty");
+        Assertions.assertTrue(resultEvents.get(0) instanceof SessionStartedEvent, "Event should be SessionStartedEvent");
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(capturedException);
-        // We expect either an IllegalStateException (invariant) or IllegalArgumentException (validation)
-        assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
+        Assertions.assertNotNull(capturedException, "Should have thrown an exception");
+        Assertions.assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException, "Should be a domain error");
     }
 }

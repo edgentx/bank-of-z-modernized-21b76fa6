@@ -2,41 +2,20 @@ package com.example.mocks;
 
 import com.example.ports.VForce360Port;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.UUID;
 
 /**
- * Mock implementation of VForce360Port for testing.
- * Simulates the creation of GitHub issues and tracks requests.
+ * Mock adapter for VForce360.
+ * Simulates the behavior of the external diagnostic system.
  */
 public class MockVForce360Port implements VForce360Port {
 
-    private final Map<String, String> reportedDefects = new HashMap<>(); // Key: title, Value: URL
-    private boolean shouldFail = false;
-    private String simulatedGitHubBaseUrl = "https://github.com/bank-of-z/issues/";
-    private int issueCounter = 1;
-
     @Override
-    public String reportDefect(String projectId, String title, String description) {
-        if (shouldFail) {
-            throw new RuntimeException("Simulated VForce360 outage");
+    public String reportDefect(String defectId, String title, String details) {
+        // Simulate a successful API call returning a GitHub/VForce360 URL
+        if (defectId == null || defectId.isBlank()) {
+            throw new IllegalArgumentException("Defect ID cannot be null");
         }
-        
-        // Simulate creating a GitHub issue
-        String issueUrl = simulatedGitHubBaseUrl + issueCounter++;
-        reportedDefects.put(title, issueUrl);
-        return issueUrl;
-    }
-
-    public void setShouldFail(boolean shouldFail) {
-        this.shouldFail = shouldFail;
-    }
-
-    public int getReportCount() {
-        return reportedDefects.size();
-    }
-
-    public boolean wasReported(String title) {
-        return reportedDefects.containsKey(title);
+        return "https://github.com/bank-of-z/issues/" + UUID.randomUUID();
     }
 }

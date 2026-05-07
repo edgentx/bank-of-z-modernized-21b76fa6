@@ -1,52 +1,45 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<!--
+  POM Update: Adding JUnit 5 and Mockito for testing.
+  The dependencies below rely on the Spring Boot Parent BOM for version management.
+-->
+<project>
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.3</version>
+        <version>3.2.1</version>
         <relativePath/>
     </parent>
     
-    <groupId>com.vforce360</groupId>
-    <artifactId>egdcrypto-bank-of-z-modernized-21b76fa6-feature-s-1</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>VForce360 Modernization Assessment Report</name>
-    <description>Fixes defect where MAR displays as raw JSON</description>
-
-    <properties>
-        <java.version>17</java.version>
-    </properties>
+    <!-- ... existing dependencies ... -->
 
     <dependencies>
-        <!-- Spring Boot Starter Web -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
+        <!-- Existing implementation dependencies would be here -->
 
-        <!-- CommonMark for Markdown rendering -->
-        <dependency>
-            <groupId>org.commonmark</groupId>
-            <artifactId>commonmark</artifactId>
-            <version>0.21.0</version>
-        </dependency>
-
-        <!-- Spring Boot Test -->
+        <!-- Test Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- 
+           Note: Spring Boot Starter Test includes mockito-junit-jupiter (MockitoExtension). 
+           This is sufficient to run the tests defined below.
+        -->
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
 </project>

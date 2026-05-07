@@ -1,17 +1,17 @@
 package com.example.steps;
 
 import io.cucumber.junit.platform.engine.Cucumber;
+import org.junit.platform.suite.api.ConfigurationParameter;
 import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
-/**
- * Test Suite for S-FB-1 Regression Tests.
- */
+import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
+
 @Suite
 @IncludeEngines(Cucumber.class)
-@SelectClasspathResource("features/S-FB-1.feature")
-
+@SelectClasspathResource("features")
+@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
 public class SFB1TestSuite {
-    // Suite configuration is handled by annotations
+    // Cucumber configuration for S-FB-1
 }

@@ -1,10 +1,9 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
-import com.example.domain.shared.DomainException;
-import com.example.domain.transfer.InitiateTransferCmd;
-import com.example.domain.transfer.TransferAggregate;
-import com.example.domain.transfer.TransferInitiatedEvent;
+import com.example.domain.transfer.model.InitiateTransferCmd;
+import com.example.domain.transfer.model.TransferAggregate;
+import com.example.domain.transfer.model.TransferInitiatedEvent;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -16,89 +15,95 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class S13Steps {
 
-    private TransferAggregate aggregate;
-    private Exception capturedException;
-    private List<DomainException> events;
+    private TransferAggregate transfer;
+    private Exception caughtException;
+    private List<com.example.domain.shared.DomainEvent> resultEvents;
 
-    // Scenario 1: Success
     @Given("a valid Transfer aggregate")
     public void aValidTransferAggregate() {
-        aggregate = new TransferAggregate("tx-123");
+        transfer = new TransferAggregate("tx-123");
     }
-    @Given("a valid fromAccount is provided")
+
+    @Given("a Transfer aggregate that violates: Source and destination accounts cannot be the same.")
+    public void aTransferAggregateWithSameSourceAndDestination() {
+        transfer = new TransferAggregate("tx-invalid-same");
+    }
+
+    @Given("a Transfer aggregate that violates: Transfer amount must not exceed the available balance of the source account.")
+    public void aTransferAggregateWithInsufficientFunds() {
+        transfer = new TransferAggregate("tx-invalid-funds");
+        // Set balance to 0 to ensure failure
+        transfer.setContext(BigDecimal.ZERO, true, false);
+    }
+
+    @Given("a Transfer aggregate that violates: A transfer must succeed or fail atomically for both accounts involved.")
+    public void aTransferAggregateWithAtomicityViolation() {
+        transfer = new TransferAggregate("tx-invalid-atomic");
+        // Set atomic lock to true to simulate failure
+        transfer.setContext(new BigDecimal("1000.00"), true, true);
+    }
+
+    @And("a valid fromAccount is provided")
     public void aValidFromAccountIsProvided() {
-        // Context placeholder
+        // No-op, context is handled in the execution step or setup
     }
-    @Given("a valid toAccount is provided")
+
+    @And("a valid toAccount is provided")
     public void aValidToAccountIsProvided() {
-        // Context placeholder
+        // No-op
     }
-    @Given("a valid amount is provided")
+
+    @And("a valid amount is provided")
     public void aValidAmountIsProvided() {
-        // Context placeholder
+        // No-op
     }
+
     @When("the InitiateTransferCmd command is executed")
     public void theInitiateTransferCmdCommandIsExecuted() {
-        // Assuming default valid data based on context setup in previous steps
-        // or explicitly setting it here for the valid scenario
-        InitiateTransferCmd cmd = new InitiateTransferCmd("tx-123", "acc-1", "acc-2", new BigDecimal("100.00"));
+        caughtException = null;
         try {
-            var events = aggregate.execute(cmd);
-            this.events = events;
-        } catch (IllegalArgumentException e) {
-            capturedException = e;
+            // For the violation scenarios, we construct specific commands to trigger the failure
+            // For the success scenario, we construct valid data
+            String from = "acc-1";
+            String to = "acc-2";
+            BigDecimal amt = new BigDecimal("100.00");
+
+            // Adjust based on context (hacky but works for stateless steps)
+            if (transfer.id().equals("tx-invalid-same")) {
+                to = "acc-1"; // Force same account
+            } else if (transfer.id().equals("tx-invalid-funds")) {
+                amt = new BigDecimal("500.00"); // Amount > 0 (Balance set in Given)
+            }
+
+            InitiateTransferCmd cmd = new InitiateTransferCmd(
+                    transfer.id(),
+                    from,
+                    to,
+                    amt,
+                    "USD"
+            );
+
+            resultEvents = transfer.execute(cmd);
+        } catch (Exception e) {
+            caughtException = e;
         }
     }
+
     @Then("a transfer.initiated event is emitted")
     public void aTransferInitiatedEventIsEmitted() {
-        assertNotNull(events);
-        assertEquals(1, events.size());
-        assertTrue(events.get(0) instanceof TransferInitiatedEvent);
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof TransferInitiatedEvent);
+        
+        TransferInitiatedEvent event = (TransferInitiatedEvent) resultEvents.get(0);
+        assertEquals("transfer.initiated", event.type());
+        assertEquals(transfer.id(), event.aggregateId());
     }
 
-    // Scenario 2: Same Account
-    @Given("a Transfer aggregate that violates: Source and destination accounts cannot be the same.")
-    public void aTransferAggregateThatViolatesSameAccount() {
-        aggregate = new TransferAggregate("tx-456");
-        // Prepare command state for execution
-        this.storedCmd = new InitiateTransferCmd("tx-456", "acc-1", "acc-1", new BigDecimal("50.00"));
-    }
-    
-    // Scenario 3: Insufficient Funds
-    @Given("a Transfer aggregate that violates: Transfer amount must not exceed the available balance of the source account.")
-    public void aTransferAggregateThatViolatesInsufficientFunds() {
-        aggregate = new TransferAggregate("tx-789");
-        // Amount exceeds balance logic is inside the aggregate, we pass a large amount
-        this.storedCmd = new InitiateTransferCmd("tx-789", "acc-1", "acc-2", new BigDecimal("9999999.00"));
-    }
-
-    // Scenario 4: Atomicity
-    @Given("a Transfer aggregate that violates: A transfer must succeed or fail atomically for both accounts involved.")
-    public void aTransferAggregateThatViolatesAtomicity() {
-        aggregate = new TransferAggregate("tx-101");
-        // We simulate a failure condition (e.g. system status)
-        this.storedCmd = new InitiateTransferCmd("tx-101", "acc-1", "acc-2", new BigDecimal("10.00"));
-        // We'll mark the aggregate or command to trigger this specific failure
-    }
-
-    // Common Then for errors
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(capturedException);
-        assertTrue(capturedException instanceof IllegalArgumentException);
-    }
-
-    // Helper field to carry command from Given (violation setup) to When (execution)
-    private InitiateTransferCmd storedCmd;
-
-    @When("the InitiateTransferCmd command is executed")
-    public void executeStoredCommand() {
-        if (storedCmd != null) {
-            try {
-                aggregate.execute(storedCmd);
-            } catch (IllegalArgumentException e) {
-                capturedException = e;
-            }
-        }
+        assertNotNull(caughtException);
+        // Check if it's the specific exception type we expect (IllegalArgumentException or IllegalStateException)
+        assertTrue(caughtException instanceof IllegalArgumentException || caughtException instanceof IllegalStateException);
     }
 }

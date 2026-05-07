@@ -2,14 +2,24 @@ package com.example.mocks;
 
 import com.example.ports.GitHubPort;
 
-/**
- * Mock adapter for GitHub interactions.
- * Returns deterministic URLs for testing.
- */
 public class MockGitHubPort implements GitHubPort {
+
+    private String issueUrl = "https://github.com/example/repo/issues/1";
+    private boolean shouldFail = false;
+
     @Override
-    public String createIssue(String defectId, String title, String description) {
-        // Return a predictable URL based on the defect ID
-        return "https://github.com/bank-of-z/issues/" + defectId;
+    public String createIssue(String title, String body) {
+        if (shouldFail) {
+            throw new RuntimeException("Failed to create issue");
+        }
+        return issueUrl;
+    }
+
+    public void setIssueUrl(String url) {
+        this.issueUrl = url;
+    }
+
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
     }
 }

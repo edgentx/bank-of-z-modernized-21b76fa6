@@ -6,7 +6,7 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures posted messages to validate content (VW-454).
+ * Captures messages posted to Slack to verify content without external I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
@@ -20,30 +20,25 @@ public class MockSlackNotificationPort implements SlackNotificationPort {
         }
     }
 
-    private final List<PostedMessage> messages = new ArrayList<>();
+    private final List<PostedMessage> postedMessages = new ArrayList<>();
+    private boolean shouldSucceed = true;
 
     @Override
-    public void postMessage(String channel, String messageBody) {
-        messages.add(new PostedMessage(channel, messageBody));
+    public boolean postMessage(String channel, String body) {
+        postedMessages.add(new PostedMessage(channel, body));
+        return shouldSucceed;
     }
 
-    public List<PostedMessage> getMessages() {
-        return messages;
+    public List<PostedMessage> getPostedMessages() {
+        return new ArrayList<>(postedMessages);
     }
 
-    /**
-     * Helper for VW-454 validation: checks if the last message contains the URL.
-     */
-    public boolean lastMessageContainsUrl(String url) {
-        if (messages.isEmpty()) return false;
-        return messages.get(messages.size() - 1).body.contains(url);
+    public void reset() {
+        postedMessages.clear();
+        shouldSucceed = true;
     }
 
-    /**
-     * Helper for VW-454 validation: checks if the last message was for the specific channel.
-     */
-    public boolean lastMessageWasToChannel(String channel) {
-        if (messages.isEmpty()) return false;
-        return messages.get(messages.size() - 1).channel.equals(channel);
+    public void setShouldSucceed(boolean succeed) {
+        this.shouldSucceed = succeed;
     }
 }

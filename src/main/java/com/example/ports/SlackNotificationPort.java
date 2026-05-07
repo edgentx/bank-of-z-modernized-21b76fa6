@@ -1,9 +1,15 @@
 package com.example.ports;
 
 /**
- * Port interface for sending Slack notifications.
- * Used by domain services or event listeners.
+ * Port for sending Slack notifications.
+ * Implementations must handle the actual HTTP transmission to Slack Webhooks.
  */
 public interface SlackNotificationPort {
-    void sendNotification(String channel, String messageBody);
+    /**
+     * Sends a notification to Slack.
+     *
+     * @param channel The target Slack channel (e.g., #vforce360-issues).
+     * @param body    The message body/content.
+     */
+    void sendNotification(String channel, String body);
 }

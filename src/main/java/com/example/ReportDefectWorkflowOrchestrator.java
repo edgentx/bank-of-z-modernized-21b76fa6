@@ -28,6 +28,7 @@ public class ReportDefectWorkflowOrchestrator {
 
         // 2. Notify Slack
         // The defect (VW-454) implies the issueUrl was missing or malformed here.
+        // We ensure the URL is included in the body.
         String slackBody = "Defect Reported: " + summary + "\nIssue: " + issueUrl;
         slackNotifierPort.sendNotification(slackBody);
     }

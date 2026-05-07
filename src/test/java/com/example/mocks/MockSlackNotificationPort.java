@@ -1,46 +1,41 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Stores messages in memory to allow verification of content.
+ * Mock adapter for SlackNotificationPort.
+ * Captures messages sent during tests to verify content.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final Map<String, String> channelMessages = new HashMap<>();
-    private boolean simulateFailure = false;
+    public static class Message {
+        public final String channel;
+        public final String text;
 
-    @Override
-    public boolean sendMessage(String channelId, String messageBody) {
-        if (simulateFailure) {
-            return false;
+        public Message(String channel, String text) {
+            this.channel = channel;
+            this.text = text;
         }
-        channelMessages.put(channelId, messageBody);
-        return true;
     }
+
+    private final List<Message> messages = new ArrayList<>();
 
     @Override
-    public String getLastMessageBody(String channelId) {
-        return channelMessages.get(channelId);
+    public void sendMessage(String channel, String text) {
+        this.messages.add(new Message(channel, text));
     }
 
-    /**
-     * Helper method for tests to verify the message contains the GitHub URL.
-     */
-    public boolean lastMessageContainsUrl(String channelId, String url) {
-        String body = getLastMessageBody(channelId);
-        return body != null && body.contains(url);
-    }
-
-    public void setSimulateFailure(boolean simulateFailure) {
-        this.simulateFailure = simulateFailure;
+    public List<Message> getMessages() {
+        return new ArrayList<>(messages);
     }
 
     public void clear() {
-        channelMessages.clear();
+        messages.clear();
+    }
+
+    public boolean hasMessageContaining(String substring) {
+        return messages.stream().anyMatch(m -> m.text.contains(substring));
     }
 }

@@ -23,6 +23,7 @@
         <java.version>17</java.version>
         <spring-cloud.version>2023.0.0</spring-cloud.version>
         <otlp.version>1.32.0</otlp.version>
+        <temporal.version>1.22.3</temporal.version>
     </properties>
 
     <dependencies>
@@ -41,15 +42,16 @@
         </dependency>
 
         <!-- Temporal -->
+        <!-- Note: Using explicit version as io.temporal groupId is not in Spring Boot BOM -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>1.22.3</version>
+            <version>${temporal.version}</version>
         </dependency>
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-testing</artifactId>
-            <version>1.22.3</version>
+            <version>${temporal.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -62,6 +64,11 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

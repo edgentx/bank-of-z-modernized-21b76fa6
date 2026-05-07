@@ -2,12 +2,8 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
 
-import java.time.Instant;
-import java.util.Objects;
-
-public record EndSessionCmd(String sessionId, Instant occurredAt) implements Command {
-    public EndSessionCmd {
-        Objects.requireNonNull(sessionId, "sessionId cannot be null");
-        Objects.requireNonNull(occurredAt, "occurredAt cannot be null");
-    }
-}
+/**
+ * Command to end a teller session.
+ * S-20: Implement EndSessionCmd.
+ */
+public record EndSessionCmd(String sessionId) implements Command {}

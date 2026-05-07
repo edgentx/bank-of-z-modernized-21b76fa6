@@ -1,46 +1,37 @@
 package com.vforce360;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+import com.vforce360.model.MarReport;
 import com.vforce360.ports.MarReportPort;
-import com.vforce360.model.AssessmentReport;
-import com.vforce360.model.RenderedReportResponse;
-import com.vforce360.service.ReportRenderingService;
-import org.springframework.web.bind.annotation.*;
 
 /**
- * REST Controller for MAR Review Section.
- * 
- * GREEN PHASE UPDATE:
- * - Injects ReportRenderingService.
- * - Delegates content transformation to the service.
- * - Returns "text/html" content type in the response wrapper.
+ * Controller for viewing the Modernization Assessment Report.
+ * Renders the report as HTML.
  */
-@RestController
-@RequestMapping("/api/projects/{projectId}/mar")
+@Controller
 public class MarReportController {
 
     private final MarReportPort marReportPort;
-    private final ReportRenderingService renderingService;
 
-    // Constructor Injection
-    public MarReportController(MarReportPort marReportPort, ReportRenderingService renderingService) {
+    public MarReportController(MarReportPort marReportPort) {
         this.marReportPort = marReportPort;
-        this.renderingService = renderingService;
     }
 
-    @GetMapping("/review")
-    public RenderedReportResponse getMarReview(@PathVariable String projectId) {
-        // 1. Retrieve raw report data
-        AssessmentReport report = marReportPort.getReport(projectId);
+    @GetMapping("/projects/{projectId}/mar/review")
+    public ResponseEntity<String> viewMarReport(@PathVariable String projectId) {
+        // Fetch the report (raw JSON structure)
+        MarReport report = marReportPort.findByProjectId(projectId);
         
         if (report == null) {
-            return new RenderedReportResponse("Report not found", "text/plain");
+            return ResponseEntity.notFound().build();
         }
 
-        // 2. Transform raw content to HTML
-        // Even if the DB contains Markdown, the service converts it to HTML.
-        String htmlContent = renderingService.renderReportToHtml(report);
-
-        // 3. Return formatted response
-        return new RenderedReportResponse(htmlContent, "text/html");
+        // TODO: Render the 'summary' field content to HTML instead of returning raw JSON
+        // This is the defect location.
+        return ResponseEntity.ok(report.getRawContent()); 
     }
 }

@@ -3,23 +3,22 @@ package com.example.domain;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-/**
- * Command hierarchy for Story S-11.
- * Following the Execute pattern, the Aggregate accepts a generic Command
- * and dispatches to the specific logic.
- */
-public sealed interface S11Command permits S11Command.PostWithdrawalCmd {
-
-    record PostWithdrawalCmd(
-        UUID accountId,
+public record S11Command(
+        UUID transactionId,
+        String accountNumber,
         BigDecimal amount,
-        String currency
-    ) implements S11Command {
-        public PostWithdrawalCmd {
-            if (accountId == null) throw new IllegalArgumentException("AccountId cannot be null");
-            if (amount == null) throw new IllegalArgumentException("Amount cannot be null");
-            if (currency == null || currency.isBlank()) throw new IllegalArgumentException("Currency cannot be blank");
+        String currency,
+        BigDecimal currentBalance
+) {
+    public S11Command {
+        if (accountNumber == null) {
+            throw new IllegalArgumentException("accountNumber cannot be null");
+        }
+        if (amount == null) {
+            throw new IllegalArgumentException("amount cannot be null");
+        }
+        if (currency == null) {
+            throw new IllegalArgumentException("currency cannot be null");
         }
     }
-
 }

@@ -3,6 +3,7 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public record SessionStartedEvent(
         String aggregateId,
@@ -10,9 +11,16 @@ public record SessionStartedEvent(
         String terminalId,
         Instant occurredAt
 ) implements DomainEvent {
+
+    public SessionStartedEvent {
+        // Ensure defaults or validations if necessary
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
+        if (occurredAt == null) occurredAt = Instant.now();
+    }
+
     @Override
     public String type() {
-        return "teller.session.started";
+        return "session.started";
     }
 
     @Override

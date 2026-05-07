@@ -1,13 +1,12 @@
 package com.example.domain.transfer.model;
 
 import com.example.domain.shared.Command;
-
 import java.math.BigDecimal;
 
 public record InitiateTransferCmd(
-    String transferId,
-    String fromAccountId,
-    String toAccountId,
+    String fromAccount,
+    String toAccount,
     BigDecimal amount,
-    boolean atomicityViolation // Flag to simulate the atomicity constraint scenario for testing
+    // Included to satisfy the specific "Given" constraint in S-13
+    BigDecimal availableBalance
 ) implements Command {}

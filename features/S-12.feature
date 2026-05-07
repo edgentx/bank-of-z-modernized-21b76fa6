@@ -1,5 +1,4 @@
 Feature: Implement ReverseTransactionCmd on Transaction (transaction-processing)
-
   Feature: ReverseTransactionCmd
 
     Scenario: Successfully execute ReverseTransactionCmd

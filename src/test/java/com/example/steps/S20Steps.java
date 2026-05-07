@@ -1,7 +1,7 @@
 package com.example.steps;
 
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.tellersession.model.EndSessionCmd;
 import com.example.domain.tellersession.model.SessionEndedEvent;
 import com.example.domain.tellersession.model.TellerSessionAggregate;
@@ -10,57 +10,35 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 public class S20Steps {
 
     private TellerSessionAggregate aggregate;
     private EndSessionCmd command;
-    private List<DomainEvent> resultingEvents;
+    private List<DomainEvent> resultEvents;
     private Exception thrownException;
+
+    private static final String VALID_SESSION_ID = "SESSION-123";
+    private static final String VALID_TELLER_ID = "TELLER-42";
 
     @Given("a valid TellerSession aggregate")
     public void a_valid_TellerSession_aggregate() {
-        aggregate = new TellerSessionAggregate("session-123");
+        aggregate = new TellerSessionAggregate(VALID_SESSION_ID);
+        // Setup valid state for a session that can be ended
+        aggregate.markAuthenticated(VALID_TELLER_ID);
     }
 
-    @And("a valid sessionId is provided")
+    @Given("a valid sessionId is provided")
     public void a_valid_sessionId_is_provided() {
-        // Session ID is implied by the aggregate construction
-        // We construct the command with a matching ID
-        command = new EndSessionCmd("session-123", "teller-1", Duration.ofMinutes(15));
-    }
-
-    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_TellerSession_aggregate_that_violates_authentication() {
-        aggregate = new TellerSessionAggregate("session-auth-fail");
-        aggregate.setState(false, Instant.now(), Duration.ofMinutes(15), true);
-        command = new EndSessionCmd("session-auth-fail", "teller-1", Duration.ofMinutes(15));
-    }
-
-    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_TellerSession_aggregate_that_violates_timeout() {
-        aggregate = new TellerSessionAggregate("session-timeout-fail");
-        // Set last activity to 20 minutes ago (threshold is 15)
-        aggregate.setState(true, Instant.now().minus(Duration.ofMinutes(20)), Duration.ofMinutes(15), true);
-        command = new EndSessionCmd("session-timeout-fail", "teller-1", Duration.ofMinutes(15));
-    }
-
-    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_TellerSession_aggregate_that_violates_navigation_state() {
-        aggregate = new TellerSessionAggregate("session-nav-fail");
-        aggregate.setState(true, Instant.now(), Duration.ofMinutes(15), false);
-        command = new EndSessionCmd("session-nav-fail", "teller-1", Duration.ofMinutes(15));
+        // Normally this comes from the request, here we construct the Command object
+        command = new EndSessionCmd(VALID_SESSION_ID, VALID_TELLER_ID);
     }
 
     @When("the EndSessionCmd command is executed")
     public void the_EndSessionCmd_command_is_executed() {
         try {
-            resultingEvents = aggregate.execute(command);
+            resultEvents = aggregate.execute(command);
         } catch (Exception e) {
             thrownException = e;
         }
@@ -68,16 +46,46 @@ public class S20Steps {
 
     @Then("a session.ended event is emitted")
     public void a_session_ended_event_is_emitted() {
-        assertNotNull(resultingEvents, "Events list should not be null");
-        assertEquals(1, resultingEvents.size(), "One event should be emitted");
-        assertTrue(resultingEvents.get(0) instanceof SessionEndedEvent, "Event should be SessionEndedEvent");
-        assertEquals("session.ended", resultingEvents.get(0).type());
-        assertTrue(aggregate.isEnded(), "Aggregate state should be ended");
+        assertNotNull(resultEvents, "Events should not be null");
+        assertEquals(1, resultEvents.size(), "Exactly one event should be emitted");
+        assertTrue(resultEvents.get(0) instanceof SessionEndedEvent, "Event should be SessionEndedEvent");
+        
+        SessionEndedEvent event = (SessionEndedEvent) resultEvents.get(0);
+        assertEquals("session.ended", event.type());
+        assertEquals(VALID_SESSION_ID, event.aggregateId());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(thrownException, "An exception should have been thrown");
-        assertTrue(thrownException instanceof IllegalStateException, "Exception should be IllegalStateException (Domain Error)");
+        assertNotNull(thrownException, "Exception should be thrown for invariant violation");
+        assertTrue(thrownException instanceof IllegalStateException, "Exception should be IllegalStateException");
+        assertNull(resultEvents, "No events should be emitted on failure");
+    }
+
+    // --- Negative Scenarios Setup ---
+
+    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
+    public void a_TellerSession_aggregate_that_violates_authentication() {
+        aggregate = new TellerSessionAggregate(VALID_SESSION_ID);
+        // Intentionally do NOT call markAuthenticated
+        command = new EndSessionCmd(VALID_SESSION_ID, VALID_TELLER_ID);
+    }
+
+    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
+    public void a_TellerSession_aggregate_that_violates_timeout() {
+        aggregate = new TellerSessionAggregate(VALID_SESSION_ID);
+        aggregate.markAuthenticated(VALID_TELLER_ID);
+        // Force timeout
+        aggregate.markTimedOut();
+        command = new EndSessionCmd(VALID_SESSION_ID, VALID_TELLER_ID);
+    }
+
+    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
+    public void a_TellerSession_aggregate_that_violates_navigation_state() {
+        aggregate = new TellerSessionAggregate(VALID_SESSION_ID);
+        aggregate.markAuthenticated(VALID_TELLER_ID);
+        // Corrupt navigation state
+        aggregate.corruptNavigationState();
+        command = new EndSessionCmd(VALID_SESSION_ID, VALID_TELLER_ID);
     }
 }

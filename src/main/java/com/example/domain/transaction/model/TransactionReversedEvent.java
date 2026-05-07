@@ -7,22 +7,28 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record TransactionReversedEvent(
-        String aggregateId,
-        String originalTransactionId,
-        BigDecimal reversalAmount,
-        String currency,
-        Instant occurredAt
+    String aggregateId,
+    String originalTransactionId,
+    BigDecimal reversalAmount,
+    Instant occurredAt
 ) implements DomainEvent {
-    public TransactionReversedEvent {
-        // Ensure default values if needed, though constructor handles it
-    }
 
-    public TransactionReversedEvent(String aggregateId, String originalTransactionId, BigDecimal reversalAmount, String currency) {
-        this(aggregateId, originalTransactionId, reversalAmount, currency, Instant.now());
+    public TransactionReversedEvent {
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId cannot be null");
     }
 
     @Override
     public String type() {
         return "transaction.reversed";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

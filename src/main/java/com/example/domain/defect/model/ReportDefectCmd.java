@@ -2,14 +2,21 @@ package com.example.domain.defect.model;
 
 import com.example.domain.shared.Command;
 
+import java.util.Map;
+import java.util.Objects;
+
 /**
- * Command to report a defect (e.g., VW-454) to the VForce360 system.
- * This triggers the validation and GitHub/Slack workflow.
+ * Command to report a defect initiated via Temporal worker.
+ * Contains the payload necessary to generate the Slack message.
  */
 public record ReportDefectCmd(
-    String defectId,       // e.g., "VW-454"
-    String title,
-    String description,
-    String severity,       // e.g., "LOW"
-    String component       // e.g., "validation"
-) implements Command {}
+        String defectId,
+        String title,
+        String description,
+        Map<String, String> metadata
+) implements Command {
+    public ReportDefectCmd {
+        Objects.requireNonNull(defectId, "defectId is required");
+        Objects.requireNonNull(title, "title is required");
+    }
+}

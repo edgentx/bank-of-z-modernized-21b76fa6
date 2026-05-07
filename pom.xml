@@ -30,16 +30,12 @@
       <artifactId>jcc</artifactId>
       <scope>runtime</scope>
     </dependency>
-    <!-- Temporal IO (SDK) - Corrected Artifact ID -->
+    <!-- Temporal IO (SDK) - Corrected Artifact ID based on BOM exclusion rules -->
     <dependency>
       <groupId>io.temporal</groupId>
       <artifactId>temporal-sdk</artifactId>
       <version>1.22.1</version>
     </dependency>
-    <!-- Spring Boot Starter for Temporal (if available) or removed if not found.
-         Previous build error referenced io.temporal:temporal-spring-boot-starter which does not exist in this form.
-         Using standard SDK for compatibility. -->
-    
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>

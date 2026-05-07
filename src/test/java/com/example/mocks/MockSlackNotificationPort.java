@@ -6,29 +6,40 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to Slack to verify content without network calls.
+ * Captures messages sent to Slack to verify content without calling the real API.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public final List<Message> messages = new ArrayList<>();
-    private boolean shouldFail = false;
-
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
-    }
+    private final List<String> postedMessages = new ArrayList<>();
+    private boolean shouldSucceed = true;
+    private String lastChannelId;
 
     @Override
-    public boolean postMessage(String channel, String messageBody) {
-        if (shouldFail) {
-            return false;
-        }
-        messages.add(new Message(channel, messageBody));
-        return true;
+    public boolean postMessage(String channelId, String messageBody) {
+        this.lastChannelId = channelId;
+        this.postedMessages.add(messageBody);
+        // Simulate API behavior
+        return shouldSucceed;
     }
 
-    public boolean containsUrlInBody(String url) {
-        return messages.stream().anyMatch(msg -> msg.body().contains(url));
+    public List<String> getPostedMessages() {
+        return new ArrayList<>(postedMessages);
     }
 
-    public record Message(String channel, String body) {}
+    public String getLastMessageBody() {
+        return postedMessages.isEmpty() ? null : postedMessages.get(postedMessages.size() - 1);
+    }
+
+    public String getLastChannelId() {
+        return lastChannelId;
+    }
+
+    public void reset() {
+        postedMessages.clear();
+        lastChannelId = null;
+    }
+
+    public void setShouldSucceed(boolean shouldSucceed) {
+        this.shouldSucceed = shouldSucceed;
+    }
 }

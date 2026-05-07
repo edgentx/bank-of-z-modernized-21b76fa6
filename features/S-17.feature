@@ -1,5 +1,4 @@
 Feature: Implement ForceBalanceCmd on ReconciliationBatch (transaction-processing)
-
   Feature: ForceBalanceCmd
 
     Scenario: Successfully execute ForceBalanceCmd

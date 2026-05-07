@@ -12,7 +12,7 @@ public class MarController {
         this.marService = marService;
     }
 
-    @GetMapping("/{projectId}/mar")
+    @GetMapping(value = "/{projectId}/mar", produces = "text/html")
     public String viewMar(@PathVariable String projectId) {
         return marService.getFormattedReport(projectId);
     }

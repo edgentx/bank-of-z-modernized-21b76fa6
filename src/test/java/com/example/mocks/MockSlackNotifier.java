@@ -1,34 +1,47 @@
 package com.example.mocks;
 
-import com.example.ports.SlackNotifier;
+import com.example.domain.defect.model.DefectReportedEvent;
+import com.example.ports.SlackNotifierPort;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock adapter for SlackNotifier.
- * Used in testing to verify that messages are generated correctly
- * without performing actual network I/O to Slack.
+ * Mock adapter for SlackNotifierPort.
+ * Stores captured events to allow assertions in tests.
  */
-public class MockSlackNotifier implements SlackNotifier {
+public class MockSlackNotifier implements SlackNotifierPort {
 
-    private String lastMessageBody;
-    private boolean sendCalled = false;
+    private final List<DefectReportedEvent> capturedEvents = new ArrayList<>();
+    private boolean shouldFail = false;
 
     @Override
-    public void send(SlackMessage message) {
-        this.sendCalled = true;
-        this.lastMessageBody = message.body();
-        // No real HTTP call
+    public void notify(DefectReportedEvent event) {
+        if (shouldFail) {
+            throw new RuntimeException("Simulated Slack API failure");
+        }
+        capturedEvents.add(event);
     }
 
-    public boolean wasSendCalled() {
-        return sendCalled;
-    }
-
-    public String getLastMessageBody() {
-        return lastMessageBody;
+    public List<DefectReportedEvent> getCapturedEvents() {
+        return capturedEvents;
     }
 
     public void reset() {
-        this.lastMessageBody = null;
-        this.sendCalled = false;
+        capturedEvents.clear();
+        shouldFail = false;
+    }
+
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
+    }
+
+    /**
+     * Helper to verify VW-454: Check if the last notification contained the GitHub URL.
+     */
+    public boolean lastNotificationContainsGithubUrl() {
+        if (capturedEvents.isEmpty()) return false;
+        DefectReportedEvent last = capturedEvents.get(capturedEvents.size() - 1);
+        return last.githubIssueUrl() != null && !last.githubIssueUrl().isBlank();
     }
 }

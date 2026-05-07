@@ -9,13 +9,12 @@ import java.util.UUID;
 public record TransactionReversedEvent(
         String aggregateId,
         String originalTransactionId,
-        BigDecimal amount,
-        String accountNumber,
+        BigDecimal reversedAmount,
         Instant occurredAt
 ) implements DomainEvent {
 
-    public TransactionReversedEvent {
-        // Validating record components if needed, though constructor is implicit
+    public TransactionReversedEvent(String aggregateId, String originalTransactionId, BigDecimal reversedAmount) {
+        this(aggregateId, originalTransactionId, reversedAmount, Instant.now());
     }
 
     @Override

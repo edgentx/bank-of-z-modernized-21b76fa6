@@ -1,9 +1,17 @@
 package com.example.ports;
 
 /**
- * Port for sending notifications to Slack.
- * Used by VForce360 diagnostic workflow handlers.
+ * Port for posting messages to Slack.
+ * Abstracted to allow mocking in tests and verification of message content.
  */
 public interface SlackPort {
-    void postMessage(String channel, String body);
+    
+    /**
+     * Posts a message to a specific Slack channel.
+     *
+     * @param channelId The ID of the channel (e.g., "C12345678").
+     * @param messageBody The content of the message.
+     * @throws IllegalArgumentException if channelId or messageBody is null/blank.
+     */
+    void postMessage(String channelId, String messageBody);
 }

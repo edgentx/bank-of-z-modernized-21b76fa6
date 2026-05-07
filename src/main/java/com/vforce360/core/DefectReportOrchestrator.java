@@ -5,8 +5,7 @@ import com.vforce360.ports.slack.SlackNotificationPort;
 
 /**
  * Service class handling the logic for reporting defects.
- * This represents the implementation that will be fixed.
- * Currently, it is a stub that will fail the tests.
+ * Orchestrates the creation of GitHub issues and subsequent Slack notifications.
  */
 public class DefectReportOrchestrator {
 
@@ -14,28 +13,39 @@ public class DefectReportOrchestrator {
     private final GitHubIssuePort gitHubIssuePort;
     private static final String SLACK_CHANNEL_ID = "C-vforce360-issues";
 
+    /**
+     * Constructor for dependency injection.
+     *
+     * @param slackNotificationPort The port for Slack notifications.
+     * @param gitHubIssuePort       The port for GitHub issues.
+     */
     public DefectReportOrchestrator(SlackNotificationPort slackNotificationPort, GitHubIssuePort gitHubIssuePort) {
         this.slackNotificationPort = slackNotificationPort;
         this.gitHubIssuePort = gitHubIssuePort;
     }
 
     /**
-     * Reports a defect by creating a GitHub issue and notifying Slack.
-     * This is the method under test for S-FB-1.
+     * Reports a defect by creating a GitHub issue and notifying Slack with the issue URL.
+     * <p>
+     * This implementation ensures that the Slack message body contains a valid link
+     * to the created GitHub issue, addressing defect VW-454.
      *
-     * @param title The title of the defect.
+     * @param title       The title of the defect.
      * @param description The description of the defect.
      */
     public void reportDefect(String title, String description) {
         // Step 1: Create GitHub Issue
+        // Assumes default organization and repository based on the project context.
         String issueUrl = gitHubIssuePort.createIssue("vforce360", "core", title, description);
 
         // Step 2: Notify Slack
-        // Defect VW-454 implies the URL might be missing here.
-        // We deliberately leave it out or format it incorrectly to ensure the test FAILS initially (Red Phase).
-        String slackMessage = "Defect Reported: " + title + "\nDescription: " + description;
-        // The URL is currently NOT attached to the message, causing the test to fail.
-        
+        // We format the URL using angle brackets <url> to ensure Slack renders it as a link
+        // and prevents unfurling issues, satisfying the regression test requirements.
+        String slackMessage = String.format(
+            "Defect Reported: %s\nDescription: %s\nGitHub Issue: <%s>",
+            title, description, issueUrl
+        );
+
         slackNotificationPort.sendMessage(SLACK_CHANNEL_ID, slackMessage);
     }
 }

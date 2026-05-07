@@ -9,22 +9,16 @@ public record SessionStartedEvent(
     String aggregateId,
     String tellerId,
     String terminalId,
-    String initialState,
     Instant occurredAt
 ) implements DomainEvent {
-
-    @Override
-    public String type() {
-        return "session.started";
+    public SessionStartedEvent {
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
     }
 
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId) {
+        this(aggregateId, tellerId, terminalId, Instant.now());
     }
 
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
+    @Override public String type() { return "session.started"; }
+    @Override public String aggregateId() { return aggregateId; }
 }

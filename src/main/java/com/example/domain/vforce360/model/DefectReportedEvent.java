@@ -1,15 +1,18 @@
 package com.example.domain.vforce360.model;
 
 import com.example.domain.shared.DomainEvent;
-import java.time.Instant;
 
-import java.util.UUID;
+import java.time.Instant;
+import java.util.Map;
 
 public record DefectReportedEvent(
-    String aggregateId,
-    String title,
-    String githubUrl,
-    Instant occurredAt
+        String defectId,
+        String title,
+        Map<String, Object> details,
+        String expectedBehavior,
+        String actualBehavior,
+        String slackChannelId,
+        Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
@@ -18,7 +21,7 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return defectId;
     }
 
     @Override

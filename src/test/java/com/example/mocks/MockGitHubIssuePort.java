@@ -2,29 +2,52 @@ package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
 
+import java.net.URI;
+
+/**
+ * Mock Adapter for GitHub Issue Creation.
+ * Used in Testing to simulate URLs without calling GitHub APIs.
+ */
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private String nextIssueUrl = "https://github.com/example/bank-of-z/issues/1";
-    public boolean createIssueCalled = false;
-    public String lastTitle = "";
-    public String lastBody = "";
+    private URI mockUrl;
+    private boolean createCalled = false;
+    private boolean shouldFail = false;
+    
+    private String capturedTitle;
+    private String capturedDescription;
+
+    public void setMockUrl(URI url) {
+        this.mockUrl = url;
+    }
+
+    public void setShouldFail(boolean shouldFail) {
+        this.shouldFail = shouldFail;
+    }
 
     @Override
-    public String createIssue(String title, String body) {
-        this.createIssueCalled = true;
-        this.lastTitle = title;
-        this.lastBody = body;
-        return nextIssueUrl;
+    public URI createIssue(String title, String description) {
+        this.createCalled = true;
+        this.capturedTitle = title;
+        this.capturedDescription = description;
+        
+        if (shouldFail) {
+            throw new RuntimeException("Simulated GitHub API Failure");
+        }
+        
+        return mockUrl;
     }
 
-    public void setNextIssueUrl(String url) {
-        this.nextIssueUrl = url;
+    // Test Inspection Methods
+    public boolean wasCreateCalled() {
+        return createCalled;
     }
 
-    public void reset() {
-        createIssueCalled = false;
-        lastTitle = "";
-        lastBody = "";
-        nextIssueUrl = "https://github.com/example/bank-of-z/issues/1";
+    public String getCapturedTitle() {
+        return capturedTitle;
+    }
+
+    public String getCapturedDescription() {
+        return capturedDescription;
     }
 }

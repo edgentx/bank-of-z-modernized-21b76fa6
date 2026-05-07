@@ -1,11 +1,15 @@
 package com.example.ports;
 
-import com.example.domain.validation.DefectReportedEvent;
-
 /**
- * Port for sending notifications to external messaging services (e.g., Slack).
- * This abstraction allows the domain to trigger notifications without depending on concrete implementations.
+ * Port for sending Slack notifications.
+ * Abstracts the external Slack API interaction.
  */
 public interface SlackNotificationPort {
-    void notifyDefectReported(DefectReportedEvent event);
+    /**
+     * Sends a notification payload to Slack.
+     *
+     * @param payload The formatted JSON string or structured object to send.
+     * @throws Exception if the notification fails.
+     */
+    void send(String payload) throws Exception;
 }

@@ -1,24 +1,29 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
 import java.util.UUID;
 
 public record MenuNavigatedEvent(
-    String aggregateId,
-    String menuId,
-    String action,
-    Instant occurredAt
+        String eventId,
+        String aggregateId,
+        String previousMenuId,
+        String targetMenuId,
+        String action,
+        Instant occurredAt
 ) implements DomainEvent {
-  public MenuNavigatedEvent {
-    if (aggregateId == null || aggregateId.isBlank()) throw new IllegalArgumentException("aggregateId cannot be null/blank");
-  }
+    public MenuNavigatedEvent {
+        if (eventId == null) eventId = UUID.randomUUID().toString();
+    }
 
-  @Override public String type() { return "menu.navigated"; }
-  @Override public String aggregateId() { return aggregateId; }
-  @Override public Instant occurredAt() { return occurredAt; }
+    @Override
+    public String type() {
+        return "menu.navigated";
+    }
 
-  public static MenuNavigatedEvent create(String aggregateId, String menuId, String action) {
-    return new MenuNavigatedEvent(aggregateId, menuId, action, Instant.now());
-  }
+    // Factory method to match previous patterns (record canonical ctor is strict)
+    public static MenuNavigatedEvent create(String aggregateId, String prev, String target, String action, Instant now) {
+        return new MenuNavigatedEvent(UUID.randomUUID().toString(), aggregateId, prev, target, action, now);
+    }
 }

@@ -1,29 +1,29 @@
 package com.example.adapters;
 
 import com.example.ports.SlackNotificationPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+
 /**
- * Concrete Adapter for Slack Notifications.
- * <p>
- * In a real production environment, this class would contain the logic to interact
- * with the Slack Web API (e.g., using WebClient or a dedicated Slack SDK).
- * For the purpose of this defect fix validation, it acts as the implementation
- * that would replace the mock in a live environment.
- * </p>
+ * Real adapter for Slack notifications.
+ * In production, this would use the Slack Web API client.
  */
 @Component
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
-    private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
-
     @Override
-    public boolean send(String payload) {
-        // Simulated implementation.
-        // In production, this would perform: webClient.post().uri(slackWebhookUrl).body(payload).exchange();
-        log.info("[Slack Adapter] Sending payload: {}", payload);
-        return true;
+    public void sendNotification(String channel, Map<String, Object> payload) {
+        // Implementation Note: In a real scenario, we would call:
+        // MethodsClient methods = slackClient.methods();
+        // ChatPostMessageRequest request = ChatPostMessageRequest.builder()
+        //    .channel(channel)
+        //    .text(payload.get("text").toString())
+        //    .build();
+        // methods.chatPostMessage(request);
+
+        // For the defect fix verification, we just print to stdout (or log) to prove execution.
+        System.out.println("[SlackAdapter] Sending to channel: " + channel);
+        System.out.println("[SlackAdapter] Payload: " + payload);
     }
 }

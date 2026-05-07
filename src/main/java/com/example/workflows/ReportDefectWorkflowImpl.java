@@ -1,41 +1,25 @@
 package com.example.workflows;
 
-import com.example.domain.validation.ReportDefectCmd;
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackPort;
+import com.example.adapters.TemporalReportDefectWorkflow;
+import com.example.application.DefectReportingActivity;
 import io.temporal.workflow.Workflow;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
- * Implementation of the defect reporting workflow.
- * Ensures that the GitHub URL is correctly propagated to Slack.
+ * Workflow implementation for S-FB-1.
+ * Ensures that the GitHub URL is obtained and included in the Slack body.
  */
-public class ReportDefectWorkflowImpl implements ReportDefectWorkflow {
+public class ReportDefectWorkflowImpl implements TemporalReportDefectWorkflow {
 
-    private final GitHubPort gitHubPort;
-    private final SlackPort slackPort;
-
-    public ReportDefectWorkflowImpl() {
-        this.gitHubPort = Workflow.newActivityStub(GitHubPort.class);
-        this.slackPort = Workflow.newActivityStub(SlackPort.class);
-    }
+    private final DefectReportingActivity activities = Workflow.newActivityStub(DefectReportingActivity.class);
 
     @Override
-    public void report(ReportDefectCmd cmd) {
-        // Step 1: Create Issue in GitHub
-        String issueUrl = gitHubPort.createIssue(cmd.defectId(), cmd.title(), cmd.description());
+    public String reportDefect(String defectDetails) {
+        // 1. Call VForce360 to get the GitHub Issue URL
+        String issueUrl = activities.reportToVForce360(defectDetails);
 
-        // Step 2: Notify Slack with the GitHub URL
-        Map<String, Object> context = new HashMap<>();
-        context.put("channel", "#vforce360-issues");
-        context.put("projectId", cmd.projectId());
-        
-        // CRITICAL FIX for S-FB-1: Ensure the URL is included in the body
-        String body = cmd.description() + "\n\nGitHub Issue: " + issueUrl;
-        context.put("body", body);
+        // 2. Notify Slack with the URL in the body
+        activities.notifySlack("Defect reported. View issue: " + issueUrl);
 
-        slackPort.sendMessage(context);
+        return issueUrl;
     }
 }

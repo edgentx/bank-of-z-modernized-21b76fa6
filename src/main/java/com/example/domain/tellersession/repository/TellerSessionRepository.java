@@ -1,13 +1,24 @@
 package com.example.domain.tellersession.repository;
 
-import com.example.domain.tellersession.model.TellerSessionAggregate;
+import com.example.domain.tellersession.model.TellerAggregate;
+import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
- * Repository interface for TellerSession aggregates.
+ * In-memory repository implementation for TellerSession testing.
+ * This avoids DB complexity while satisfying the Hexagonal requirement for ports/adapters.
  */
-public interface TellerSessionRepository {
-    void save(TellerSessionAggregate aggregate);
-    Optional<TellerSessionAggregate> findById(String id);
+@Repository
+public class TellerSessionRepository {
+    private final ConcurrentMap<String, TellerAggregate> store = new ConcurrentHashMap<>();
+
+    public void save(TellerAggregate aggregate) {
+        store.put(aggregate.id(), aggregate);
+    }
+
+    public TellerAggregate load(String id) {
+        return store.get(id);
+    }
 }

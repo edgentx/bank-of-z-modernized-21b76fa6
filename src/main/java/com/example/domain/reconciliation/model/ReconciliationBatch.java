@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * ReconciliationBatch Aggregate
- * Handles the logic for starting and forcing a batch to a balanced state.
+ * Handles the logic for starting reconciliation and forcing a batch to a balanced state.
  */
 public class ReconciliationBatch extends AggregateRoot {
     private final String batchId;
@@ -60,8 +60,8 @@ public class ReconciliationBatch extends AggregateRoot {
 
         var event = new ReconciliationStartedEvent(
                 this.batchId,
-                cmd.batchWindowStart(),
-                cmd.batchWindowEnd(),
+                cmd.start(),
+                cmd.end(),
                 Instant.now()
         );
 
@@ -84,9 +84,9 @@ public class ReconciliationBatch extends AggregateRoot {
             throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
         }
 
-        // Invariant: Only Open (or Started) batches can be forced to balance
-        if (status == Status.CLOSED) {
-            throw new IllegalStateException("Cannot force balance on a CLOSED batch.");
+        // Invariant: Only Open or Started batches can be forced to balance
+        if (status != Status.OPEN && status != Status.STARTED) {
+            throw new IllegalStateException("Cannot force balance on a batch that is not OPEN or STARTED.");
         }
 
         // Validate Command fields

@@ -6,11 +6,9 @@ import java.time.Instant;
 
 public record ReconciliationStartedEvent(
         String aggregateId,
-        Instant windowStart,
-        Instant windowEnd,
+        Instant batchWindow,
         Instant occurredAt
 ) implements DomainEvent {
-
     @Override
     public String type() {
         return "reconciliation.started";

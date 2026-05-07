@@ -1,44 +1,41 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-import java.util.ArrayList;
-import java.util.List;
+import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures payloads to verify content without external I/O.
+ * Stores messages in memory so they can be verified during tests.
  */
+@Component
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> capturedPayloads = new ArrayList<>();
-    private boolean shouldThrowException = false;
+    private final Map<String, String> channelMessages = new HashMap<>();
 
     @Override
-    public void send(String payload) throws Exception {
-        if (shouldThrowException) {
-            throw new Exception("Simulated Slack API failure");
+    public void postMessage(String channel, String body) {
+        // Simulate network latency or processing if needed
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
-        capturedPayloads.add(payload);
+        // Store the message for verification
+        channelMessages.put(channel, body);
     }
 
-    public List<String> getCapturedPayloads() {
-        return new ArrayList<>(capturedPayloads);
-    }
-
-    public void reset() {
-        capturedPayloads.clear();
-        shouldThrowException = false;
-    }
-
-    public void setShouldThrowException(boolean shouldThrowException) {
-        this.shouldThrowException = shouldThrowException;
+    @Override
+    public String getLastMessageBody(String channel) {
+        return channelMessages.get(channel);
     }
 
     /**
-     * Helper to check if any captured payload contains the specific text.
+     * Helper method to clear the state between tests if needed.
      */
-    public boolean wasUrlSent(String url) {
-        return capturedPayloads.stream()
-                .anyMatch(payload -> payload.contains(url));
+    public void clear() {
+        channelMessages.clear();
     }
 }

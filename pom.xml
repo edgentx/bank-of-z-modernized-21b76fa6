@@ -21,8 +21,8 @@
     <properties>
         <java.version>17</java.version>
         <io.temporal.version>1.22.1</io.temporal.version>
-        <!-- IBM MQ is proprietary; we use a dummy stub for build resolution if not present in private repo -->
-        <com.ibm.mq.version>9.3.4.1</com.ibm.mq.version> 
+        <!-- IBM MQ is proprietary; using a dummy scope for compilation if libs missing -->
+        <com.ibm.mq.version>9.3.4.1</com.ibm.mq.version>
     </properties>
 
     <dependencies>
@@ -40,7 +40,7 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Temporal (Managed Version Explicitly as per rules) -->
+        <!-- Temporal -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
@@ -53,7 +53,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Flyway DB2 (Managed Version Explicitly) -->
+        <!-- Flyway DB2 -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-db2</artifactId>
@@ -64,13 +64,12 @@
             <artifactId>flyway-core</artifactId>
         </dependency>
 
-        <!-- IBM MQ (Simulated/Stub for Build) -->
-        <!-- Note: In a real environment, ensure the IBM repository is configured. -->
-        <!-- Assuming IBM MQ client is available or we are providing a placeholder interface -->
+        <!-- IBM MQ (Scope provided/system to prevent build failure if missing from local repo) -->
         <dependency>
             <groupId>com.ibm.mq</groupId>
             <artifactId>mq-jms-spring-boot-starter</artifactId>
             <version>${com.ibm.mq.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Testing -->
@@ -89,27 +88,12 @@
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
-        
-        <!-- Project Dependencies (Required to compile against domain) -->
-        <dependency>
-            <groupId>com.example</groupId>
-            <artifactId>domain-shared</artifactId>
-            <version>${project.version}</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/src/main/java/com/example/domain/shared</systemPath>
-            <!-- Dummy dependency to satisfy structure, assuming flat project structure logic -->
-        </dependency>
     </dependencies>
 
     <repositories>
         <repository>
             <id>central</id>
             <url>https://repo.maven.apache.org/maven2</url>
-        </repository>
-        <!-- IBM Public Maven Repo needed for MQ dependencies usually -->
-        <repository>
-            <id>ibm-maven-repo</id>
-            <url>https://public.dhe.ibm.com/ibmdl/export/pub/software/websphere/repo/</url>
         </repository>
     </repositories>
 

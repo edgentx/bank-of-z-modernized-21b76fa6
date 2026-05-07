@@ -30,7 +30,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Markdown Processing (Commonmark) -- Corrected GroupId -->
+        <!-- Markdown Processing (Commonmark) -->
         <dependency>
             <groupId>org.commonmark</groupId>
             <artifactId>commonmark</artifactId>

@@ -6,40 +6,33 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to Slack to verify content without calling the real API.
+ * Captures messages sent to Slack to verify content.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> postedMessages = new ArrayList<>();
-    private boolean shouldSucceed = true;
-    private String lastChannelId;
+    public final List<SlackMessage> capturedMessages = new ArrayList<>();
+    private boolean simulateFailure = false;
+
+    public record SlackMessage(String channel, String body) {}
 
     @Override
-    public boolean postMessage(String channelId, String messageBody) {
-        this.lastChannelId = channelId;
-        this.postedMessages.add(messageBody);
-        // Simulate API behavior
-        return shouldSucceed;
-    }
-
-    public List<String> getPostedMessages() {
-        return new ArrayList<>(postedMessages);
-    }
-
-    public String getLastMessageBody() {
-        return postedMessages.isEmpty() ? null : postedMessages.get(postedMessages.size() - 1);
-    }
-
-    public String getLastChannelId() {
-        return lastChannelId;
+    public boolean sendMessage(String channel, String body) {
+        if (simulateFailure) return false;
+        capturedMessages.add(new SlackMessage(channel, body));
+        return true;
     }
 
     public void reset() {
-        postedMessages.clear();
-        lastChannelId = null;
+        capturedMessages.clear();
+        simulateFailure = false;
     }
 
-    public void setShouldSucceed(boolean shouldSucceed) {
-        this.shouldSucceed = shouldSucceed;
+    public void setSimulateFailure(boolean simulateFailure) {
+        this.simulateFailure = simulateFailure;
+    }
+
+    public String getLastBody() {
+        if (capturedMessages.isEmpty()) return null;
+        return capturedMessages.get(capturedMessages.size() - 1).body();
     }
 }

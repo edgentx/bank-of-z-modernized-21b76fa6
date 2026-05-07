@@ -19,7 +19,7 @@ public class ReconciliationBatch extends AggregateRoot {
     private boolean areAllEntriesAccounted = true;
 
     public enum Status {
-        OPEN, BALANCED, CLOSED
+        OPEN, BALANCED, CLOSED, STARTED
     }
 
     public ReconciliationBatch(String batchId) {
@@ -40,6 +40,45 @@ public class ReconciliationBatch extends AggregateRoot {
             return startReconciliation(c);
         }
         throw new UnknownCommandException(cmd);
+    }
+
+    private List<DomainEvent> startReconciliation(StartReconciliationCmd cmd) {
+        // Invariant: Cannot execute if a previous batch is still pending
+        if (isPreviousBatchPending) {
+            throw new IllegalStateException("Cannot execute batch: Previous batch is still pending.");
+        }
+
+        // Invariant: All transaction entries must be accounted for
+        if (!areAllEntriesAccounted) {
+            throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
+        }
+
+        // Invariant: Only Open batches can be started
+        if (status != Status.OPEN) {
+            throw new IllegalStateException("Cannot start reconciliation on a batch that is not OPEN.");
+        }
+
+        // Validate Command fields
+        if (cmd.batchWindowStart() == null || cmd.batchWindowEnd() == null) {
+            throw new IllegalArgumentException("Batch window start and end are required.");
+        }
+        if (cmd.batchWindowEnd().isBefore(cmd.batchWindowStart())) {
+            throw new IllegalArgumentException("Batch window end must be after start.");
+        }
+
+        var event = new ReconciliationStartedEvent(
+                this.batchId,
+                cmd.batchWindowStart(),
+                cmd.batchWindowEnd(),
+                Instant.now()
+        );
+
+        // Apply state changes
+        this.status = Status.STARTED;
+        addEvent(event);
+        incrementVersion();
+
+        return List.of(event);
     }
 
     private List<DomainEvent> forceBalance(ForceBalanceCmd cmd) {
@@ -72,41 +111,6 @@ public class ReconciliationBatch extends AggregateRoot {
 
         // Apply state changes
         this.status = Status.BALANCED;
-        addEvent(event);
-        incrementVersion();
-
-        return List.of(event);
-    }
-
-    private List<DomainEvent> startReconciliation(StartReconciliationCmd cmd) {
-        // Invariant: Cannot execute if a previous batch is still pending
-        if (isPreviousBatchPending) {
-            throw new IllegalStateException("Cannot execute batch: Previous batch is still pending.");
-        }
-
-        // Invariant: All transaction entries must be accounted for
-        if (!areAllEntriesAccounted) {
-            throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
-        }
-
-        // Invariant: Only Open batches can be started
-        if (status != Status.OPEN) {
-            throw new IllegalStateException("Cannot start reconciliation on a batch that is not OPEN.");
-        }
-
-        // Validate Command fields
-        if (cmd.batchWindow() == null) {
-            throw new IllegalArgumentException("batchWindow is required to start reconciliation.");
-        }
-
-        var event = new ReconciliationStartedEvent(
-                this.batchId,
-                cmd.batchWindow()
-        );
-
-        // Apply state changes (Optional: status might change to IN_PROGRESS, but OPEN is acceptable for start)
-        // For this feature, we assume status remains OPEN or moves to a processing state.
-        // We keep it simple as per S-16 requirements.
         addEvent(event);
         incrementVersion();
 

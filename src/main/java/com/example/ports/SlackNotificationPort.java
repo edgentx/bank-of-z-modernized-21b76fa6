@@ -1,10 +1,15 @@
 package com.example.ports;
 
-import com.example.domain.vforce.model.DefectReportedEvent;
-
 /**
- * Port for sending notifications to Slack.
+ * Port interface for sending Slack notifications.
+ * Used by the validation defect workflow to alert users.
  */
 public interface SlackNotificationPort {
-    void sendDefectAlert(String channel, DefectReportedEvent event);
+
+    /**
+     * Sends a notification message to the configured Slack channel.
+     *
+     * @param messageBody The formatted content to send.
+     */
+    void sendNotification(String messageBody);
 }

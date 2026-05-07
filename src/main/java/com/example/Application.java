@@ -5,8 +5,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
-@ComponentScan(basePackages = {"com.example.domain", "com.example.adapters", "com.example.infrastructure", "com.example.ports"})
+@ComponentScan(basePackages = {"com.example.domain", "com.example.ports", "com.example.adapters", "com.example"})
 public class Application {
+
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }

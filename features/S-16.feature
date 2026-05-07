@@ -1,5 +1,4 @@
 Feature: Implement StartReconciliationCmd on ReconciliationBatch (transaction-processing)
-
   Feature: StartReconciliationCmd
 
     Scenario: Successfully execute StartReconciliationCmd

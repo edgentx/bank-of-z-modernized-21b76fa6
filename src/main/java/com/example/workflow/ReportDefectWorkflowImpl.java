@@ -1,32 +1,59 @@
 package com.example.workflow;
 
+import com.example.domain.shared.DefectReportedEvent;
 import com.example.ports.GitHubIssuePort;
 import com.example.ports.SlackNotificationPort;
-
-import java.net.URI;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 /**
  * Implementation of the ReportDefectWorkflow.
- * This class acts as the orchestrator, handling the logic of creating an issue
- * and then notifying Slack, ensuring the URL is passed correctly.
+ * Orchestrates the creation of a GitHub issue and the subsequent Slack notification.
  */
+@Component
 public class ReportDefectWorkflowImpl implements ReportDefectWorkflow {
 
-    private final GitHubIssuePort gitHubPort;
+    private static final Logger log = LoggerFactory.getLogger(ReportDefectWorkflowImpl.class);
+
+    private final GitHubIssuePort githubPort;
     private final SlackNotificationPort slackPort;
 
-    public ReportDefectWorkflowImpl(GitHubIssuePort gitHubPort, SlackNotificationPort slackPort) {
-        this.gitHubPort = gitHubPort;
+    /**
+     * Constructor for dependency injection.
+     * Spring will automatically inject the configured adapters for these ports.
+     *
+     * @param githubPort The adapter for GitHub interactions.
+     * @param slackPort  The adapter for Slack interactions.
+     */
+    public ReportDefectWorkflowImpl(GitHubIssuePort githubPort, SlackNotificationPort slackPort) {
+        this.githubPort = githubPort;
         this.slackPort = slackPort;
     }
 
     @Override
-    public void execute(String defectId, String message) {
-        // 1. Create GitHub Issue
-        URI issueUrl = gitHubPort.createIssue(defectId, message);
+    public void reportDefect(DefectReportedEvent event) {
+        log.info("Processing defect report: {} - {}", event.defectId(), event.title());
 
-        // 2. Notify Slack with the Issue URL
-        // This is the fix for VW-454: ensure the URL is passed to the notification.
-        slackPort.sendDefectNotification(defectId, message, issueUrl);
+        // 1. Create the issue in GitHub using the port
+        // We combine the title and type for the description
+        String description = "Defect Type: " + event.type() + "\nOccurred At: " + event.occurredAt();
+        String issueUrl = githubPort.createIssue(event.title(), description);
+
+        log.debug("GitHub issue created at: {}", issueUrl);
+
+        // 2. Notify Slack with the URL
+        // The requirement specifies that the body must include the URL.
+        // We format the URL using angle brackets <url> which Slack interprets as a special link format
+        // to prevent unfurling and ensure clean link text.
+        String slackBody = String.format(
+            "Defect Reported: %s\nGitHub Issue: <%s>",
+            event.title(),
+            issueUrl
+        );
+
+        slackPort.send(slackBody);
+
+        log.info("Slack notification sent for defect: {}", event.defectId());
     }
 }

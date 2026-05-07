@@ -1,14 +1,7 @@
 package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
+import java.time.Instant;
 
-/**
- * Command to initiate a teller session following successful authentication.
- */
-public record StartSessionCmd(
-    String sessionId,
-    String tellerId,
-    String terminalId,
-    boolean authenticated // Indicates successful AuthZ/AuthN check
-) implements Command {
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId, boolean isAuthenticated, Instant activityTimestamp) implements Command {
 }

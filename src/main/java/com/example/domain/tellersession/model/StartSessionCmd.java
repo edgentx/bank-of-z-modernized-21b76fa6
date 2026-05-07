@@ -6,7 +6,5 @@ public record StartSessionCmd(
     String sessionId,
     String tellerId,
     String terminalId,
-    boolean isAuthenticated,
-    boolean isActive,
-    String navigationState
+    boolean isAuthenticated
 ) implements Command {}

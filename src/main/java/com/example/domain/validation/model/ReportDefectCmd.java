@@ -3,12 +3,10 @@ package com.example.domain.validation.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to report a defect identified in the VForce360 system.
+ * Command to report a defect via the temporal-worker.
+ * Part of the Validation Aggregate logic.
  */
 public record ReportDefectCmd(
-    String projectId,
-    String title,
-    String description,
-    String severity,
-    String component
+    String defectTitle,
+    String defectBody
 ) implements Command {}

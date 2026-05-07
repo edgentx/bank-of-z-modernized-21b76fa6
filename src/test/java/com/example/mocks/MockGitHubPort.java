@@ -2,23 +2,28 @@ package com.example.mocks;
 
 import com.example.ports.GitHubPort;
 
-import java.util.HashSet;
-import java.util.Set;
-
-/** Mock GitHub Port for testing. */
+/**
+ * Mock implementation of GitHubPort for testing.
+ */
 public class MockGitHubPort implements GitHubPort {
-    private final Set<String> createdIssues = new HashSet<>();
-    private String simulatedUrlPrefix = "https://github.com/bank-of-z/issues/";
+
+    private String issueUrl = "https://github.com/example/repo/issues/1";
+    private boolean shouldFail = false;
 
     @Override
-    public String createIssue(String title, String body) {
-        String id = java.util.UUID.randomUUID().toString().substring(0, 8);
-        String url = simulatedUrlPrefix + id;
-        createdIssues.add(url);
-        return url;
+    public String createIssue(String title, String description) {
+        if (shouldFail) {
+            throw new RuntimeException("GitHub API Error");
+        }
+        // Return a deterministic URL based on input or static mock
+        return issueUrl;
     }
 
-    public boolean wasIssueCreated(String url) {
-        return createdIssues.contains(url);
+    public void setIssueUrl(String url) {
+        this.issueUrl = url;
+    }
+
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
     }
 }

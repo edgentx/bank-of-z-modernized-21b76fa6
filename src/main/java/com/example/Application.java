@@ -32,11 +32,14 @@ public class Application {
         }
 
         public void execute(String channel, String title, String description) {
-            // RED PHASE: Implementation missing.
-            // TODO: Implement logic to satisfy VW454SlackGitHubLinkTest.
-            // 1. gitHub.createIssue(title, description)
-            // 2. slack.sendText(channel, "Issue created: " + url)
-            throw new UnsupportedOperationException("Not implemented yet");
+            // Implementation for S-FB-1
+            // 1. Create the GitHub issue
+            String issueUrl = gitHub.createIssue(title, description);
+
+            // 2. Notify Slack with the specific format required
+            // Format: "Slack body includes GitHub issue: <url>"
+            String slackBody = "GitHub issue: " + issueUrl;
+            slack.sendText(channel, slackBody);
         }
     }
 }

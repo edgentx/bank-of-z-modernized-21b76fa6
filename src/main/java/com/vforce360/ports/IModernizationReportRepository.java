@@ -3,17 +3,16 @@ package com.vforce360.ports;
 import java.util.Optional;
 
 /**
- * Port interface for retrieving Modernization Assessment Report content.
- * Abstracts the storage mechanism (MongoDB/DB2) from the service layer.
+ * Port interface for accessing Modernization Report data.
+ * Decouples the service from the database implementation (MongoDB, DB2, etc.).
  */
 public interface IModernizationReportRepository {
 
     /**
-     * Retrieves the raw content associated with a project ID.
-     * This content is expected to be a JSON string.
+     * Finds a report by its identifier.
      *
-     * @param projectId The unique identifier of the project.
-     * @return Optional containing the raw JSON string, or empty if not found.
+     * @param reportId The ReportIdentifier (wrapper for UUID/String).
+     * @return Optional containing ReportData if found.
      */
-    Optional<String> findRawContentByProjectId(String projectId);
+    Optional<ReportData> findById(ReportIdentifier reportId);
 }

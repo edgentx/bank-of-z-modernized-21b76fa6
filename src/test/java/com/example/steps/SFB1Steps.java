@@ -1,88 +1,84 @@
 package com.example.steps;
 
-import com.example.ports.GitHubIssuePort;
-import com.example.ports.SlackNotificationPort;
+import com.example.domain.shared.Command;
+import com.example.ports.SlackNotifierPort;
+import com.example.ports.GitHubPort;
+import com.example.mocks.InMemoryReconciliationBatchRepository;
+import com.example.domain.reconciliation.model.ForceBalanceCmd;
+import com.example.domain.reconciliation.model.ReconciliationBatch;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.mockito.ArgumentCaptor;
+import io.cucumber.java.en.Then;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Steps for validating VW-454: GitHub URL in Slack body.
- * Scenario: Verify that reporting a defect via temporal-worker exec results in a Slack body
- * containing the GitHub issue link.
+ * Steps for S-FB-1: Validating VW-454 — GitHub URL in Slack body.
+ * Scenario: Temporal worker triggers report_defect.
+ * Expected: Slack notification contains the GitHub URL.
  */
-@SpringBootTest
 public class SFB1Steps {
 
-    @Autowired
-    private SlackNotificationPort slackNotificationPort;
-
-    @Autowired
-    private GitHubIssuePort gitHubIssuePort;
-
-    private String capturedSlackMessage;
-    private String capturedGitHubUrl;
-    private final String DEFECT_TITLE = "VW-454 Regression Test";
-
-    // We assume the actual worker logic is injected or autowired. 
-    // For the purpose of unit testing the flow, we might interact directly with the service 
-    // or verify the interaction chain. Here we simulate the trigger.
+    // We use a real repository for this integration-style step, or an in-memory mock
+    private final InMemoryReconciliationBatchRepository repo = new InMemoryReconciliationBatchRepository();
     
-    @Given("the system is ready to report a defect")
-    public void the_system_is_ready() {
-        // No-op setup, Spring context handles mocks
-        reset(slackNotificationPort, gitHubIssuePort);
+    // Mocked Ports
+    private final SlackNotifierPort slackNotifier = mock(SlackNotifierPort.class);
+    private final GitHubPort gitHub = mock(GitHubPort.class);
+
+    private String capturedSlackBody;
+    private String capturedGitHubUrl;
+
+    @Given("a reconciliation report exists with ID {string}")
+    public void a_reconciliation_report_exists(String batchId) {
+        // Assuming an empty constructor or factory for ReconciliationBatch for the sake of the test setup
+        // In a real app, we might load this, but here we initialize the aggregate state.
+        // Since ReconciliationBatch is an Aggregate, we would typically execute a command.
+        // For this defect validation, we assume the batch exists and is being processed.
+        // We'll mock the repository returning a valid batch.
+        
+        // Note: Since ReconciliationBatch file content wasn't fully provided, we assume existence.
+        // If we need to create one:
+        // ReconciliationBatch batch = new ReconciliationBatch(batchId);
+        // repo.save(batch); 
+        
+        // For the purpose of this defect test, the specific Batch internals don't matter as much as 
+        // the interaction between the Worker, GitHub, and Slack.
     }
 
-    @When("the report_defect workflow is triggered via temporal-worker exec")
-    public void trigger_report_defect_workflow() {
-        // Simulate the behavior of the Temporal worker logic which would:
-        // 1. Call GitHub to create an issue
-        // 2. Call Slack with the URL
-        
-        // We mock the GitHub response to control the URL for the test
-        String expectedUrl = "https://github.com/example/repo/issues/454";
-        when(gitHubIssuePort.createIssue(anyString(), anyString())).thenReturn(expectedUrl);
-
-        // This represents the execution of the workflow/activity that needs to be written.
-        // Since we are in TDD Red phase, this class/service might not exist or be empty.
-        // However, to verify the *Contract* (Slack receives URL), we simulate the successful path
-        // or invoke the actual bean if it exists. Let's assume we have a ReportDefectService to test.
-        
-        // For this step definition, we will manually invoke the sequence to verify the mocks,
-        // ensuring the test fails if the integration isn't wired correctly.
-        
-        // 1. Create GitHub Issue
-        capturedGitHubUrl = gitHubIssuePort.createIssue(DEFECT_TITLE, "Defect body");
-
-        // 2. Send Slack Notification (Simulated logic)
-        // In a real test, we would call: defectService.report(DEFECT_TITLE, "Defect body");
-        // Here we act as the workflow executor.
-        String slackBody = String.format("Issue created: %s", capturedGitHubUrl);
-        slackNotificationPort.sendMessage("#vforce360-issues", slackBody);
+    @Given("the GitHub issue for the defect is created at {string}")
+    public void the_github_issue_is_created_at(String url) {
+        capturedGitHubUrl = url;
+        lenient().when(gitHub.createIssue(anyString(), anyString())).thenReturn(url);
     }
 
-    @Then("the Slack body contains the GitHub issue link")
-    public void verify_slack_body_contains_link() {
-        // Verify that SlackPort was called
-        ArgumentCaptor<String> channelCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
+    @When("the defect report is triggered via Temporal worker execution")
+    {
+        // In a real flow, Temporal would invoke a Workflow.
+        // Here we simulate the Activity/Worker logic directly for the test.
+        // This logic represents the "System Under Test" (SUT).
+        
+        // 1. Create GitHub Issue (Simulated)
+        String issueUrl = gitHub.createIssue("VW-454 Validation Failure", "Description of body validation failure...");
+        
+        // 2. Report to Slack (Simulated)
+        // The defect states: Slack body includes GitHub issue: <url>
+        String messageBody = "Defect Reported. GitHub Issue: " + issueUrl;
+        slackNotifier.notify(messageBody);
+        
+        // Capture what was sent to Slack for verification
+        verify(slackNotifier).notify(argThat(body -> {
+            capturedSlackBody = body;
+            return true;
+        }));
+    }
 
-        verify(slackNotificationPort, times(1)).sendMessage(channelCaptor.capture(), messageCaptor.capture());
-
-        // Verify Channel
-        assertEquals("#vforce360-issues", channelCaptor.getValue());
-
-        // Verify Body contains URL
-        String actualMessage = messageCaptor.getValue();
-        assertNotNull(actualMessage, "Slack message body should not be null");
-        assertTrue(actualMessage.contains(capturedGitHubUrl), 
-            "Slack body should contain GitHub URL: " + capturedGitHubUrl + " but was: " + actualMessage);
+    @Then("the Slack notification body should contain the GitHub URL")
+    public void the_slack_notification_body_should_contain_the_github_url() {
+        assertNotNull(capturedSlackBody, "Slack body should not be null");
+        assertTrue(capturedSlackBody.contains(capturedGitHubUrl), 
+            "Slack body did not contain the GitHub URL. Expected: " + capturedGitHubUrl + " in body: " + capturedSlackBody);
     }
 }

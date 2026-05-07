@@ -11,12 +11,15 @@
     </parent>
 
     <groupId>com.example</groupId>
-    <artifactId>reconciliation-batch</artifactId>
+    <artifactId>bank-of-z-modernized</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>reconciliation-batch</name>
-    <description>Reconciliation Batch Command Processing</description>
+    <name>bank-of-z-modernized</name>
+    <description>Bank-of-Z modernization (CICS+IMS+DB2+MQ → Java/Spring on AWS), DDD aggregates with Execute(cmd) pattern.</description>
+
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <flyway.version>10.10.0</flyway.version>
     </properties>
 
@@ -36,7 +39,6 @@
         </dependency>
 
         <!-- Database Drivers -->
-        <!-- Explicitly adding DB2 driver support as per requirements -->
         <dependency>
             <groupId>com.ibm.db2</groupId>
             <artifactId>jcc</artifactId>
@@ -90,6 +92,32 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <!--
+              Per project spec, in-memory test mocks live in tests/java
+              (NOT src/test/java). build-helper-maven-plugin adds that
+              path as a test-compile source so surefire can resolve mock
+              types when compiling src/test/java tests.
+            -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>add-test-source</id>
+                        <phase>generate-test-sources</phase>
+                        <goals>
+                            <goal>add-test-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>tests/java</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

@@ -3,27 +3,18 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
-public record MenuNavigatedEvent(
-        String eventId,
-        String aggregateId,
-        String previousMenuId,
-        String targetMenuId,
-        String action,
-        Instant occurredAt
-) implements DomainEvent {
+/**
+ * Event emitted when a Teller successfully navigates to a new menu.
+ * Story S-19.
+ */
+public record MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) implements DomainEvent {
     public MenuNavigatedEvent {
-        if (eventId == null) eventId = UUID.randomUUID().toString();
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
+        if (occurredAt == null) occurredAt = Instant.now();
     }
 
-    @Override
-    public String type() {
-        return "menu.navigated";
-    }
-
-    // Factory method to match previous patterns (record canonical ctor is strict)
-    public static MenuNavigatedEvent create(String aggregateId, String prev, String target, String action, Instant now) {
-        return new MenuNavigatedEvent(UUID.randomUUID().toString(), aggregateId, prev, target, action, now);
-    }
+    @Override public String type() { return "menu.navigated"; }
+    @Override public String aggregateId() { return aggregateId; }
+    @Override public Instant occurredAt() { return occurredAt; }
 }

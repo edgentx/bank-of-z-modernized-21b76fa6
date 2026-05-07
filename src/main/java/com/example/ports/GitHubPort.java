@@ -1,17 +1,26 @@
 package com.example.ports;
 
+import java.util.Optional;
+
 /**
- * Interface for GitHub Issue tracking operations.
- * Used by the Validation workflow to externalize defect tracking.
+ * Port interface for interacting with GitHub issues.
  */
 public interface GitHubPort {
 
     /**
-     * Creates a new GitHub issue based on the defect report.
-     * @param defectId The internal defect ID (e.g., VW-454)
-     * @param title The title of the defect
-     * @param body The description body
-     * @return The fully qualified URL to the created GitHub issue.
+     * Creates a new issue in the configured repository.
+     *
+     * @param title The issue title.
+     * @param body The issue body (description).
+     * @return The HTML URL of the created issue.
      */
-    String createIssue(String defectId, String title, String body);
+    String createIssue(String title, String body);
+
+    /**
+     * Retrieves the URL of an existing issue by its ID.
+     *
+     * @param issueId The unique identifier of the issue.
+     * @return The HTML URL if found.
+     */
+    Optional<String> getIssueUrl(String issueId);
 }

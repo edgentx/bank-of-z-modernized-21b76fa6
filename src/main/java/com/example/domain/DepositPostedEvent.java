@@ -3,32 +3,21 @@ package com.example.domain;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-public class DepositPostedEvent {
-    private final String type = "deposit.posted";
+public class DepositPostedEvent implements S10Event {
     private final UUID transactionId;
-    private final String accountNumber;
     private final BigDecimal amount;
     private final String currency;
-    private final BigDecimal newBalance;
+    private final String accountNumber;
 
-    public DepositPostedEvent(UUID transactionId, String accountNumber, BigDecimal amount, String currency, BigDecimal newBalance) {
+    public DepositPostedEvent(UUID transactionId, BigDecimal amount, String currency, String accountNumber) {
         this.transactionId = transactionId;
-        this.accountNumber = accountNumber;
         this.amount = amount;
         this.currency = currency;
-        this.newBalance = newBalance;
-    }
-
-    public String getType() {
-        return type;
+        this.accountNumber = accountNumber;
     }
 
     public UUID getTransactionId() {
         return transactionId;
-    }
-
-    public String getAccountNumber() {
-        return accountNumber;
     }
 
     public BigDecimal getAmount() {
@@ -39,7 +28,7 @@ public class DepositPostedEvent {
         return currency;
     }
 
-    public BigDecimal getNewBalance() {
-        return newBalance;
+    public String getAccountNumber() {
+        return accountNumber;
     }
 }

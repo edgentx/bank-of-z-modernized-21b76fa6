@@ -2,32 +2,42 @@ package com.example.domain;
 
 import java.math.BigDecimal;
 import java.util.Currency;
+import java.util.UUID;
 
+/**
+ * Transaction Aggregate Root.
+ * Handles state changes via Command execution.
+ */
 public class Transaction {
 
-    private final String id;
-    private final String accountNumber;
-    private final BigDecimal currentBalance;
-    private final Currency currency;
+    private final UUID id;
+    private final DomainConfig config;
+    private BigDecimal balance = BigDecimal.ZERO;
     private boolean isPosted = false;
 
-    /**
-     * Constructor for creating/rehydrating the aggregate.
-     */
-    public Transaction(String id, String accountNumber, BigDecimal currentBalance, Currency currency) {
-        if (id == null) throw new DomainError("ID cannot be null");
+    // Protected constructor for reconstruction/repositories if needed,
+    // but we expose a public one for the aggregate creation.
+    public Transaction(UUID id, DomainConfig config) {
+        if (id == null) throw new IllegalArgumentException("ID cannot be null");
+        if (config == null) throw new IllegalArgumentException("Config cannot be null");
         this.id = id;
-        this.accountNumber = accountNumber;
-        this.currentBalance = currentBalance != null ? currentBalance : BigDecimal.ZERO;
-        this.currency = currency;
+        this.config = config;
     }
 
-    public String getId() {
+    public UUID getId() {
         return id;
     }
 
-    public String getAccountNumber() {
-        return accountNumber;
+    public BigDecimal getBalance() {
+        return balance;
+    }
+
+    /**
+     * Used by test setup to simulate a specific pre-condition.
+     * In production, this would be derived from event sourcing history.
+     */
+    public void setBalance(BigDecimal balance) {
+        this.balance = balance;
     }
 
     public boolean isPosted() {
@@ -35,46 +45,53 @@ public class Transaction {
     }
 
     /**
-     * Helper for testing purposes to simulate an already posted transaction.
-     * In a real event-sourced model, this would be derived from past events.
-     */
-    public void markAsPosted() {
-        this.isPosted = true;
-    }
-
-    /**
-     * Execute pattern entry point.
+     * Executes a command against this aggregate.
+     * @param cmd The command to execute.
+     * @return The resulting event.
+     * @throws DomainError if invariants are violated.
      */
     public DepositPostedEvent execute(PostDepositCmd cmd) {
-        // 1. Validate Invariants based on current state and command content
-        
-        // Invariant: Transaction amounts must be greater than zero.
-        if (cmd.amount() == null || cmd.amount().compareTo(BigDecimal.ZERO) <= 0) {
+        // Validate IDs match if applicable, or purely aggregate based logic.
+        // Here we assume the cmd targets this aggregate.
+
+        // 1. Validate Amount
+        if (cmd.amount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new DomainError("Transaction amounts must be greater than zero.");
         }
 
-        // Invariant: Transactions cannot be altered once posted.
+        // 2. Validate Immutability (Once posted, no more updates)
+        // The scenario implies that a Transaction can only be acted upon once if it results in a 'Posted' state.
         if (this.isPosted) {
             throw new DomainError("Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.");
         }
 
-        // Invariant: Account balance validation.
-        // Assumption: System rule is balance cannot exceed 1,000,000,000 for this example.
-        BigDecimal potentialNewBalance = this.currentBalance.add(cmd.amount());
-        if (potentialNewBalance.compareTo(new BigDecimal("1000000000")) > 0) {
-             throw new DomainError("A transaction must result in a valid account balance (enforced via aggregate validation).");
+        // 3. Calculate Potential Balance
+        BigDecimal newBalance = this.balance.add(cmd.amount());
+
+        // 4. Validate Account Balance Limit
+        if (newBalance.compareTo(config.getMaxTransactionAmount()) > 0) {
+            throw new DomainError("A transaction must result in a valid account balance (enforced via aggregate validation).");
         }
 
-        // 2. Apply changes (emit event)
-        // In a true CQRS/ES system, this might mutate state and return an event to be appended.
-        // Here we simply return the event as per requirements.
-        this.isPosted = true; // Local state transition
+        // Apply State Change (Mutating the aggregate)
+        this.balance = newBalance;
+        this.isPosted = true;
 
+        // Return Event
         return new DepositPostedEvent(
             this.id,
             cmd.accountNumber(),
             cmd.amount(),
-            cmd.currency()
+            cmd.currency(),
+            this.balance
         );
+    }
+
+    // Visitor/Dispatch pattern support can be added here if needed for generic Command handling
+    public DepositPostedEvent execute(Object cmd) {
+        if (cmd instanceof PostDepositCmd pdc) {
+            return execute(pdc);
+        }
+        throw new UnsupportedOperationException("Unknown command type: " + cmd.getClass().getSimpleName());
     }
 }

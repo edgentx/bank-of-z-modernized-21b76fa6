@@ -1,82 +1,58 @@
 package com.example.domain;
 
 import java.math.BigDecimal;
+import java.util.Currency;
 import java.util.UUID;
 
-/**
- * Transaction Aggregate Root.
- * Handles logic for posting withdrawals.
- */
 public class Transaction {
 
     private final UUID transactionId;
-    private BigDecimal currentBalance;
-    private String currency;
-    private boolean isPosted = false;
+    private final UUID accountId;
+    private BigDecimal balance;
+    private boolean isPosted;
 
-    // Constructor for creating a new aggregate
-    public Transaction(UUID transactionId) {
-        if (transactionId == null) throw new IllegalArgumentException("Transaction ID cannot be null");
+    public Transaction(UUID transactionId, UUID accountId, BigDecimal balance, boolean isPosted) {
         this.transactionId = transactionId;
+        this.accountId = accountId;
+        this.balance = balance;
+        this.isPosted = isPosted;
     }
 
-    /**
-     * Testing hook to simulate an existing state for the aggregate.
-     * In a real application, this state would be rebuilt from EventSourcing
-     * or loaded from a database.
-     */
-    public void loadStateForTest(BigDecimal balance, String currency) {
-        this.currentBalance = balance;
-        this.currency = currency;
+    public Transaction(TransactionSnapshot snapshot) {
+        this(UUID.randomUUID(), snapshot.accountId(), snapshot.balance(), snapshot.isPosted());
     }
 
-    /**
-     * Testing hook to simulate an immutable posted state.
-     */
-    public void markAsPosted() {
-        this.isPosted = true;
-    }
-
-    /**
-     * Execute method implementing the Command pattern.
-     * Dispatches the specific command logic and returns an Event.
-     */
-    public S11Event execute(S11Command command) {
-        if (command instanceof S11Command.PostWithdrawalCmd cmd) {
-            return handlePostWithdrawal(cmd);
-        }
-        throw new UnsupportedOperationException("Unknown command type: " + command.getClass().getSimpleName());
-    }
-
-    private S11Event handlePostWithdrawal(S11Command.PostWithdrawalCmd cmd) {
+    public WithdrawalPostedEvent execute(PostWithdrawalCmd cmd) {
         // Invariant: Transactions cannot be altered or deleted once posted
         if (this.isPosted) {
-            throw new IllegalStateException("Cannot post withdrawal: Transaction is already posted and immutable.");
+            throw new IllegalStateException("Transactions cannot be altered or deleted once posted");
         }
 
         // Invariant: Transaction amounts must be greater than zero
         if (cmd.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Amount must be greater than zero.");
+            throw new IllegalArgumentException("Transaction amounts must be greater than zero");
         }
 
-        // Contextual Invariant: A transaction must result in a valid account balance
-        // For this aggregate, we assume the 'currentBalance' represents the available funds.
-        // (In a full system, we might fetch the account, but per the prompt, we rely on aggregate validation).
-        if (cmd.amount().compareTo(this.currentBalance) > 0) {
-            throw new IllegalStateException("Transaction rejected: Insufficient funds for valid account balance.");
+        // Invariant: A transaction must result in a valid account balance
+        // Assuming "valid" means non-negative for this context (overdraft protection)
+        if (this.balance.compareTo(cmd.amount()) < 0) {
+            throw new IllegalStateException("A transaction must result in a valid account balance");
         }
 
-        // Apply state change (in-memory for the test, in reality we might persist or apply event)
-        this.currentBalance = this.currentBalance.subtract(cmd.amount());
-        this.isPosted = true; // Assuming this aggregate instance represents the single transaction being executed
+        // Apply event logic (synchronously for the aggregate)
+        this.balance = this.balance.subtract(cmd.amount());
+        this.isPosted = true;
 
-        return new S11Event.WithdrawalPosted(
-            UUID.randomUUID(),
-            java.time.Instant.now(),
+        return new WithdrawalPostedEvent(
             this.transactionId,
             cmd.accountId(),
             cmd.amount(),
             cmd.currency()
         );
     }
+
+    // Getters for testing/validation
+    public UUID getAccountId() { return accountId; }
+    public BigDecimal getBalance() { return balance; }
+    public boolean isPosted() { return isPosted; }
 }

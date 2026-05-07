@@ -1,19 +1,22 @@
 package com.example.ports;
 
-import java.util.Map;
-
 /**
- * Port interface for sending Slack notifications.
- * Used by Temporal workflows/activities to decouple from specific client implementations.
+ * Port interface for Slack notifications.
+ * Real implementation would post to Slack API.
+ * Test implementation captures state for assertions.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends a notification payload to a configured Slack channel.
-     *
-     * @param channel The target channel (e.g. "#vforce360-issues")
-     * @param payload The message body map, expected to contain "text" or other Slack blocks.
-     * @throws RuntimeException if the notification fails to send.
+     * Sends a message to the configured Slack channel.
+     * @param messageBody The formatted text to send.
      */
-    void sendNotification(String channel, Map<String, Object> payload);
+    void sendMessage(String messageBody);
+
+    /**
+     * Retrieves the body of the last message sent.
+     * Used for verification in tests.
+     * @return The message body string.
+     */
+    String getLastMessageBody();
 }

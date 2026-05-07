@@ -2,8 +2,10 @@ package com.example.domain.uimodel.model;
 
 import com.example.domain.shared.Command;
 
-/**
- * Command to trigger the rendering of a specific screen layout
- * adapted for a specific device type.
- */
-public record RenderScreenCmd(String screenId, String deviceType) implements Command {}
+import java.util.Objects;
+
+public record RenderScreenCmd(String mapId, String screenId, String deviceType) implements Command {
+    public RenderScreenCmd {
+        Objects.requireNonNull(mapId, "mapId cannot be null");
+    }
+}

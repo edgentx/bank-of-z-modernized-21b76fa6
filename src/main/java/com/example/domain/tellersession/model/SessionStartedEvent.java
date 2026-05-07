@@ -32,11 +32,6 @@ public class SessionStartedEvent implements DomainEvent {
         return occurredAt;
     }
 
-    public String getTellerId() {
-        return tellerId;
-    }
-
-    public String getTerminalId() {
-        return terminalId;
-    }
+    public String tellerId() { return tellerId; }
+    public String terminalId() { return terminalId; }
 }

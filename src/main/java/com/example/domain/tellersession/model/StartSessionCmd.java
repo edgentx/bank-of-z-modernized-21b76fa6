@@ -2,28 +2,14 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
 
-import java.time.Instant;
-import java.util.Objects;
-
+/**
+ * Command to initiate a new teller session.
+ * Records the intent of a user (teller) to start working on a specific terminal.
+ */
 public record StartSessionCmd(
-        String sessionId,
-        String tellerId,
-        String terminalId,
-        Instant sessionTimeoutAt,
-        boolean isAuthenticated,
-        String expectedCurrentState,
-        String actualCurrentState
-) implements Command {
-
-    public StartSessionCmd {
-        Objects.requireNonNull(sessionId);
-        Objects.requireNonNull(tellerId);
-        Objects.requireNonNull(terminalId);
-        Objects.requireNonNull(sessionTimeoutAt);
-    }
-
-    // Constructor for standard usage where state validation isn't the primary driver
-    public StartSessionCmd(String sessionId, String tellerId, String terminalId, Instant sessionTimeoutAt, boolean isAuthenticated) {
-        this(sessionId, tellerId, terminalId, sessionTimeoutAt, isAuthenticated, null, null);
-    }
-}
+    String sessionId,
+    String tellerId,
+    String terminalId,
+    String context,    // Operational context (e.g., "MAIN_MENU")
+    boolean authenticated // Authorization flag derived from Spring Security/CICS context
+) implements Command {}

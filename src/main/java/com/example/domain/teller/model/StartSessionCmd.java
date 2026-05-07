@@ -4,7 +4,12 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to initiate a teller session.
- * Implements the shared Command marker interface.
+ * Acts as the DTO for inputs required to start a session.
  */
-public record StartSessionCmd(String sessionId, String tellerId, String terminalId, boolean isAuthenticated) implements Command {
-}
+public record StartSessionCmd(
+    String sessionId,
+    String tellerId,
+    String terminalId,
+    boolean isAuthenticated,
+    String currentNavigationState
+) implements Command {}

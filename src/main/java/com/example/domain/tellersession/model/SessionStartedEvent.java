@@ -5,10 +5,6 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Event published when a Teller Session is successfully started.
- * S-18: user-interface-navigation
- */
 public record SessionStartedEvent(
         String aggregateId,
         String tellerId,
@@ -16,7 +12,11 @@ public record SessionStartedEvent(
         Instant occurredAt
 ) implements DomainEvent {
     public SessionStartedEvent {
-        // Ensure OccurredAt is always set
+        // Validations
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId cannot be null");
+        if (tellerId == null) throw new IllegalArgumentException("tellerId cannot be null");
+        if (terminalId == null) throw new IllegalArgumentException("terminalId cannot be null");
+        if (occurredAt == null) throw new IllegalArgumentException("occurredAt cannot be null");
     }
 
     public SessionStartedEvent(String aggregateId, String tellerId, String terminalId) {

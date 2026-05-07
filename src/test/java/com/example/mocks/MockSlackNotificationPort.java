@@ -6,27 +6,28 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent during the test for verification.
+ * Captures payloads sent to Slack without making external HTTP calls.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> sentMessages = new ArrayList<>();
+    private final List<String> payloads = new ArrayList<>();
+    private boolean shouldSucceed = true;
 
     @Override
-    public void sendMessage(String messageBody) {
-        // In a real mock, we might validate input types here, but we mostly just capture it.
-        this.sentMessages.add(messageBody);
+    public boolean send(String payload) {
+        this.payloads.add(payload);
+        return shouldSucceed;
     }
 
-    public List<String> getSentMessages() {
-        return new ArrayList<>(sentMessages);
-    }
-
-    public boolean hasReceivedMessageContaining(String substring) {
-        return sentMessages.stream().anyMatch(msg -> msg.contains(substring));
+    public List<String> getPayloads() {
+        return new ArrayList<>(payloads);
     }
 
     public void clear() {
-        sentMessages.clear();
+        payloads.clear();
+    }
+
+    public void setShouldSucceed(boolean flag) {
+        this.shouldSucceed = flag;
     }
 }

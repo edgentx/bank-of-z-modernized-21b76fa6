@@ -1,25 +1,16 @@
 package com.example.ports;
 
-import java.util.Map;
-
 /**
- * Port for sending notifications to Slack.
- * Used by the temporal-worker logic to report defects.
+ * Port interface for sending Slack notifications.
+ * Used by Temporal workflows to decouple from the actual Slack SDK.
  */
 public interface SlackNotificationPort {
-    /**
-     * Posts a message to a Slack channel.
-     *
-     * @param channel The target channel (e.g., "#vforce360-issues")
-     * @param body The message body content
-     * @return true if successful, false otherwise
-     */
-    boolean postMessage(String channel, String body);
 
     /**
-     * Posts a message with structured blocks.
+     * Posts a message to a channel.
+     * @param channel The target channel (e.g. "#vforce360-issues")
+     * @param messageBody The formatted message body
+     * @return true if sending was successful
      */
-    default boolean postMessage(String channel, Map<String, Object> blocks) {
-        return false; 
-    }
+    boolean postMessage(String channel, String messageBody);
 }

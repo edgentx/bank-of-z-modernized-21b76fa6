@@ -3,37 +3,44 @@ package com.vforce360;
 import com.vforce360.ports.MarReportPort;
 import com.vforce360.model.AssessmentReport;
 import com.vforce360.model.RenderedReportResponse;
+import com.vforce360.service.ReportRenderingService;
 import org.springframework.web.bind.annotation.*;
 
 /**
  * REST Controller for MAR Review Section.
- * Placeholder implementation to satisfy compilation during Red Phase.
- * This class will be modified to fix the bug in Green Phase.
+ * 
+ * GREEN PHASE UPDATE:
+ * - Injects ReportRenderingService.
+ * - Delegates content transformation to the service.
+ * - Returns "text/html" content type in the response wrapper.
  */
 @RestController
 @RequestMapping("/api/projects/{projectId}/mar")
 public class MarReportController {
 
     private final MarReportPort marReportPort;
+    private final ReportRenderingService renderingService;
 
-    public MarReportController(MarReportPort marReportPort) {
+    // Constructor Injection
+    public MarReportController(MarReportPort marReportPort, ReportRenderingService renderingService) {
         this.marReportPort = marReportPort;
+        this.renderingService = renderingService;
     }
 
     @GetMapping("/review")
     public RenderedReportResponse getMarReview(@PathVariable String projectId) {
-        // DEFECTIVE CODE (Red Phase):
-        // Currently returns raw content wrapped in JSON.
-        // This causes the test to fail, satisfying the TDD Red Phase requirement.
+        // 1. Retrieve raw report data
         AssessmentReport report = marReportPort.getReport(projectId);
         
         if (report == null) {
-            return new RenderedReportResponse("Not Found", "text/plain");
+            return new RenderedReportResponse("Report not found", "text/plain");
         }
 
-        // BUG: Returning raw content directly without parsing/rendering to HTML.
-        // The test explicitly checks that the content starts with '<' (HTML) 
-        // and does not start with '{' (JSON).
-        return new RenderedReportResponse(report.getRawContent(), "application/json");
+        // 2. Transform raw content to HTML
+        // Even if the DB contains Markdown, the service converts it to HTML.
+        String htmlContent = renderingService.renderReportToHtml(report);
+
+        // 3. Return formatted response
+        return new RenderedReportResponse(htmlContent, "text/html");
     }
 }

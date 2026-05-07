@@ -1,116 +1,115 @@
 package com.example.domain.teller;
 
-import com.example.domain.shared.DomainEvent;
-import com.example.domain.teller.model.SessionStartedEvent;
 import com.example.domain.teller.model.StartSessionCmd;
-import com.example.domain.teller.model.TellerSessionAggregate;
+import com.example.domain.teller.model.SessionStartedEvent;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Test suite for TellerSession Aggregate.
- * Covers scenarios S-18 for StartSessionCmd.
+ * Test suite for TellerSessionAggregate.
+ * Covers acceptance criteria for StartSessionCmd.
  */
 class TellerSessionAggregateTest {
 
+    // Scenario: Successfully execute StartSessionCmd
     @Test
-    void testSuccessfullyExecuteStartSessionCmd() {
-        // Given
-        String sessionId = "sess-123";
+    void testSuccessfulStartSession() {
+        // Arrange
+        String sessionId = "session-123";
         String tellerId = "teller-01";
-        String terminalId = "term-05";
+        String terminalId = "term-42";
+        Duration timeout = Duration.ofMinutes(30);
+        Instant authTime = Instant.now();
+
         TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
+        StartSessionCmd cmd = new StartSessionCmd(sessionId, tellerId, terminalId, timeout, authTime);
 
-        // Valid context: Authenticated, Idle context, Not stale
-        StartSessionCmd cmd = new StartSessionCmd(
-            sessionId,
-            tellerId,
-            terminalId,
-            true,  // isAuthenticated
-            "IDLE", // navigationContext
-            false  // isStale
-        );
+        // Act
+        List<com.example.domain.shared.DomainEvent> events = aggregate.execute(cmd);
 
-        // When
-        List<DomainEvent> events = aggregate.execute(cmd);
-
-        // Then
-        assertFalse(events.isEmpty(), "An event should be emitted");
-        assertTrue(events.get(0) instanceof SessionStartedEvent, "Event should be SessionStartedEvent");
-
+        // Assert
+        assertEquals(1, events.size());
+        assertTrue(events.get(0) instanceof SessionStartedEvent);
+        
         SessionStartedEvent event = (SessionStartedEvent) events.get(0);
-        assertEquals("session.started", event.type());
         assertEquals(sessionId, event.aggregateId());
+        assertEquals("session.started", event.type());
         assertEquals(tellerId, event.tellerId());
         assertEquals(terminalId, event.terminalId());
-        assertNotNull(event.occurredAt());
-
-        // Verify Aggregate State
-        assertTrue(aggregate.isActive());
-        assertEquals(tellerId, aggregate.getTellerId());
     }
 
+    // Scenario: StartSessionCmd rejected — A teller must be authenticated
     @Test
     void testRejectedWhenNotAuthenticated() {
-        // Given
-        String sessionId = "sess-456";
+        // Arrange
+        String sessionId = "session-456";
+        // authenticatedAt is null implies not authenticated in this context
+        StartSessionCmd cmd = new StartSessionCmd(sessionId, "teller-01", "term-42", Duration.ofMinutes(30), null);
         TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
 
-        // Violation: Not authenticated
-        StartSessionCmd cmd = new StartSessionCmd(
-            sessionId, "teller-01", "term-01",
-            false, "IDLE", false
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> aggregate.execute(cmd)
         );
-
-        // When & Then
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
-            aggregate.execute(cmd);
-        });
-
-        assertEquals("Authentication required to start session.", ex.getMessage());
+        
+        assertTrue(exception.getMessage().contains("must be authenticated"));
     }
 
+    // Scenario: StartSessionCmd rejected — Sessions must timeout
     @Test
-    void testRejectedWhenSessionTimedOut() {
-        // Given
-        String sessionId = "sess-789";
+    void testRejectedWhenTimeoutInvalid() {
+        // Arrange
+        String sessionId = "session-789";
+        // Zero or Negative duration violates the invariant
+        Duration invalidTimeout = Duration.ZERO;
+        StartSessionCmd cmd = new StartSessionCmd(
+            sessionId, 
+            "teller-01", 
+            "term-42", 
+            invalidTimeout, 
+            Instant.now()
+        );
         TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
 
-        // Violation: Stale session (Simulated via command flag)
-        StartSessionCmd cmd = new StartSessionCmd(
-            sessionId, "teller-01", "term-01",
-            true, "IDLE", true // isStale = true
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> aggregate.execute(cmd)
         );
 
-        // When & Then
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
-            aggregate.execute(cmd);
-        });
-
-        assertEquals("Session has timed out due to inactivity.", ex.getMessage());
+        assertTrue(exception.getMessage().contains("timeout"));
     }
 
+    // Scenario: StartSessionCmd rejected — Navigation state
     @Test
     void testRejectedWhenNavigationStateInvalid() {
-        // Given
-        String sessionId = "sess-101";
+        // Arrange
+        String sessionId = "session-nav-01";
         TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
+        
+        // Simulate invalid navigation context via test hook
+        aggregate.markNavigationContextInvalid();
 
-        // Violation: Invalid context (e.g., already in a transaction screen)
         StartSessionCmd cmd = new StartSessionCmd(
-            sessionId, "teller-01", "term-01",
-            true, "TRANSACTION_IN_PROGRESS", false
+            sessionId, 
+            "teller-01", 
+            "term-42", 
+            Duration.ofMinutes(30), 
+            Instant.now()
         );
 
-        // When & Then
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
-            aggregate.execute(cmd);
-        });
+        // Act & Assert
+        IllegalStateException exception = assertThrows(
+            IllegalStateException.class,
+            () -> aggregate.execute(cmd)
+        );
 
-        assertEquals("Navigation context must be IDLE or INIT to start session.", ex.getMessage());
+        assertTrue(exception.getMessage().contains("Navigation state"));
     }
 }

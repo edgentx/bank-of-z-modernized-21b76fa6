@@ -1,5 +1,4 @@
-Feature: Scaffold DDD Hexagonal Architecture (Java/Spring Boot)
-  Feature: Project scaffold with Aggregate Execute(cmd) pattern
+Feature: Project scaffold with Aggregate Execute(cmd) pattern
 
   Scenario: Build succeeds with zero errors
     Given the Java project has pom.xml with the correct parent and group id

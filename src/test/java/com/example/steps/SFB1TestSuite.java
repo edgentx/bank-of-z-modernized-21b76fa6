@@ -1,15 +1,18 @@
 package com.example.steps;
 
-import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
+import io.cucumber.junit.platform.engine.Cucumber;
 import org.junit.platform.suite.api.ConfigurationParameter;
 import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
-import org.junit.platform.suite.api.SuiteDisplayName;
+
+import static io.cucumber.junit.platform.engine.CucumberJUnitPlatformRunner.GLUE_PROPERTY_NAME;
 
 @Suite
 @IncludeEngines("cucumber")
+@SelectClasspathResource("features")
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
-@SuiteDisplayName("S-FB-1: GitHub URL Validation Suite")
+@Cucumber
 public class SFB1TestSuite {
-    // This class acts as the test runner for the feature file
+    // This class runs the Cucumber tests
 }

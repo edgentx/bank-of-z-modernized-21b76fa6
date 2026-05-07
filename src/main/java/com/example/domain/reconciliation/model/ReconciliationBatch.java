@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * ReconciliationBatch Aggregate
- * Handles the logic for starting a batch reconciliation process and forcing a batch to a balanced state.
+ * Handles the logic for starting and forcing a batch to a balanced state.
  */
 public class ReconciliationBatch extends AggregateRoot {
     private final String batchId;
@@ -19,7 +19,7 @@ public class ReconciliationBatch extends AggregateRoot {
     private boolean areAllEntriesAccounted = true;
 
     public enum Status {
-        OPEN, STARTED, BALANCED, CLOSED
+        OPEN, BALANCED, CLOSED
     }
 
     public ReconciliationBatch(String batchId) {
@@ -54,23 +54,21 @@ public class ReconciliationBatch extends AggregateRoot {
         }
 
         // Validate Command fields
-        if (cmd.batchWindowStart() == null || cmd.batchWindowEnd() == null) {
-            throw new IllegalArgumentException("Batch window start and end are required.");
+        if (cmd.startWindow() == null || cmd.endWindow() == null) {
+            throw new IllegalArgumentException("Batch window (start/end) is required.");
         }
 
-        if (cmd.batchWindowEnd().isBefore(cmd.batchWindowStart())) {
-            throw new IllegalArgumentException("Batch window end must be after start.");
+        if (cmd.startWindow().isAfter(cmd.endWindow())) {
+            throw new IllegalArgumentException("Start window must be before end window.");
         }
 
         var event = new ReconciliationStartedEvent(
                 this.batchId,
-                cmd.batchWindowStart(),
-                cmd.batchWindowEnd(),
+                cmd.startWindow(),
+                cmd.endWindow(),
                 Instant.now()
         );
 
-        // Apply state changes
-        this.status = Status.STARTED;
         addEvent(event);
         incrementVersion();
 
@@ -89,8 +87,8 @@ public class ReconciliationBatch extends AggregateRoot {
         }
 
         // Invariant: Only Open batches can be forced to balance
-        if (status != Status.OPEN && status != Status.STARTED) {
-            throw new IllegalStateException("Cannot force balance on a batch that is not OPEN or STARTED.");
+        if (status != Status.OPEN) {
+            throw new IllegalStateException("Cannot force balance on a batch that is not OPEN.");
         }
 
         // Validate Command fields

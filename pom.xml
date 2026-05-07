@@ -5,60 +5,101 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.3</version>
+        <version>3.2.0</version>
         <relativePath/>
     </parent>
-    
     <groupId>com.example</groupId>
-    <artifactId>demo</artifactId>
+    <artifactId>bank-of-z</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>demo</name>
+    <name>Bank of Z Modernization</name>
     <description>Demo project for Spring Boot</description>
-    
     <properties>
-        <java.version>21</java.version>
-        <cucumber.version>7.15.0</cucumber.version>
+        <java.version>17</java.version>
+        <cucumber.version>7.14.0</cucumber.version>
     </properties>
-    
     <dependencies>
-        <!-- Spring Boot Starters -->
+        <!-- Spring Boot Dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-integration</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.batch</groupId>
+            <artifactId>spring-batch-core</artifactId>
         </dependency>
         
+        <!-- IBM MQ (JMS) -->
+        <dependency>
+            <groupId>com.ibm.mq</groupId>
+            <artifactId>mq-jms-spring-boot-starter</artifactId>
+            <version>3.0.3</version>
+        </dependency>
+
         <!-- Database Drivers -->
         <dependency>
             <groupId>com.ibm.db2</groupId>
             <artifactId>jcc</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!-- Flyway for DB2 -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
-        <!-- 
-           IMPORTANT FIX: 
-           flyway-db2 is an enterprise module often outside the standard BOM. 
-           We use the community-supported edition name 'flyway-database-db2' for modern Flyway versions 
-           OR specify an explicit version for the legacy artifact.
-           Given the error reported 'flyway-db2:jar:9.22.3 not found', and 9.22.3 is valid, 
-           the issue is often the artifactId mismatch in newer repos or groupId.
-           Standardizing on 'flyway-database-db2' (supported by Redhat/standard repos) or explicit version.
-           Here we use the official artifact with explicit versioning to ensure resolution.
-        -->
         <dependency>
             <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-database-db2</artifactId>
-            <version>9.22.3</version>
-            <scope>runtime</scope>
+            <artifactId>flyway-db2</artifactId>
         </dependency>
 
-        <!-- Testing -->
+        <!-- Observability -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-otlp</artifactId>
+            <version>1.12.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+            <version>1.36.0</version>
+        </dependency>
+
+        <!-- Temporal -->
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-spring-boot-starter</artifactId>
+            <version>1.22.1</version>
+        </dependency>
+
+        <!-- Storage -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>8.5.7</version>
+        </dependency>
+
+        <!-- Caching -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!-- Testing & Cucumber -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -88,6 +129,14 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                </configuration>
             </plugin>
         </plugins>
     </build>

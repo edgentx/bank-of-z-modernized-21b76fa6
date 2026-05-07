@@ -1,15 +1,16 @@
 package com.example.mocks;
 
-/**
- * Mock interface for Slack notifications.
- * Used to verify that the system attempts to send the correct data
- * without actually calling the Slack API.
- */
-public interface MockSlackNotificationPort {
-    void sendNotification(String channel, String body);
+import com.example.domain.vforce.ports.SlackNotificationPort;
+import java.util.ArrayList;
+import java.util.List;
 
-    /**
-     * Helper for tests to check if the URL was in the body.
-     */
-    boolean lastBodyContains(String text);
+public class MockSlackNotificationPort implements SlackNotificationPort {
+    public final List<String> postedMessages = new ArrayList<>();
+    public String lastChannel;
+
+    @Override
+    public void postMessage(String channel, String text) {
+        this.lastChannel = channel;
+        this.postedMessages.add(text);
+    }
 }

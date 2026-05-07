@@ -4,14 +4,13 @@ package com.example.ports;
  * Port for interacting with GitHub issues.
  */
 public interface GitHubIssuePort {
-    
+
     /**
-     * Creates a new issue on GitHub.
+     * Creates a new issue in the configured GitHub repository.
      *
      * @param title The title of the issue.
-     * @param body The body content of the issue.
-     * @return The URL of the created issue.
-     * @throws IllegalArgumentException if title or body is invalid.
+     * @param description The body content of the issue.
+     * @return The full HTML URL of the created issue.
      */
-    String createIssue(String title, String body);
+    String createIssue(String title, String description);
 }

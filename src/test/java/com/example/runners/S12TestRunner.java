@@ -8,5 +8,4 @@ import org.junit.platform.suite.api.Suite;
 @IncludeEngines("cucumber")
 @SelectClasspathResource("features/S-12.feature")
 public class S12TestRunner {
-    // This class acts as the JUnit 5 Suite runner for Cucumber
 }

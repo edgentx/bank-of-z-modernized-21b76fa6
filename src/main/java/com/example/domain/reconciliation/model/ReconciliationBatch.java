@@ -19,7 +19,7 @@ public class ReconciliationBatch extends AggregateRoot {
     private boolean areAllEntriesAccounted = true;
 
     public enum Status {
-        OPEN, BALANCED, CLOSED, RECONCILING
+        OPEN, BALANCED, CLOSED, STARTED
     }
 
     public ReconciliationBatch(String batchId) {
@@ -33,11 +33,11 @@ public class ReconciliationBatch extends AggregateRoot {
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof StartReconciliationCmd c) {
-            return startReconciliation(c);
-        }
         if (cmd instanceof ForceBalanceCmd c) {
             return forceBalance(c);
+        }
+        if (cmd instanceof StartReconciliationCmd c) {
+            return startReconciliation(c);
         }
         throw new UnknownCommandException(cmd);
     }
@@ -59,10 +59,12 @@ public class ReconciliationBatch extends AggregateRoot {
         }
 
         // Validate Command fields
+        if (cmd.batchId() == null || cmd.batchId().isBlank()) {
+            throw new IllegalArgumentException("BatchId is required to start reconciliation.");
+        }
         if (cmd.start() == null || cmd.end() == null) {
             throw new IllegalArgumentException("Batch window (start/end) is required.");
         }
-
         if (cmd.end().isBefore(cmd.start())) {
             throw new IllegalArgumentException("Batch window end must be after start.");
         }
@@ -75,7 +77,7 @@ public class ReconciliationBatch extends AggregateRoot {
         );
 
         // Apply state changes
-        this.status = Status.RECONCILING;
+        this.status = Status.STARTED;
         addEvent(event);
         incrementVersion();
 

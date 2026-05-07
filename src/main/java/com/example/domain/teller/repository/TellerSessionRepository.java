@@ -1,10 +1,10 @@
 package com.example.domain.teller.repository;
 
-import com.example.domain.teller.model.TellerSession;
+import com.example.domain.teller.model.TellerSessionAggregate;
+
 import java.util.Optional;
 
 public interface TellerSessionRepository {
-    void save(TellerSession aggregate);
-    Optional<TellerSession> findById(String id);
-    // Standard repository pattern for aggregate roots
+    void save(TellerSessionAggregate aggregate);
+    Optional<TellerSessionAggregate> findById(String sessionId);
 }

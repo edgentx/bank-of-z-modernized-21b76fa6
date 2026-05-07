@@ -5,18 +5,18 @@ import com.example.domain.transfer.repository.TransferRepository;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class TransferRepositoryMock implements TransferRepository {
     private final Map<String, TransferAggregate> store = new HashMap<>();
 
     @Override
-    public TransferAggregate save(TransferAggregate aggregate) {
+    public void save(TransferAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
-        return aggregate;
     }
 
     @Override
-    public TransferAggregate findById(String id) {
-        return store.get(id);
+    public Optional<TransferAggregate> findById(String id) {
+        return Optional.ofNullable(store.get(id));
     }
 }

@@ -1,19 +1,22 @@
 package com.example.domain.teller.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
+/**
+ * Domain event emitted when a Teller successfully navigates to a new menu/screen.
+ */
 public record MenuNavigatedEvent(
     String aggregateId,
-    String menuId,
+    String previousMenuId,
+    String currentMenuId,
     String action,
     Instant occurredAt
 ) implements DomainEvent {
     public MenuNavigatedEvent {
         if (aggregateId == null || aggregateId.isBlank()) {
-            throw new IllegalArgumentException("aggregateId required");
+            throw new IllegalArgumentException("aggregateId cannot be blank");
         }
         if (occurredAt == null) {
             occurredAt = Instant.now();
@@ -23,18 +26,5 @@ public record MenuNavigatedEvent(
     @Override
     public String type() {
         return "menu.navigated";
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        MenuNavigatedEvent that = (MenuNavigatedEvent) o;
-        return Objects.equals(aggregateId, that.aggregateId) && Objects.equals(menuId, that.menuId) && Objects.equals(action, that.action);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(aggregateId, menuId, action);
     }
 }

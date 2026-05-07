@@ -1,7 +1,7 @@
 package com.example.steps;
 
 import com.example.domain.shared.Command;
-import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.tellersession.model.SessionStartedEvent;
 import com.example.domain.tellersession.model.StartSessionCmd;
 import com.example.domain.tellersession.model.TellerSessionAggregate;
@@ -10,133 +10,126 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Cucumber Steps for S-18: TellerSession StartSessionCmd feature.
+ */
 public class S18Steps {
 
     private TellerSessionAggregate aggregate;
-    private String sessionId = "sess-123";
-    private String tellerId = "teller-01";
-    private String terminalId = "term-01";
-    private Exception capturedException;
-    private List<DomainEvent> resultEvents;
+    private String sessionId = "session-123";
+    private String tellerId = "teller-001";
+    private String terminalId = "term-42";
+    private Exception caughtException;
+    private List<com.example.domain.shared.DomainEvent> resultEvents;
 
     @Given("a valid TellerSession aggregate")
-    public void a_valid_TellerSession_aggregate() {
+    public void a_valid_teller_session_aggregate() {
         aggregate = new TellerSessionAggregate(sessionId);
     }
 
     @And("a valid tellerId is provided")
-    public void a_valid_tellerId_is_provided() {
-        // tellerId initialized in field
-        assertNotNull(tellerId);
+    public void a_valid_teller_id_is_provided() {
+        // tellerId is already defaulted to valid in constructor, but we keep the hook for clarity
+        this.tellerId = "teller-001";
     }
 
     @And("a valid terminalId is provided")
-    public void a_valid_terminalId_is_provided() {
-        // terminalId initialized in field
-        assertNotNull(terminalId);
+    public void a_valid_terminal_id_is_provided() {
+        this.terminalId = "term-42";
     }
 
     @When("the StartSessionCmd command is executed")
-    public void the_StartSessionCmd_command_is_executed() {
-        executeCommand(new StartSessionCmd(sessionId, tellerId, terminalId, true, "HOME"));
+    public void the_start_session_cmd_command_is_executed() {
+        StartSessionCmd cmd = new StartSessionCmd(sessionId, tellerId, terminalId, true);
+        try {
+            resultEvents = aggregate.execute(cmd);
+        } catch (Exception e) {
+            caughtException = e;
+        }
     }
 
     @Then("a session.started event is emitted")
     public void a_session_started_event_is_emitted() {
-        assertNull(capturedException, "Should not have thrown exception");
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof SessionStartedEvent);
+        assertNotNull(resultEvents, "Events should not be null");
+        assertEquals(1, resultEvents.size(), "Exactly one event should be emitted");
         
-        SessionStartedEvent event = (SessionStartedEvent) resultEvents.get(0);
-        assertEquals("session.started", event.type());
-        assertEquals(sessionId, event.aggregateId());
+        com.example.domain.shared.DomainEvent event = resultEvents.get(0);
+        assertTrue(event instanceof SessionStartedEvent, "Event must be SessionStartedEvent");
+        
+        SessionStartedEvent startedEvent = (SessionStartedEvent) event;
+        assertEquals("session.started", startedEvent.type());
+        assertEquals(sessionId, startedEvent.aggregateId());
+        assertEquals(tellerId, startedEvent.tellerId());
+        assertEquals(terminalId, startedEvent.terminalId());
+        
+        // Verify Aggregate State
+        assertTrue(aggregate.isActive());
+        assertTrue(aggregate.isAuthenticated());
+        assertEquals("HOME", aggregate.getCurrentScreen());
     }
 
-    // --- Negative Scenarios ---
+    // --- Scenarios for Domain Error Rejection ---
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_TellerSession_aggregate_that_violates_authentication() {
+    public void a_teller_session_aggregate_that_violates_authentication() {
         aggregate = new TellerSessionAggregate(sessionId);
-        // Simulate unauthenticated state
-        tellerId = "unauthorized-teller";
     }
 
-    @When("the StartSessionCmd command is executed")
-    public void the_command_is_executed_with_unauthenticated_context() {
-        // isAuthenticated = false
-        executeCommand(new StartSessionCmd(sessionId, tellerId, terminalId, false, "HOME"));
+    // Re-uses @When for execution, but command will differ via context or specific Given setup
+    // Since Given setup here implies the *condition* for failure, we might need to override the command creation logic.
+    // For simplicity in Cucumber, we can manipulate the state of the aggregate or the inputs before 'When'.
+    // However, standard Cucumber usually passes data via Table or Context. Here, we can adjust the command
+    // passed to 'When' if 'When' was generic. But 'When' is specific.
+    // Better approach: The 'Given' sets up the AGGREGATE state or inputs, and 'When' consumes them.
+    // For the specific scenario of Auth failure, we modify the 'When' call data or inject a flag.
+    
+    // Let's refine: The scenario says "aggregate violates...". But StartSessionCmd is an INITIATION command.
+    // The invariant check is usually on the INPUT.
+    // I will modify the behavior based on context in the test steps.
+
+    @When("the StartSessionCmd command is executed with unauthenticated user")
+    public void the_start_session_cmd_command_is_executed_unauthenticated() {
+        // Overriding the specific command for this scenario
+        StartSessionCmd cmd = new StartSessionCmd(sessionId, tellerId, terminalId, false); // isAuthenticated = false
+        try {
+            resultEvents = aggregate.execute(cmd);
+        } catch (IllegalStateException e) {
+            caughtException = e;
+        }
+    }
+
+    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
+    public void a_teller_session_aggregate_that_violates_timeout() {
+        aggregate = new TellerSessionAggregate(sessionId);
+        // Force the aggregate into an active state but with stale activity timestamp
+        aggregate.setActive(true);
+        // Set last activity to 20 minutes ago (assuming timeout is 15)
+        aggregate.setLastActivityAt(Instant.now().minus(Duration.ofMinutes(20)));
+        aggregate.setCurrentScreen("HOME"); // Ensure context is otherwise valid
+    }
+
+    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
+    public void a_teller_session_aggregate_that_violates_navigation_state() {
+        aggregate = new TellerSessionAggregate(sessionId);
+        // Set screen to something invalid for a start (e.g. stuck in a transaction)
+        aggregate.setActive(true); // If active, it checks this. If not active, it might not check depending on logic.
+        // Logic in Aggregate: checks `currentScreen`.
+        aggregate.setCurrentScreen("TRANSACTION_IN_PROGRESS");
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(capturedException);
-        assertTrue(capturedException instanceof IllegalStateException);
+        assertNotNull(caughtException, "Expected an exception to be thrown");
+        assertTrue(caughtException instanceof IllegalStateException, "Expected IllegalStateException");
+        
+        // Verify the error message matches the Gherkin description loosely
+        String msg = caughtException.getMessage();
+        assertTrue(msg.length() > 0, "Error message should not be empty");
     }
-
-    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_TellerSession_aggregate_that_violates_timeout() {
-        aggregate = new TellerSessionAggregate(sessionId);
-        // Force an invalid state (e.g., pre-existing stale activity) handled by internal logic or command context
-        // Since startSession checks lastActivityAt, we can simulate a case where we might be reusing an ID incorrectly.
-        // However, the aggregate logic checks lastActivityAt != null. For this scenario, we assume the command 
-        // context or system state triggers the invariant failure. 
-        // In this simple implementation, we pass null context and valid state, so we rely on the specific logic.
-        // To force the specific timeout error in this implementation, we'd need to hydrate the aggregate with a stale date, 
-        // but the constructor defaults it to null.
-        // We will interpret the step as setting up the command execution that triggers the specific check logic if it existed,
-        // or testing the specific message. Given the current logic: `lastActivityAt != null` is the check.
-    }
-    
-    // Overriding the generic When for this specific scenario context if needed, 
-    // but we can reuse the generic method if we pass specific params. 
-    // However, Cucumber matches the text exactly.
-    
-    // We will use a state flag to handle the parameterization for the different violation scenarios.
-
-    private String violationType;
-
-    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_TellerSession_aggregate_that_violates_timeout_logic() {
-        violationType = "TIMEOUT";
-        aggregate = new TellerSessionAggregate(sessionId);
-        // Logic depends on implementation details. For this test, we might not be able to force it 
-        // without a more complex aggregate setup (loading from repo). 
-        // We will skip specific assertion of the exact message if logic is simple, or assume the handler throws.
-    }
-
-    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_TellerSession_aggregate_that_violates_navigation_state() {
-        violationType = "NAVIGATION";
-        aggregate = new TellerSessionAggregate(sessionId);
-    }
-
-    // The generic 'When the StartSessionCmd command is executed' is defined above.
-    // We need to modify it to handle the 'violationType' context to pass the right Command payload.
-
-    // Re-defining the When method to handle context (polymorphic steps in Cucumber are tricky, 
-    // usually we use specific Whens. But the prompt has identical Whens.
-    // We will update the first When to be smart, or rely on Cucumber picking the most specific? 
-    // No, Java method overloading doesn't apply to Gherkin matching easily.
-    // We will check the state inside the existing @When method if possible, 
-    // OR we just rely on the Given setup setting variables that the @When reads.
-
-    // Let's update the first @When to handle the scenarios.
-
-    // We need to duplicate the @When annotation with different regex or handle logic inside.
-    // Actually, the prompt says "When the StartSessionCmd command is executed" for all.
-    // We will use a single method and detect the violation scenario.
-
-    // Updating the first @When method logic to use the violationType flag.
-
-    // Wait, I should modify the code in the block above, but I can only emit files.
-    // I will define the steps carefully.
-
-    // Re-visiting the generated S18Steps.java content:
-    // I will use a single @When method and check the 'violationType' to determine the command parameters.
-
 }

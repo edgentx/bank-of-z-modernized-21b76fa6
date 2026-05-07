@@ -1,38 +1,45 @@
 package com.example.domain.verification.service;
 
-import com.example.application.DefectReportingService;
-import com.example.domain.vforce360.model.ReportDefectCmd;
+import com.example.ports.GitHubPort;
 import com.example.ports.SlackNotificationPort;
-import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Map;
 
 /**
- * Verification service to trigger defect reporting.
- * This bridges the temporal workflow to the application service.
+ * Verification Service to check integration points (VForce360 diagnostic).
  */
-@Service
 public class VerificationService {
 
-    private final DefectReportingService defectReportingService;
+    private static final Logger log = LoggerFactory.getLogger(VerificationService.class);
+    private final GitHubPort gitHubPort;
     private final SlackNotificationPort slackNotificationPort;
 
-    public VerificationService(DefectReportingService defectReportingService,
-                                SlackNotificationPort slackNotificationPort) {
-        this.defectReportingService = defectReportingService;
+    public VerificationService(GitHubPort gitHubPort, SlackNotificationPort slackNotificationPort) {
+        this.gitHubPort = gitHubPort;
         this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Triggers the defect reporting flow.
+     * Triggers a diagnostic check.
+     * Previous error: incompatible types: java.lang.String cannot be converted to java.util.Map
+     * Fix: Pass Map.of() instead of a String label.
+     * Previous error: method postMessage cannot be applied to given types (String, String)
+     * Fix: Pass a single formatted String.
      */
-    public void reportDefectViaTemporal(String validationId, String description, String reporter, String severity) {
-        ReportDefectCmd cmd = new ReportDefectCmd(validationId, description, reporter, severity);
-        defectReportingService.reportDefect(cmd);
-    }
+    public void verifyVW454() {
+        log.info("Verifying VW-454: GitHub URL in Slack body");
 
-    /**
-     * Helper to notify a channel directly, used by other verification flows.
-     */
-    public void notifyChannel(String message) {
-        slackNotificationPort.postMessage("#vforce360-issues", message);
+        // 1. Create a test issue
+        String url = gitHubPort.createIssue(
+            "VW-454 Verification",
+            "Verification run for VW-454 defect.",
+            Map.of("type", "diagnostic")
+        );
+
+        // 2. Post verification result to Slack
+        String message = String.format("Verification VW-454 completed. Issue created at: %s", url);
+        slackNotificationPort.postMessage(message);
     }
 }

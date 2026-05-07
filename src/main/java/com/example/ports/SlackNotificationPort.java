@@ -1,18 +1,19 @@
 package com.example.ports;
 
-import java.net.URI;
+import java.util.Map;
 
 /**
- * Port interface for Slack Notifications.
+ * Port interface for sending Slack notifications.
+ * Used by Temporal workflows/activities to decouple from specific client implementations.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends a notification about a defect.
+     * Sends a notification payload to a configured Slack channel.
      *
-     * @param defectId   The ID of the defect
-     * @param message    The error message
-     * @param githubUrl  The URL of the created GitHub issue
+     * @param channel The target channel (e.g. "#vforce360-issues")
+     * @param payload The message body map, expected to contain "text" or other Slack blocks.
+     * @throws RuntimeException if the notification fails to send.
      */
-    void sendDefectNotification(String defectId, String message, URI githubUrl);
+    void sendNotification(String channel, Map<String, Object> payload);
 }

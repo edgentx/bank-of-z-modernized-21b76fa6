@@ -9,87 +9,81 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Cucumber Steps for S-18: StartSessionCmd on TellerSession.
- */
 public class S18Steps {
 
     private TellerSessionAggregate aggregate;
-    private String testTellerId = "TELLER_01";
-    private String testTerminalId = "TERM_3270_01";
-    private Exception capturedException;
-    private List<DomainEvent> resultEvents;
+    private Exception caughtException;
+    private java.util.List<DomainEvent> resultEvents;
 
     @Given("a valid TellerSession aggregate")
-    public void aValidTellerSessionAggregate() {
-        aggregate = new TellerSessionAggregate("session-123");
+    public void a_valid_TellerSession_aggregate() {
+        aggregate = new TellerSessionAggregate("session-1");
+        aggregate.markAuthenticated(); // Force valid state
+        aggregate.setNavigationContextValid(); // Force valid context
+        aggregate.setTimeoutValid(); // Force valid timeout
+    }
+
+    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
+    public void a_TellerSession_aggregate_that_violates_authentication() {
+        aggregate = new TellerSessionAggregate("session-2");
+        // Not authenticated by default, just ensure other guards are open
+        aggregate.setNavigationContextValid();
+        aggregate.setTimeoutValid();
+    }
+
+    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
+    public void a_TellerSession_aggregate_that_violates_timeout() {
+        aggregate = new TellerSessionAggregate("session-3");
+        aggregate.markAuthenticated();
+        aggregate.setNavigationContextValid();
+        aggregate.forceTimeoutViolation(); // Simulate timeout
+    }
+
+    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
+    public void a_TellerSession_aggregate_that_violates_navigation() {
+        aggregate = new TellerSessionAggregate("session-4");
+        aggregate.markAuthenticated();
+        aggregate.setTimeoutValid();
+        aggregate.forceNavigationViolation(); // Simulate bad context
     }
 
     @And("a valid tellerId is provided")
-    public void aValidTellerIdIsProvided() {
-        testTellerId = "TELLER_01";
+    public void a_valid_tellerId_is_provided() {
+        // Context: Handled in the 'When' step via command construction
     }
 
     @And("a valid terminalId is provided")
-    public void aValidTerminalIdIsProvided() {
-        testTerminalId = "TERM_3270_01";
+    public void a_valid_terminalId_is_provided() {
+        // Context: Handled in the 'When' step via command construction
     }
 
     @When("the StartSessionCmd command is executed")
-    public void theStartSessionCmdCommandIsExecuted() {
-        // Defaults to valid state for the happy path scenario
-        executeCommand(true, false, "HOME");
-    }
-
-    private void executeCommand(boolean isAuthenticated, boolean isTimedOut, String navigationState) {
+    public void the_StartSessionCmd_command_is_executed() {
         try {
-            Command cmd = new StartSessionCmd(testTellerId, testTerminalId, isAuthenticated, isTimedOut, navigationState);
+            StartSessionCmd cmd = new StartSessionCmd("session-id", "teller-123", "term-456");
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            capturedException = e;
+            caughtException = e;
         }
     }
 
     @Then("a session.started event is emitted")
-    public void aSessionStartedEventIsEmitted() {
-        assertNotNull(resultEvents, "Expected events to be emitted");
-        assertEquals(1, resultEvents.size(), "Expected exactly one event");
-        assertTrue(resultEvents.get(0) instanceof SessionStartedEvent, "Expected SessionStartedEvent");
-    }
-
-    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void aTellerSessionAggregateThatViolatesAuthentication() {
-        aggregate = new TellerSessionAggregate("session-auth-fail");
-    }
-
-    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void aTellerSessionAggregateThatViolatesTimeout() {
-        aggregate = new TellerSessionAggregate("session-timeout");
-    }
-
-    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void aTellerSessionAggregateThatViolatesNavigationState() {
-        aggregate = new TellerSessionAggregate("session-nav-error");
+    public void a_session_started_event_is_emitted() {
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof SessionStartedEvent);
+        SessionStartedEvent event = (SessionStartedEvent) resultEvents.get(0);
+        assertEquals("session-id", event.aggregateId());
+        assertEquals("teller-123", event.tellerId());
+        assertEquals("term-456", event.terminalId());
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(capturedException, "Expected an exception to be thrown");
-        assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException,
-                "Expected a domain error (IllegalStateException or IllegalArgumentException)");
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(caughtException);
+        // Checking for IllegalStateException or IllegalArgumentException as domain errors
+        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
     }
-
-    // Context modifiers for specific scenarios based on the violation.
-    // We utilize existing hooks or implied state handling via the Given steps calling setup logic.
-    
-    // Note: In a real runner, we might differentiate scenarios explicitly, but for this generator,
-    // we handle the injection logic via separate Given methods or hooks.
-    // To ensure isolation for the negative scenarios, we'll assume the tests drive the state.
-    
-    // Additional specific setup for negative flows could be added here or handled via parameterized Givens.
 }

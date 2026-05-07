@@ -1,25 +1,35 @@
 package com.example.mocks;
 
-import com.example.ports.GitHubPort;
+import com.example.domain.vforce360.ports.GitHubPort;
 
+/**
+ * Mock adapter for GitHub interactions.
+ * Simulates issue creation and returns deterministic URLs.
+ */
 public class MockGitHubPort implements GitHubPort {
 
-    private String issueUrl = "https://github.com/example/repo/issues/1";
-    private boolean shouldFail = false;
+    private int callCount = 0;
+    private String lastTitle;
+    private String lastBody;
 
     @Override
     public String createIssue(String title, String body) {
-        if (shouldFail) {
-            throw new RuntimeException("Failed to create issue");
-        }
-        return issueUrl;
+        this.lastTitle = title;
+        this.lastBody = body;
+        callCount++;
+        // Simulate GitHub returning a valid URL
+        return "https://github.com/example/bank-of-z/issues/" + callCount;
     }
 
-    public void setIssueUrl(String url) {
-        this.issueUrl = url;
+    public int getCallCount() {
+        return callCount;
     }
 
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
+    public String getLastTitle() {
+        return lastTitle;
+    }
+
+    public String getLastBody() {
+        return lastBody;
     }
 }

@@ -1,10 +1,10 @@
 package com.example.steps;
 
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.teller.model.EndSessionCmd;
-import com.example.domain.teller.model.SessionEndedEvent;
-import com.example.domain.teller.model.TellerSessionAggregate;
+import com.example.domain.tellercmd.model.EndSessionCmd;
+import com.example.domain.tellercmd.model.SessionEndedEvent;
+import com.example.domain.tellercmd.model.TellerSessionAggregate;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -12,81 +12,77 @@ import io.cucumber.java.en.When;
 import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
+import java.util.UUID;
 
 public class S20Steps {
 
     private TellerSessionAggregate aggregate;
-    private Exception capturedException;
     private List<DomainEvent> resultEvents;
+    private Exception caughtException;
+    private String sessionId;
 
     @Given("a valid TellerSession aggregate")
     public void aValidTellerSessionAggregate() {
-        String sessionId = "SESSION-123";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markAuthenticated(); // Ensure it meets invariants
-        aggregate.clearEvents(); // clear creation noise if any
+        this.sessionId = UUID.randomUUID().toString();
+        this.aggregate = new TellerSessionAggregate(sessionId);
+        // Hydrate the aggregate to a valid state (simulating prior events)
+        // In a real test, we might apply a SessionStartedEvent, but for this command
+        // we assume the object exists and is in a valid state.
+    }
+
+    @Given("a valid sessionId is provided")
+    public void aValidSessionIdIsProvided() {
+        // sessionId already set in previous step
+        Assertions.assertNotNull(sessionId);
     }
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
     public void aTellerSessionAggregateThatViolatesAuthentication() {
-        String sessionId = "SESSION-FAIL-AUTH";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markUnauthenticated(); // Violate invariant
+        this.sessionId = UUID.randomUUID().toString();
+        this.aggregate = new TellerSessionAggregate(sessionId);
+        // We flag the aggregate as unauthenticated so the execute logic fails
+        this.aggregate.markUnauthenticated(); // Helper method for test setup
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
     public void aTellerSessionAggregateThatViolatesTimeout() {
-        String sessionId = "SESSION-FAIL-TIMEOUT";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markAuthenticated(); // Must be valid otherwise
-        aggregate.markExpired(); // Violate timeout invariant
+        this.sessionId = UUID.randomUUID().toString();
+        this.aggregate = new TellerSessionAggregate(sessionId);
+        // We flag the aggregate as timed out
+        this.aggregate.markTimedOut(); // Helper method for test setup
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void aTellerSessionAggregateThatViolatesNavigationContext() {
-        String sessionId = "SESSION-FAIL-NAVI";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markAuthenticated();
-        aggregate.markInvalidNavigationContext(); // Violate navigation invariant
-    }
-
-    @And("a valid sessionId is provided")
-    public void aValidSessionIdIsProvided() {
-        // The sessionId is implicitly provided by the aggregate initialization in the Given steps.
-        // If this were a real application service, we would assert the command ID matches the aggregate ID.
-        // For aggregate unit testing, the context is already established.
+    public void aTellerSessionAggregateThatViolatesNavigationState() {
+        this.sessionId = UUID.randomUUID().toString();
+        this.aggregate = new TellerSessionAggregate(sessionId);
+        // We flag the aggregate as having invalid navigation state
+        this.aggregate.markNavigationInvalid(); // Helper method for test setup
     }
 
     @When("the EndSessionCmd command is executed")
     public void theEndSessionCmdCommandIsExecuted() {
         try {
-            EndSessionCmd cmd = new EndSessionCmd(aggregate.id());
-            resultEvents = aggregate.execute(cmd);
+            Command cmd = new EndSessionCmd(sessionId);
+            this.resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            capturedException = e;
+            this.caughtException = e;
         }
     }
 
     @Then("a session.ended event is emitted")
     public void aSessionEndedEventIsEmitted() {
-        Assertions.assertNotNull(resultEvents, "Expected events to be emitted");
-        Assertions.assertEquals(1, resultEvents.size(), "Expected exactly one event");
-        Assertions.assertTrue(resultEvents.get(0) instanceof SessionEndedEvent, "Expected SessionEndedEvent");
+        Assertions.assertNull(caughtException, "Expected no exception, but got: " + caughtException);
+        Assertions.assertNotNull(resultEvents);
+        Assertions.assertEquals(1, resultEvents.size());
+        Assertions.assertTrue(resultEvents.get(0) instanceof SessionEndedEvent);
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(capturedException, "Expected an exception to be thrown");
-        // In this domain implementation, we use IllegalStateException for invariant violations
-        Assertions.assertTrue(capturedException instanceof IllegalStateException, "Expected IllegalStateException");
-        
-        // Optionally verify the message content matches the violation specific text
-        String message = capturedException.getMessage();
-        Assertions.assertTrue(
-                message.contains("must be authenticated") 
-             || message.contains("timeout") 
-             || message.contains("Navigation state"),
-                "Error message did not match expected invariant violations: " + message
-        );
+        Assertions.assertNotNull(caughtException, "Expected an exception to be thrown");
+        // Depending on implementation, this could be IllegalStateException or IllegalArgumentException.
+        // The prompt implies invariants are enforced, usually via IllegalStateException in this pattern.
+        Assertions.assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
     }
 }

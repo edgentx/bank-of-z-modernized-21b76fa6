@@ -1,107 +1,105 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
-import com.example.domain.shared.DomainEvent;
-import com.example.domain.transaction.model.DepositPostedEvent;
 import com.example.domain.transaction.model.PostDepositCmd;
 import com.example.domain.transaction.model.TransactionAggregate;
-import io.cucumber.java.en.And;
+import com.example.domain.transaction.model.DepositPostedEvent;
+import com.example.domain.shared.Command;
+import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 public class S10Steps {
 
     private TransactionAggregate aggregate;
-    private Exception caughtException;
+    private PostDepositCmd command;
     private List<DomainEvent> resultEvents;
+    private Exception caughtException;
 
-    // Scenario: Successfully execute PostDepositCmd
     @Given("a valid Transaction aggregate")
-    public void a_valid_Transaction_aggregate() {
-        aggregate = new TransactionAggregate("txn-123");
-        // Starting state: not posted, 0 balance effect
+    public void a_valid_transaction_aggregate() {
+        aggregate = new TransactionAggregate("TXN-123", "ACC-456", BigDecimal.ZERO, "USD");
     }
 
-    @And("a valid accountNumber is provided")
-    public void a_valid_accountNumber_is_provided() {
-        // Context used in When step
+    @Given("a valid accountNumber is provided")
+    public void a_valid_account_number_is_provided() {
+        // Handled in constructor setup, or explicitly here if needed for specific command context
     }
 
-    @And("a valid amount is provided")
+    @Given("a valid amount is provided")
     public void a_valid_amount_is_provided() {
-        // Context used in When step
+        // Handled in command setup
     }
 
-    @And("a valid currency is provided")
+    @Given("a valid currency is provided")
     public void a_valid_currency_is_provided() {
-        // Context used in When step
+        // Handled in command setup
     }
 
-    // Scenario: PostDepositCmd rejected — Transaction amounts must be greater than zero.
     @Given("a Transaction aggregate that violates: Transaction amounts must be greater than zero.")
-    public void a_Transaction_aggregate_that_violates_amount_must_be_positive() {
-        aggregate = new TransactionAggregate("txn-invalid-amount");
+    public void a_transaction_aggregate_that_violates_amount_gt_zero() {
+        aggregate = new TransactionAggregate("TXN-INVALID", "ACC-456", BigDecimal.ZERO, "USD");
     }
 
-    // Scenario: PostDepositCmd rejected — Transactions cannot be altered or deleted once posted
-    @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.")
-    public void a_Transaction_aggregate_that_violates_already_posted() {
-        aggregate = new TransactionAggregate("txn-already-posted");
-        // Simulate posted state by mutating directly (tests handling internal state representation)
-        aggregate.markPostedInternal(); 
+    @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted")
+    public void a_transaction_aggregate_that_violates_immutability() {
+        aggregate = new TransactionAggregate("TXN-POSTED", "ACC-456", BigDecimal.ZERO, "USD");
+        // Force state to posted for the sake of the violation scenario
+        // In a real repo we would load an already posted aggregate. Here we mock state.
+        aggregate.markPosted(); 
     }
 
-    // Scenario: PostDepositCmd rejected — A transaction must result in a valid account balance
-    @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance (enforced via aggregate validation).")
-    public void a_Transaction_aggregate_that_violates_valid_balance() {
-        aggregate = new TransactionAggregate("txn-invalid-balance");
-        aggregate.setSimulatedCurrentBalance(BigDecimal.valueOf(100));
+    @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance")
+    public void a_transaction_aggregate_that_violates_balance_validation() {
+        // Simulate an account with MAX_VALUE balance, so any deposit overflows
+        aggregate = new TransactionAggregate("TXN-OVERFLOW", "ACC-999", BigDecimal.valueOf(Long.MAX_VALUE), "USD");
     }
 
     @When("the PostDepositCmd command is executed")
-    public void the_PostDepositCmd_command_is_executed() {
-        caughtException = null;
+    public void the_post_deposit_cmd_command_is_executed() {
         try {
-            // Determine context based on state setup
-            String account = "acc-456";
-            BigDecimal amount = BigDecimal.valueOf(50);
+            // Determine parameters based on context setup
+            String account = aggregate != null ? aggregate.getAccountNumber() : "ACC-000";
+            BigDecimal amount = BigDecimal.valueOf(100.00);
             String currency = "USD";
-
-            // Adjust inputs based on specific test contexts implied by the violation state
-            if (aggregate.getId().equals("txn-invalid-amount")) {
-                amount = BigDecimal.ZERO;
-            } else if (aggregate.getId().equals("txn-invalid-balance")) {
-                // If balance is 100, we assume -200 causes an overflow or invalid state based on requirements
-                // Or just a negative final balance. Let's assume -200 makes balance -100 which is invalid.
-                amount = BigDecimal.valueOf(-200); 
+            
+            // Override amount for the "amounts must be > 0" scenario if needed, 
+            // but standard Gherkin practice is we reuse the valid command to test the aggregate rejection logic defined in 'Given'.
+            if (aggregate != null && aggregate.getAccountNumber().equals("TXN-INVALID")) {
+                 amount = BigDecimal.ZERO; // Simulate bad input if the aggregate didn't catch it, but the aggregate handles the check.
             }
 
-            Command cmd = new PostDepositCmd(aggregate.getId(), account, amount, currency);
-            resultEvents = aggregate.execute(cmd);
-        } catch (Exception e) {
+            command = new PostDepositCmd(account, amount, currency);
+            resultEvents = aggregate.execute(command);
+        } catch (IllegalStateException | IllegalArgumentException e) {
             caughtException = e;
         }
     }
 
     @Then("a deposit.posted event is emitted")
     public void a_deposit_posted_event_is_emitted() {
-        Assertions.assertNull(caughtException, "Expected no exception, but got: " + caughtException);
-        Assertions.assertNotNull(resultEvents);
-        Assertions.assertEquals(1, resultEvents.size());
-        Assertions.assertTrue(resultEvents.get(0) instanceof DepositPostedEvent);
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof DepositPostedEvent);
+        
         DepositPostedEvent event = (DepositPostedEvent) resultEvents.get(0);
-        Assertions.assertEquals("deposit.posted", event.type());
+        assertEquals("deposit.posted", event.type());
+        assertEquals("TXN-123", event.aggregateId());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(caughtException, "Expected a domain error exception");
-        // In a real app we might catch a custom DomainException, here we check for RuntimeException/IllegalStateException
-        Assertions.assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
+        assertNotNull(caughtException);
+        // Verify the exception message matches one of our invariant errors
+        assertTrue(
+            caughtException.getMessage().contains("greater than zero") ||
+            caughtException.getMessage().contains("already posted") ||
+            caughtException.getMessage().contains("balance constraint")
+        );
     }
 }

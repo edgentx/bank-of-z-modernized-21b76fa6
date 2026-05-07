@@ -6,22 +6,22 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record MenuNavigatedEvent(
-    String aggregateId,
-    String previousMenu,
-    String targetMenu,
-    String action,
-    Instant occurredAt
+        String aggregateId,
+        String menuId,
+        String action,
+        Instant occurredAt
 ) implements DomainEvent {
+    public MenuNavigatedEvent {
+        if (aggregateId == null || aggregateId.isBlank()) {
+            throw new IllegalArgumentException("aggregateId cannot be null");
+        }
+        if (occurredAt == null) {
+            occurredAt = Instant.now();
+        }
+    }
 
     @Override
     public String type() {
         return "menu.navigated";
-    }
-
-    // Standardizing occurrence timestamp to ensure consistency
-    public MenuNavigatedEvent {
-        if (occurredAt == null) {
-            occurredAt = Instant.now();
-        }
     }
 }

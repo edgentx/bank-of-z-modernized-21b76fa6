@@ -1,30 +1,29 @@
 package com.example.adapters;
 
 import com.example.ports.GitHubPort;
-import java.util.Optional;
 
 /**
- * Mock adapter for GitHub interactions.
+ * Mock implementation of GitHubPort for testing.
+ * Allows controlling the returned URL and failure states.
  */
 public class MockGitHubAdapter implements GitHubPort {
 
-    private String mockUrl = null;
-    private boolean simulateFailure = false;
+    private String mockIssueUrl = "https://github.com/mock/issues/1";
+    private boolean shouldFail = false;
+
+    public void setMockIssueUrl(String url) {
+        this.mockIssueUrl = url;
+    }
+
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
+    }
 
     @Override
-    public Optional<String> createIssue(String title, String body) {
-        if (simulateFailure) {
-            return Optional.empty();
+    public String createIssue(String title, String description) {
+        if (shouldFail) {
+            throw new RuntimeException("Mock GitHub failure");
         }
-        // Return a deterministic URL based on input or configured mock state
-        return Optional.ofNullable(mockUrl != null ? mockUrl : "https://github.com/mock/issues/1");
-    }
-
-    public void setMockUrl(String url) {
-        this.mockUrl = url;
-    }
-
-    public void setSimulateFailure(boolean simulateFailure) {
-        this.simulateFailure = simulateFailure;
+        return mockIssueUrl;
     }
 }

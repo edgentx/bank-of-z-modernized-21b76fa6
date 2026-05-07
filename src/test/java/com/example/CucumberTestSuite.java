@@ -4,9 +4,11 @@ import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
+/**
+ * Test Suite configuration for JUnit 5 + Cucumber.
+ */
 @Suite
 @IncludeEngines("cucumber")
 @SelectClasspathResource("features")
 public class CucumberTestSuite {
-    // This class acts as the test runner for Cucumber via JUnit 5
 }

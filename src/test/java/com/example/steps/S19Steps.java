@@ -1,15 +1,14 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
+import com.example.domain.tellersession.model.MenuNavigatedEvent;
 import com.example.domain.tellersession.model.NavigateMenuCmd;
 import com.example.domain.tellersession.model.TellerSessionAggregate;
-import com.example.domain.tellersession.model.MenuNavigatedEvent;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -18,95 +17,91 @@ import static org.junit.jupiter.api.Assertions.*;
 public class S19Steps {
 
     private TellerSessionAggregate aggregate;
+    private String sessionId;
+    private String menuId;
+    private String action;
     private List<DomainEvent> resultEvents;
-    private Exception caughtException;
-
-    // Helper to create a standard valid aggregate for the success case
-    private TellerSessionAggregate createValidAggregate() {
-        // Assuming a constructor or factory that sets up a valid state
-        // For the sake of this test, we assume a default constructor and manual state setting
-        // or that the Aggregate allows setting state for testing purposes.
-        // Ideally, we would use a factory method, but we will assume direct instantiation here.
-        // We need to simulate a valid state: Authenticated, Not Timed out, Correct Context.
-        return new TellerSessionAggregate("SESSION-1");
-    }
+    private Exception capturedException;
 
     @Given("a valid TellerSession aggregate")
-    public void a_valid_teller_session_aggregate() {
-        aggregate = createValidAggregate();
-        // Programmatically set valid state for the test
-        aggregate.setAuthenticated(true);
-        aggregate.setLastActivityAt(Instant.now());
-        aggregate.setOperationalContext("TX_SESSION"); // Valid context
+    public void aValidTellerSessionAggregate() {
+        this.sessionId = "sess-123";
+        this.aggregate = new TellerSessionAggregate(sessionId);
+        // Setup valid state
+        this.aggregate.setAuthenticated(true);
+        this.aggregate.setLastActivityAt(Instant.now());
     }
 
-    @Given("a valid sessionId is provided")
-    public void a_valid_session_id_is_provided() {
-        // Handled in aggregate construction or command creation
+    @And("a valid sessionId is provided")
+    public void aValidSessionIdIsProvided() {
+        this.sessionId = "sess-123";
     }
 
-    @Given("a valid menuId is provided")
-    public void a_valid_menu_id_is_provided() {
-        // Handled in command creation
+    @And("a valid menuId is provided")
+    public void aValidMenuIdIsProvided() {
+        this.menuId = "MAIN_MENU";
     }
 
-    @Given("a valid action is provided")
-    public void a_valid_action_is_provided() {
-        // Handled in command creation
-    }
-
-    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_teller_session_aggregate_that_violates_authentication() {
-        aggregate = createValidAggregate();
-        aggregate.setAuthenticated(false);
-        aggregate.setLastActivityAt(Instant.now());
-        aggregate.setOperationalContext("TX_SESSION");
-    }
-
-    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_teller_session_aggregate_that_violates_timeout() {
-        aggregate = createValidAggregate();
-        aggregate.setAuthenticated(true);
-        // Set last activity to 2 hours ago (assuming timeout is 30 mins)
-        aggregate.setLastActivityAt(Instant.now().minus(Duration.ofHours(2)));
-        aggregate.setOperationalContext("TX_SESSION");
-    }
-
-    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_teller_session_aggregate_that_violates_context() {
-        aggregate = createValidAggregate();
-        aggregate.setAuthenticated(true);
-        aggregate.setLastActivityAt(Instant.now());
-        // Set a context that doesn't match the navigation target
-        aggregate.setOperationalContext("UNKNOWN_CONTEXT");
+    @And("a valid action is provided")
+    public void aValidActionIsProvided() {
+        this.action = "ENTER";
     }
 
     @When("the NavigateMenuCmd command is executed")
-    public void the_navigate_menu_cmd_command_is_executed() {
+    public void theNavigateMenuCmdCommandIsExecuted() {
         try {
-            // Inputs for the command
-            String menuId = "MAIN_MENU";
-            String action = "SELECT";
-            String targetContext = "TX_SESSION"; // Must match aggregate context for success
-
-            Command cmd = new NavigateMenuCmd(aggregate.id(), menuId, action, targetContext);
-            resultEvents = aggregate.execute(cmd);
+            NavigateMenuCmd cmd = new NavigateMenuCmd(this.sessionId, this.menuId, this.action);
+            this.resultEvents = this.aggregate.execute(cmd);
         } catch (Exception e) {
-            caughtException = e;
+            this.capturedException = e;
         }
     }
 
     @Then("a menu.navigated event is emitted")
-    public void a_menu_navigated_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof MenuNavigatedEvent);
+    public void aMenuNavigatedEventIsEmitted() {
+        assertNull(this.capturedException, "Should not have thrown an exception");
+        assertNotNull(this.resultEvents);
+        assertEquals(1, this.resultEvents.size());
+        assertTrue(this.resultEvents.get(0) instanceof MenuNavigatedEvent);
+        MenuNavigatedEvent event = (MenuNavigatedEvent) this.resultEvents.get(0);
+        assertEquals("menu.navigated", event.type());
+        assertEquals(this.menuId, event.menuId());
+        assertEquals(this.action, event.action());
+    }
+
+    // --- Scenarios for Invariants ---
+
+    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
+    public void aTellerSessionAggregateThatViolatesAuthentication() {
+        this.sessionId = "sess-unauth";
+        this.aggregate = new TellerSessionAggregate(sessionId);
+        this.aggregate.setAuthenticated(false); // Violation
+        this.aggregate.setLastActivityAt(Instant.now());
+    }
+
+    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
+    public void aTellerSessionAggregateThatViolatesTimeout() {
+        this.sessionId = "sess-timeout";
+        this.aggregate = new TellerSessionAggregate(sessionId);
+        this.aggregate.setAuthenticated(true);
+        // Set last activity to 20 minutes ago (timeout is 15)
+        this.aggregate.setLastActivityAt(Instant.now().minusSeconds(1200)); 
+    }
+
+    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
+    public void aTellerSessionAggregateThatViolatesNavContext() {
+        this.sessionId = "sess-locked";
+        this.aggregate = new TellerSessionAggregate(sessionId);
+        this.aggregate.setAuthenticated(true);
+        this.aggregate.setLastActivityAt(Instant.now());
+        // Set state to LOCKED
+        this.aggregate.setCurrentMenuId("LOCKED");
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(caughtException);
-        // Check it's an illegal state or argument exception
-        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
+    public void theCommandIsRejectedWithADomainError() {
+        assertNotNull(this.capturedException);
+        assertTrue(this.capturedException instanceof IllegalStateException);
+        // Optional: Check specific message content if required, though class type is usually sufficient for BDD
     }
 }

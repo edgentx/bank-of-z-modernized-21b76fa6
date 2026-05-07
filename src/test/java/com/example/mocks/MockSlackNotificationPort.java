@@ -1,30 +1,44 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-import org.mockito.Mockito;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Mock adapter for Slack notifications.
- * In-memory implementation to avoid real network calls during tests.
+ * Used in tests to capture messages without real I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final SlackNotificationPort mockDelegate;
+    public static class Message {
+        public final String title;
+        public final String body;
 
-    public MockSlackNotificationPort() {
-        this.mockDelegate = Mockito.mock(SlackNotificationPort.class);
-        // By default, do nothing (void method)
+        public Message(String title, String body) {
+            this.title = title;
+            this.body = body;
+        }
     }
+
+    private final List<Message> messages = new ArrayList<>();
 
     @Override
-    public void postMessage(String channel, String body) {
-        mockDelegate.postMessage(channel, body);
+    public void sendAlert(String title, String body) {
+        System.out.println("[MockSlack] Capturing alert: " + title);
+        this.messages.add(new Message(title, body));
     }
 
-    public SlackNotificationPort getMock() {
-        return mockDelegate;
+    public List<Message> getMessages() {
+        return messages;
+    }
+
+    public Message getLastMessage() {
+        if (messages.isEmpty()) return null;
+        return messages.get(messages.size() - 1);
+    }
+
+    public void clear() {
+        messages.clear();
     }
 }

@@ -17,7 +17,7 @@ public interface SlackNotificationPort {
     boolean postMessage(String channel, String body);
 
     /**
-     * Posts a message with structured blocks (not used in this specific story but good for completeness).
+     * Posts a message with structured blocks.
      */
     default boolean postMessage(String channel, Map<String, Object> blocks) {
         return false; 

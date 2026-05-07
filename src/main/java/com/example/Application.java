@@ -5,8 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 /**
- * Main Application Entry Point.
- * Scans components, services, and ports.
+ * Main Spring Boot Application entry point.
  */
 @SpringBootApplication
 @ComponentScan(basePackages = {"com.example"})

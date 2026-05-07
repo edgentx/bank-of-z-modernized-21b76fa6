@@ -1,14 +1,14 @@
 package com.example.domain;
 
 import java.math.BigDecimal;
+import java.util.Currency;
 
 public class PostWithdrawalCmd {
-
     private final String accountNumber;
     private final BigDecimal amount;
-    private final String currency;
+    private final Currency currency;
 
-    public PostWithdrawalCmd(String accountNumber, BigDecimal amount, String currency) {
+    public PostWithdrawalCmd(String accountNumber, BigDecimal amount, Currency currency) {
         this.accountNumber = accountNumber;
         this.amount = amount;
         this.currency = currency;
@@ -22,7 +22,7 @@ public class PostWithdrawalCmd {
         return amount;
     }
 
-    public String getCurrency() {
+    public Currency getCurrency() {
         return currency;
     }
 }

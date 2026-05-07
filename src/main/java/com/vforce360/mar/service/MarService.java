@@ -1,48 +1,39 @@
 package com.vforce360.mar.service;
 
+import com.vforce360.mar.domain.ModernizationAssessmentReport;
 import com.vforce360.mar.ports.MarRepositoryPort;
-import com.vforce360.mar.model.MarDocument;
-import org.commonmark.parser.Parser;
-import org.commonmark.renderer.html.HtmlRenderer;
+import com.vforce360.mar.ports.MarkdownRendererPort;
 import org.springframework.stereotype.Service;
+import java.util.UUID;
 
 /**
- * Service layer for Modernization Assessment Reports.
- * Handles the transformation of raw Markdown content to HTML.
+ * Service handling the business logic for Modernization Assessment Reports.
+ * It coordinates fetching data (Port) and rendering it (Port).
  */
 @Service
 public class MarService {
 
-    private final MarRepositoryPort repository;
-    private final Parser markdownParser;
-    private final HtmlRenderer htmlRenderer;
+    private final MarRepositoryPort marRepositoryPort;
+    private final MarkdownRendererPort markdownRendererPort;
 
-    public MarService(MarRepositoryPort repository) {
-        this.repository = repository;
-        this.markdownParser = Parser.builder().build();
-        this.htmlRenderer = HtmlRenderer.builder().build();
+    public MarService(MarRepositoryPort marRepositoryPort, MarkdownRendererPort markdownRendererPort) {
+        this.marRepositoryPort = marRepositoryPort;
+        this.markdownRendererPort = markdownRendererPort;
     }
 
     /**
-     * Retrieves the MAR content for a project and returns it as a formatted HTML string.
-     *
-     * @param projectId The ID of the project.
-     * @return HTML formatted string representing the report.
+     * Retrieves the MAR content for a given project and returns it as rendered HTML.
+     * 
+     * @param projectId The UUID of the project.
+     * @return String containing the HTML representation of the report.
+     * @throws RuntimeException if the report is not found.
      */
-    public String getRenderedReport(String projectId) {
-        // 1. Retrieve the raw document from the repository port (interface)
-        MarDocument doc = repository.findByProjectId(projectId);
+    public String getMarReviewHtml(UUID projectId) {
+        ModernizationAssessmentReport report = marRepositoryPort.findByProjectId(projectId)
+                .orElseThrow(() -> new RuntimeException("MAR not found for project: " + projectId));
 
-        // 2. Extract the raw markdown content
-        String rawMarkdown = doc.getContentMarkdown();
-
-        // 3. Parse the Markdown to an AST
-        // Note: Even if the content is technically JSON (as per the defect scenario),
-        // we treat it as a text block. The renderer will escape HTML entities,
-        // ensuring valid output (e.g. { becomes &123;).
-        var document = markdownParser.parse(rawMarkdown);
-
-        // 4. Render the AST as HTML
-        return htmlRenderer.render(document);
+        // The raw content in the DB is stored as Markdown (as per the expected behavior).
+        // We simply pass it to the renderer.
+        return markdownRendererPort.renderToHtml(report.getRawContent());
     }
 }

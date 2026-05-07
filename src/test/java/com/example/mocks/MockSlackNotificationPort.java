@@ -1,28 +1,36 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock Adapter for Slack Notification.
- * Used in Testing to capture output without calling real APIs.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Captures messages to memory instead of calling external APIs.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private String capturedBody;
-    private boolean notifyCalled = false;
+    private final List<String> sentMessages = new ArrayList<>();
 
     @Override
-    public void notify(String messageBody) {
-        this.notifyCalled = true;
-        this.capturedBody = messageBody;
+    public void send(String message) {
+        // In a real mock, we might record system state too, but capturing the message is key here.
+        sentMessages.add(message);
     }
 
-    // Test Inspection Methods
-    public boolean wasNotifyCalled() {
-        return notifyCalled;
+    public List<String> getSentMessages() {
+        return new ArrayList<>(sentMessages);
     }
 
-    public String getCapturedBody() {
-        return capturedBody;
+    public void clear() {
+        sentMessages.clear();
+    }
+
+    /**
+     * Helper to check if the last message contained a specific substring.
+     */
+    public boolean lastMessageContains(String substring) {
+        if (sentMessages.isEmpty()) return false;
+        return sentMessages.get(sentMessages.size() - 1).contains(substring);
     }
 }

@@ -1,29 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.5</version>
+        <version>3.2.0</version>
         <relativePath/>
     </parent>
-
     <groupId>com.example</groupId>
-    <artifactId>teller-system</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-    <name>teller-system</name>
-    <description>Teller System for Bank-of-Z Modernization</description>
-
+    <artifactId>teller-session-service</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>Teller Session Service</name>
+    <description>Domain-driven session management for Bank-of-Z</description>
     <properties>
         <java.version>17</java.version>
-        <flyway.version>10.10.0</flyway.version>
-        <ibm-mq.version>9.4.0.1</ibm-mq.version>
-        <cucumber.version>7.18.0</cucumber.version>
+        <cucumber.version>7.14.0</cucumber.version>
     </properties>
-
     <dependencies>
-        <!-- Spring Boot Dependencies -->
+        <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -42,34 +38,50 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-activemq</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-batch</artifactId>
         </dependency>
 
-        <!-- Database & Migration -->
+        <!-- Database Drivers -->
         <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
+            <groupId>com.ibm.db2</groupId>
+            <artifactId>jcc</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!-- Flyway for DB2 -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
-        <!-- Using DB2 specific extension requires explicit version per BOM rule -->
         <dependency>
             <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-db2</artifactId>
-            <version>${flyway.version}</version>
+            <artifactId>flyway-database-db2</artifactId>
+            <version>10.0.0</version>
         </dependency>
 
-        <!-- IBM MQ (requires explicit version per BOM rule) -->
+        <!-- Observability -->
         <dependency>
-            <groupId>com.ibm.mq</groupId>
-            <artifactId>com.ibm.mq.allclient</artifactId>
-            <version>${ibm-mq.version}</version>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+            <version>1.36.0</version>
         </dependency>
 
-        <!-- Testing (BDD/Cucumber) -->
+        <!-- Testing & Cucumber -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -88,19 +100,17 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-spring</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <repositories>
-        <!-- Ensure we check central for the new explicit versions -->
-        <repository>
-            <id>central</id>
-            <url>https://repo1.maven.org/maven2/</url>
-        </repository>
-    </repositories>
 
     <build>
         <plugins>

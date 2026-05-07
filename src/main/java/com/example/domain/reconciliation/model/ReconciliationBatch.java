@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * ReconciliationBatch Aggregate
- * Handles the logic for forcing a batch to a balanced state and starting reconciliation.
+ * Handles the logic for starting and forcing a batch to a balanced state.
  */
 public class ReconciliationBatch extends AggregateRoot {
     private final String batchId;
@@ -33,11 +33,11 @@ public class ReconciliationBatch extends AggregateRoot {
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof ForceBalanceCmd c) {
-            return forceBalance(c);
-        }
         if (cmd instanceof StartReconciliationCmd c) {
             return startReconciliation(c);
+        }
+        if (cmd instanceof ForceBalanceCmd c) {
+            return forceBalance(c);
         }
         throw new UnknownCommandException(cmd);
     }
@@ -55,21 +55,13 @@ public class ReconciliationBatch extends AggregateRoot {
 
         // Invariant: Only Open batches can be started
         if (status != Status.OPEN) {
-            throw new IllegalStateException("Cannot start reconciliation for a batch that is not OPEN.");
-        }
-
-        // Validate Command fields
-        if (cmd.start() == null || cmd.end() == null) {
-            throw new IllegalArgumentException("Batch window (start/end) is required.");
-        }
-        if (cmd.start().isAfter(cmd.end())) {
-            throw new IllegalArgumentException("Batch window start must be before end.");
+            throw new IllegalStateException("Cannot start reconciliation on a batch that is not OPEN.");
         }
 
         var event = new ReconciliationStartedEvent(
                 this.batchId,
-                cmd.start(),
-                cmd.end(),
+                cmd.batchWindowStart(),
+                cmd.batchWindowEnd(),
                 Instant.now()
         );
 
@@ -92,9 +84,9 @@ public class ReconciliationBatch extends AggregateRoot {
             throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
         }
 
-        // Invariant: Only Open batches can be forced to balance
-        if (status != Status.OPEN) {
-            throw new IllegalStateException("Cannot force balance on a batch that is not OPEN.");
+        // Invariant: Only Open (or Started) batches can be forced to balance
+        if (status == Status.CLOSED) {
+            throw new IllegalStateException("Cannot force balance on a CLOSED batch.");
         }
 
         // Validate Command fields

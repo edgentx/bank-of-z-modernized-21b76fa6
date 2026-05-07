@@ -1,16 +1,15 @@
 package com.example.ports;
 
 /**
- * Port for sending notifications to Slack.
+ * Port for Slack notification operations.
+ * Used to decouple the core logic from the actual Slack WebClient.
  */
 public interface SlackNotificationPort {
-    
+
     /**
-     * Sends a notification to the configured Slack channel.
-     *
-     * @param defectId    The ID of the defect (e.g., "VW-454")
-     * @param summary     The summary of the issue
-     * @param githubUrl   The URL of the created GitHub issue
+     * Posts a message to a channel.
+     * @param channel The channel ID or name.
+     * @param body The formatted body of the message.
      */
-    void sendNotification(String defectId, String summary, String githubUrl);
+    void postMessage(String channel, String body);
 }

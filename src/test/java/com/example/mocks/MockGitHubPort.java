@@ -1,21 +1,37 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
+import java.util.Optional;
 
 /**
  * Mock implementation of GitHubPort for testing.
- * Returns predictable URLs to verify workflow integration.
+ * Simulates retrieving URLs for specific issue IDs.
  */
 public class MockGitHubPort implements GitHubPort {
-    private String nextIssueUrl = "https://github.com/example/bank-of-z/issues/1";
+
+    private String fixedUrl = "https://github.com/example/issues/1";
+    private boolean shouldReturnEmpty = false;
 
     @Override
-    public String createIssue(String title, String body) {
-        // Simulate a successful issue creation returning a fixed URL
-        return nextIssueUrl;
+    public Optional<String> getIssueUrl(String issueId) {
+        if (shouldReturnEmpty) {
+            return Optional.empty();
+        }
+        // In a real mock, we might map issueId to specific URLs.
+        // For this story, we return a generic valid URL structure.
+        return Optional.of("https://github.com/dummy-repo/issues/" + issueId);
     }
 
-    public void setNextIssueUrl(String url) {
-        this.nextIssueUrl = url;
+    @Override
+    public Optional<String> createIssueAndReturnUrl(String title, String body) {
+        return Optional.empty(); // Not used in this story
+    }
+
+    public void setFixedUrl(String url) {
+        this.fixedUrl = url;
+    }
+
+    public void setShouldReturnEmpty(boolean isEmpty) {
+        this.shouldReturnEmpty = isEmpty;
     }
 }

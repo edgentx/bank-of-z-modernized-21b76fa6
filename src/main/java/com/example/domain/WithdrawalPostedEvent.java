@@ -2,12 +2,28 @@ package com.example.domain;
 
 import java.math.BigDecimal;
 import java.util.Currency;
-import java.util.Objects;
+import java.util.UUID;
 
-public record WithdrawalPostedEvent(String accountNumber, BigDecimal amount, Currency currency) {
+public record WithdrawalPostedEvent(
+        UUID eventId,
+        long timestamp,
+        String transactionId,
+        String accountNumber,
+        BigDecimal amount,
+        Currency currency
+) implements DomainEvent {
+
     public WithdrawalPostedEvent {
-        Objects.requireNonNull(accountNumber, "accountNumber cannot be null");
-        Objects.requireNonNull(amount, "amount cannot be null");
-        Objects.requireNonNull(currency, "currency cannot be null");
+        if (amount == null) throw new IllegalArgumentException("Amount cannot be null");
+    }
+
+    @Override
+    public UUID eventId() {
+        return eventId;
+    }
+
+    @Override
+    public long timestamp() {
+        return timestamp;
     }
 }

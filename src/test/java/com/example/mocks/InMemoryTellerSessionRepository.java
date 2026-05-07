@@ -16,10 +16,6 @@ public class InMemoryTellerSessionRepository implements TellerSessionRepository 
 
     @Override
     public TellerSessionAggregate load(String id) {
-        TellerSessionAggregate aggregate = store.get(id);
-        if (aggregate == null) {
-            throw new IllegalArgumentException("TellerSession not found: " + id);
-        }
-        return aggregate;
+        return store.get(id);
     }
 }

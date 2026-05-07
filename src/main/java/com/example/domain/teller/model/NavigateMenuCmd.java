@@ -1,15 +1,9 @@
 package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
-import java.util.Objects;
 
 /**
- * Command to route the teller to a different menu or screen.
- * Emulates legacy menu navigation (e.g., PF keys, Enter).
+ * Command to navigate the teller UI to a specific menu or screen.
+ * Part of S-19: TellerSession user-interface-navigation.
  */
-public record NavigateMenuCmd(String sessionId, String targetMenuId, String action) implements Command {
-    public NavigateMenuCmd {
-        // Basic validation at construction if desired, though Aggregate handles domain logic.
-        Objects.requireNonNull(sessionId, "sessionId required");
-    }
-}
+public record NavigateMenuCmd(String sessionId, String menuId, String action) implements Command {}

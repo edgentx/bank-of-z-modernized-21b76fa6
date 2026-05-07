@@ -1,64 +1,45 @@
 package com.example.domain.defect;
 
-import com.example.domain.defect.model.DefectReportedEvent;
-import com.example.domain.defect.model.ReportDefectCmd;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.ports.SlackNotificationPort;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-
 /**
- * Domain service for handling defect reporting logic.
- * Orchestrates the creation of GitHub issues (simulated here) and ensures
- * the resulting URL is propagated to Slack notifications.
+ * Service handling defect reporting logic.
+ * This class acts as the workflow implementation triggered by the Temporal worker.
  */
 @Service
 public class DefectService {
 
-    private static final Logger log = LoggerFactory.getLogger(DefectService.class);
+    private final SlackNotificationPort slackNotificationPort;
 
     /**
-     * Handles the ReportDefect command.
-     * 1. Generates the GitHub Issue URL.
-     * 2. Emits the DefectReportedEvent containing the URL.
-     * <p>
-     * This implementation fixes VW-454 by ensuring the URL is stringified
-     * and available in the event payload for Slack consumption.
+     * Constructor for dependency injection.
      *
-     * @param cmd The command to report a defect.
-     * @return The resulting domain event.
+     * @param slackNotificationPort The port implementation for sending Slack notifications.
      */
-    public DefectReportedEvent handleReportDefect(ReportDefectCmd cmd) {
-        log.info("Reporting defect {}: {}", cmd.defectId(), cmd.title());
-
-        // Simulate GitHub API interaction
-        // In a real implementation, this would call the GitHub REST API
-        // to create an issue in the repository specified by the project ID.
-        String githubIssueUrl = createGithubIssue(
-            cmd.projectId(),
-            cmd.title(),
-            cmd.description()
-        );
-
-        log.info("GitHub issue created: {}", githubIssueUrl);
-
-        // Emit event with the URL
-        return new DefectReportedEvent(
-            cmd.defectId(),
-            githubIssueUrl,
-            Instant.now()
-        );
+    public DefectService(SlackNotificationPort slackNotificationPort) {
+        this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Simulates the creation of a GitHub issue.
-     * Returns a deterministic URL based on the defect ID for testing.
+     * Executes the report_defect workflow.
+     * Constructs the message body and delegates to the Slack port.
+     *
+     * @param issueUrl The URL of the created GitHub issue.
      */
-    protected String createGithubIssue(String projectId, String title, String description) {
-        // VForce360 expects a standard GitHub URL structure.
-        // Format: https://github.com/{org}/{repo}/issues/{id}
-        // Since we don't have a real GitHub client, we construct a mock URL.
-        return String.format("https://github.com/bank-of-z/vforce360/issues/%s", projectId);
+    public void reportDefect(String issueUrl) {
+        String messageBody = constructSlackBody(issueUrl);
+        slackNotificationPort.sendMessage(messageBody);
+    }
+
+    /**
+     * Constructs the Slack message body containing the defect details.
+     * Pattern: "Defect Reported. GitHub Issue: <url>"
+     *
+     * @param url The GitHub issue URL.
+     * @return The formatted message string.
+     */
+    private String constructSlackBody(String url) {
+        return "Defect Reported. GitHub Issue: " + url;
     }
 }

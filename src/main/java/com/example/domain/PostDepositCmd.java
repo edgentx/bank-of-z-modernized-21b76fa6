@@ -1,11 +1,27 @@
 package com.example.domain;
 
 import java.math.BigDecimal;
-import java.util.Objects;
 
-public record PostDepositCmd(AccountNumber accountNumber, Money amount) {
-    public PostDepositCmd {
-        Objects.requireNonNull(accountNumber, "Account number is required");
-        Objects.requireNonNull(amount, "Amount is required");
+public class PostDepositCmd {
+    private final String accountNumber;
+    private final BigDecimal amount;
+    private final String currency;
+
+    public PostDepositCmd(String accountNumber, BigDecimal amount, String currency) {
+        this.accountNumber = accountNumber;
+        this.amount = amount;
+        this.currency = currency;
+    }
+
+    public String getAccountNumber() {
+        return accountNumber;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public String getCurrency() {
+        return currency;
     }
 }

@@ -19,7 +19,7 @@ public class ReconciliationBatch extends AggregateRoot {
     private boolean areAllEntriesAccounted = true;
 
     public enum Status {
-        OPEN, BALANCED, CLOSED, RECONCILING
+        OPEN, BALANCED, CLOSED, STARTED
     }
 
     public ReconciliationBatch(String batchId) {
@@ -33,11 +33,11 @@ public class ReconciliationBatch extends AggregateRoot {
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof StartReconciliationCmd c) {
-            return startReconciliation(c);
-        }
         if (cmd instanceof ForceBalanceCmd c) {
             return forceBalance(c);
+        }
+        if (cmd instanceof StartReconciliationCmd c) {
+            return startReconciliation(c);
         }
         throw new UnknownCommandException(cmd);
     }
@@ -53,28 +53,29 @@ public class ReconciliationBatch extends AggregateRoot {
             throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
         }
 
-        // Invariant: Only Open batches can be reconciled
+        // Invariant: Only Open batches can be started (conceptually)
         if (status != Status.OPEN) {
             throw new IllegalStateException("Cannot start reconciliation on a batch that is not OPEN.");
         }
 
         // Validate Command fields
-        if (cmd.batchWindowStart() == null || cmd.batchWindowEnd() == null) {
-            throw new IllegalArgumentException("Batch window start and end are required.");
+        if (cmd.windowStart() == null || cmd.windowEnd() == null) {
+            throw new IllegalArgumentException("Batch window (start/end) is required.");
         }
-        if (cmd.batchWindowEnd().isBefore(cmd.batchWindowStart())) {
+        if (cmd.windowEnd().isBefore(cmd.windowStart())) {
             throw new IllegalArgumentException("Batch window end must be after start.");
         }
 
         var event = new ReconciliationStartedEvent(
                 this.batchId,
-                cmd.batchWindowStart(),
-                cmd.batchWindowEnd(),
+                cmd.windowStart(),
+                cmd.windowEnd(),
+                cmd.operatorId(),
                 Instant.now()
         );
 
         // Apply state changes
-        this.status = Status.RECONCILING;
+        this.status = Status.STARTED;
         addEvent(event);
         incrementVersion();
 

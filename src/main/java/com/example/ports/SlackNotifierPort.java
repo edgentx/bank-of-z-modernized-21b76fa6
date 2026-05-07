@@ -1,13 +1,11 @@
 package com.example.ports;
 
+import com.example.domain.shared.SlackMessage;
+
 /**
- * Port interface for sending Slack notifications.
- * Used by the domain logic to abstract the Slack API client.
+ * Port for sending Slack notifications.
+ * Abstracts the Slack API/Webhook client.
  */
 public interface SlackNotifierPort {
-    /**
-     * Sends a notification message to Slack.
-     * @param body The formatted message body.
-     */
-    void notify(String body);
+    void send(SlackMessage message);
 }

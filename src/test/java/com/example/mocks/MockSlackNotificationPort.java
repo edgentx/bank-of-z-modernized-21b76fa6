@@ -3,27 +3,26 @@ package com.example.mocks;
 import com.example.ports.SlackNotificationPort;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Captures messages to verify content and channel.
+ * Mock Adapter for Slack Notification.
+ * Used in Testing to capture output without calling real APIs.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private String lastChannelId;
-    private String lastMessage;
-    private boolean shouldFail = false;
+    private String capturedBody;
+    private boolean notifyCalled = false;
 
     @Override
-    public void postMessage(String channelId, String message) {
-        if (shouldFail) {
-            throw new RuntimeException("Mock Slack Failure");
-        }
-        this.lastChannelId = channelId;
-        this.lastMessage = message;
+    public void notify(String messageBody) {
+        this.notifyCalled = true;
+        this.capturedBody = messageBody;
     }
 
-    // Getters for Assertions
-    public String getLastChannelId() { return lastChannelId; }
-    public String getLastMessage() { return lastMessage; }
+    // Test Inspection Methods
+    public boolean wasNotifyCalled() {
+        return notifyCalled;
+    }
 
-    public void setShouldFail(boolean fail) { this.shouldFail = fail; }
+    public String getCapturedBody() {
+        return capturedBody;
+    }
 }

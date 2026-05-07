@@ -1,16 +1,12 @@
 package com.example.ports;
 
+import com.example.vforce.github.IssueLink;
+import com.example.vforce.shared.ReportDefectCommand;
+
 /**
- * Port for interacting with GitHub issues.
+ * Port interface for creating GitHub issues.
+ * Allows mocking in tests without real HTTP calls.
  */
 public interface GitHubPort {
-
-    /**
-     * Creates a new issue in the configured repository.
-     *
-     * @param title The title of the issue.
-     * @param body The body content of the issue.
-     * @return The HTML URL of the created issue.
-     */
-    String createIssue(String title, String body);
+    IssueLink createIssue(ReportDefectCommand command);
 }

@@ -14,7 +14,9 @@
 
     <properties>
         <java.version>17</java.version>
+        <!-- Temporal and Flyway DB2 are NOT in the standard Spring Boot BOM, versions must be explicit -->
         <temporal.version>1.22.1</temporal.version>
+        <flyway-db2.version>9.22.3</flyway-db2.version>
     </properties>
 
     <dependencies>
@@ -29,7 +31,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Temporal (Not in standard BOM, requires explicit version as per known error) -->
+        <!-- Temporal (Not in standard BOM, requires explicit version) -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
@@ -46,7 +48,7 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-db2</artifactId>
-            <version>9.22.3</version>
+            <version>${flyway-db2.version}</version>
         </dependency>
 
         <!-- Project Modules -->

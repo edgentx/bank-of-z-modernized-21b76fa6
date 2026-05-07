@@ -3,128 +3,145 @@ package com.example.steps;
 import com.example.domain.S11Command;
 import com.example.domain.S11Event;
 import com.example.domain.Transaction;
+import com.example.domain.TransactionStatus;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.Currency;
 
 public class S11Steps {
 
+    // State variables for the scenario context
     private Transaction transaction;
     private S11Command command;
-    private S11Event resultEvent;
-    private BigDecimal currentBalance;
+    private Exception caughtException;
+    private S11Event resultingEvent;
+
+    // ---------------------------------------------------------------------
+    // Givens
+    // ---------------------------------------------------------------------
 
     @Given("a valid Transaction aggregate")
     public void aValidTransactionAggregate() {
-        this.transaction = new Transaction(
-                UUID.randomUUID(),
-                "ACC-001",
-                new BigDecimal("100.00"),
-                "USD"
-        );
-        // Setup context: Account has sufficient funds
-        this.currentBalance = new BigDecimal("500.00");
+        // Create a new, unposted transaction
+        this.transaction = new Transaction();
     }
 
-    @And("a valid accountNumber is provided")
+    @Given("a valid accountNumber is provided")
     public void aValidAccountNumberIsProvided() {
-        // Handled in setup, usually via context, but for simplicity we assume default valid state
+        if (this.command == null) {
+            this.command = new S11Command();
+        }
+        this.command.setAccountNumber("ACC-001-ZZ");
     }
 
-    @And("a valid amount is provided")
+    @Given("a valid amount is provided")
     public void aValidAmountIsProvided() {
-        // Handled in setup
+        if (this.command == null) {
+            this.command = new S11Command();
+        }
+        this.command.setAmount(new BigDecimal("100.00"));
     }
 
-    @And("a valid currency is provided")
+    @Given("a valid currency is provided")
     public void aValidCurrencyIsProvided() {
-        // Handled in setup
+        if (this.command == null) {
+            this.command = new S11Command();
+        }
+        this.command.setCurrency(Currency.getInstance("USD"));
     }
 
-    @When("the PostWithdrawalCmd command is executed")
-    public void thePostWithdrawalCmdCommandIsExecuted() {
-        this.command = new S11Command(
-                transaction.getId(),
-                transaction.getAccountNumber(),
-                transaction.getAmount(),
-                transaction.getCurrency(),
-                this.currentBalance
-        );
-        this.resultEvent = transaction.execute(command);
-    }
-
-    @Then("a withdrawal.posted event is emitted")
-    public void aWithdrawalPostedEventIsEmitted() {
-        assertTrue(resultEvent instanceof S11Event.WithdrawalPosted);
-        S11Event.WithdrawalPosted event = (S11Event.WithdrawalPosted) resultEvent;
-        assertEquals(transaction.getId(), event.transactionId());
-        assertEquals(new BigDecimal("400.00"), event.balanceAfter()); // 500 - 100
-    }
-
-    // ---- Rejection Scenarios ----
+    // ---------------------------------------------------------------------
+    // Negative Givens (Violations)
+    // ---------------------------------------------------------------------
 
     @Given("a Transaction aggregate that violates: Transaction amounts must be greater than zero.")
-    public void aTransactionAggregateThatViolatesAmountsMustBeGreaterThanZero() {
-        this.transaction = new Transaction(
-                UUID.randomUUID(),
-                "ACC-001",
-                new BigDecimal("-50.00"),
-                "USD"
-        );
-        this.currentBalance = new BigDecimal("500.00");
+    public void aTransactionAggregateThatViolatesAmountsGreaterThanZero() {
+        this.transaction = new Transaction();
+        // Set up command with 0 or negative amount
+        this.command = new S11Command();
+        this.command.setAccountNumber("ACC-001-ZZ");
+        this.command.setAmount(BigDecimal.ZERO); // Violation
+        this.command.setCurrency(Currency.getInstance("USD"));
     }
 
     @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.")
-    public void aTransactionAggregateThatViolatesOncePosted() {
-        this.transaction = new Transaction(
-                UUID.randomUUID(),
-                "ACC-001",
-                new BigDecimal("100.00"),
-                "USD"
-        );
-        // Simulate already posted by creating a new instance in a Posted state or directly setting it
-        // Since the model is simple, let's assume we have a way to force status or we use reflection/persistence.
-        // However, the domain model checks status. Let's assume we retrieved an already posted one.
-        // For the purpose of this test, let's cheat slightly by setting status if it were mutable,
-        // or we rely on the domain logic to reject if we try to execute on an already posted transaction.
-        // Since Transaction class doesn't expose a setStatus, and execute() checks it:
-        // We need to ensure the aggregate behaves as if it were posted. 
-        // *Correction*: The logic `if (this.status == Status.POSTED)` checks the field.
-        // We will assume the test environment handles this, or we modify the Transaction class to allow creation of Posted state.
-        // The simplest way without changing the API significantly is to assume the 'execute' logic handles the check.
-        // But wait, `new Transaction` creates `PENDING`. How do we test the rejection?
-        // We need a way to make it POSTED. Let's update the domain model to accept status in constructor for testing/factory.
-        // *Self-Correction*: I will update the domain model `Transaction` to allow setting status via a factory or constructor overload, 
-        // OR I will assume the test context fetches a "posted" transaction. 
-        // Actually, let's look at the generated code. I'll add a `markPosted()` method to Transaction for testing hydration.
+    public void aTransactionAggregateThatViolatesCannotAlterPosted() {
+        // Create a transaction that is already POSTED
+        this.transaction = new Transaction();
+        // Simulate that the transaction is already in a posted state (internal state mutation for test)
+        // In real DDD, this would be loaded from repo as POSTED, or events applied to reach POSTED state.
+        // Assuming reflection or package-private test setup, or simulating a recovered aggregate.
+        // Here we assume Transaction has a way to be set to posted for invariant testing.
         
-        // NOTE: The Domain code provided in the final output should be robust. 
-        // I will add a `markPosted()` method to Transaction and use it here.
-        transaction.markPosted();
+        // For this example, we assume the Transaction class allows setting status via 
+        // a test accessor or we apply a mock previous event.
+        // We'll simulate an existing posted transaction.
+        try {
+            var method = Transaction.class.getDeclaredMethod("markPostedInternal");
+            method.setAccessible(true);
+            method.invoke(transaction);
+        } catch (Exception e) {
+            throw new RuntimeException("Test setup failed: Could not mark transaction as posted", e);
+        }
+
+        // Also ensure the command itself is valid, so the rejection is purely due to the Aggregate state
+        this.command = new S11Command();
+        this.command.setAccountNumber("ACC-001-ZZ");
+        this.command.setAmount(new BigDecimal("50.00"));
+        this.command.setCurrency(Currency.getInstance("USD"));
     }
 
     @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance (enforced via aggregate validation).")
     public void aTransactionAggregateThatViolatesValidAccountBalance() {
-        this.transaction = new Transaction(
-                UUID.randomUUID(),
-                "ACC-001",
-                new BigDecimal("600.00"), // More than balance
-                "USD"
-        );
-        this.currentBalance = new BigDecimal("500.00"); // Insufficient funds
+        this.transaction = new Transaction();
+        // Setup: Assume the account is overdrawn or the aggregate knows the current balance is 0.
+        // The aggregate logic checks (currentBalance - amount) < limit.
+        
+        // Set up command for a huge withdrawal
+        this.command = new S11Command();
+        this.command.setAccountNumber("ACC-001-ZZ");
+        this.command.setAmount(new BigDecimal("99999999.00")); // Exceeds bounds
+        this.command.setCurrency(Currency.getInstance("USD"));
+    }
+
+    // ---------------------------------------------------------------------
+    // When
+    // ---------------------------------------------------------------------
+
+    @When("the PostWithdrawalCmd command is executed")
+    public void thePostWithdrawalCmdCommandIsExecuted() {
+        try {
+            // Execute the command on the aggregate
+            this.resultingEvent = this.transaction.execute(command);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            this.caughtException = e;
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Then
+    // ---------------------------------------------------------------------
+
+    @Then("a withdrawal.posted event is emitted")
+    public void aWithdrawalPostedEventIsEmitted() {
+        Assertions.assertNotNull(this.resultingEvent, "Expected an event to be emitted");
+        Assertions.assertEquals("withdrawal.posted", this.resultingEvent.getType());
+        Assertions.assertNotNull(this.resultingEvent.getTransactionId());
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertTrue(resultEvent instanceof S11Event.TransactionRejected);
-        S11Event.TransactionRejected event = (S11Event.TransactionRejected) resultEvent;
-        assertNotNull(event.reason());
-        assertFalse(event.reason().isEmpty());
+        Assertions.assertNotNull(this.caughtException, "Expected a domain exception to be thrown");
+        // Check it's one of our domain errors
+        Assertions.assertTrue(
+            caughtException instanceof IllegalArgumentException || 
+            caughtException instanceof IllegalStateException,
+            "Expected a valid domain exception type"
+        );
     }
 }

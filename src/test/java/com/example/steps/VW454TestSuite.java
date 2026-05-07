@@ -1,17 +1,15 @@
 package com.example.steps;
 
-import io.cucumber.junit.platform.engine.Cucumber;
-import org.junit.platform.suite.api.ConfigurationParameter;
-import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasspathResource;
-import org.junit.platform.suite.api.Suite;
+import io.cucumber.junit.Cucumber;
+import io.cucumber.junit.CucumberOptions;
+import org.junit.runner.RunWith;
 
-/**
- * Test Suite for VW-454 Regression Tests.
- */
-@Suite
-@IncludeEngines(Cucumber.class)
-@SelectClasspathResource("features/S-FB-1.feature")
-@ConfigurationParameter(key = "glue", value = "com.example.steps")
+@RunWith(Cucumber.class)
+@CucumberOptions(
+    features = {"features/S-FB-1.feature"},
+    glue = {"com.example.steps"},
+    plugin = {"pretty", "html:target/cucumber-report/S-FB-1.html"}
+)
 public class VW454TestSuite {
+    // Cucumber Test Suite configuration
 }

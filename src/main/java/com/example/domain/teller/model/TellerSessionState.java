@@ -1,35 +1,42 @@
 package com.example.domain.teller.model;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+
 /**
- * Internal state representation for the Teller Session Aggregate.
- * Encapsulates authentication status, activity tracking, and navigation context.
+ * Internal state representation for the Teller Session.
+ * Tracks authentication, activity, and navigation context.
  */
 public class TellerSessionState {
-    private boolean authenticated = false;
+    private boolean isAuthenticated;
     private Instant lastActivityAt;
-    private String currentNavigationContext;
+    private String navigationContext; // e.g., "MAIN_MENU", "IDLE"
 
-    public boolean isAuthenticated() {
-        return authenticated;
+    public TellerSessionState(boolean authenticated, Instant lastActivity, String navContext) {
+        this.isAuthenticated = authenticated;
+        this.lastActivityAt = lastActivity;
+        this.navigationContext = navContext;
     }
 
-    public void setAuthenticated(boolean authenticated) {
-        this.authenticated = authenticated;
+    public boolean isAuthenticated() {
+        return isAuthenticated;
     }
 
     public Instant getLastActivityAt() {
         return lastActivityAt;
     }
 
-    public void setLastActivityAt(Instant lastActivityAt) {
-        this.lastActivityAt = lastActivityAt;
+    public String getNavigationContext() {
+        return navigationContext;
     }
 
-    public String getCurrentNavigationContext() {
-        return currentNavigationContext;
-    }
-
-    public void setCurrentNavigationContext(String currentNavigationContext) {
-        this.currentNavigationContext = currentNavigationContext;
+    /**
+     * Check if session has timed out based on configured inactivity period.
+     * Assuming 15 minutes timeout for bank terminals.
+     */
+    public boolean isTimedOut(Instant now) {
+        if (lastActivityAt == null) return true;
+        long minutesElapsed = ChronoUnit.MINUTES.between(lastActivityAt, now);
+        return minutesElapsed > 15;
     }
 }

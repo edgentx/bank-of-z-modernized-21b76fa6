@@ -1,28 +1,22 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
-import java.util.HashMap;
-import java.util.Map;
+import org.springframework.stereotype.Component;
+
+import java.util.UUID;
 
 /**
- * Mock implementation of GitHubIssuePort for testing.
- * Returns predefined URLs for issue IDs.
+ * Mock adapter for GitHub operations.
+ * Simulates creating an issue and returning a deterministic URL.
  */
+@Component
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private final Map<String, String> issueUrlMap = new HashMap<>();
-    private String defaultBaseUrl = "https://github.com/example/issues/";
-
     @Override
-    public String getIssueUrl(String issueId) {
-        if (issueUrlMap.containsKey(issueId)) {
-            return issueUrlMap.get(issueId);
-        }
-        // Default behavior for unmapped IDs
-        return defaultBaseUrl + issueId;
-    }
-
-    public void mockUrl(String issueId, String url) {
-        issueUrlMap.put(issueId, url);
+    public String createIssue(String title, String body) {
+        // Simulate GitHub API latency or logic if necessary.
+        // Return a deterministic URL based on a generated ID.
+        String issueId = UUID.randomUUID().toString();
+        return "https://github.com/example/repo/issues/" + issueId;
     }
 }

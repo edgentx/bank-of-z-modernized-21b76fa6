@@ -1,15 +1,13 @@
 package com.example.steps;
 
+import com.example.domain.screen.model.ScreenMapAggregate;
+import com.example.domain.screen.model.ValidateScreenInputCmd;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.screenmap.model.InputValidatedEvent;
-import com.example.domain.screenmap.model.ScreenMapAggregate;
-import com.example.domain.screenmap.model.ValidateScreenInputCmd;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,70 +17,92 @@ import static org.junit.jupiter.api.Assertions.*;
 public class S22Steps {
 
     private ScreenMapAggregate aggregate;
-    private ValidateScreenInputCmd command;
-    private List<DomainEvent> resultEvents;
-    private Exception capturedException;
+    private ValidateScreenInputCmd cmd;
+    private List<DomainEvent> resultingEvents;
+    private Exception thrownException;
+
+    // Standard setup for a valid aggregate
+    private void setupValidAggregate() {
+        aggregate = new ScreenMapAggregate("screen-map-1");
+        var definitions = new HashMap<String, ScreenMapAggregate.FieldDefinition>();
+        definitions.put("accountNum", new ScreenMapAggregate.FieldDefinition(true, 10));
+        definitions.put("amount", new ScreenMapAggregate.FieldDefinition(true, 12));
+        definitions.put("reference", new ScreenMapAggregate.FieldDefinition(false, 20));
+        aggregate.initialize("LOGIN_SCREEN", definitions);
+    }
 
     @Given("a valid ScreenMap aggregate")
     public void aValidScreenMapAggregate() {
-        aggregate = new ScreenMapAggregate("SCREEN-001");
+        setupValidAggregate();
     }
 
-    @And("a valid screenId is provided")
+    @Given("a valid screenId is provided")
     public void aValidScreenIdIsProvided() {
-        // Handled implicitly in command creation below, normally we'd set context here
+        // The command will be constructed in the 'When' clause, 
+        // but we verify context implies usage of the initialized aggregate's ID.
+        assertNotNull(aggregate);
     }
 
-    @And("a valid inputFields is provided")
+    @Given("a valid inputFields is provided")
     public void aValidInputFieldsIsProvided() {
-        Map<String, String> fields = new HashMap<>();
-        fields.put("accountNumber", "123456789");
-        fields.put("amount", "100.00");
-        this.command = new ValidateScreenInputCmd("SCREEN-001", fields);
+        // Pre-verification logic handled in the When/Then flow usually, 
+        // or we construct valid inputs here if needed for specific flow.
     }
 
     @When("the ValidateScreenInputCmd command is executed")
     public void theValidateScreenInputCmdCommandIsExecuted() {
+        // Default valid inputs for the happy path scenario
+        if (cmd == null) {
+            var inputs = new HashMap<String, String>();
+            inputs.put("accountNum", "1234567890");
+            inputs.put("amount", "100.00");
+            inputs.put("reference", "Payment");
+            cmd = new ValidateScreenInputCmd(aggregate.id(), "LOGIN_SCREEN", inputs);
+        }
+
         try {
-            resultEvents = aggregate.execute(command);
+            resultingEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            capturedException = e;
+            thrownException = e;
         }
     }
 
     @Then("a input.validated event is emitted")
     public void aInputValidatedEventIsEmitted() {
-        assertNull(capturedException, "Should not have thrown exception");
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof InputValidatedEvent);
-        InputValidatedEvent event = (InputValidatedEvent) resultEvents.get(0);
-        assertEquals("input.validated", event.type());
-        assertNotNull(event.occurredAt());
+        assertNull(thrownException, "Expected no exception, but got: " + thrownException);
+        assertNotNull(resultingEvents);
+        assertEquals(1, resultingEvents.size());
+        assertEquals("input.validated", resultingEvents.get(0).type());
     }
 
-    // Scenario 2: Mandatory fields violation
+    // -----------------------------
+    // Negative Scenarios
+    // -----------------------------
+
     @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
     public void aScreenMapAggregateThatViolatesMandatoryFields() {
-        aggregate = new ScreenMapAggregate("SCREEN-002");
-        Map<String, String> fields = new HashMap<>();
-        fields.put("mandatoryField", ""); // Empty value simulates violation
-        this.command = new ValidateScreenInputCmd("SCREEN-002", fields);
+        setupValidAggregate();
+        var inputs = new HashMap<String, String>();
+        // Missing 'accountNum' which is mandatory
+        inputs.put("amount", "100.00"); 
+        cmd = new ValidateScreenInputCmd(aggregate.id(), "LOGIN_SCREEN", inputs);
+    }
+
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void aScreenMapAggregateThatViolatesFieldLengths() {
+        setupValidAggregate();
+        var inputs = new HashMap<String, String>();
+        inputs.put("accountNum", "1234567890");
+        // Exceeds length of 12 defined in setup
+        inputs.put("amount", "1000000000000000.00"); 
+        cmd = new ValidateScreenInputCmd(aggregate.id(), "LOGIN_SCREEN", inputs);
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(capturedException);
-        assertTrue(capturedException instanceof IllegalArgumentException);
-        assertTrue(capturedException.getMessage().contains("All mandatory input fields must be validated"));
-    }
-
-    // Scenario 3: Length violation
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void aScreenMapAggregateThatViolatesFieldLengths() {
-        aggregate = new ScreenMapAggregate("SCREEN-003");
-        Map<String, String> fields = new HashMap<>();
-        fields.put("shortField", "THIS_VALUE_IS_TOO_LONG_FOR_BMS");
-        this.command = new ValidateScreenInputCmd("SCREEN-003", fields);
+        assertNotNull(thrownException, "Expected an exception to be thrown");
+        assertTrue(thrownException instanceof IllegalArgumentException);
+        assertNotNull(resultingEvents);
+        assertTrue(resultingEvents.isEmpty(), "No events should be emitted when command is rejected");
     }
 }

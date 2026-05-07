@@ -1,38 +1,33 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-import java.util.ArrayList;
-import java.util.List;
+import org.springframework.stereotype.Component;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to Slack to verify content.
+ * Mock adapter for Slack operations.
+ * In a real test scenario, this might be replaced by Mockito.mock(),
+ * but as a Mock Adapter Pattern requested in the prompt, we can implement it.
+ * However, to perform verification (assertions), we usually need to spy on this
+ * or add verification state to it. For strict Mockito usage, we would mock the interface.
+ * Here we provide the Spring Bean implementation.
  */
+@Component
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public final List<SlackMessage> capturedMessages = new ArrayList<>();
-    private boolean simulateFailure = false;
-
-    public record SlackMessage(String channel, String body) {}
+    public String lastPostedChannel;
+    public String lastPostedBody;
 
     @Override
-    public boolean sendMessage(String channel, String body) {
-        if (simulateFailure) return false;
-        capturedMessages.add(new SlackMessage(channel, body));
-        return true;
+    public void postMessage(String channel, String body) {
+        // Capture state for verification if not using pure Mockito mocks in the test.
+        this.lastPostedChannel = channel;
+        this.lastPostedBody = body;
+        
+        // System.out.println("[MockSlack] Posted to " + channel + ": " + body);
     }
 
-    public void reset() {
-        capturedMessages.clear();
-        simulateFailure = false;
-    }
-
-    public void setSimulateFailure(boolean simulateFailure) {
-        this.simulateFailure = simulateFailure;
-    }
-
-    public String getLastBody() {
-        if (capturedMessages.isEmpty()) return null;
-        return capturedMessages.get(capturedMessages.size() - 1).body();
+    // Helper for assertions if needed
+    public boolean wasUrlPosted(String expectedUrl) {
+        return lastPostedBody != null && lastPostedBody.contains(expectedUrl);
     }
 }

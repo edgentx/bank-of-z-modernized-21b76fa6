@@ -1,17 +1,27 @@
 package com.example.domain.teller.model;
 
 import com.example.domain.shared.DomainEvent;
-import java.time.Instant;
 
-public record MenuNavigatedEvent(
-    String aggregateId,
-    String targetMenuId,
-    String action,
-    Instant occurredAt
-) implements DomainEvent {
+import java.time.Instant;
+import java.util.Objects;
+
+public class MenuNavigatedEvent implements DomainEvent {
+    public static final String TYPE = "menu.navigated";
+    private final String aggregateId;
+    private final String menuId;
+    private final String action;
+    private final Instant occurredAt;
+
+    public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
+        this.aggregateId = Objects.requireNonNull(aggregateId);
+        this.menuId = Objects.requireNonNull(menuId);
+        this.action = Objects.requireNonNull(action);
+        this.occurredAt = Objects.requireNonNull(occurredAt);
+    }
+
     @Override
     public String type() {
-        return "menu.navigated";
+        return TYPE;
     }
 
     @Override
@@ -23,4 +33,7 @@ public record MenuNavigatedEvent(
     public Instant occurredAt() {
         return occurredAt;
     }
+
+    public String getMenuId() { return menuId; }
+    public String getAction() { return action; }
 }

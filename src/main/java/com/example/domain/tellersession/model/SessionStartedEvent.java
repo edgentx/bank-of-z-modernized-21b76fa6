@@ -1,23 +1,19 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.UUID;
 
-/**
- * Event emitted when a teller session is successfully started.
- */
-public record SessionStartedEvent(
-        String aggregateId,
-        String tellerId,
-        String terminalId,
-        Instant occurredAt
-) implements DomainEvent {
+public class SessionStartedEvent implements DomainEvent {
+    private final String aggregateId;
+    private final String tellerId;
+    private final String terminalId;
+    private final Instant occurredAt;
 
-    public SessionStartedEvent {
-        if (aggregateId == null || aggregateId.isBlank()) throw new IllegalArgumentException("aggregateId required");
-        if (occurredAt == null) occurredAt = Instant.now();
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.tellerId = tellerId;
+        this.terminalId = terminalId;
+        this.occurredAt = occurredAt;
     }
 
     @Override
@@ -34,4 +30,7 @@ public record SessionStartedEvent(
     public Instant occurredAt() {
         return occurredAt;
     }
+
+    public String getTellerId() { return tellerId; }
+    public String getTerminalId() { return terminalId; }
 }

@@ -6,43 +6,28 @@ import java.util.Optional;
 
 /**
  * Mock implementation of GitHubIssuePort for testing.
- * Simulates GitHub API responses without network calls.
+ * Returns a fake URL instead of calling GitHub API.
  */
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private String lastCreatedIssueUrl;
-    private boolean shouldReturnExisting = false;
-    private String existingIssueUrl;
+    private static final String FAKE_BASE_URL = "https://github.com/example-bank/bank-of-z/issues/";
+    private int issueCounter = 1;
+    private boolean shouldSucceed = true;
 
     @Override
-    public String createIssue(String title, String description) {
-        // Simulate GitHub generating a URL
-        this.lastCreatedIssueUrl = "https://github.com/fake-org/project/issues/" + System.hashCode(title);
-        return lastCreatedIssueUrl;
-    }
-
-    @Override
-    public Optional<String> findIssueUrlByTitle(String title) {
-        if (shouldReturnExisting && existingIssueUrl != null) {
-            return Optional.of(existingIssueUrl);
+    public Optional<GitHubUrl> createIssue(String title, String description) {
+        if (!shouldSucceed) {
+            return Optional.empty();
         }
-        return Optional.empty();
+        // Simulate successful creation by returning a deterministic fake URL
+        return Optional.of(new GitHubUrl(FAKE_BASE_URL + issueCounter++));
     }
 
-    // --- Test Helpers ---
-
-    public String getLastCreatedIssueUrl() {
-        return lastCreatedIssueUrl;
+    public void setShouldSucceed(boolean shouldSucceed) {
+        this.shouldSucceed = shouldSucceed;
     }
 
-    public void setExistingIssueUrl(String url) {
-        this.shouldReturnExisting = true;
-        this.existingIssueUrl = url;
-    }
-
-    public void reset() {
-        lastCreatedIssueUrl = null;
-        shouldReturnExisting = false;
-        existingIssueUrl = null;
+    public String getLastUrl() {
+        return FAKE_BASE_URL + (issueCounter - 1);
     }
 }

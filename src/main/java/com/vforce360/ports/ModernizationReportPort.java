@@ -1,19 +1,17 @@
 package com.vforce360.ports;
 
-import com.vforce360.mar.model.ModernizationAssessmentReport;
-
-import java.util.Optional;
+import com.vforce360.domain.ModernizationAssessmentReport;
 
 /**
- * Repository Port for retrieving MAR data.
+ * Port interface for fetching Modernization Assessment Reports.
+ * This allows us to mock the data source in tests without relying on a real MongoDB instance.
  */
 public interface ModernizationReportPort {
-
     /**
-     * Finds a report by project ID.
+     * Retrieves the report for a specific project ID.
      *
-     * @param projectId The UUID of the project.
-     * @return The report if found.
+     * @param projectId The unique identifier of the brownfield project.
+     * @return The report object containing structured data.
      */
-    Optional<ModernizationAssessmentReport> findByProjectId(String projectId);
+    ModernizationAssessmentReport getReport(String projectId);
 }

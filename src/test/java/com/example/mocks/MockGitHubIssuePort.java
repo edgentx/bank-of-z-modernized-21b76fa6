@@ -2,27 +2,20 @@ package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * Mock implementation of GitHubIssuePort for testing.
- * Allows control over the returned URL without network calls.
+ * Returns a predictable URL.
  */
 public class MockGitHubIssuePort implements GitHubIssuePort {
+    private final String mockUrl;
 
-    private String mockUrl = "https://github.com/bank-of-z/mock-issue";
-
-    /**
-     * Sets the URL to be returned by createIssue.
-     */
-    public void setMockUrl(String url) {
-        this.mockUrl = url;
+    public MockGitHubIssuePort(String mockUrl) {
+        this.mockUrl = mockUrl;
     }
 
     @Override
     public String createIssue(String title, String description) {
-        // Simulate successful creation, returning the configured mock URL.
-        return mockUrl;
+        // Simulate successful creation
+        return this.mockUrl;
     }
 }

@@ -1,238 +1,115 @@
 package com.example.steps;
 
-import com.example.domain.*;
+import com.example.domain.DepositPostedEvent;
+import com.example.domain.PostDepositCmd;
+import com.example.domain.Transaction;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
-import java.util.UUID;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S10Steps {
 
-    // Context state
     private Transaction transaction;
-    private TransactionError capturedError;
-    private DepositPostedEvent lastEvent;
-
-    // Test Data
-    private final String validAccountNumber = "ACC-1001";
-    private final BigDecimal validAmount = new BigDecimal("500.00");
-    private final String validCurrency = "USD";
+    private PostDepositCmd cmd;
+    private Exception caughtException;
 
     @Given("a valid Transaction aggregate")
-    public void a_valid_Transaction_aggregate() {
-        // Create a fresh transaction
-        this.transaction = new Transaction(UUID.randomUUID());
-        // Pre-condition: Account balance is valid (e.g., 0)
-        this.transaction.setCurrentBalance(new BigDecimal("0.00"));
+    public void aValidTransactionAggregate() {
+        // Setup a standard valid transaction context
+        transaction = new Transaction("tx-123", "ACC-001", BigDecimal.valueOf(1000.00));
     }
 
-    @Given("a valid accountNumber is provided")
-    public void a_valid_accountNumber_is_provided() {
-        // Intentionally empty: state is implicit in the test data constants
+    @And("a valid accountNumber is provided")
+    public void aValidAccountNumberIsProvided() {
+        // Field is part of the Command, initialized in the When clause usually,
+        // but we ensure we use a valid one in the positive flow.
     }
 
-    @Given("a valid amount is provided")
-    public void a_valid_amount_is_provided() {
-        // Intentionally empty
+    @And("a valid amount is provided")
+    public void aValidAmountIsProvided() {
+        // Same as above, handled in When.
     }
 
-    @Given("a valid currency is provided")
-    public void a_valid_currency_is_provided() {
-        // Intentionally empty
-    }
-
-    // --- Negative Scenarios (Violations) ---
-
-    @Given("a Transaction aggregate that violates: Transaction amounts must be greater than zero.")
-    public void a_Transaction_aggregate_that_violates_amounts_must_be_greater_than_zero() {
-        this.transaction = new Transaction(UUID.randomUUID());
-        this.transaction.setCurrentBalance(BigDecimal.ZERO);
-        // We will pass invalid amount in the 'When' step
-    }
-
-    @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted")
-    public void a_Transaction_aggregate_that_violates_cannot_be_altered() {
-        this.transaction = new Transaction(UUID.randomUUID());
-        this.transaction.setCurrentBalance(BigDecimal.ZERO);
-        // Simulate that the transaction is already posted/finalized
-        this.transaction.markAsPosted();
-    }
-
-    @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance")
-    public void a_Transaction_aggregate_that_violates_valid_account_balance() {
-        this.transaction = new Transaction(UUID.randomUUID());
-        // Set a balance such that a deposit would exceed max limit (assuming max is 1000)
-        this.transaction.setCurrentBalance(new BigDecimal("999.99"));
-    }
-
-    // --- Actions ---
-
-    @When("the PostDepositCmd command is executed")
-    public void the_PostDepositCmd_command_is_executed() {
-        try {
-            // Determine data based on context (Simulated)
-            String acc = validAccountNumber;
-            BigDecimal amt = validAmount;
-            String curr = validCurrency;
-
-            // Heuristic overrides based on the 'Given' context setup above
-            if (transaction.getCurrentBalance().compareTo(new BigDecimal("999.00")) > 0) {
-                amt = new BigDecimal("500.00"); // This will trigger the balance overflow invariant
-            }
-            if (transaction.isPosted()) {
-                amt = validAmount; // Amount doesn't matter, status blocks it
-            }
-            // Check for zero/negative amount context
-            // Since we can't inspect the text of the previous step directly, we assume
-            // specific state. However, for the specific 'zero amount' test:
-            // We will check a flag or thread-local. 
-            // Simplified: If the transaction is new but we haven't set specific overrides, 
-            // we default to valid. 
-            // *Refinement*: To strictly follow the BDD flow without complex state management:
-            // We rely on the specific 'Given' setting internal flags or state that the Execute method checks.
-            // For the 'Zero amount' scenario, we can't know '0' was intended unless we pass it.
-            // I will assume the test runner context implies the data. 
-            // *Correction*: Let's look at the specific violation setup. 
-            // If the violation was "amounts > 0", we need to pass 0.
-            // I will use a heuristic: If the transaction is in a base state, but the scenario description matches,
-            // we pass the violating data. 
-            // BETTER APPROACH: The steps should set the data directly.
-            // But the Gherkin provided separates "Valid Account" from "Violation Given".
-            // I will interpret the flow: The 'Violation Given' sets up the Aggregate state (e.g. Posted, or Balance).
-            // What about the Amount violation? That's a Command validation.
-            // I'll pass '0' if the aggregate is 'fresh' but the scenario logic implies we are testing the invariant.
-            // Actually, let's just assume the steps act on the command payload.
-            
-            // Handling the "Amount > 0" scenario specifically:
-            // Since I can't detect the scenario name easily here, I will add a helper logic or 
-            // assume the 'Given' setup for that scenario does something distinct (like setting a flag).
-            // To keep it simple and working: I will assume the command payload is driven by the setup.
-            // If the setup method for zero amount was called, I'd set a payload.
-            // Since I can't share state easily between steps in this generated code without a shared context object:
-            // I'll assume a specific condition.
-            
-            // Let's refine the 'Violations' logic.
-            // Scenario: Amount <= 0. 
-            // If I use a variable 'testAmount' initialized to validAmount (500), and set to 0 in the violation Given.
-            
-        } catch (TransactionError e) {
-            capturedError = e;
-        }
-    }
-
-    // Refined When method to handle specific data context
-    @When("the PostDepositCmd command is executed with specific context")
-    public void the_PostDepositCmd_command_is_executed_with_context() {
-        try {
-            String acc = validAccountNumber;
-            BigDecimal amt = validAmount; // Default valid
-            String curr = validCurrency;
-
-            // Detecting context based on Aggregate state (as set in Given)
-            // 1. Zero amount violation: (No specific aggregate state check, need a flag)
-            // 2. Posted violation: transaction.isPosted() == true
-            // 3. Balance violation: transaction.getBalance() > 999
-            
-            // To handle the Zero Amount case, let's assume if the balance is 0 and not posted,
-            // but we are in a 'violation' mode (hard to know), we pass 0.
-            // Let's make it robust: The 'Given' for amount violation is the only one
-            // that leaves the balance at 0.0 and unposted.
-            // BUT, the Success scenario also leaves it at 0.0 and unposted.
-            // To distinguish, I will check a ThreadLocal or simple field 'forceInvalidAmount'.
-            // For the sake of this generated code, I will add a field.
-        } catch (TransactionError e) {
-            capturedError = e;
-        }
-    }
-
-    // --- Clean implementation of the Step Logic ---
-    
-    private String cmdAccountNumber;
-    private BigDecimal cmdAmount;
-    private String cmdCurrency;
-
-    @Given("a valid accountNumber is provided")
-    public void setValidAccountNumber() {
-        this.cmdAccountNumber = "ACC-123";
-    }
-
-    @Given("a valid amount is provided")
-    public void setValidAmount() {
-        this.cmdAmount = new BigDecimal("100.00");
-    }
-
-    @Given("a valid currency is provided")
-    public void setValidCurrency() {
-        this.cmdCurrency = "USD";
-    }
-
-    // Violation setup for Amount
-    @Given("a Transaction aggregate that violates: Transaction amounts must be greater than zero.")
-    public void setupZeroAmountViolation() {
-        this.transaction = new Transaction(UUID.randomUUID());
-        this.transaction.setCurrentBalance(BigDecimal.ZERO);
-        // Set the command payload to invalid for the upcoming When
-        this.cmdAmount = BigDecimal.ZERO;
-        this.cmdAccountNumber = "ACC-123";
-        this.cmdCurrency = "USD";
-    }
-
-    // Violation setup for Posted
-    @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted")
-    public void setupAlreadyPostedViolation() {
-        this.transaction = new Transaction(UUID.randomUUID());
-        this.transaction.setCurrentBalance(BigDecimal.ZERO);
-        this.transaction.markAsPosted();
-        // Command payload is valid, but Aggregate state rejects it
-        this.cmdAmount = new BigDecimal("100.00");
-        this.cmdAccountNumber = "ACC-123";
-        this.cmdCurrency = "USD";
-    }
-
-    // Violation setup for Balance
-    @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance")
-    public void setupBalanceViolation() {
-        this.transaction = new Transaction(UUID.randomUUID());
-        // Balance is already at max (assuming invariant is balance < 1000)
-        this.transaction.setCurrentBalance(new BigDecimal("999.99"));
-        // Deposit is valid, but result is invalid
-        this.cmdAmount = new BigDecimal("100.00");
-        this.cmdAccountNumber = "ACC-123";
-        this.cmdCurrency = "USD";
+    @And("a valid currency is provided")
+    public void aValidCurrencyIsProvided() {
+        // Same as above, handled in When.
     }
 
     @When("the PostDepositCmd command is executed")
-    public void executeCommand() {
+    public void thePostDepositCmdCommandIsExecuted() {
+        // Construct a valid command for the happy path
+        if (cmd == null) {
+            cmd = new PostDepositCmd("ACC-001", BigDecimal.valueOf(500.00), "USD");
+        }
         try {
-            // For the success scenario, ensure defaults are set if not overridden
-            if (this.cmdAmount == null) this.cmdAmount = new BigDecimal("100.00");
-            if (this.cmdAccountNumber == null) this.cmdAccountNumber = "ACC-123";
-            if (this.cmdCurrency == null) this.cmdCurrency = "USD";
-            if (this.transaction == null) {
-                this.transaction = new Transaction(UUID.randomUUID());
-                this.transaction.setCurrentBalance(BigDecimal.ZERO);
-            }
-
-            PostDepositCommand cmd = new PostDepositCommand(this.cmdAccountNumber, this.cmdAmount, this.cmdCurrency);
-            lastEvent = transaction.execute(cmd);
-        } catch (TransactionError e) {
-            capturedError = e;
+            transaction.execute(cmd);
+        } catch (Exception e) {
+            caughtException = e;
         }
     }
 
     @Then("a deposit.posted event is emitted")
-    public void a_deposit_posted_event_is_emitted() {
-        Assertions.assertNotNull(lastEvent, "Event should not be null");
-        Assertions.assertEquals("deposit.posted", lastEvent.getType());
-        Assertions.assertEquals(cmdAmount, lastEvent.getAmount());
+    public void aDepositPostedEventIsEmitted() {
+        List<Object> events = transaction.getUncommittedEvents();
+        assertFalse(events.isEmpty(), "Expected an event to be emitted");
+        assertEquals(1, events.size(), "Expected exactly one event");
+        assertTrue(events.get(0) instanceof DepositPostedEvent, "Expected DepositPostedEvent");
+
+        DepositPostedEvent event = (DepositPostedEvent) events.get(0);
+        assertEquals("tx-123", event.transactionId());
+        assertEquals(BigDecimal.valueOf(500.00), event.amount());
+        assertEquals("USD", event.currency());
+    }
+
+    @Given("a Transaction aggregate that violates: Transaction amounts must be greater than zero.")
+    public void aTransactionAggregateThatViolatesAmountsMustBeGreaterThanZero() {
+        transaction = new Transaction("tx-invalid-amount", "ACC-001", BigDecimal.valueOf(100.00));
+        cmd = new PostDepositCmd("ACC-001", BigDecimal.ZERO, "USD");
+    }
+
+    @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.")
+    public void aTransactionAggregateThatViolatesOncePosted() {
+        transaction = new Transaction("tx-already-posted", "ACC-001", BigDecimal.valueOf(100.00));
+        // Manually post it to set the state
+        transaction.execute(new PostDepositCmd("ACC-001", BigDecimal.TEN, "USD"));
+        transaction.clearEvents(); // Clear setup events
+
+        // Now try to post again (or command the same aggregate)
+        cmd = new PostDepositCmd("ACC-001", BigDecimal.valueOf(50.00), "USD");
+    }
+
+    @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance (enforced via aggregate validation).")
+    public void aTransactionAggregateThatViolatesValidBalance() {
+        // Balance is 0, trying to post a negative amount or spend too much?
+        // The invariant "Transaction amounts must be > 0" handles negative deposits.
+        // But here we check the "Valid Account Balance" logic (e.g. Overdraft protection).
+        // If the logic allows negative balances via withdrawal, that's different.
+        // But for Deposit, a valid balance violation might be exotic.
+        // Let's assume the validation logic implies that *any* transaction resulting in invalid state fails.
+        // Setup: Balance 100. Deposit -200 (violates amount > 0).
+        // Let's assume the invariant is strictly about resulting balance.
+        // Since Deposit *adds* money, it rarely makes a balance invalid unless overflow or specific business rule.
+        // However, based on the prompt, we just need to trigger the "valid account balance" error.
+        // We can simulate this by checking if the aggregate has logic that rejects specific transactions.
+        // To satisfy the specific scenario:
+        transaction = new Transaction("tx-balance-check", "ACC-001", BigDecimal.valueOf(-100));
+        // If we deposit a small amount, still invalid? No, sum is -90.
+        // Let's stick to the text. The aggregate validates the resulting balance.
+        // I will assume a specific rule: Balance must remain positive.
+        transaction = new Transaction("tx-low-balance", "ACC-001", BigDecimal.valueOf(-10.00));
+        cmd = new PostDepositCmd("ACC-001", BigDecimal.valueOf(5.00), "USD");
+        // Resulting balance -5. Invalid.
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(capturedError, "A TransactionError should have been thrown");
+    public void theCommandIsRejectedWithADomainError() {
+        assertNotNull(caughtException, "Expected a DomainException to be thrown");
+        assertTrue(caughtException instanceof Transaction.DomainException, "Expected Transaction.DomainException");
     }
 }

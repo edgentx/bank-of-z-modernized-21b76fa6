@@ -1,32 +1,46 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-import java.util.ArrayList;
-import java.util.List;
+
+import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures sent payloads to verify behavior in tests.
+ * Stores messages in memory to allow verification of content.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
-    private final List<Map<String, String>> sentMessages = new ArrayList<>();
+
+    private final Map<String, String> channelMessages = new HashMap<>();
+    private boolean simulateFailure = false;
 
     @Override
-    public void sendNotification(Map<String, String> messagePayload) {
-        this.sentMessages.add(messagePayload);
+    public boolean sendMessage(String channelId, String messageBody) {
+        if (simulateFailure) {
+            return false;
+        }
+        channelMessages.put(channelId, messageBody);
+        return true;
     }
 
-    public List<Map<String, String>> getSentMessages() {
-        return new ArrayList<>(sentMessages);
+    @Override
+    public String getLastMessageBody(String channelId) {
+        return channelMessages.get(channelId);
     }
 
-    public void reset() {
-        sentMessages.clear();
+    /**
+     * Helper method for tests to verify the message contains the GitHub URL.
+     */
+    public boolean lastMessageContainsUrl(String channelId, String url) {
+        String body = getLastMessageBody(channelId);
+        return body != null && body.contains(url);
     }
 
-    public boolean wasCalledWithGitHubUrl(String url) {
-        return sentMessages.stream()
-                .anyMatch(msg -> url.equals(msg.get("githubUrl")));
+    public void setSimulateFailure(boolean simulateFailure) {
+        this.simulateFailure = simulateFailure;
+    }
+
+    public void clear() {
+        channelMessages.clear();
     }
 }

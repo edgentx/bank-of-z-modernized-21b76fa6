@@ -1,15 +1,18 @@
 package com.example.ports;
 
-import com.example.domain.vforce360.model.DefectReportedEvent;
-
 /**
- * Port for sending notifications to external systems like Slack.
- * This isolates the domain from the concrete implementation of Slack/Temporal APIs.
+ * Port interface for external VForce360/Temporal notifications.
+ * Abstracts Slack and GitHub API interactions.
  */
 public interface VForce360NotificationPort {
+
     /**
-     * Publishes the defect event to the notification channel (e.g., via Temporal _report_defect).
-     * Implementations must format the Slack body to include the GitHub URL.
+     * Notifies the Slack channel and creates a GitHub issue for the defect.
+     *
+     * @param defectId The ID of the defect.
+     * @param title The title of the defect.
+     * @param description The description/body.
+     * @return The URL of the created GitHub issue.
      */
-    void publishDefect(DefectReportedEvent event);
+    String reportDefectAndCreateIssue(String defectId, String title, String description);
 }

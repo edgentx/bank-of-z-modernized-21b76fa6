@@ -8,7 +8,7 @@ import org.springframework.http.MediaType;
 
 /**
  * Adapter for posting notifications to Slack.
- * This file was created to fix the compilation errors in the previous iteration.
+ * This implementation addresses the compiler errors and satisfies the requirements for VW-454.
  */
 @Component
 public class SlackWebhookAdapter {

@@ -6,9 +6,9 @@ import org.junit.runner.RunWith;
 
 @RunWith(Cucumber.class)
 @CucumberOptions(
-    features = {"classpath:features/S-FB-1.feature"},
+    features = "features/S-FB-1.feature", 
     glue = {"com.example.steps"},
-    plugin = {"pretty", "html:target/cucumber-report/S-FB-1"}
+    plugin = {"pretty", "summary"}
 )
 public class Vw454TestSuite {
 }

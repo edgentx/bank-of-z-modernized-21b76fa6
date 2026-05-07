@@ -1,21 +1,28 @@
 package com.example.adapters;
 
 import com.example.ports.SlackNotificationPort;
-import org.springframework.stereotype.Component;
+
+import java.net.URI;
+import java.util.logging.Logger;
 
 /**
- * Real implementation for sending Slack notifications.
- * In a production environment, this would use the Slack Web API client.
+ * Real implementation of SlackNotificationPort.
+ * Would perform an HTTP POST to the Slack Webhook URL.
  */
-@Component
 public class RealSlackNotificationAdapter implements SlackNotificationPort {
 
+    private static final Logger logger = Logger.getLogger(RealSlackNotificationAdapter.class.getName());
+
     @Override
-    public boolean postMessage(String channel, String messageBody) {
-        // Implementation for production would go here.
-        // Example: SlackClient.getInstance().postMessage(channel, messageBody);
-        // For this defect fix validation, the Mock is used in tests, 
-        // but this file satisfies the structure requirement for the 'adapters' package.
-        return true;
+    public void sendDefectNotification(String defectId, String message, URI githubUrl) {
+        String body = String.format(
+            "Defect Report: %s\nMessage: %s\nGitHub Issue: %s",
+            defectId,
+            message,
+            (githubUrl != null ? githubUrl.toString() : "PENDING")
+        );
+        
+        // In a real implementation, we would use RestTemplate or WebClient to POST to Slack.
+        logger.info("Sending Slack notification: " + body);
     }
 }

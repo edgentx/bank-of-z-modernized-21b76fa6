@@ -1,27 +1,30 @@
 package com.example.domain.transfer.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-public class TransferInitiatedEvent implements DomainEvent {
-    private final String eventId;
-    private final String aggregateId;
-    private final String fromAccount;
-    private final String toAccount;
-    private final BigDecimal amount;
-    private final String currency;
-    private final Instant occurredAt;
+/**
+ * Domain event emitted when a transfer is initiated.
+ */
+public record TransferInitiatedEvent(
+    String eventId,
+    String aggregateId,
+    String fromAccountId,
+    String toAccountId,
+    BigDecimal amount,
+    String currency,
+    Instant occurredAt
+) implements DomainEvent {
+    public TransferInitiatedEvent {
+        Objects.requireNonNull(eventId, "eventId required");
+        Objects.requireNonNull(aggregateId, "aggregateId required");
+    }
 
-    public TransferInitiatedEvent(String aggregateId, String fromAccount, String toAccount, BigDecimal amount, String currency, Instant occurredAt) {
-        this.eventId = UUID.randomUUID().toString();
-        this.aggregateId = aggregateId;
-        this.fromAccount = fromAccount;
-        this.toAccount = toAccount;
-        this.amount = amount;
-        this.currency = currency;
-        this.occurredAt = occurredAt;
+    public TransferInitiatedEvent(String aggregateId, String fromAccountId, String toAccountId, BigDecimal amount, String currency, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, fromAccountId, toAccountId, amount, currency, occurredAt);
     }
 
     @Override
@@ -38,9 +41,4 @@ public class TransferInitiatedEvent implements DomainEvent {
     public Instant occurredAt() {
         return occurredAt;
     }
-
-    public String fromAccount() { return fromAccount; }
-    public String toAccount() { return toAccount; }
-    public BigDecimal amount() { return amount; }
-    public String currency() { return currency; }
 }

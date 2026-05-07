@@ -2,11 +2,10 @@ package com.example.domain.vforce.model;
 
 import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * Event emitted when a defect is reported.
- * This file is a STUB implementation designed to FAIL the tests above (Red Phase).
+ * Contains the GitHub URL as required by defect VW-454.
  */
 public class DefectReportedEvent implements DomainEvent {
 
@@ -48,9 +47,9 @@ public class DefectReportedEvent implements DomainEvent {
 
     /**
      * CRITICAL METHOD FOR VW-454.
-     * This stub returns null, causing the validation test to fail.
+     * Returns the fully constructed GitHub URL for inclusion in Slack alerts.
      */
     public String getGitHubUrl() {
-        return null; // Red Phase: Intentional failure
+        return "https://github.com/bank-of-z/issues/" + this.aggregateId;
     }
 }

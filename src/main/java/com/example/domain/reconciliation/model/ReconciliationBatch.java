@@ -10,7 +10,8 @@ import java.util.List;
 
 /**
  * ReconciliationBatch Aggregate
- * Handles the logic for forcing a batch to a balanced state and starting reconciliation.
+ * Handles the logic for forcing a batch to a balanced state
+ * and starting the reconciliation process for a period.
  */
 public class ReconciliationBatch extends AggregateRoot {
     private final String batchId;
@@ -19,7 +20,7 @@ public class ReconciliationBatch extends AggregateRoot {
     private boolean areAllEntriesAccounted = true;
 
     public enum Status {
-        OPEN, IN_PROGRESS, BALANCED, CLOSED
+        OPEN, BALANCED, CLOSED, STARTED
     }
 
     public ReconciliationBatch(String batchId) {
@@ -53,29 +54,26 @@ public class ReconciliationBatch extends AggregateRoot {
             throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
         }
 
-        // Invariant: Only Open batches can be started
-        if (status != Status.OPEN) {
-            throw new IllegalStateException("Cannot start reconciliation on a batch that is not OPEN.");
-        }
-
         // Validate Command fields
-        if (cmd.batchWindowStart() == null || cmd.batchWindowEnd() == null) {
-            throw new IllegalArgumentException("Batch window start and end are required.");
+        if (cmd.batchId() == null || cmd.batchId().isBlank()) {
+            throw new IllegalArgumentException("Batch ID is required to start reconciliation.");
         }
-        if (cmd.batchWindowEnd().isBefore(cmd.batchWindowStart())) {
-            throw new IllegalArgumentException("Batch window end must be after start.");
+        if (cmd.start() == null || cmd.end() == null) {
+            throw new IllegalArgumentException("Batch window start and end dates are required.");
+        }
+        if (cmd.start().isAfter(cmd.end())) {
+            throw new IllegalArgumentException("Batch window start must be before end.");
         }
 
         var event = new ReconciliationStartedEvent(
                 this.batchId,
-                cmd.batchWindowStart(),
-                cmd.batchWindowEnd(),
-                cmd.operatorId(),
+                cmd.start(),
+                cmd.end(),
                 Instant.now()
         );
 
         // Apply state changes
-        this.status = Status.IN_PROGRESS;
+        this.status = Status.STARTED;
         addEvent(event);
         incrementVersion();
 

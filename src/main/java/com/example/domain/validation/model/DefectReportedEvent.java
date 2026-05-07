@@ -3,13 +3,16 @@ package com.example.domain.validation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.Map;
 
 /**
- * Event emitted when a defect is reported and the notification is sent.
+ * Event emitted when a defect is reported.
+ * Should contain the formatted Slack body and the GitHub issue URL.
  */
 public record DefectReportedEvent(
         String defectId,
-        String slackMessageBody,
+        String slackBody,
+        String githubIssueUrl,
         Instant occurredAt
 ) implements DomainEvent {
     @Override

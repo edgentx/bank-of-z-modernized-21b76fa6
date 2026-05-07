@@ -4,24 +4,16 @@ import com.example.ports.SlackNotificationPort;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent during the test execution for verification.
- */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
     private final List<String> sentMessages = new ArrayList<>();
-    private boolean failNextSend = false;
+    private boolean shouldFail = false;
 
     @Override
-    public void sendNotification(String message) {
-        if (failNextSend) {
-            throw new RuntimeException("Simulated Slack API failure");
-        }
-        if (message == null || message.isBlank()) {
-            throw new IllegalArgumentException("Cannot send blank message");
-        }
-        sentMessages.add(message);
+    public boolean send(String payload) {
+        if (shouldFail) return false;
+        sentMessages.add(payload);
+        return true;
     }
 
     public List<String> getSentMessages() {
@@ -32,7 +24,7 @@ public class MockSlackNotificationPort implements SlackNotificationPort {
         sentMessages.clear();
     }
 
-    public void setFailNextSend(boolean fail) {
-        this.failNextSend = fail;
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
     }
 }

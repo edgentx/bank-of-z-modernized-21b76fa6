@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.springframework.boot</groupId>
@@ -7,15 +8,18 @@
     <version>3.2.0</version>
     <relativePath/>
   </parent>
+  
   <groupId>com.example</groupId>
   <artifactId>bank-of-z-modernization</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>bank-of-z-modernization</name>
-  <description>Bank of Z Modernization</description>
+  <description>Bank of Z Modernization Project</description>
+  
   <properties>
     <java.version>17</java.version>
     <cucumber.version>7.14.0</cucumber.version>
   </properties>
+  
   <dependencies>
     <!-- Spring Boot Starters -->
     <dependency>
@@ -27,27 +31,24 @@
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
     
-    <!-- Database Drivers -->
-    <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <!-- Flyway DB2 Dependency (Requires explicit version) -->
+    <!-- Flyway for DB2 (Core is BOM managed, but DB2 driver is not) -->
+    <!-- Note: flyway-db2 dependency removed to fix build error as requested -->
     <dependency>
       <groupId>org.flywaydb</groupId>
-      <artifactId>flyway-db2</artifactId>
-      <version>9.22.3</version>
+      <artifactId>flyway-core</artifactId>
     </dependency>
-    
+    <dependency>
+      <groupId>com.ibm.db2</groupId>
+      <artifactId>jcc</artifactId>
+      <version>11.5.8.0</version>
+    </dependency>
+
     <!-- Testing -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
-    
-    <!-- Cucumber BDD -->
     <dependency>
       <groupId>io.cucumber</groupId>
       <artifactId>cucumber-java</artifactId>
@@ -75,4 +76,5 @@
       </plugin>
     </plugins>
   </build>
+
 </project>

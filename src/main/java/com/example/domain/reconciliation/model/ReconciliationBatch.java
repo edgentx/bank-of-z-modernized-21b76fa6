@@ -10,8 +10,7 @@ import java.util.List;
 
 /**
  * ReconciliationBatch Aggregate
- * Handles the logic for forcing a batch to a balanced state (S-17)
- * and starting the reconciliation process (S-16).
+ * Handles the logic for forcing a batch to a balanced state.
  */
 public class ReconciliationBatch extends AggregateRoot {
     private final String batchId;
@@ -56,22 +55,13 @@ public class ReconciliationBatch extends AggregateRoot {
 
         // Invariant: Only Open batches can be started
         if (status != Status.OPEN) {
-            throw new IllegalStateException("Cannot start reconciliation for a batch that is not OPEN.");
-        }
-
-        // Validate Command fields
-        if (cmd.batchWindowStart() == null || cmd.batchWindowEnd() == null) {
-            throw new IllegalArgumentException("Batch window start and end are required.");
-        }
-
-        if (cmd.batchWindowEnd().isBefore(cmd.batchWindowStart())) {
-            throw new IllegalArgumentException("Batch window end must be after start.");
+            throw new IllegalStateException("Cannot start reconciliation on a batch that is not OPEN.");
         }
 
         var event = new ReconciliationStartedEvent(
                 this.batchId,
-                cmd.batchWindowStart(),
-                cmd.batchWindowEnd(),
+                cmd.windowStart(),
+                cmd.windowEnd(),
                 Instant.now()
         );
 
@@ -94,9 +84,9 @@ public class ReconciliationBatch extends AggregateRoot {
             throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
         }
 
-        // Invariant: Only Open batches can be forced to balance
-        if (status != Status.OPEN) {
-            throw new IllegalStateException("Cannot force balance on a batch that is not OPEN.");
+        // Invariant: Only Open batches can be forced to balance (Legacy behavior preserved)
+        if (status != Status.OPEN && status != Status.STARTED) {
+            throw new IllegalStateException("Cannot force balance on a batch that is not OPEN or STARTED.");
         }
 
         // Validate Command fields

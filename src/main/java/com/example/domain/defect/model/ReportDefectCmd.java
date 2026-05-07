@@ -2,24 +2,28 @@ package com.example.domain.defect.model;
 
 import com.example.domain.shared.Command;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
  * Command to report a defect.
- * Primarily used by Temporal workflows to initiate the reporting process.
+ * Triggered via temporal-worker exec.
  */
 public record ReportDefectCmd(
         String defectId,
         String title,
         String description,
-        String githubUrl
+        String severity,
+        String githubIssueUrl,
+        Map<String, String> metadata
 ) implements Command {
+
     public ReportDefectCmd {
-        if (defectId == null || defectId.isBlank()) {
-            throw new IllegalArgumentException("defectId cannot be null or blank");
-        }
-        if (githubUrl == null || githubUrl.isBlank()) {
-            throw new IllegalArgumentException("githubUrl cannot be null or blank for VW-454 compliance");
+        Objects.requireNonNull(defectId, "defectId is required");
+        Objects.requireNonNull(title, "title is required");
+        // GitHub URL is the critical field for this regression test
+        if (githubIssueUrl != null && !githubIssueUrl.startsWith("https://github.com")) {
+             throw new IllegalArgumentException("githubIssueUrl must be a valid GitHub URL");
         }
     }
 }

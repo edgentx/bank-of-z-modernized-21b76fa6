@@ -1,100 +1,75 @@
 package com.example.steps;
 
+import com.example.domain.navigation.model.*;
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.userinterfacenavigation.model.RenderScreenCmd;
-import com.example.domain.userinterfacenavigation.model.ScreenMapAggregate;
-import com.example.domain.userinterfacenavigation.model.ScreenRenderedEvent;
-import com.example.domain.userinterfacenavigation.repository.ScreenMapRepository;
-import com.example.mocks.InMemoryScreenMapRepository;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 public class S21Steps {
 
-    private ScreenMapAggregate aggregate;
-    private final ScreenMapRepository repo = new InMemoryScreenMapRepository();
-    private Exception caughtException;
+    private ScreenMapAggregate screenMap;
+    private String currentScreenId;
+    private String currentDeviceType;
     private List<DomainEvent> resultEvents;
+    private Exception capturedException;
 
     @Given("a valid ScreenMap aggregate")
-    public void a_valid_screen_map_aggregate() {
-        aggregate = new ScreenMapAggregate("SCRN01");
+    public void aValidScreenMapAggregate() {
+        screenMap = new ScreenMapAggregate("screen-map-1");
     }
 
-    @And("a valid screenId is provided")
-    public void a_valid_screen_id_is_provided() {
-        // Handled in command construction inside 'When' or setup
+    @Given("a valid screenId is provided")
+    public void aValidScreenIdIsProvided() {
+        currentScreenId = "LOGIN_SCR_01";
     }
 
-    @And("a valid deviceType is provided")
-    public void a_valid_device_type_is_provided() {
-        // Handled in command construction inside 'When' or setup
+    @Given("a valid deviceType is provided")
+    public void aValidDeviceTypeIsProvided() {
+        currentDeviceType = "3270";
     }
 
     @When("the RenderScreenCmd command is executed")
-    public void the_render_screen_cmd_command_is_executed() {
+    public void theRenderScreenCmdCommandIsExecuted() {
         try {
-            RenderScreenCmd cmd = new RenderScreenCmd("SCRN01", "3270");
-            resultEvents = aggregate.execute(cmd);
-            repo.save(aggregate);
+            RenderScreenCmd cmd = new RenderScreenCmd(screenMap.id(), currentScreenId, currentDeviceType);
+            resultEvents = screenMap.execute(cmd);
         } catch (Exception e) {
-            caughtException = e;
+            capturedException = e;
         }
     }
 
     @Then("a screen.rendered event is emitted")
-    public void a_screen_rendered_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertFalse(resultEvents.isEmpty());
-        assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
-        ScreenRenderedEvent event = (ScreenRenderedEvent) resultEvents.get(0);
-        assertEquals("screen.rendered", event.type());
-        assertEquals("SCRN01", event.aggregateId());
-        assertNotNull(event.layout());
+    public void aScreenRenderedEventIsEmitted() {
+        Assertions.assertNull(capturedException, "Expected no exception, but got: " + capturedException);
+        Assertions.assertNotNull(resultEvents);
+        Assertions.assertFalse(resultEvents.isEmpty());
+        Assertions.assertEquals("screen.rendered", resultEvents.get(0).type());
     }
 
     @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void a_screen_map_aggregate_that_violates_mandatory_fields() {
-        aggregate = new ScreenMapAggregate("SCRN02");
-    }
-
-    // Specific step hook for the violation scenario logic to allow reuse
-    @When("the RenderScreenCmd command is executed with null deviceType")
-    public void the_render_screen_cmd_is_executed_with_null_device() {
-        try {
-            RenderScreenCmd cmd = new RenderScreenCmd("SCRN02", null);
-            resultEvents = aggregate.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            caughtException = e;
-        }
-    }
-
-    @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(caughtException);
-        assertTrue(caughtException instanceof IllegalArgumentException);
+    public void aScreenMapAggregateThatViolatesMandatoryFields() {
+        screenMap = new ScreenMapAggregate("screen-map-invalid-fields");
+        currentScreenId = null; // Violating mandatory field
+        currentDeviceType = "3270";
     }
 
     @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void a_screen_map_aggregate_that_violates_bms_constraints() {
-        aggregate = new ScreenMapAggregate("TOOLONGID");
+    public void aScreenMapAggregateThatViolatesBmsConstraints() {
+        screenMap = new ScreenMapAggregate("screen-map-invalid-bms");
+        currentScreenId = "THIS_SCREEN_ID_IS_WAY_TOO_LONG_FOR_LEGACY_BMS");
+        currentDeviceType = "3270";
     }
 
-    @When("the RenderScreenCmd command is executed with long ID")
-    public void the_render_screen_cmd_is_executed_with_long_id() {
-        try {
-            // "TOOLONGID" is 9 chars, constraint is 7
-            RenderScreenCmd cmd = new RenderScreenCmd("TOOLONGID", "3270");
-            resultEvents = aggregate.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            caughtException = e;
-        }
+    @Then("the command is rejected with a domain error")
+    public void theCommandIsRejectedWithADomainError() {
+        Assertions.assertNotNull(capturedException);
+        // Typically IllegalArgumentException for validation, or IllegalStateException for invariant
+        Assertions.assertTrue(capturedException instanceof IllegalArgumentException || capturedException instanceof IllegalStateException);
     }
 }

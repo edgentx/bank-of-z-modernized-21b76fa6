@@ -4,7 +4,7 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to initiate a teller session.
- * Part of User Interface Navigation (S-18).
+ * S-18: Implement StartSessionCmd on TellerSession (user-interface-navigation).
  */
 public record StartSessionCmd(
     String sessionId,

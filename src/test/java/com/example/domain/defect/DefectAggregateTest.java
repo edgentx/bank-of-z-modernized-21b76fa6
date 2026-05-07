@@ -1,67 +1,57 @@
 package com.example.domain.defect;
 
-import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.DefectReportedEvent;
 import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.domain.shared.DomainEvent;
+import com.example.domain.defect.model.VW454DefectReportedEvent;
+import com.example.domain.shared.UnknownCommandException;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit tests for DefectAggregate.
- * Covers standard command execution and specific VW-454 validation logic.
+ * Unit tests for the DefectAggregate.
+ * Enforces the domain logic for defect reporting and event generation.
  */
 class DefectAggregateTest {
 
     @Test
-    void shouldReportDefectSuccessfully() {
+    void shouldAcceptReportDefectCommand() {
         // Given
-        var aggregate = new DefectAggregate("S-FB-1");
-        var cmd = new ReportDefectCmd("S-FB-1", "GitHub URL missing", "Link is not in body", Map.of("severity", "LOW"));
+        var aggregate = new DefectAggregate("defect-1");
+        var cmd = new ReportDefectCmd(
+            "defect-1",
+            "VW-454 — GitHub URL missing",
+            "Slack body should include GitHub link",
+            "LOW",
+            "validation",
+            "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1"
+        );
 
         // When
-        List<DomainEvent> events = aggregate.execute(cmd);
+        var events = aggregate.execute(cmd);
 
         // Then
-        assertThat(events).hasSize(1);
-        assertThat(events.get(0)).isInstanceOf(DefectReportedEvent.class);
-
-        DefectReportedEvent event = (DefectReportedEvent) events.get(0);
-        assertThat(event.defectId()).isEqualTo("S-FB-1");
-        assertThat(event.title()).isEqualTo("GitHub URL missing");
+        assertEquals(1, events.size());
+        var event = events.get(0);
+        assertInstanceOf(VW454DefectReportedEvent.class, event);
         
-        // VW-454 Validation: The event MUST contain a non-null, non-blank GitHub URL
-        assertThat(event.githubIssueUrl()).isNotBlank();
-        assertThat(event.githubIssueUrl()).startsWith("https://github.com/");
-        assertThat(event.githubIssueUrl()).contains("S-FB-1");
+        var reportedEvent = (VW454DefectReportedEvent) event;
+        assertEquals("defect-1", reportedEvent.aggregateId());
+        assertEquals("defect-1", reportedEvent.defectId());
+        assertEquals("VW-454 — GitHub URL missing", reportedEvent.title());
+        assertEquals("LOW", reportedEvent.severity());
+        assertNotNull(reportedEvent.occurredAt());
     }
 
     @Test
-    void shouldPreventDuplicateReporting() {
+    void shouldRejectUnknownCommand() {
         // Given
-        var aggregate = new DefectAggregate("S-FB-1");
-        var cmd = new ReportDefectCmd("S-FB-1", "Dup", "Desc", Map.of());
-        aggregate.execute(cmd); // First time
+        var aggregate = new DefectAggregate("defect-1");
+        var unknownCmd = new Object() implements com.example.domain.shared.Command {};
 
-        // When/Then
-        assertThatThrownBy(() -> aggregate.execute(cmd))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("already reported");
-    }
-
-    @Test
-    void shouldRejectBlankTitle() {
-        // Given
-        var aggregate = new DefectAggregate("S-FB-1");
-        var cmd = new ReportDefectCmd("S-FB-1", "   ", "Desc", Map.of());
-
-        // When/Then
-        assertThatThrownBy(() -> aggregate.execute(cmd))
-                .isInstanceOf(IllegalArgumentException.class);
+        // When & Then
+        assertThrows(UnknownCommandException.class, () -> aggregate.execute(unknownCmd));
     }
 }

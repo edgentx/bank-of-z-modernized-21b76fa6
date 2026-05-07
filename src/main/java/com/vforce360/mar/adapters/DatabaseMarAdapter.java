@@ -1,38 +1,42 @@
 package com.vforce360.mar.adapters;
 
-import com.vforce360.mar.model.MarDocument;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import com.vforce360.mar.ports.MarRepositoryPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.bson.Document;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+import java.util.UUID;
+
 /**
- * Real adapter implementation for the MarRepositoryPort.
- * This adapter would bridge the application logic with the legacy DB2 or MongoDB data stores.
- * 
- * This class currently acts as a placeholder to satisfy the Adapter pattern requirements.
- * Real implementation would involve JPA/MongoTemplate or IBM MQ interactions.
+ * Adapter implementation for MAR data retrieval using MongoDB.
+ * This serves as the concrete implementation for the MarRepositoryPort.
  */
 @Component
 public class DatabaseMarAdapter implements MarRepositoryPort {
 
-    private static final Logger log = LoggerFactory.getLogger(DatabaseMarAdapter.class);
+    private final MongoClient mongoClient;
 
-    public DatabaseMarAdapter() {
-        log.info("Initializing DatabaseMarAdapter (Real Adapter)");
+    @Autowired
+    public DatabaseMarAdapter(MongoClient mongoClient) {
+        this.mongoClient = mongoClient;
     }
 
     @Override
-    public MarDocument findByProjectId(String projectId) {
-        // PLACEHOLDER IMPLEMENTATION FOR REAL ADAPTER
-        // In production, this would call:
-        // - DB2 (via Hibernate/JPA) for shared history
-        // - MongoDB for VForce360 shared instance
-        // - z/OS Connect EE for CICS/IMS transaction data
+    public Optional<String> findByProjectId(UUID projectId) {
+        MongoDatabase database = mongoClient.getDatabase("vforce360");
+        MongoCollection<Document> collection = database.getCollection("modernization_reports");
         
-        throw new UnsupportedOperationException(
-            "Real database connection not implemented in this fix scope. " +
-            "Please inject MockMarRepository for testing."
-        );
+        Document query = new Document("projectId", projectId.toString());
+        Document result = collection.find(query).first();
+
+        if (result != null) {
+            // Returning the JSON content as a string to be parsed/rendered later
+            return Optional.of(result.toJson());
+        }
+        return Optional.empty();
     }
 }

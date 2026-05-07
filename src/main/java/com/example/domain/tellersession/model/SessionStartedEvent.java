@@ -1,8 +1,8 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
-import java.util.UUID;
 
 public record SessionStartedEvent(
         String aggregateId,
@@ -10,9 +10,6 @@ public record SessionStartedEvent(
         String terminalId,
         Instant occurredAt
 ) implements DomainEvent {
-    public SessionStartedEvent {
-        if (occurredAt == null) occurredAt = Instant.now();
-    }
 
     @Override
     public String type() {
@@ -20,7 +17,7 @@ public record SessionStartedEvent(
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

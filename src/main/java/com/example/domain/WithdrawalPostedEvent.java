@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public class WithdrawalPostedEvent {
+
     private final UUID transactionId;
     private final String accountNumber;
     private final BigDecimal amount;

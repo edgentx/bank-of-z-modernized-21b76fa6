@@ -12,14 +12,4 @@ public record SessionEndedEvent(
     public String type() {
         return "session.ended";
     }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
 }

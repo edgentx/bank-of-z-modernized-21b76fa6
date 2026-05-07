@@ -5,10 +5,16 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-public record SessionEndedEvent(String aggregateId, Instant occurredAt) implements DomainEvent {
-    public SessionEndedEvent {
-        // Basic validation
-        if (aggregateId == null || aggregateId.isBlank()) throw new IllegalArgumentException("aggregateId required");
+/**
+ * Event emitted when a teller session is successfully terminated.
+ */
+public record SessionEndedEvent(
+        String aggregateId,
+        Instant occurredAt
+) implements DomainEvent {
+
+    public SessionEndedEvent(String aggregateId) {
+        this(aggregateId, Instant.now());
     }
 
     @Override

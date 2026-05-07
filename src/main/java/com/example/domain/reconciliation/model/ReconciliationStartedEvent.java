@@ -4,12 +4,7 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
-public record ReconciliationStartedEvent(
-        String aggregateId,
-        Instant batchWindowStart,
-        Instant batchWindowEnd,
-        Instant occurredAt
-) implements DomainEvent {
+public record ReconciliationStartedEvent(String batchId, String startDate, String endDate, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
         return "reconciliation.started";
@@ -17,7 +12,7 @@ public record ReconciliationStartedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return batchId;
     }
 
     @Override

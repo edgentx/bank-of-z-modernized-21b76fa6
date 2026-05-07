@@ -5,10 +5,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record DefectReportedEvent(
-    String validationId,
-    String defectId,
-    String summary,
-    String githubIssueUrl,
+    String aggregateId,
+    String issueReference,
+    String severity,
+    String description,
     Instant occurredAt
 ) implements DomainEvent {
     @Override
@@ -18,7 +18,7 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return validationId;
+        return aggregateId;
     }
 
     @Override

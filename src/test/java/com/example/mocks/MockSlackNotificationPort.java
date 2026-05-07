@@ -6,18 +6,18 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages to verify content without network calls.
+ * Allows verification of sent messages without external I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
     private final List<String> sentMessages = new ArrayList<>();
 
     @Override
-    public void sendMessage(String messageBody) {
-        if (messageBody == null || messageBody.isBlank()) {
-            throw new IllegalArgumentException("messageBody cannot be blank");
+    public void sendNotification(String message) {
+        if (message == null || message.isBlank()) {
+            throw new IllegalArgumentException("Message cannot be empty");
         }
-        this.sentMessages.add(messageBody);
+        sentMessages.add(message);
     }
 
     public List<String> getSentMessages() {
@@ -26,9 +26,5 @@ public class MockSlackNotificationPort implements SlackNotificationPort {
 
     public void clear() {
         sentMessages.clear();
-    }
-
-    public boolean hasReceivedMessageContaining(String substring) {
-        return sentMessages.stream().anyMatch(msg -> msg.contains(substring));
     }
 }

@@ -64,6 +64,7 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-db2</artifactId>
+            <!-- Explicit version required as it is not managed by the parent BOM -->
             <version>${flyway.version}</version>
         </dependency>
 

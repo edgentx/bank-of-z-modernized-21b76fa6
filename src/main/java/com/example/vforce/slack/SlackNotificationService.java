@@ -28,21 +28,22 @@ public class SlackNotificationService {
     }
 
     public void handleReportDefect(ReportDefectCommand cmd) {
-        // RED PHASE IMPLEMENTATION STUB
-        // This code is intentionally minimal or incorrect to fail the tests.
-        // The developer will fix this in the Green phase.
+        log.info("Handling defect report: {}", cmd.summary());
 
+        // 1. Attempt to create the GitHub issue
         Optional<GithubIssue> issue = githubPort.createIssue(cmd);
 
-        String message;
+        // 2. Construct the Slack message
+        // The defect VW-454 requires the URL to be present in the body.
+        final String message;
         if (issue.isPresent()) {
-            // The defect VW-454 is likely that this line was missing or incorrect.
-            // Currently failing: "GitHub issue: <url>"
-            message = "Defect Reported: " + cmd.summary();
+            GithubIssue ghIssue = issue.get();
+            message = "Defect Reported: " + cmd.summary() + "\nGitHub issue: " + ghIssue.url();
         } else {
             message = "Defect Reported (GitHub creation failed): " + cmd.summary();
         }
 
+        // 3. Send the notification
         slackPort.sendMessage(message);
     }
 }

@@ -5,16 +5,12 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Event emitted when a Teller Session is started.
- * ID: S-18.
- */
-public class SessionStartedEvent implements DomainEvent {
-
-    private final String aggregateId;
-    private final String tellerId;
-    private final String terminalId;
-    private final Instant occurredAt;
+public record SessionStartedEvent(
+    String aggregateId,
+    String tellerId,
+    String terminalId,
+    Instant occurredAt
+) implements DomainEvent {
 
     public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
         this.aggregateId = aggregateId;
@@ -36,13 +32,5 @@ public class SessionStartedEvent implements DomainEvent {
     @Override
     public Instant occurredAt() {
         return occurredAt;
-    }
-
-    public String getTellerId() {
-        return tellerId;
-    }
-
-    public String getTerminalId() {
-        return terminalId;
     }
 }

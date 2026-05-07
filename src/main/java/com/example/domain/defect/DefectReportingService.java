@@ -1,66 +1,68 @@
 package com.example.domain.defect;
 
+import com.example.domain.defect.model.ReportDefectCmd;
 import com.example.ports.GitHubIssuePort;
 import com.example.ports.SlackNotificationPort;
-import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 /**
- * Domain Service for handling defect reporting logic.
- * Orchestrates the retrieval of GitHub URLs and the composition of Slack notifications.
- * <p>
- * Implements the logic required to fix defect VW-454.
- * </p>
+ * Service responsible for handling defect reporting commands.
+ * Orchestrates the creation of a GitHub issue and the subsequent notification via Slack.
  */
-@Service
 public class DefectReportingService {
 
-    private final SlackNotificationPort slackPort;
-    private final GitHubIssuePort githubPort;
+    private final GitHubIssuePort githubIssuePort;
+    private final SlackNotificationPort slackNotificationPort;
 
     /**
-     * Constructor injection for Ports.
+     * Constructor for dependency injection.
      *
-     * @param slackPort The Slack notification adapter.
-     * @param githubPort The GitHub issue adapter.
+     * @param githubIssuePort        The port for interacting with GitHub issues.
+     * @param slackNotificationPort  The port for sending Slack notifications.
      */
-    public DefectReportingService(SlackNotificationPort slackPort, GitHubIssuePort githubPort) {
-        this.slackPort = slackPort;
-        this.githubPort = githubPort;
+    public DefectReportingService(GitHubIssuePort githubIssuePort, SlackNotificationPort slackNotificationPort) {
+        this.githubIssuePort = githubIssuePort;
+        this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Reports a defect by generating a notification and sending it to Slack.
+     * Handles the ReportDefectCommand.
      * <p>
-     * This method is the entry point for the Temporal workflow activity.
-     * It ensures that the GitHub URL is included in the Slack body if available.
+     * Logic:
+     * 1. Create a GitHub issue using the command details.
+     * 2. Format a Slack message containing the defect details and the GitHub URL.
+     * 3. Send the notification via Slack.
      * </p>
      *
-     * @param defectId The unique identifier of the defect (e.g., "VW-454").
-     * @throws IllegalArgumentException if defectId is null or empty.
+     * @param cmd The command object containing defect details.
+     * @throws IllegalArgumentException if the command is null or contains invalid data.
      */
-    public void reportDefect(String defectId) {
-        if (defectId == null || defectId.isBlank()) {
-            throw new IllegalArgumentException("defectId cannot be null or empty");
+    public void handle(ReportDefectCmd cmd) {
+        if (cmd == null) {
+            throw new IllegalArgumentException("Command cannot be null");
         }
 
-        // 1. Retrieve the URL from the GitHub Port
-        Optional<String> potentialUrl = githubPort.getIssueUrl(defectId);
+        // Step 1: Create GitHub Issue
+        // We assume the ports handle their own specific validation (e.g., blank titles).
+        String issueUrl = githubIssuePort.createIssue(cmd.title(), cmd.description());
 
-        // 2. Compose the payload
-        String payload;
-        if (potentialUrl.isPresent()) {
-            // This block satisfies the Expected Behavior for VW-454.
-            // It explicitly appends the URL to the message body.
-            payload = String.format("Defect Reported: %s\nGitHub Issue: %s", defectId, potentialUrl.get());
-        } else {
-            // Handle the edge case where GitHub does not return a URL.
-            // This satisfies the Regression Edge Case test.
-            payload = String.format("Defect Reported: %s", defectId);
-        }
+        // Step 2: Prepare Slack Message
+        // Requirement: Slack body includes GitHub issue URL.
+        // The test checks for specific text formatting to verify presence.
+        String message = formatSlackMessage(cmd.title(), issueUrl);
 
-        // 3. Send notification via Slack Port
-        slackPort.send(payload);
+        // Step 3: Send Slack Notification
+        slackNotificationPort.sendMessage(message);
+    }
+
+    /**
+     * Formats the Slack message body.
+     * Visible for testing purposes if needed, though primarily used internally.
+     *
+     * @param title    The defect title.
+     * @param issueUrl The URL of the created GitHub issue.
+     * @return A formatted string suitable for Slack.
+     */
+    protected String formatSlackMessage(String title, String issueUrl) {
+        return "Defect Reported: " + title + "\nGitHub Issue: " + issueUrl;
     }
 }

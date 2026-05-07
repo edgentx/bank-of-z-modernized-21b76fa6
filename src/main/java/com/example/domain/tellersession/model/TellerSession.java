@@ -6,30 +6,27 @@ import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
-/**
- * TellerSession aggregate.
- * Manages the state of a bank teller's terminal session, including authentication, timeouts, and UI navigation context.
- */
 public class TellerSession extends AggregateRoot {
 
     private final String sessionId;
-    private String tellerId;
-    private boolean authenticated;
-    private boolean active;
+    private boolean isAuthenticated = false;
     private Instant lastActivityAt;
-    private Duration timeoutDuration;
-    private String navigationContext; // e.g., "MAIN_MENU", "CASH_DEPOSIT"
+    private boolean isActive = false;
+    private String navigationContext = "HOME";
+
+    // Configured timeout (e.g., 15 minutes)
+    private static final Duration SESSION_TIMEOUT = Duration.ofMinutes(15);
 
     public TellerSession(String sessionId) {
         this.sessionId = sessionId;
-        // Default invariants for a fresh session
-        this.authenticated = false;
-        this.active = true;
         this.lastActivityAt = Instant.now();
-        this.timeoutDuration = Duration.ofMinutes(15); // Standard timeout
-        this.navigationContext = "INITIAL";
+        // Default state: not authenticated, not active.
+        // In a real scenario, we would hydrate from events. 
+        // For BDD tests to pass 'Given valid', we assume the test setup 
+        // implies the state required or we handle state transitions here.
     }
 
     @Override
@@ -37,73 +34,61 @@ public class TellerSession extends AggregateRoot {
         return sessionId;
     }
 
+    // Helper to simulate valid state for the "Happy Path" test scenario
+    // (In a real app, this would be handled by applying previous events)
+    public void markAuthenticated() {
+        this.isAuthenticated = true;
+        this.isActive = true;
+        this.lastActivityAt = Instant.now();
+    }
+
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof EndSessionCmd) {
-            return endSession((EndSessionCmd) cmd);
+        if (cmd instanceof EndSessionCmd c) {
+            return endSession(c);
         }
-        // NOTE: StartSessionCmd or other commands would be handled here in future stories
         throw new UnknownCommandException(cmd);
     }
 
     private List<DomainEvent> endSession(EndSessionCmd cmd) {
-        // Invariant 1: Sessions must timeout after a configured period of inactivity.
-        if (hasTimedOut()) {
-            throw new IllegalStateException("Session has timed out due to inactivity.");
+        // Invariant 1: Must be authenticated
+        if (!isAuthenticated) {
+            throw new IllegalStateException("Teller must be authenticated to end a session.");
         }
 
-        // Invariant 2: A teller must be authenticated to initiate a session.
-        // NOTE: This invariant phrasing in the AC implies checking if they are authenticated. 
-        // However, ending a session is often allowed even if unauthenticated (e.g. canceling login). 
-        // But strictly following the AC: "EndSessionCmd rejected — A teller must be authenticated..."
-        // Contextually, this usually applies to actions *within* a session, but we enforce it here if required.
-        // We will interpret this as: The session must be in a valid state to terminate cleanly, or 
-        // specifically that the invariant of "Authenticity" holds. 
-        // Given the specific AC, we will throw if !authenticated.
-        if (!authenticated) {
-             throw new IllegalStateException("Teller must be authenticated to end session formally.");
+        // Invariant 2: Timeout check
+        if (lastActivityAt != null) {
+            Duration inactive = Duration.between(lastActivityAt, Instant.now());
+            if (inactive.compareTo(SESSION_TIMEOUT) > 0) {
+                throw new IllegalStateException("Session has timed out due to inactivity.");
+            }
         }
 
-        // Invariant 3: Navigation state must accurately reflect the current operational context.
-        // We check if the context is in a valid state to end (e.g., not mid-transaction).
-        if (navigationContext == null || navigationContext.equals("UNKNOWN")) {
-            throw new IllegalStateException("Navigation state is invalid.");
+        // Invariant 3: Navigation state accuracy
+        if (navigationContext == null || navigationContext.isBlank()) {
+             // This simulates a state corruption or invalid context
+            throw new IllegalStateException("Navigation state is invalid or corrupted.");
         }
 
-        var event = new SessionEndedEvent(this.sessionId, this.tellerId, Instant.now());
-        this.active = false;
+        // Success
+        SessionEndedEvent event = new SessionEndedEvent(sessionId, Instant.now());
         addEvent(event);
         incrementVersion();
+        
+        // Update internal state
+        this.isActive = false;
+        this.isAuthenticated = false; // Clear sensitive state
+        this.navigationContext = null;
+        
         return List.of(event);
     }
 
-    private boolean hasTimedOut() {
-        return lastActivityAt.plus(timeoutDuration).isBefore(Instant.now());
-    }
-
-    // Test helpers / State accessors
-    public void markAuthenticated(String tellerId) {
-        this.tellerId = tellerId;
-        this.authenticated = true;
-    }
-    
+    // Setters for test simulation of invalid states
     public void setLastActivityAt(Instant time) {
         this.lastActivityAt = time;
     }
 
-    public void setTimeoutDuration(Duration duration) {
-        this.timeoutDuration = duration;
-    }
-
     public void setNavigationContext(String context) {
         this.navigationContext = context;
-    }
-    
-    public boolean isActive() {
-        return active;
-    }
-
-    public boolean isAuthenticated() {
-        return authenticated;
     }
 }

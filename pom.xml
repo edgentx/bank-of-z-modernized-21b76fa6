@@ -40,12 +40,10 @@
         </dependency>
         
         <!-- Temporal -->
-        <!-- CRITICAL FIX: io.temporal is NOT in the Spring Boot BOM closed set. -->
-        <!-- We MUST declare the version explicitly. -->
+        <!-- io.temporal is NOT in the Spring Boot BOM closed set. Explicit version required. -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
-            <!-- Using the version requested by the user's error context, explicitly declared. -->
             <version>1.22.1</version>
         </dependency>
         <dependency>

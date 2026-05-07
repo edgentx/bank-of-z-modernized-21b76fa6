@@ -6,30 +6,38 @@ import com.vladsch.flexmark.parser.Parser;
 import com.vladsch.flexmark.util.options.MutableDataSet;
 
 /**
- * Real implementation of the Markdown Renderer using Flexmark.
- * This adapter handles the conversion of Markdown strings to HTML.
+ * Implementation of MarkdownRendererPort using the Flexmark library.
+ * This adapter converts Markdown text to HTML using a standard configuration.
  */
 public class FlexmarkRenderingAdapter implements MarkdownRendererPort {
 
     private final Parser parser;
     private final HtmlRenderer renderer;
 
+    /**
+     * Default constructor. Initializes the Flexmark parser and renderer with standard options.
+     * Using MutableDataSet to configure options (though defaults are sufficient for this fix).
+     */
     public FlexmarkRenderingAdapter() {
-        // Configure Flexmark options
         MutableDataSet options = new MutableDataSet();
-        // Enable common extensions like tables and strikethrough
-        // Note: Flexmark-all bundles most extensions.
-        
+        // No specific options needed for basic rendering, but object required for builder
         this.parser = Parser.builder(options).build();
         this.renderer = HtmlRenderer.builder(options).build();
     }
 
+    /**
+     * Converts the provided markdown string to HTML.
+     * 
+     * @param markdown The markdown string to render.
+     * @return Rendered HTML string.
+     */
     @Override
     public String renderToHtml(String markdown) {
         if (markdown == null || markdown.isEmpty()) {
             return "";
         }
         // Parse and render
-        return renderer.render(parser.parse(markdown));
+        org.commonmark.node.Node document = parser.parse(markdown);
+        return renderer.render(document);
     }
 }

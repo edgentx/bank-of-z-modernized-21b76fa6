@@ -1,20 +1,30 @@
 package com.example.config;
 
-import com.example.adapters.GitHubIssueAdapter;
+import com.example.adapters.GitHubAdapter;
 import com.example.adapters.SlackNotificationAdapter;
 import com.example.ports.GitHubPort;
-import com.example.ports.SlackPort;
+import com.example.ports.SlackNotificationPort;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.Profile;
 
+/**
+ * Configuration class to wire up Ports and Adapters.
+ */
 @TestConfiguration
 public class PortConfiguration {
 
-    // We do not define Mock beans here manually to avoid class not found errors in main source.
-    // The Spring Boot Test context will pick up the Mock implementations from the test classpath
-    // if they are defined in @SpringBootTest setup, or we can rely on @MockBean.
-    
-    // Leaving this file empty as the Main adapters are auto-scanned via @Component.
+    // In a real Spring Boot app, @Component scanning on the Adapters is enough.
+    // This explicit config is often useful for swapping mocks during tests
+    // if @MockBean is not desired.
+
+    @Bean
+    public SlackNotificationPort slackNotificationPort() {
+        return new SlackNotificationAdapter();
+    }
+
+    @Bean
+    public GitHubPort gitHubPort() {
+        return new GitHubAdapter("https://github.com/fake-repo/issues");
+    }
 }

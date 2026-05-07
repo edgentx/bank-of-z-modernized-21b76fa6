@@ -1,39 +1,20 @@
 package com.example.domain.teller.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
-public class MenuNavigatedEvent implements DomainEvent {
-    public static final String TYPE = "menu.navigated";
-    private final String aggregateId;
-    private final String menuId;
-    private final String action;
-    private final Instant occurredAt;
-
-    public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
-        this.aggregateId = Objects.requireNonNull(aggregateId);
-        this.menuId = Objects.requireNonNull(menuId);
-        this.action = Objects.requireNonNull(action);
-        this.occurredAt = Objects.requireNonNull(occurredAt);
-    }
-
+/**
+ * Event emitted when a teller successfully navigates to a new menu.
+ */
+public record MenuNavigatedEvent(
+    String aggregateId,
+    String menuId,
+    String action,
+    Instant occurredAt
+) implements DomainEvent {
     @Override
     public String type() {
-        return TYPE;
+        return "menu.navigated";
     }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
-
-    public String getMenuId() { return menuId; }
-    public String getAction() { return action; }
 }

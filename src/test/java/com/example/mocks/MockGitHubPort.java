@@ -1,42 +1,41 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
-import java.util.HashMap;
-import java.util.Map;
+
+import java.util.Optional;
 
 /**
- * Mock implementation of GitHubPort.
- * Returns predictable URLs for testing without hitting api.github.com.
+ * Mock implementation of GitHubPort for testing.
  */
 public class MockGitHubPort implements GitHubPort {
 
-    private final Map<String, String> mockUrls = new HashMap<>();
-    private boolean createIssueCalled = false;
-    private String lastGeneratedUrl;
+    private String nextCreatedIssueUrl;
+    private String lastCreatedTitle;
+    private String lastCreatedBody;
 
-    public void setMockCreatedIssueUrl(String defectId, String url) {
-        mockUrls.put(defectId, url);
+    public void setNextCreatedIssueUrl(String url) {
+        this.nextCreatedIssueUrl = url;
     }
 
     @Override
-    public String createIssue(String defectId, String title, String body) {
-        createIssueCalled = true;
-        // Return a predictable default or the mocked one
-        lastGeneratedUrl = mockUrls.getOrDefault(defectId, "https://github.com/bank-of-z/vforce360/issues/0");
-        return lastGeneratedUrl;
+    public String createIssue(String title, String body) {
+        this.lastCreatedTitle = title;
+        this.lastCreatedBody = body;
+        // Simulate returning a valid GitHub URL
+        return nextCreatedIssueUrl != null ? nextCreatedIssueUrl : "https://github.com/example/repo/issues/1";
     }
 
-    public boolean wasCreateIssueCalled() {
-        return createIssueCalled;
+    @Override
+    public Optional<String> getIssueUrl(String issueId) {
+        // Not used in this specific flow, but part of the contract
+        return Optional.of("https://github.com/example/repo/issues/" + issueId);
     }
 
-    public String getLastGeneratedUrl() {
-        return lastGeneratedUrl;
+    public String getLastCreatedTitle() {
+        return lastCreatedTitle;
     }
 
-    public void reset() {
-        createIssueCalled = false;
-        lastGeneratedUrl = null;
-        mockUrls.clear();
+    public String getLastCreatedBody() {
+        return lastCreatedBody;
     }
 }

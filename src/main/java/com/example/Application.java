@@ -4,14 +4,14 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
-/**
- * Main Spring Boot Application entry point.
- * Enables component scanning to pick up Temporal workers and adapters.
- */
 @SpringBootApplication
-@ComponentScan(basePackages = {"com.example"})
+@ComponentScan(basePackages = {
+    "com.example.domain",
+    "com.example.adapters",
+    "com.example.ports",
+    "com.example.services"
+})
 public class Application {
-
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }

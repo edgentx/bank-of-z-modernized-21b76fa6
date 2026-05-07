@@ -1,27 +1,19 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
+import org.springframework.stereotype.Component;
+import java.util.Map;
 
 /**
  * Mock implementation of GitHubPort for testing.
- * Can simulate successful issue creation or return specific URLs.
  */
+@Component
 public class MockGitHubPort implements GitHubPort {
 
-    private String issueUrlToReturn = "https://github.com/example/bank-of-z/issues/1";
-    private boolean createIssueCalled = false;
-
     @Override
-    public String createIssue(String title, String body) {
-        createIssueCalled = true;
-        return issueUrlToReturn;
-    }
-
-    public void setIssueUrlToReturn(String url) {
-        this.issueUrlToReturn = url;
-    }
-
-    public boolean isCreateIssueCalled() {
-        return createIssueCalled;
+    public String createIssue(String title, String body, Map<String, String> labels) {
+        System.out.println("[MockGitHub] Creating issue: " + title);
+        // Return a dummy URL for testing the downstream integration
+        return "https://github.com/mock/issues/123";
     }
 }

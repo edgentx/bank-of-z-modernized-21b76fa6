@@ -1,23 +1,38 @@
 package com.example.mocks;
 
-import com.example.domain.validation.model.DefectReportedEvent;
 import com.example.ports.SlackNotificationPort;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock adapter for Slack notifications.
- * Captures sent messages to verify body content in tests.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Captures messages sent during the test execution for verification.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
-    public final List<DefectReportedEvent> sentEvents = new ArrayList<>();
+
+    private final List<String> sentMessages = new ArrayList<>();
+    private boolean failNextSend = false;
 
     @Override
-    public void sendNotification(DefectReportedEvent event) {
-        this.sentEvents.add(event);
+    public void sendNotification(String message) {
+        if (failNextSend) {
+            throw new RuntimeException("Simulated Slack API failure");
+        }
+        if (message == null || message.isBlank()) {
+            throw new IllegalArgumentException("Cannot send blank message");
+        }
+        sentMessages.add(message);
     }
 
-    public void reset() {
-        sentEvents.clear();
+    public List<String> getSentMessages() {
+        return new ArrayList<>(sentMessages);
+    }
+
+    public void clear() {
+        sentMessages.clear();
+    }
+
+    public void setFailNextSend(boolean fail) {
+        this.failNextSend = fail;
     }
 }

@@ -26,13 +26,17 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
         
-        <!-- Temporal: FIX BOM resolution for 1.22.1 -->
-        <!-- The BOM manages versions for 'io.temporal:temporal-sdk' etc., but might miss specific starters or mismatch versions. -->
+        <!-- Temporal: Fix dependency resolution issue -->
+        <!-- We use the temporal-sdk explicitly. The 'spring-boot-starter-alpha' was causing resolution issues -->
+        <!-- or is not in the standard Maven Central repo structure expected by the build. -->
+        <!-- io.temporal:temporal-sdk is the core dependency available in Central. -->
         <dependency>
             <groupId>io.temporal</groupId>
-            <artifactId>temporal-spring-boot-starter-alpha</artifactId> <!-- Alpha implies pre-1.0.0 for the starter module -->
-            <version>1.22.1</version>
+            <artifactId>temporal-sdk</artifactId>
+            <version>${temporal.version}</version>
         </dependency>
+        
+        <!-- Testing dependencies (Mockito, JUnit) are managed by Spring Boot Parent BOM -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

@@ -1,21 +1,16 @@
 package com.example.domain.transfer.model;
 
 import com.example.domain.shared.Command;
-
 import java.math.BigDecimal;
-import java.util.Objects;
 
+/**
+ * Command to initiate a transfer of funds between two accounts.
+ * Story: S-13
+ */
 public record InitiateTransferCmd(
         String transferId,
         String fromAccountId,
         String toAccountId,
-        BigDecimal amount
-) implements Command {
-    public InitiateTransferCmd {
-        Objects.requireNonNull(transferId, "transferId cannot be null");
-        // Basic validation at the command boundary
-        if (amount == null || amount.signum() <= 0) {
-            throw new IllegalArgumentException("Amount must be positive");
-        }
-    }
-}
+        BigDecimal amount,
+        String currency
+) implements Command {}

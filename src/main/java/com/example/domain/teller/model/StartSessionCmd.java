@@ -2,4 +2,11 @@ package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
 
-public record StartSessionCmd(String aggregateId, String tellerId, String terminalId) implements Command {}
+public record StartSessionCmd(
+    String sessionId,
+    String tellerId,
+    String terminalId,
+    boolean authenticated,
+    String navigationState,
+    boolean timedOut
+) implements Command {}

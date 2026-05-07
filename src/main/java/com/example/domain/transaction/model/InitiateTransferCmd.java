@@ -10,20 +10,19 @@ import java.util.Objects;
  */
 public record InitiateTransferCmd(
         String transferId,
-        String fromAccountId,
-        String toAccountId,
+        String fromAccount,
+        String toAccount,
         BigDecimal amount,
         String currency,
-        BigDecimal availableBalance // Snapshot of balance at time of command for validation
+        BigDecimal availableBalance // Snapshot passed for validation within aggregate context
 ) implements Command {
 
     public InitiateTransferCmd {
         Objects.requireNonNull(transferId, "transferId cannot be null");
-        Objects.requireNonNull(fromAccountId, "fromAccountId cannot be null");
-        Objects.requireNonNull(toAccountId, "toAccountId cannot be null");
+        Objects.requireNonNull(fromAccount, "fromAccount cannot be null");
+        Objects.requireNonNull(toAccount, "toAccount cannot be null");
         Objects.requireNonNull(amount, "amount cannot be null");
         Objects.requireNonNull(currency, "currency cannot be null");
         Objects.requireNonNull(availableBalance, "availableBalance cannot be null");
-        if (amount.signum() <= 0) throw new IllegalArgumentException("amount must be positive");
     }
 }

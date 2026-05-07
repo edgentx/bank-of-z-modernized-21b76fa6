@@ -5,104 +5,106 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import java.math.BigDecimal;
-import java.util.UUID;
+import java.util.Currency;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+@SpringBootTest
 public class S11Steps {
 
     private Transaction transaction;
-    private PostWithdrawalCmd command;
-    private WithdrawalPostedEvent resultEvent;
-    private Exception domainError;
+    private S11Command command;
+    private S11Event resultingEvent;
+    private Exception domainException;
 
     @Given("a valid Transaction aggregate")
-    public void aValidTransactionAggregate() {
-        // Initialize a valid, unposted transaction
-        transaction = new Transaction(UUID.randomUUID());
+    public void a_valid_Transaction_aggregate() {
+        // Setup a standard valid transaction state for a new entry
+        transaction = new Transaction();
     }
 
-    @Given("a valid accountNumber is provided")
-    public void aValidAccountNumberIsProvided() {
-        if (command == null) {
-            command = new PostWithdrawalCmd();
-        }
+    @And("a valid accountNumber is provided")
+    public void a_valid_accountNumber_is_provided() {
+        // Lazy init command if null, or just set field
+        if(command == null) command = new S11Command();
         command.setAccountNumber("ACC-1001");
     }
 
-    @Given("a valid amount is provided")
-    public void aValidAmountIsProvided() {
-        if (command == null) {
-            command = new PostWithdrawalCmd();
-        }
+    @And("a valid amount is provided")
+    public void a_valid_amount_is_provided() {
+        if(command == null) command = new S11Command();
         command.setAmount(new BigDecimal("50.00"));
     }
 
-    @Given("a valid currency is provided")
-    public void aValidCurrencyIsProvided() {
-        if (command == null) {
-            command = new PostWithdrawalCmd();
-        }
-        command.setCurrency("USD");
+    @And("a valid currency is provided")
+    public void a_valid_currency_is_provided() {
+        if(command == null) command = new S11Command();
+        command.setCurrency(Currency.getInstance("USD"));
     }
 
-    // --- Violations & Error Scenarios ---
+    // --- Violations Setup ---
 
     @Given("a Transaction aggregate that violates: Transaction amounts must be greater than zero.")
-    public void aTransactionAggregateThatViolatesAmount() {
-        transaction = new Transaction(UUID.randomUUID());
-        command = new PostWithdrawalCmd();
+    public void a_Transaction_aggregate_that_violates_amounts_must_be_greater_than_zero() {
+        transaction = new Transaction();
+        command = new S11Command();
         command.setAccountNumber("ACC-1001");
         command.setAmount(BigDecimal.ZERO); // Violation
-        command.setCurrency("USD");
+        command.setCurrency(Currency.getInstance("USD"));
     }
 
     @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.")
-    public void aTransactionAggregateThatViolatesImmutability() {
-        transaction = new Transaction(UUID.randomUUID());
-        transaction.markPosted(); // The aggregate is now immutable
+    public void a_Transaction_aggregate_that_violates_immutability() {
+        // Simulate an existing transaction
+        transaction = new Transaction();
+        // Force a state where it's already posted
+        transaction.markPosted(); 
         
-        command = new PostWithdrawalCmd();
+        command = new S11Command();
         command.setAccountNumber("ACC-1001");
         command.setAmount(new BigDecimal("10.00"));
-        command.setCurrency("USD");
+        command.setCurrency(Currency.getInstance("USD"));
     }
 
     @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance (enforced via aggregate validation).")
-    public void aTransactionAggregateThatViolatesBalanceValidation() {
-        // In a real scenario, this might involve checking the account repo.
-        // Here we simulate the aggregate being configured to reject a specific overdraft.
-        transaction = new Transaction(UUID.randomUUID());
-        transaction.setAllowOverdraft(false); // Constraint: Balance cannot go below 0
-        transaction.setCurrentBalance(new BigDecimal("0.00"));
+    public void a_Transaction_aggregate_that_violates_balance_validation() {
+        transaction = new Transaction();
+        // Simulate current balance is insufficient (e.g. 0)
+        transaction.setCurrentBalance(BigDecimal.ZERO);
 
-        command = new PostWithdrawalCmd();
+        command = new S11Command();
         command.setAccountNumber("ACC-1001");
-        command.setAmount(new BigDecimal("100.00")); // Would overdraft
-        command.setCurrency("USD");
+        command.setAmount(new BigDecimal("100.00")); // Overdraft attempt
+        command.setCurrency(Currency.getInstance("USD"));
     }
 
+    // --- Action ---
+
     @When("the PostWithdrawalCmd command is executed")
-    public void thePostWithdrawalCmdCommandIsExecuted() {
+    public void the_PostWithdrawalCmd_command_is_executed() {
         try {
-            resultEvent = transaction.execute(command);
-        } catch (IllegalStateException | IllegalArgumentException e) {
-            domainError = e;
+            resultingEvent = transaction.execute(command);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            domainException = e;
         }
     }
 
+    // --- Outcomes ---
+
     @Then("a withdrawal.posted event is emitted")
-    public void aWithdrawalPostedEventIsEmitted() {
-        Assertions.assertNotNull(resultEvent, "Event should not be null");
-        Assertions.assertNotNull(resultEvent.getEventId());
-        Assertions.assertEquals(command.getAccountNumber(), resultEvent.getAccountNumber());
-        Assertions.assertEquals(0, command.getAmount().compareTo(resultEvent.getAmount()));
+    public void a_withdrawal_posted_event_is_emitted() {
+        assertNotNull(resultingEvent, "Event should not be null");
+        assertEquals("withdrawal.posted", resultingEvent.getType());
+        assertEquals(command.getAccountNumber(), resultingEvent.getAccountNumber());
+        assertEquals(command.getAmount(), resultingEvent.getAmount());
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(domainError, "Expected a domain error exception");
-        Assertions.assertNull(resultEvent, "No event should be emitted when command is rejected");
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(domainException, "Expected domain exception to be thrown");
+        assertNull(resultingEvent, "Event should be null when command is rejected");
     }
 }

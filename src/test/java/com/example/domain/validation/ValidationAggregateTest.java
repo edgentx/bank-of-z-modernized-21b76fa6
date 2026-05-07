@@ -10,44 +10,56 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for ValidationAggregate.
- * Covers logic for handling defect reports and URL persistence.
+ * Covers happy path and validation errors.
  */
 class ValidationAggregateTest {
 
     @Test
-    void shouldThrowWhenUrlMissing() {
-        var agg = new ValidationAggregate("v1");
-        var cmd = new ReportDefectCmd("v1", "Bug", "Desc", ""); // Blank URL
-        
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-            agg.execute(cmd);
-        });
-        
-        assertTrue(ex.getMessage().contains("required"));
-    }
+    void shouldReportDefectWithValidGitHubUrl() {
+        // Given
+        var aggr = new ValidationAggregate("val-1");
+        var cmd = new ReportDefectCmd("val-1", "VW-454", "https://github.com/example/repo/issues/454");
 
-    @Test
-    void shouldStoreUrlWhenValid() {
-        var agg = new ValidationAggregate("v1");
-        String url = "https://github.com/egdcrypto/bank-of-z/issues/454";
-        var cmd = new ReportDefectCmd("v1", "Bug", "Desc", url);
+        // When
+        var events = aggr.execute(cmd);
 
-        var events = agg.execute(cmd);
+        // Then
+        assertEquals(1, events.size());
+        assertTrue(aggr.isReported());
+        assertEquals("https://github.com/example/repo/issues/454", aggr.getGithubIssueUrl());
 
-        assertFalse(events.isEmpty());
-        assertEquals(url, agg.getExternalTicketUrl());
-        
         var event = (DefectReportedEvent) events.get(0);
-        assertEquals(url, event.githubIssueUrl());
+        assertEquals("val-1", event.aggregateId());
+        assertEquals("VW-454", event.title());
+        assertEquals("https://github.com/example/repo/issues/454", event.githubIssueUrl());
     }
 
     @Test
-    void shouldRejectUnknownCommand() {
-        var agg = new ValidationAggregate("v1");
-        var cmd = new Object() {}; // Not a recognized command
+    void shouldRejectInvalidGitHubUrl() {
+        var aggr = new ValidationAggregate("val-1");
+        var cmd = new ReportDefectCmd("val-1", "VW-454", "http://google.com");
+
+        Exception ex = assertThrows(IllegalArgumentException.class, () -> aggr.execute(cmd));
+        assertTrue(ex.getMessage().contains("Valid GitHub Issue URL is required"));
+    }
+
+    @Test
+    void shouldRejectEmptyGitHubUrl() {
+        var aggr = new ValidationAggregate("val-1");
+        var cmd = new ReportDefectCmd("val-1", "VW-454", "");
+
+        Exception ex = assertThrows(IllegalArgumentException.class, () -> aggr.execute(cmd));
+        assertTrue(ex.getMessage().contains("Valid GitHub Issue URL is required"));
+    }
+
+    @Test
+    void shouldThrowUnknownCommand() {
+        var aggr = new ValidationAggregate("val-1");
+        var cmd = new Object(); // Not a valid command
+
+        // We need to wrap this in a Command implementation for the test
+        class FakeCmd implements com.example.domain.shared.Command {}
         
-        assertThrows(UnknownCommandException.class, () -> {
-            agg.execute(cmd);
-        });
+        assertThrows(UnknownCommandException.class, () -> aggr.execute(new FakeCmd()));
     }
 }

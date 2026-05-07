@@ -2,16 +2,18 @@ package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
 
-import java.time.Instant;
-
 /**
- * Command to initiate a teller session.
+ * Command to initiate a new teller session.
+ * MUST be authenticated and associated with a specific terminal.
  */
 public record StartSessionCmd(
     String sessionId,
     String tellerId,
-    String terminalId,
-    boolean isAuthenticated,
-    Instant lastActivityAt,
-    String initialState
-) implements Command {}
+    String terminalId
+) implements Command {
+    public StartSessionCmd {
+        if (sessionId == null || sessionId.isBlank()) throw new IllegalArgumentException("sessionId required");
+        if (tellerId == null || tellerId.isBlank()) throw new IllegalArgumentException("tellerId required");
+        if (terminalId == null || terminalId.isBlank()) throw new IllegalArgumentException("terminalId required");
+    }
+}

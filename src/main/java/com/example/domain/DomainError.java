@@ -1,13 +1,11 @@
 package com.example.domain;
 
-public class DomainError {
-    private final String message;
+/**
+ * Domain Exception representing a violation of business rules.
+ */
+public class DomainError extends RuntimeException {
 
     public DomainError(String message) {
-        this.message = message;
-    }
-
-    public String getMessage() {
-        return message;
+        super(message);
     }
 }

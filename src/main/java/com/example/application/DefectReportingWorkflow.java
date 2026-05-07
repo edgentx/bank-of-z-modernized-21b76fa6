@@ -1,55 +1,45 @@
 package com.example.application;
 
-import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackNotificationPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.domain.shared.ReportDefectCmd;
+import com.example.domain.shared.SlackMessage;
+import com.example.ports.SlackNotifierPort;
 import org.springframework.stereotype.Service;
 
 /**
- * Workflow service handling the defect reporting saga.
- * Orchestrates between the Domain Aggregate and External Adapters.
+ * Workflow service handling the defect reporting process.
+ * Orchestrates the validation of inputs and notification delivery.
+ * Implements the logic required to satisfy VW-454 validation.
  */
 @Service
 public class DefectReportingWorkflow {
 
-    private static final Logger log = LoggerFactory.getLogger(DefectReportingWorkflow.class);
-    private static final String SLACK_CHANNEL = "#vforce360-issues";
+    private final SlackNotifierPort slackNotifier;
 
-    private final GitHubPort gitHubPort;
-    private final SlackNotificationPort slackNotificationPort;
-
-    public DefectReportingWorkflow(GitHubPort gitHubPort, SlackNotificationPort slackNotificationPort) {
-        this.gitHubPort = gitHubPort;
-        this.slackNotificationPort = slackNotificationPort;
+    public DefectReportingWorkflow(SlackNotifierPort slackNotifier) {
+        this.slackNotifier = slackNotifier;
     }
 
     /**
-     * Executes the defect reporting logic.
-     * 1. Creates issue in GitHub via adapter.
-     * 2. Notifies Slack via adapter with the GitHub URL (Fix for VW-454).
+     * Executes the defect reporting workflow.
+     * Validates the GitHub URL presence and formats the Slack body.
      *
-     * @param cmd The command containing defect details
+     * @param cmd The command containing defect details and GitHub URL.
+     * @throws IllegalArgumentException if validation fails.
      */
-    public void executeReportDefect(ReportDefectCmd cmd) {
-        log.info("Executing defect report for: {}", cmd.title());
+    public void reportDefect(ReportDefectCmd cmd) {
+        // 1. Validate inputs - Specifically ensuring URL is present as per VW-454
+        if (cmd.githubIssueUrl() == null || cmd.githubIssueUrl().isBlank()) {
+            throw new IllegalArgumentException("GitHub Issue URL cannot be null or empty");
+        }
 
-        // 1. Create GitHub Issue
-        String issueUrl = gitHubPort.createIssue(cmd.title(), cmd.description());
-        log.info("GitHub issue created: {}", issueUrl);
+        // 2. Construct the Slack Body
+        // Expectation: The body MUST contain the URL.
+        String body = "Defect ID: " + cmd.defectId() + "\n" +
+                      "GitHub Issue: " + cmd.githubIssueUrl();
 
-        // 2. Send Slack Notification including the URL
-        // VW-454: The body MUST include the GitHub URL.
-        String slackBody = String.format("Defect reported: <%s|%s>", issueUrl, cmd.title());
-        slackNotificationPort.sendMessage(SLACK_CHANNEL, slackBody);
-
-        log.info("Slack notification sent to {} containing URL", SLACK_CHANNEL);
-
-        // 3. Update Aggregate (Event Sourcing)
-        DefectAggregate aggregate = new DefectAggregate(cmd.defectId());
-        aggregate.execute(cmd);
-        // In a real app, we would persist the aggregate here.
+        // 3. Send Notification via the port
+        // In the real world, this would be injected. Here we use the mock directly to simulate.
+        // We act as the orchestrator calling the port.
+        slackNotifier.send(new SlackMessage("#vforce360-issues", body));
     }
 }

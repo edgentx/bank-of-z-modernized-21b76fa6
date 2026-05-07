@@ -3,39 +3,30 @@ package com.example.mocks;
 import com.example.ports.SlackNotificationPort;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Allows inspection of the messages that would have been sent.
+ * Captures sent payloads to verify behavior in tests.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
-
-    // Record of invocations
-    public static class Call {
-        public final String channelId;
-        public final String messageBody;
-
-        public Call(String channelId, String messageBody) {
-            this.channelId = channelId;
-            this.messageBody = messageBody;
-        }
-    }
-
-    private final List<Call> calls = new ArrayList<>();
+    private final List<Map<String, String>> sentMessages = new ArrayList<>();
 
     @Override
-    public boolean sendMessage(String channelId, String messageBody) {
-        // In a real mock, we might allow configuring return values,
-        // but for Slack we usually just want to verify the call happened.
-        this.calls.add(new Call(channelId, messageBody));
-        return true;
+    public void sendNotification(Map<String, String> messagePayload) {
+        this.sentMessages.add(messagePayload);
     }
 
-    public List<Call> getCalls() {
-        return List.copyOf(calls);
+    public List<Map<String, String>> getSentMessages() {
+        return new ArrayList<>(sentMessages);
     }
 
     public void reset() {
-        calls.clear();
+        sentMessages.clear();
+    }
+
+    public boolean wasCalledWithGitHubUrl(String url) {
+        return sentMessages.stream()
+                .anyMatch(msg -> url.equals(msg.get("githubUrl")));
     }
 }

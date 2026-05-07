@@ -5,39 +5,32 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock adapter for the Slack Notification Port.
- * Records payloads sent during the test execution without performing I/O.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Stores messages in memory to verify contents without external I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> sentPayloads = new ArrayList<>();
+    private final List<String> postedMessages = new ArrayList<>();
     private boolean shouldFail = false;
 
     @Override
-    public boolean sendNotification(String payload) {
-        if (shouldFail) return false;
-        sentPayloads.add(payload);
+    public boolean postMessage(String body) {
+        if (shouldFail) {
+            return false;
+        }
+        postedMessages.add(body);
         return true;
     }
 
-    /**
-     * Returns the list of payloads captured during the test.
-     */
-    public List<String> getSentPayloads() {
-        return sentPayloads;
+    public List<String> getPostedMessages() {
+        return new ArrayList<>(postedMessages);
     }
 
-    /**
-     * Utility to simulate API failures.
-     */
+    public void clear() {
+        postedMessages.clear();
+    }
+
     public void setShouldFail(boolean fail) {
         this.shouldFail = fail;
-    }
-
-    /**
-     * Clears the captured history.
-     */
-    public void clear() {
-        sentPayloads.clear();
     }
 }

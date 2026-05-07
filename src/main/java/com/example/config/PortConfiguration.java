@@ -1,16 +1,20 @@
 package com.example.config;
 
+import com.example.adapters.GitHubIssueAdapter;
+import com.example.adapters.SlackNotificationAdapter;
 import com.example.ports.GitHubPort;
 import com.example.ports.SlackPort;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 
 @TestConfiguration
 public class PortConfiguration {
 
-    // @Primary Beans for testing purposes are now in the test context configuration,
-    // but we keep the file structure consistent with the main source if required by the build.
-    // However, the build errors referenced Mock classes here. We will leave this empty
-    // and ensure the Mocks are exposed via the Test context in the test source folder.
+    // We do not define Mock beans here manually to avoid class not found errors in main source.
+    // The Spring Boot Test context will pick up the Mock implementations from the test classpath
+    // if they are defined in @SpringBootTest setup, or we can rely on @MockBean.
+    
+    // Leaving this file empty as the Main adapters are auto-scanned via @Component.
 }

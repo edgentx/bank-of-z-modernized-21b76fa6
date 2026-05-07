@@ -7,8 +7,8 @@ import org.junit.platform.suite.api.Suite;
 
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features/S-FB-1.feature")
+@SelectClasspathResource("features")
 @Cucumber
 public class SFB1TestSuite {
-    // Cucumber test suite configuration
+    // Test Suite configuration for Story FB-1
 }

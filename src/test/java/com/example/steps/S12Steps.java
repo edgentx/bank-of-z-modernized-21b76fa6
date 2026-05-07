@@ -1,7 +1,7 @@
 package com.example.steps;
 
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.transaction.model.ReverseTransactionCmd;
 import com.example.domain.transaction.model.TransactionAggregate;
 import com.example.domain.transaction.model.TransactionReversedEvent;
@@ -18,113 +18,80 @@ import static org.junit.jupiter.api.Assertions.*;
 public class S12Steps {
 
     private TransactionAggregate aggregate;
-    private ReverseTransactionCmd cmd;
-    private List<DomainEvent> resultEvents;
     private Exception capturedException;
+    private List<DomainEvent> resultEvents;
 
     @Given("a valid Transaction aggregate")
-    public void a_valid_Transaction_aggregate() {
-        aggregate = new TransactionAggregate("TX-123");
+    public void aValidTransactionAggregate() {
+        aggregate = new TransactionAggregate("tx-123");
+        // Setup a state that is valid for reversal
+        // Assume a previous posting of 100.00 occurred, so current balance is 100.00
+        aggregate.configureForTest(new BigDecimal("100.00"), true, false, new BigDecimal("100.00"));
     }
-
-    @Given("a valid originalTransactionId is provided")
-    public void a_valid_originalTransactionId_is_provided() {
-        // This step is essentially a setup for the command.
-        // We'll construct the full command in the 'When' step.
-    }
-
-    @When("the ReverseTransactionCmd command is executed")
-    public void the_ReverseTransactionCmd_command_is_executed() {
-        // Default valid command for happy path or pre-error state
-        cmd = new ReverseTransactionCmd(
-                "TX-123",
-                "TX-ORIGINAL",
-                new BigDecimal("100.00"),
-                "ACC-456",
-                "VALID"
-        );
-        executeCommand();
-    }
-
-    @Then("a transaction.reversed event is emitted")
-    public void a_transaction_reversed_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertFalse(resultEvents.isEmpty());
-        assertTrue(resultEvents.get(0) instanceof TransactionReversedEvent);
-        TransactionReversedEvent event = (TransactionReversedEvent) resultEvents.get(0);
-        assertEquals("transaction.reversed", event.type());
-        assertEquals("TX-123", event.aggregateId());
-    }
-
-    // Error Scenarios
 
     @Given("a Transaction aggregate that violates: Transaction amounts must be greater than zero.")
-    public void a_Transaction_aggregate_that_violates_amounts_must_be_greater_than_zero() {
-        aggregate = new TransactionAggregate("TX-ERR-01");
+    public void aTransactionAggregateThatViolatesAmounts() {
+        aggregate = new TransactionAggregate("tx-invalid-amount");
+        aggregate.configureForTest(BigDecimal.ZERO, true, false, BigDecimal.ZERO);
     }
 
     @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.")
-    public void a_Transaction_aggregate_that_violates_cannot_be_altered() {
-        aggregate = new TransactionAggregate("TX-ERR-02");
-        // Force the aggregate into a 'posted' state to trigger the invariant error.
-        // We do this by executing a valid command first to set posted=true.
-        ReverseTransactionCmd initialCmd = new ReverseTransactionCmd(
-                "TX-ERR-02", "ORIG", BigDecimal.TEN, "ACC-123", "VALID"
-        );
-        aggregate.execute(initialCmd);
+    public void aTransactionAggregateThatViolatesImmutability() {
+        aggregate = new TransactionAggregate("tx-immutable");
+        // Setup as already reversed to trigger the immutability check
+        aggregate.configureForTest(new BigDecimal("50.00"), true, true, new BigDecimal("50.00"));
     }
 
-    @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance")
-    public void a_Transaction_aggregate_that_violates_valid_account_balance() {
-        aggregate = new TransactionAggregate("TX-ERR-03");
+    @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance (enforced via aggregate validation).")
+    public void aTransactionAggregateThatViolatesBalanceValidation() {
+        aggregate = new TransactionAggregate("tx-invalid-balance");
+        // Balance is 10.00, trying to reverse 100.00 would result in -90.00
+        aggregate.configureForTest(new BigDecimal("100.00"), true, false, new BigDecimal("10.00"));
     }
 
-    @When("the ReverseTransactionCmd command is executed with zero amount")
-    public void the_ReverseTransactionCmd_command_is_executed_with_zero_amount() {
-        cmd = new ReverseTransactionCmd(
-                "TX-ERR-01",
-                "TX-ORIGINAL",
-                BigDecimal.ZERO,
-                "ACC-456",
-                "VALID"
-        );
-        executeCommand();
+    @And("a valid originalTransactionId is provided")
+    public void aValidOriginalTransactionIdIsProvided() {
+        // Data setup helper, the actual ID is used in the When step
+        // No-op, just readability
     }
 
-    @When("the ReverseTransactionCmd command is executed on posted transaction")
-    public void the_ReverseTransactionCmd_command_is_executed_on_posted_transaction() {
-        cmd = new ReverseTransactionCmd(
-                "TX-ERR-02",
-                "TX-ORIGINAL",
-                BigDecimal.ONE,
-                "ACC-456",
-                "VALID"
-        );
-        executeCommand();
+    @When("the ReverseTransactionCmd command is executed")
+    public void theReverseTransactionCmdCommandIsExecuted() {
+        try {
+            // We construct the command based on the scenario context
+            // For standard valid case
+            String originalTxId = "orig-tx-1";
+            BigDecimal amount = new BigDecimal("100.00");
+
+            // Override based on setup state if necessary for specific negative cases
+            if (aggregate.getCurrentAccountBalance().compareTo(new BigDecimal("10.00")) == 0) {
+                amount = new BigDecimal("100.00"); // Force overdraft
+            } else if (aggregate.getCurrentAccountBalance().compareTo(BigDecimal.ZERO) == 0) {
+                amount = BigDecimal.ZERO; // Force zero amount
+            }
+
+            Command cmd = new ReverseTransactionCmd(aggregate.id(), originalTxId, amount);
+            resultEvents = aggregate.execute(cmd);
+            capturedException = null;
+        } catch (Exception e) {
+            capturedException = e;
+            resultEvents = null;
+        }
     }
 
-    @When("the ReverseTransactionCmd command is executed with invalid balance context")
-    public void the_ReverseTransactionCmd_command_is_executed_with_invalid_balance_context() {
-        cmd = new ReverseTransactionCmd(
-                "TX-ERR-03",
-                "TX-ORIGINAL",
-                BigDecimal.ONE,
-                "ACC-456",
-                "INVALID" // Triggers balance validation failure
-        );
-        executeCommand();
+    @Then("a transaction.reversed event is emitted")
+    public void aTransactionReversedEventIsEmitted() {
+        assertNotNull(resultEvents);
+        assertFalse(resultEvents.isEmpty());
+        assertTrue(resultEvents.get(0) instanceof TransactionReversedEvent);
+        assertEquals("transaction.reversed", resultEvents.get(0).type());
+        assertEquals(aggregate.id(), resultEvents.get(0).aggregateId());
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
+    public void theCommandIsRejectedWithADomainError() {
         assertNotNull(capturedException);
-    }
-
-    private void executeCommand() {
-        try {
-            resultEvents = aggregate.execute(cmd);
-        } catch (IllegalArgumentException | IllegalStateException | UnknownCommandException e) {
-            capturedException = e;
-        }
+        // In Java domain, domain errors are often modeled as Exceptions (IllegalArgumentException, IllegalStateException)
+        assertTrue(capturedException instanceof IllegalArgumentException || capturedException instanceof IllegalStateException);
     }
 }

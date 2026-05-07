@@ -1,40 +1,45 @@
 package com.example.steps;
 
-import com.example.domain.uimodel.model.*;
-import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.shared.DomainEvent;
+import com.example.domain.userinterface.model.RenderScreenCmd;
+import com.example.domain.userinterface.model.ScreenMapAggregate;
+import com.example.domain.userinterface.model.ScreenRenderedEvent;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S21Steps {
 
     private ScreenMapAggregate aggregate;
+    private String screenId;
+    private String deviceType;
+    private List<DomainEvent> resultEvents;
     private Exception capturedException;
-    private List<com.example.domain.shared.DomainEvent> resultEvents;
 
     @Given("a valid ScreenMap aggregate")
     public void aValidScreenMapAggregate() {
-        aggregate = new ScreenMapAggregate("screen-1");
+        aggregate = new ScreenMapAggregate("map-001");
     }
 
-    @Given("a valid screenId is provided")
+    @And("a valid screenId is provided")
     public void aValidScreenIdIsProvided() {
-        // State handled in command construction
+        this.screenId = "SCRN01"; // Valid BMS length (8 chars)
     }
 
-    @Given("a valid deviceType is provided")
+    @And("a valid deviceType is provided")
     public void aValidDeviceTypeIsProvided() {
-        // State handled in command construction
+        this.deviceType = "3270"; // Valid BMS length
     }
 
     @When("the RenderScreenCmd command is executed")
     public void theRenderScreenCmdCommandIsExecuted() {
         try {
-            // Assuming valid defaults for positive scenario
-            RenderScreenCmd cmd = new RenderScreenCmd("screen-1", DeviceType.DESKTOP);
+            RenderScreenCmd cmd = new RenderScreenCmd(aggregate.id(), screenId, deviceType, "{}");
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             capturedException = e;
@@ -43,54 +48,38 @@ public class S21Steps {
 
     @Then("a screen.rendered event is emitted")
     public void aScreenRenderedEventIsEmitted() {
-        Assertions.assertNotNull(resultEvents);
-        Assertions.assertEquals(1, resultEvents.size());
-        Assertions.assertEquals("screen.rendered", resultEvents.get(0).type());
-        Assertions.assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
+        assertNotNull(resultEvents);
+        assertFalse(resultEvents.isEmpty());
+        assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
+        
+        ScreenRenderedEvent event = (ScreenRenderedEvent) resultEvents.get(0);
+        assertEquals("screen.rendered", event.type());
+        assertEquals(screenId, event.screenId());
+        assertEquals(deviceType, event.deviceType());
+        assertTrue(aggregate.isRendered());
     }
 
-    // Negative Scenarios
-
+    // Scenario 2: Mandatory Input Fields Validation
     @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void aScreenMapAggregateWithMissingFields() {
-        aggregate = new ScreenMapAggregate("screen-err-1");
-        // This sets up the aggregate, but the violation comes from the Command
-    }
-
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void aScreenMapAggregateWithInvalidLengths() {
-        aggregate = new ScreenMapAggregate("screen-err-2");
-    }
-
-    @When("the command is executed with invalid parameters")
-    public void theCommandIsExecutedWithInvalidParameters() {
-        try {
-            // This logic is specific to how we trigger the violation in context
-            // We will construct commands that violate the rules inside the specific step context if needed,
-            // but here we can just simulate the failure.
-            RenderScreenCmd cmd = new RenderScreenCmd(null, null); // Violates mandatory
-            aggregate.execute(cmd);
-        } catch (IllegalArgumentException | UnknownCommandException e) {
-            capturedException = e;
-        }
-    }
-
-    // Overriding the When for specific negative flows if necessary, or using the generic one
-    @When("the RenderScreenCmd command is executed with invalid data")
-    public void theRenderScreenCmdCommandIsExecutedWithInvalidData() {
-        try {
-             // Simulating BMS length violation via command data if ScreenMap Aggregate checks it
-             // For this test, we assume the command carries the bad data or the Aggregate check fails
-             RenderScreenCmd cmd = new RenderScreenCmd("invalid-screen-id-too-long-for-bms", DeviceType.TN3270);
-             aggregate.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            capturedException = e;
-        }
+    public void aScreenMapAggregateThatViolatesMandatoryInputFields() {
+        aggregate = new ScreenMapAggregate("map-002");
+        this.screenId = null; // Violating mandatory field
+        this.deviceType = "3270";
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(capturedException);
-        Assertions.assertTrue(capturedException instanceof IllegalArgumentException);
+        assertNotNull(capturedException);
+        assertTrue(capturedException instanceof IllegalArgumentException);
+        assertTrue(capturedException.getMessage().contains("mandatory"));
+    }
+
+    // Scenario 3: Legacy BMS Constraints
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void aScreenMapAggregateThatViolatesLegacyBMSConstraints() {
+        aggregate = new ScreenMapAggregate("map-003");
+        // Screen ID max length is 8 based on aggregate logic. Let's use 9 to violate.
+        this.screenId = "TOOLONGID"; // 9 chars
+        this.deviceType = "3270";
     }
 }

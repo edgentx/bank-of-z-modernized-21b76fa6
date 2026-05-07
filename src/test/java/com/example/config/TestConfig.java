@@ -1,25 +1,27 @@
 package com.example.config;
 
-import com.example.mocks.MockGitHubPort;
-import com.example.mocks.MockSlackPort;
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackPort;
+import com.example.ports.SlackNotifier;
+import com.example.domain.vforce360.service.VForce360Service;
+import org.mockito.Mockito;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
+
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 
 @TestConfiguration
 public class TestConfig {
 
     @Bean
-    @Primary
-    public GitHubPort gitHubPort() {
-        return new MockGitHubPort();
+    public SlackNotifier mockSlackNotifier() {
+        // Create a mock that does nothing by default (Red Phase)
+        SlackNotifier mock = Mockito.mock(SlackNotifier.class);
+        doNothing().when(mock).send(anyString());
+        return mock;
     }
 
     @Bean
-    @Primary
-    public SlackPort slackPort() {
-        return new MockSlackPort();
+    public VForce360Service vForce360Service(SlackNotifier slackNotifier) {
+        return new VForce360Service(slackNotifier);
     }
 }

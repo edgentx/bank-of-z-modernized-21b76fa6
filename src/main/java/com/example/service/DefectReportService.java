@@ -1,60 +1,41 @@
 package com.example.service;
 
-import com.example.domain.shared.Command;
-import com.example.domain.shared.UnknownCommandException;
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackPort;
-
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
+import com.example.ports.SlackNotificationPort;
+import org.springframework.stereotype.Service;
 
 /**
- * Service to handle defect reporting commands.
- * Orchestrates GitHub issue creation and Slack notifications.
+ * Service handling the logic for reporting defects.
+ * Coordinates the generation of the Slack message body and dispatching it via the port.
  */
+@Service
 public class DefectReportService {
 
-    private final GitHubPort githubPort;
-    private final SlackPort slackPort;
+    private final SlackNotificationPort slackNotificationPort;
 
-    public DefectReportService(GitHubPort githubPort, SlackPort slackPort) {
-        this.githubPort = githubPort;
-        this.slackPort = slackPort;
+    public DefectReportService(SlackNotificationPort slackNotificationPort) {
+        this.slackNotificationPort = slackNotificationPort;
     }
 
-    public void execute(Command cmd) {
-        if (cmd instanceof ReportDefectCmd c) {
-            reportDefect(c);
-        } else {
-            throw new UnknownCommandException(cmd);
-        }
-    }
-
-    private void reportDefect(ReportectCmd c) {
-        // 1. Create the body for the GitHub issue
-        String formattedDate = DateTimeFormatter.ISO_INSTANT.format(c.reportedAt());
-        String issueBody = String.format(
-            "Severity: %s\nComponent: %s\nReported At: %s",
-            c.severity(),
-            c.component(),
-            formattedDate
-        );
-
-        // 2. Create issue in GitHub
-        String issueUrl = githubPort.createIssue(c.title(), issueBody);
-
-        // 3. Verify URL was returned
+    /**
+     * Reports a defect to the VForce360 Slack channel.
+     * Formats the URL using Slack's mrkdown/unfurl syntax <URL|text> to ensure
+     * the link is clickable and valid (VW-454).
+     *
+     * @param issueId  The ID of the issue (e.g., VW-454).
+     * @param issueUrl The full GitHub URL to the issue.
+     */
+    public void reportDefect(String issueId, String issueUrl) {
         if (issueUrl == null || issueUrl.isBlank()) {
-            throw new IllegalStateException("GitHub URL was not returned by adapter");
+            throw new IllegalArgumentException("Issue URL cannot be null or empty");
+        }
+        if (issueId == null || issueId.isBlank()) {
+            throw new IllegalArgumentException("Issue ID cannot be null or empty");
         }
 
-        // 4. Send notification to Slack with the GitHub URL
-        String slackMessage = String.format(
-            "Defect Reported: %s\nGitHub issue: %s",
-            c.title(),
-            issueUrl
-        );
+        // Format: <|Issue ID|>
+        // Using Slack's <URL|Text> format ensures the URL is unfurled correctly.
+        String formattedBody = "Defect Reported: <" + issueUrl + "|" + issueId + ">";
 
-        slackPort.sendMessage("#vforce360-issues", slackMessage);
+        slackNotificationPort.send(formattedBody);
     }
 }

@@ -1,64 +1,63 @@
 package com.example.application;
 
-import com.example.domain.shared.*;
-import com.example.domain.validation.ValidationAggregate;
-import com.example.ports.NotificationPort;
+import com.example.domain.vforce360.model.DefectReportedEvent;
+import com.example.domain.vforce360.model.ReportDefectCmd;
+import com.example.domain.vforce360.model.ValidationAggregate;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackNotificationPort;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 /**
- * Application Service handling the business logic flow for reporting defects.
- * Orchestrates the aggregate and the notification side-effects.
+ * Application service handling the defect reporting workflow.
+ * Orchestrates Aggregate execution, GitHub creation, and Slack notification.
  */
 @Service
 public class DefectReportingService {
 
-    private final NotificationPort notificationPort;
+    private final GitHubPort githubPort;
+    private final SlackNotificationPort slackNotificationPort;
 
-    public DefectReportingService(NotificationPort notificationPort) {
-        this.notificationPort = notificationPort;
+    public DefectReportingService(GitHubPort githubPort,
+                                  SlackNotificationPort slackNotificationPort) {
+        this.githubPort = githubPort;
+        this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Handles the ReportDefectCommand.
-     * 1. Executes domain logic via Aggregate.
-     * 2. Uses the resulting event to trigger external integrations (GitHub, then Slack).
-     *
-     * @param cmd The command
+     * Handles the reporting of a defect.
+     * 1. Executes command on Aggregate.
+     * 2. Creates GitHub Issue.
+     * 3. Sends Slack notification with the GitHub URL.
      */
-    public void handle(ReportDefectCommand cmd) {
-        ValidationAggregate aggregate = new ValidationAggregate(cmd.defectId());
-        
-        // Execute domain logic (Red phase: this will fail if command is invalid, but implementation is missing)
-        List<DomainEvent> events = aggregate.execute(cmd);
-        
-        // In a real app, we would persist events here.
-        
-        // Process side effects
-        for (DomainEvent event : events) {
-            if (event instanceof DefectReportedEvent de) {
-                handleDefectReported(de);
-            }
-        }
-    }
+    public void reportDefect(ReportDefectCmd cmd) {
+        // 1. Execute Domain Logic
+        ValidationAggregate aggregate = new ValidationAggregate(cmd.validationId());
+        var events = aggregate.execute(cmd);
 
-    private void handleDefectReported(DefectReportedEvent event) {
-        // Step 1: Create GitHub Issue
-        String issueUrl = notificationPort.createGitHubIssue(
-            "VW-454: " + event.title(), 
+        // We expect a single event for this command
+        if (events.isEmpty()) {
+            throw new IllegalStateException("Expected a DefectReportedEvent");
+        }
+
+        // Safe cast as we control the aggregate logic
+        DefectReportedEvent event = (DefectReportedEvent) events.get(0);
+
+        // 2. Create GitHub Issue
+        // Using description for body, summary for title
+        String issueUrl = githubPort.createIssue(
+            "Defect: " + event.description().substring(0, Math.min(50, event.description().length())),
             event.description()
         );
 
-        // Step 2: Notify Slack with the link (Acceptance Criteria)
-        // Using Slack message formatting: <URL|text> or <URL> for simple links
-        String slackBody = String.format(
-            "Defect Reported: %s\nSeverity: %s\nGitHub Issue: <%s>",
-            event.title(),
+        // 3. Notify Slack (VW-454: Body must include GitHub URL)
+        String slackMessage = String.format(
+            "Defect Reported by %s (Severity: %s):\n%s\nGitHub Issue: %s",
+            event.reporter(),
             event.severity(),
+            event.description(),
             issueUrl
         );
 
-        notificationPort.postToSlack("#vforce360-issues", slackBody);
+        slackNotificationPort.postMessage("#vforce360-issues", slackMessage);
     }
 }

@@ -1,39 +1,27 @@
 package com.example.mocks;
 
-import com.example.domain.shared.Aggregate;
-import com.example.domain.teller.model.TellerSessionAggregate;
+import com.example.domain.teller.model.TellerSession;
 import com.example.domain.teller.repository.TellerSessionRepository;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 /**
- * In-memory repository for testing TellerSession.
- * Part of Mock Adapter pattern required for S-18 tests.
+ * Mock Adapter for TellerSessionRepository.
+ * Used in tests to avoid DB2/MongoDB dependencies during unit testing.
  */
 public class MockTellerSessionRepository implements TellerSessionRepository {
 
-    private final Map<String, TellerSessionAggregate> store = new HashMap<>();
+    private final Map<String, TellerSession> store = new HashMap<>();
 
     @Override
-    public Optional<TellerSessionAggregate> findById(String id) {
-        return Optional.ofNullable(store.get(id));
-    }
-
-    @Override
-    public void save(TellerSessionAggregate aggregate) {
+    public TellerSession save(TellerSession aggregate) {
         store.put(aggregate.id(), aggregate);
+        return aggregate;
     }
 
     @Override
-    public TellerSessionAggregate create(String id) {
-        // Create a new instance and put it in store (transient)
-        TellerSessionAggregate agg = new TellerSessionAggregate(id);
-        store.put(id, agg);
-        return agg;
-    }
-
-    public void clear() {
-        store.clear();
+    public Optional<TellerSession> findById(String id) {
+        return Optional.ofNullable(store.get(id));
     }
 }

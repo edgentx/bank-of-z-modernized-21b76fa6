@@ -9,23 +9,19 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * TellerSession Aggregate
- * Handles the lifecycle of a bank teller's login session, state management, and navigation context.
- * S-18: StartSessionCmd implementation.
+ * Teller Session Aggregate.
+ * Manages the lifecycle of a teller's interaction with the system (user-interface-navigation).
  */
 public class TellerSession extends AggregateRoot {
 
     private final String sessionId;
     private String tellerId;
     private String terminalId;
-    private State state = State.NONE;
-
-    public enum State {
-        NONE, INITIATED, AUTHENTICATED, TIMEOUT, NAVIGATION_ERROR
-    }
+    private boolean active;
 
     public TellerSession(String sessionId) {
         this.sessionId = sessionId;
+        this.active = false;
     }
 
     @Override
@@ -42,56 +38,48 @@ public class TellerSession extends AggregateRoot {
     }
 
     private List<DomainEvent> startSession(StartSessionCmd cmd) {
-        // Invariant: Session must not already be initiated
-        if (this.state != State.NONE) {
-            throw new IllegalStateException("Session already initiated in state: " + this.state);
+        // Invariant: A teller must be authenticated to initiate a session.
+        if (!cmd.isAuthenticated()) {
+            throw new IllegalStateException("A teller must be authenticated to initiate a session.");
         }
 
-        // Validation: Teller Authentication Status
-        // Simulated validation: in a real system, this might check a token or auth service.
-        // For the purpose of the domain aggregate, we assume the caller provides the context,
-        // but the invariant "A teller must be authenticated" implies we check validity of input.
-        // Here we verify the command payload validity.
+        // Invariant: Sessions must timeout after a configured period of inactivity.
+        // (Simulated check based on command flags for domain rule enforcement)
+        if (cmd.isTimedOut()) {
+            throw new IllegalStateException("Sessions must timeout after a configured period of inactivity.");
+        }
+
+        // Invariant: Navigation state must accurately reflect the current operational context.
+        if (cmd.isNavStateInvalid()) {
+            throw new IllegalStateException("Navigation state must accurately reflect the current operational context.");
+        }
+
+        // Business Logic
+        if (active) {
+            throw new IllegalStateException("Session already active for " + sessionId);
+        }
         if (cmd.tellerId() == null || cmd.tellerId().isBlank()) {
-            throw new IllegalArgumentException("Teller ID cannot be null or empty");
+            throw new IllegalArgumentException("tellerId cannot be null or empty");
         }
         if (cmd.terminalId() == null || cmd.terminalId().isBlank()) {
-            throw new IllegalArgumentException("Terminal ID cannot be null or empty");
+            throw new IllegalArgumentException("terminalId cannot be null or empty");
         }
 
-        // Validation: Timeout Configuration Check (Simulated)
-        // Checking system constraints implies the configuration allows for a session to start.
-        // If the system is configured for 0 timeout, it would be invalid.
-        // For this aggregate, we assume valid configuration.
-
-        // Validation: Navigation State
-        // Ensure the operational context is valid (e.g., terminal is available).
-
-        // Apply State Changes
+        SessionStartedEvent event = new SessionStartedEvent(this.sessionId, cmd.tellerId(), cmd.terminalId(), Instant.now());
         this.tellerId = cmd.tellerId();
         this.terminalId = cmd.terminalId();
-        this.state = State.INITIATED;
-
-        Instant now = Instant.now();
-        SessionStartedEvent event = new SessionStartedEvent(this.sessionId, this.tellerId, this.terminalId, now);
+        this.active = true;
 
         addEvent(event);
         incrementVersion();
-
         return List.of(event);
     }
 
-    // --- Getters for Testing/Projections ---
-
-    public State getState() {
-        return state;
+    public boolean isActive() {
+        return active;
     }
 
     public String getTellerId() {
         return tellerId;
-    }
-
-    public String getTerminalId() {
-        return terminalId;
     }
 }

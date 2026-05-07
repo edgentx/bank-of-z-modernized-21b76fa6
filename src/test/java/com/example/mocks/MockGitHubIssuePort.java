@@ -1,32 +1,42 @@
 package com.example.mocks;
 
-import com.example.ports.GitHubIssuePort;
-import org.springframework.stereotype.Component;
-
-import java.util.concurrent.CompletableFuture;
+import com.example.domain.vforce.ports.GitHubIssuePort;
 
 /**
  * Mock implementation of GitHubIssuePort for testing.
+ * Returns a deterministic URL pattern to verify integration without external I/O.
  */
-@Component
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private String responseUrl = "https://github.com/mock-org/mock-repo/issues/454";
-    private boolean shouldFail = false;
+    private String fixedUrl = "https://github.com/fake-org/repo/issues/454";
+    private String lastTitle;
+    private String lastDescription;
 
     @Override
-    public CompletableFuture<String> createIssue(String title, String body) {
-        if (shouldFail) {
-            return CompletableFuture.failedFuture(new RuntimeException("Simulated GitHub failure"));
-        }
-        return CompletableFuture.completedFuture(responseUrl);
+    public String createIssue(String title, String description) {
+        this.lastTitle = title;
+        this.lastDescription = description;
+        return fixedUrl;
     }
 
-    public void setResponseUrl(String url) {
-        this.responseUrl = url;
+    /**
+     * Retrieves the title of the last created issue.
+     */
+    public String getLastTitle() {
+        return lastTitle;
     }
 
-    public void setSimulatedFailure(boolean fail) {
-        this.shouldFail = fail;
+    /**
+     * Retrieves the description of the last created issue.
+     */
+    public String getLastDescription() {
+        return lastDescription;
+    }
+
+    /**
+     * Sets a specific URL to be returned by the mock.
+     */
+    public void setFixedUrl(String url) {
+        this.fixedUrl = url;
     }
 }

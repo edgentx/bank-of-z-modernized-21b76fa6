@@ -1,47 +1,33 @@
 package com.example.mocks;
 
-import com.example.domain.defect.model.DefectReportedEvent;
-import com.example.ports.SlackNotifierPort;
-
+import com.example.domain.slack.ports.SlackNotifierPort;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock adapter for SlackNotifierPort.
- * Stores captured events to allow assertions in tests.
+ * Mock implementation of SlackNotifierPort for testing.
+ * Captures messages sent to Slack to verify content without real network calls.
  */
 public class MockSlackNotifier implements SlackNotifierPort {
 
-    private final List<DefectReportedEvent> capturedEvents = new ArrayList<>();
-    private boolean shouldFail = false;
+    private final List<String> sentMessages = new ArrayList<>();
 
     @Override
-    public void notify(DefectReportedEvent event) {
-        if (shouldFail) {
-            throw new RuntimeException("Simulated Slack API failure");
-        }
-        capturedEvents.add(event);
+    public void sendNotification(String message) {
+        // In a real mock, we might record or assert here immediately.
+        // For TDD red phase, we just record.
+        this.sentMessages.add(message);
     }
 
-    public List<DefectReportedEvent> getCapturedEvents() {
-        return capturedEvents;
+    public List<String> getSentMessages() {
+        return new ArrayList<>(sentMessages);
     }
 
-    public void reset() {
-        capturedEvents.clear();
-        shouldFail = false;
+    public void clear() {
+        sentMessages.clear();
     }
 
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
-    }
-
-    /**
-     * Helper to verify VW-454: Check if the last notification contained the GitHub URL.
-     */
-    public boolean lastNotificationContainsGithubUrl() {
-        if (capturedEvents.isEmpty()) return false;
-        DefectReportedEvent last = capturedEvents.get(capturedEvents.size() - 1);
-        return last.githubIssueUrl() != null && !last.githubIssueUrl().isBlank();
+    public boolean hasReceivedMessageContaining(String substring) {
+        return sentMessages.stream().anyMatch(msg -> msg.contains(substring));
     }
 }

@@ -2,27 +2,23 @@ package com.vforce360.mar.domain;
 
 import java.util.UUID;
 
-/**
- * Domain entity representing the Modernization Assessment Report.
- */
 public class ModernizationAssessmentReport {
+    private UUID id;
+    private String rawJsonContent;
 
-    private UUID projectId;
-    private String rawContent; // The raw JSON/Markdown content
-
-    public UUID getProjectId() {
-        return projectId;
+    public UUID getId() {
+        return id;
     }
 
-    public void setProjectId(UUID projectId) {
-        this.projectId = projectId;
+    public void setId(UUID id) {
+        this.id = id;
     }
 
-    public String getRawContent() {
-        return rawContent;
+    public String getRawJsonContent() {
+        return rawJsonContent;
     }
 
-    public void setRawContent(String rawContent) {
-        this.rawContent = rawContent;
+    public void setRawJsonContent(String rawJsonContent) {
+        this.rawJsonContent = rawJsonContent;
     }
 }

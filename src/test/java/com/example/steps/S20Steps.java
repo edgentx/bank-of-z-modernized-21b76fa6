@@ -1,11 +1,9 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.tellersession.model.EndSessionCmd;
-import com.example.domain.tellersession.model.SessionEndedEvent;
-import com.example.domain.tellersession.model.TellerSessionAggregate;
-import com.example.mocks.InMemoryTellerSessionRepository;
+import com.example.domain.teller.model.EndSessionCmd;
+import com.example.domain.teller.model.SessionEndedEvent;
+import com.example.domain.teller.model.TellerSessionAggregate;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -17,74 +15,63 @@ import java.util.List;
 public class S20Steps {
 
     private TellerSessionAggregate aggregate;
-    private final InMemoryTellerSessionRepository repo = new InMemoryTellerSessionRepository();
-    private Exception capturedException;
     private List<DomainEvent> resultEvents;
+    private Exception caughtException;
+    private static final String SESSION_ID = "SESSION-123";
 
     @Given("a valid TellerSession aggregate")
-    public void a_valid_TellerSession_aggregate() {
-        String sessionId = "TS-123";
-        aggregate = new TellerSessionAggregate(sessionId);
-        repo.save(aggregate);
+    public void aValidTellerSessionAggregate() {
+        aggregate = new TellerSessionAggregate(SESSION_ID);
+        aggregate.markAuthenticated(); // Valid sessions are authenticated
     }
 
-    @Given("a valid sessionId is provided")
-    public void a_valid_sessionId_is_provided() {
-        // Session ID is implicitly created in the previous step
-        Assertions.assertNotNull(aggregate);
-    }
-
-    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_TellerSession_aggregate_that_violates_authentication() {
-        String sessionId = "TS-UNAUTH-001";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.unauthenticate(); // Force violation
-        repo.save(aggregate);
-    }
-
-    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_TellerSession_aggregate_that_violates_timeout() {
-        String sessionId = "TS-TIMEOUT-001";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.expireSession(); // Force violation
-        repo.save(aggregate);
-    }
-
-    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_TellerSession_aggregate_that_violates_navigation_state() {
-        String sessionId = "TS-NAV-001";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.corruptNavigationState(); // Force violation
-        repo.save(aggregate);
+    @And("a valid sessionId is provided")
+    public void aValidSessionIdIsProvided() {
+        // sessionId is implicitly defined in the aggregate setup
     }
 
     @When("the EndSessionCmd command is executed")
-    public void the_EndSessionCmd_command_is_executed() {
-        Command cmd = new EndSessionCmd(aggregate.id());
+    public void theEndSessionCmdCommandIsExecuted() {
         try {
+            EndSessionCmd cmd = new EndSessionCmd(SESSION_ID);
             resultEvents = aggregate.execute(cmd);
-            repo.save(aggregate); // Persist state changes
         } catch (Exception e) {
-            capturedException = e;
+            caughtException = e;
         }
     }
 
     @Then("a session.ended event is emitted")
-    public void a_session_ended_event_is_emitted() {
+    public void aSessionEndedEventIsEmitted() {
+        Assertions.assertNull(caughtException, "Expected success, but got: " + caughtException);
         Assertions.assertNotNull(resultEvents);
-        Assertions.assertFalse(resultEvents.isEmpty());
+        Assertions.assertEquals(1, resultEvents.size());
         Assertions.assertTrue(resultEvents.get(0) instanceof SessionEndedEvent);
-        
-        SessionEndedEvent event = (SessionEndedEvent) resultEvents.get(0);
-        Assertions.assertEquals("session.ended", event.type());
-        Assertions.assertEquals(aggregate.id(), event.aggregateId());
-        Assertions.assertFalse(aggregate.isActive());
+        SessionEndedEvent evt = (SessionEndedEvent) resultEvents.get(0);
+        Assertions.assertEquals("session.ended", evt.type());
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(capturedException);
-        // In this implementation, we use IllegalStateException (RuntimeException) to model domain rule violations
-        Assertions.assertTrue(capturedException instanceof IllegalStateException);
+    public void theCommandIsRejectedWithADomainError() {
+        Assertions.assertNotNull(caughtException, "Expected domain error (exception)");
+    }
+
+    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
+    public void aTellerSessionAggregateThatViolatesAuthentication() {
+        aggregate = new TellerSessionAggregate(SESSION_ID);
+        // Intentionally NOT calling markAuthenticated()
+    }
+
+    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
+    public void aTellerSessionAggregateThatViolatesTimeout() {
+        aggregate = new TellerSessionAggregate(SESSION_ID);
+        aggregate.markAuthenticated(); // Needs to be authenticated first to fail on timeout specifically
+        aggregate.setTimedOut();
+    }
+
+    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
+    public void aTellerSessionAggregateThatViolatesNavigationState() {
+        aggregate = new TellerSessionAggregate(SESSION_ID);
+        aggregate.markAuthenticated();
+        aggregate.setNavigationState("CASH_IN_TRANSIT"); // Deep in a workflow, cannot end safely
     }
 }

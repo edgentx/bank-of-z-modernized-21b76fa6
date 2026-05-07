@@ -2,9 +2,4 @@ package com.example.domain.ui.model;
 
 import com.example.domain.shared.Command;
 
-public record StartSessionCmd(
-    String sessionId,
-    String tellerId,
-    String terminalId,
-    String initialContext
-) implements Command {}
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {}

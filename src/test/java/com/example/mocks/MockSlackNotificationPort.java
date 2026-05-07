@@ -1,35 +1,24 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to verify content.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private String lastChannelId;
-    private String lastMessageBody;
+    public final List<Message> messages = new ArrayList<>();
 
     @Override
-    public void sendMessage(String channelId, String messageBody) {
-        if (channelId == null || channelId.isBlank()) throw new IllegalArgumentException("channelId required");
-        if (messageBody == null || messageBody.isBlank()) throw new IllegalArgumentException("messageBody required");
-        
-        this.lastChannelId = channelId;
-        this.lastMessageBody = messageBody;
+    public void postMessage(String channelId, String message) {
+        messages.add(new Message(channelId, message));
     }
 
-    public String getLastChannelId() {
-        return lastChannelId;
-    }
+    public record Message(String channelId, String content) {}
 
-    public String getLastMessageBody() {
-        return lastMessageBody;
-    }
-
-    public void reset() {
-        this.lastChannelId = null;
-        this.lastMessageBody = null;
+    public boolean contains(String substring) {
+        return messages.stream().anyMatch(m -> m.content.contains(substring));
     }
 }

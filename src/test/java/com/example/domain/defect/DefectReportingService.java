@@ -1,55 +1,36 @@
 package com.example.domain.defect;
 
-import com.example.domain.defect.model.ReportDefectCommand;
-import com.example.domain.defect.ports.GitHubIssueTracker;
-import com.example.domain.defect.ports.NotificationService;
+import com.example.ports.SlackNotificationPort;
 
 /**
- * Service to orchestrate defect reporting.
- * GREEN PHASE: This implementation now correctly integrates GitHub and Slack
- * to ensure the Slack body contains the GitHub issue URL.
+ * Placeholder service for the workflow activity.
+ * This file acts as the "System Under Test" scaffold.
+ * In the next phase (Green), this file will be removed/renamed/moved to src/main 
+ * and implemented with the actual logic.
+ * 
+ * Keeping it here in src/test allows the tests to compile and run (and FAIL) immediately
+ * without requiring the main implementation yet.
  */
 public class DefectReportingService {
 
-    private final GitHubIssueTracker gitHub;
-    private final NotificationService notificationService;
+    private final SlackNotificationPort slackPort;
 
-    public DefectReportingService(GitHubIssueTracker gitHub, NotificationService notificationService) {
-        this.gitHub = gitHub;
-        this.notificationService = notificationService;
+    public DefectReportingService(SlackNotificationPort slackPort) {
+        this.slackPort = slackPort;
     }
 
-    public void processDefect(ReportDefectCommand cmd) {
-        if (cmd == null) {
-            throw new IllegalArgumentException("ReportDefectCommand cannot be null");
-        }
-        if (cmd.title() == null || cmd.title().isBlank()) {
-            throw new IllegalArgumentException("Title cannot be blank");
-        }
-
-        // 1. Construct the GitHub issue body
-        // We use String.format for cleaner string building.
-        StringBuilder issueBody = new StringBuilder();
-        issueBody.append(String.format("**Defect ID:** %s%n", cmd.defectId()));
-        issueBody.append(String.format("**Severity:** %s%n", cmd.severity()));
-        issueBody.append(String.format("**Component:** %s%n", cmd.component()));
-        issueBody.append(String.format("**Description:**%n%s%n", cmd.description()));
-
-        // 2. Create the issue in GitHub and retrieve the URL
-        // The GitHub adapter handles the actual API call (or mock logic).
-        String githubUrl = gitHub.createIssue(cmd.title(), issueBody.toString());
-
-        // 3. Construct the Slack notification body
-        // CRITICAL FIX for VW-454: Append the returned URL to the message.
-        StringBuilder slackMessage = new StringBuilder();
-        slackMessage.append("*Defect Reported:*").append("\n");
-        slackMessage.append(String.format("- *Title:* %s%n", cmd.title()));
-        slackMessage.append(String.format("- *ID:* %s%n", cmd.defectId()));
-        slackMessage.append(String.format("- *Severity:* %s%n", cmd.severity()));
-        slackMessage.append("\n");
-        slackMessage.append("*GitHub Issue Created:* ").append(githubUrl).append("\n");
-
-        // 4. Send the notification
-        notificationService.sendDefectNotification(slackMessage.toString());
+    /**
+     * Reports a defect to Slack.
+     * 
+     * @param defectId The ID of the defect (e.g. VW-454).
+     * @param githubUrl The URL of the GitHub issue.
+     */
+    public void reportDefect(String defectId, String githubUrl) {
+        // Intentionally left empty or incorrect for RED phase.
+        // Implementation will be provided to make tests pass.
+        
+        // Current behavior (likely to fail tests):
+        // 1. Does it check for null? No.
+        // 2. Does it send the URL? No.
     }
 }

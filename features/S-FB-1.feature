@@ -1,11 +1,6 @@
-Feature: VW-454 GitHub URL in Slack Body
+Feature: Validating VW-454 — GitHub URL in Slack body (end-to-end)
 
-  Background:
-    Given a defect exists with GitHub issue URL "https://github.com/bank-of-z/issues/454"
-
-  Scenario: Verify Slack body contains GitHub URL
-    When the defect is reported with title "Verify Link" and URL "https://github.com/bank-of-z/issues/454"
-    And the Slack notification is generated
-    Then the Slack body should include the GitHub URL
-    And the Slack body should contain the text "https://github.com/bank-of-z/issues/454"
-    And the validation should pass
+  Scenario: Temporal worker reports defect and generates Slack body with GitHub URL
+    Given a defect is reported via temporal-worker exec
+    When the report_defect workflow completes
+    Then the Slack body contains GitHub issue link

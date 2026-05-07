@@ -60,7 +60,7 @@
             <artifactId>jcc</artifactId>
             <scope>runtime</scope>
         </dependency>
-        
+
         <!-- JMS / MQ -->
         <dependency>
             <groupId>com.ibm.mq</groupId>

@@ -1,23 +1,15 @@
 package com.example.mocks;
 
-import com.example.ports.SlackNotificationPort;
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent during test execution.
+ * Mock interface for Slack notifications.
+ * Used to verify that the system attempts to send the correct data
+ * without actually calling the Slack API.
  */
-public class MockSlackNotificationPort implements SlackNotificationPort {
-    public final List<String> sentMessages = new ArrayList<>();
+public interface MockSlackNotificationPort {
+    void sendNotification(String channel, String body);
 
-    @Override
-    public void send(String messageBody) {
-        // Store the message for assertion
-        this.sentMessages.add(messageBody);
-    }
-
-    public void clear() {
-        this.sentMessages.clear();
-    }
+    /**
+     * Helper for tests to check if the URL was in the body.
+     */
+    boolean lastBodyContains(String text);
 }

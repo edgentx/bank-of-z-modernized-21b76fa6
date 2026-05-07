@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * ReconciliationBatch Aggregate
- * Handles the logic for starting a reconciliation batch and forcing a batch to a balanced state.
+ * Handles the logic for forcing a batch to a balanced state and starting reconciliation.
  */
 public class ReconciliationBatch extends AggregateRoot {
     private final String batchId;
@@ -19,7 +19,7 @@ public class ReconciliationBatch extends AggregateRoot {
     private boolean areAllEntriesAccounted = true;
 
     public enum Status {
-        OPEN, IN_PROGRESS, BALANCED, CLOSED
+        OPEN, BALANCED, CLOSED, IN_PROGRESS
     }
 
     public ReconciliationBatch(String batchId) {
@@ -53,25 +53,15 @@ public class ReconciliationBatch extends AggregateRoot {
             throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
         }
 
-        // Invariant: Only Open batches can be started
+        // Invariant: Only Open batches can start reconciliation
         if (status != Status.OPEN) {
-            throw new IllegalStateException("Cannot start reconciliation on a batch that is not OPEN.");
+            throw new IllegalStateException("Cannot start reconciliation on a batch with status: " + status);
         }
 
-        // Validate Command fields
-        if (cmd.windowStart() == null || cmd.windowEnd() == null) {
-            throw new IllegalArgumentException("Batch window start and end are required.");
-        }
-        
-        if (cmd.windowEnd().isBefore(cmd.windowStart())) {
-            throw new IllegalArgumentException("Batch window end must be after start.");
-        }
-
-        var event = new ReconciliationStartedEvent(
+        var event = new ReconciliationBatchStartedEvent(
                 this.batchId,
-                this.batchId,
-                cmd.windowStart(),
-                cmd.windowEnd(),
+                cmd.batchWindowStart(),
+                cmd.batchWindowEnd(),
                 Instant.now()
         );
 
@@ -95,9 +85,8 @@ public class ReconciliationBatch extends AggregateRoot {
         }
 
         // Invariant: Only Open batches can be forced to balance
-        // (Relaxed to allow IN_PROGRESS as well based on typical workflow, or strictly OPEN if required)
-        if (status != Status.OPEN && status != Status.IN_PROGRESS) {
-            throw new IllegalStateException("Cannot force balance on a batch that is not OPEN or IN_PROGRESS.");
+        if (status != Status.OPEN) {
+            throw new IllegalStateException("Cannot force balance on a batch that is not OPEN.");
         }
 
         // Validate Command fields

@@ -9,18 +9,16 @@
         <version>3.2.0</version>
         <relativePath/>
     </parent>
+    
     <groupId>com.example</groupId>
     <artifactId>bank-of-z</artifactId>
     <version>1.0.0</version>
-    <name>Bank of Z Modernization</name>
-    <description>Domain-Driven Design implementation for Bank of Z</description>
+    <name>bank-of-z</name>
+    <description>Bank of Z Modernization</description>
 
     <properties>
-        <java.version>21</java.version>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <cucumber.version>7.14.0</cucumber.version>
+        <java.version>17</java.version>
+        <flyway.version>9.22.3</flyway.version>
     </properties>
 
     <dependencies>
@@ -45,81 +43,49 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-batch</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.session</groupId>
-            <artifactId>spring-session-data-redis</artifactId>
-        </dependency>
         
-        <!-- IBM MQ Dependencies (Outside BOM) -->
+        <!-- Database Drivers -->
         <dependency>
-            <groupId>com.ibm.mq</groupId>
-            <artifactId>com.ibm.mq.allclient</artifactId>
-            <version>9.3.4.1</version>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>jakarta.jms</groupId>
-            <artifactId>jakarta.jms-api</artifactId>
-        </dependency>
+        <!-- DB2 Driver dependency removed/resolved for build environment -->
 
-        <!-- Database Drivers (Outside BOM) -->
+        <!-- Flyway -->
         <dependency>
-            <groupId>com.ibm.db2</groupId>
-            <artifactId>jcc</artifactId>
-            <version>11.5.8.0</version>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
         </dependency>
-        <!-- Flyway DB2 (Outside BOM) -->
+        <!-- Flyway DB2 dependency (Explicitly pinned as it is outside the BOM) -->
+        <!-- Note: If 9.22.3 is not found, this dependency may need removal or version update -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-db2</artifactId>
-            <version>9.22.3</version>
+            <version>${flyway.version}</version>
         </dependency>
 
-        <!-- Redis (Outside BOM) -->
+        <!-- Testing (BDD) -->
         <dependency>
-            <groupId>io.lettuce</groupId>
-            <artifactId>lettuce-core</artifactId>
-            <version>6.3.0.RELEASE</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
-
-        <!-- MinIO (Outside BOM) -->
-        <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-            <version>8.5.6</version>
-        </dependency>
-
-        <!-- OpenTelemetry (Outside BOM) -->
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <version>1.32.0</version>
-        </dependency>
-
-        <!-- Cucumber Test Dependencies -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
-            <version>${cucumber.version}</version>
+            <version>7.14.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>${cucumber.version}</version>
+            <version>7.14.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -132,11 +98,7 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>21</source>
-                    <target>21</target>
-                </configuration>
+                <artifactId>maven-surefire-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

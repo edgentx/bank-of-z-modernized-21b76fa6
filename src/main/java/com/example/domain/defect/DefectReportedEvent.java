@@ -1,16 +1,16 @@
 package com.example.domain.defect;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
+import java.util.Map;
 
-/**
- * Event emitted when a defect is successfully reported to VForce360.
- */
 public record DefectReportedEvent(
-    String aggregateId,
-    String issueUrl,
-    Instant occurredAt
+        String aggregateId,
+        String defectId,
+        String title,
+        String githubUrl,
+        Instant occurredAt,
+        Map<String, Object> metadata
 ) implements DomainEvent {
     @Override
     public String type() {

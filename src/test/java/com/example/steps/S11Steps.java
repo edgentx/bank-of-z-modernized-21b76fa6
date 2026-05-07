@@ -1,9 +1,6 @@
 package com.example.steps;
 
-import com.example.domain.PostWithdrawalCmd;
-import com.example.domain.S11Event;
-import com.example.domain.Transaction;
-import com.example.domain.TransactionState;
+import com.example.domain.*;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -11,84 +8,101 @@ import io.cucumber.java.en.When;
 import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
-import java.util.Currency;
+import java.util.UUID;
 
 public class S11Steps {
 
     private Transaction transaction;
-    private String accountNumber;
-    private BigDecimal amount;
-    private Currency currency;
-    private Exception caughtException;
-    private S11Event resultingEvent;
+    private PostWithdrawalCmd command;
+    private WithdrawalPostedEvent resultEvent;
+    private Exception domainError;
 
     @Given("a valid Transaction aggregate")
-    public void a_valid_Transaction_aggregate() {
-        this.transaction = new Transaction();
+    public void aValidTransactionAggregate() {
+        // Initialize a valid, unposted transaction
+        transaction = new Transaction(UUID.randomUUID());
     }
 
-    @And("a valid accountNumber is provided")
-    public void a_valid_accountNumber_is_provided() {
-        this.accountNumber = "ACC-123-456";
+    @Given("a valid accountNumber is provided")
+    public void aValidAccountNumberIsProvided() {
+        if (command == null) {
+            command = new PostWithdrawalCmd();
+        }
+        command.setAccountNumber("ACC-1001");
     }
 
-    @And("a valid amount is provided")
-    public void a_valid_amount_is_provided() {
-        this.amount = new BigDecimal("100.00");
+    @Given("a valid amount is provided")
+    public void aValidAmountIsProvided() {
+        if (command == null) {
+            command = new PostWithdrawalCmd();
+        }
+        command.setAmount(new BigDecimal("50.00"));
     }
 
-    @And("a valid currency is provided")
-    public void a_valid_currency_is_provided() {
-        this.currency = Currency.getInstance("USD");
+    @Given("a valid currency is provided")
+    public void aValidCurrencyIsProvided() {
+        if (command == null) {
+            command = new PostWithdrawalCmd();
+        }
+        command.setCurrency("USD");
+    }
+
+    // --- Violations & Error Scenarios ---
+
+    @Given("a Transaction aggregate that violates: Transaction amounts must be greater than zero.")
+    public void aTransactionAggregateThatViolatesAmount() {
+        transaction = new Transaction(UUID.randomUUID());
+        command = new PostWithdrawalCmd();
+        command.setAccountNumber("ACC-1001");
+        command.setAmount(BigDecimal.ZERO); // Violation
+        command.setCurrency("USD");
+    }
+
+    @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.")
+    public void aTransactionAggregateThatViolatesImmutability() {
+        transaction = new Transaction(UUID.randomUUID());
+        transaction.markPosted(); // The aggregate is now immutable
+        
+        command = new PostWithdrawalCmd();
+        command.setAccountNumber("ACC-1001");
+        command.setAmount(new BigDecimal("10.00"));
+        command.setCurrency("USD");
+    }
+
+    @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance (enforced via aggregate validation).")
+    public void aTransactionAggregateThatViolatesBalanceValidation() {
+        // In a real scenario, this might involve checking the account repo.
+        // Here we simulate the aggregate being configured to reject a specific overdraft.
+        transaction = new Transaction(UUID.randomUUID());
+        transaction.setAllowOverdraft(false); // Constraint: Balance cannot go below 0
+        transaction.setCurrentBalance(new BigDecimal("0.00"));
+
+        command = new PostWithdrawalCmd();
+        command.setAccountNumber("ACC-1001");
+        command.setAmount(new BigDecimal("100.00")); // Would overdraft
+        command.setCurrency("USD");
     }
 
     @When("the PostWithdrawalCmd command is executed")
-    public void the_PostWithdrawalCmd_command_is_executed() {
+    public void thePostWithdrawalCmdCommandIsExecuted() {
         try {
-            PostWithdrawalCmd cmd = new PostWithdrawalCmd(accountNumber, amount, currency);
-            resultingEvent = transaction.execute(cmd);
-        } catch (Exception e) {
-            caughtException = e;
+            resultEvent = transaction.execute(command);
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            domainError = e;
         }
     }
 
     @Then("a withdrawal.posted event is emitted")
-    public void a_withdrawal_posted_event_is_emitted() {
-        Assertions.assertNotNull(resultingEvent, "Event should not be null");
-        Assertions.assertTrue(resultingEvent instanceof S11Event.WithdrawalPosted);
-    }
-
-    // --- Error Scenarios ---
-
-    @Given("a Transaction aggregate that violates: Transaction amounts must be greater than zero.")
-    public void a_Transaction_aggregate_that_violates_zero_amount() {
-        this.transaction = new Transaction();
-        this.amount = BigDecimal.ZERO;
-        this.accountNumber = "ACC-123";
-        this.currency = Currency.getInstance("USD");
-    }
-
-    @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.")
-    public void a_Transaction_aggregate_that_violates_immutability() {
-        // Create a transaction and post it to make it immutable
-        this.transaction = new Transaction();
-        transaction.execute(new PostWithdrawalCmd("ACC-123", new BigDecimal("10"), Currency.getInstance("USD")));
-        // Now it is in POSTED state
-    }
-
-    @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance (enforced via aggregate validation).")
-    public void a_Transaction_aggregate_that_violates_balance_logic() {
-        this.transaction = new Transaction();
-        this.accountNumber = "ACC-BAD-DEBT";
-        // Withdraw a huge amount that would logically make the balance invalid
-        this.amount = new BigDecimal("99999999.00");
-        this.currency = Currency.getInstance("USD");
+    public void aWithdrawalPostedEventIsEmitted() {
+        Assertions.assertNotNull(resultEvent, "Event should not be null");
+        Assertions.assertNotNull(resultEvent.getEventId());
+        Assertions.assertEquals(command.getAccountNumber(), resultEvent.getAccountNumber());
+        Assertions.assertEquals(0, command.getAmount().compareTo(resultEvent.getAmount()));
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(caughtException, "Expected a domain error to be thrown");
-        Assertions.assertTrue(caughtException instanceof IllegalStateException || 
-                              caughtException instanceof IllegalArgumentException);
+    public void theCommandIsRejectedWithADomainError() {
+        Assertions.assertNotNull(domainError, "Expected a domain error exception");
+        Assertions.assertNull(resultEvent, "No event should be emitted when command is rejected");
     }
 }

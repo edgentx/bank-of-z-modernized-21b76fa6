@@ -3,14 +3,21 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public record MenuNavigatedEvent(
-    String aggregateId,
-    String tellerId,
-    String targetMenuId,
-    String action,
-    Instant occurredAt
+        String aggregateId,
+        String targetMenuId,
+        String action,
+        Instant occurredAt
 ) implements DomainEvent {
+
+    public MenuNavigatedEvent {
+        if (aggregateId == null || aggregateId.isBlank()) throw new IllegalArgumentException("aggregateId required");
+        // occurredAt defaults to now if null, or check null
+        if (occurredAt == null) occurredAt = Instant.now();
+    }
+
     @Override
     public String type() {
         return "menu.navigated";

@@ -1,15 +1,22 @@
 package com.example.ports;
 
 /**
- * Port for creating GitHub issues.
- * Used by the Validation Aggregate/Service during defect reporting.
+ * Port interface for interacting with GitHub Issues.
  */
 public interface GitHubIssuePort {
+
     /**
-     * Creates an issue in GitHub and returns the URL.
-     * @param title The title of the issue (usually defect ID).
-     * @param description The body of the issue.
-     * @return The full URL to the created GitHub issue.
+     * Creates a new issue in the configured repository.
+     *
+     * @param title The title of the issue.
+     * @param body The description/body of the issue.
+     * @return The HTML URL of the created issue (e.g., "https://github.com/org/repo/issues/1").
      */
-    String createIssue(String title, String description);
+    String createIssue(String title, String body);
+
+    /**
+     * Checks if the connection to GitHub is active.
+     * @return true if the service is reachable.
+     */
+    boolean isHealthy();
 }

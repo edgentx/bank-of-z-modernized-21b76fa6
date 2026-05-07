@@ -1,5 +1,6 @@
 package com.vforce360.adapters;
 
+import com.vforce360.domain.ModernizationAssessmentReport;
 import com.vforce360.ports.ModernizationReportPort;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +19,7 @@ public class ReportController {
     }
 
     @GetMapping("/{projectId}/mar")
-    public Object getMar(@PathVariable String projectId) {
+    public ModernizationAssessmentReport getMar(@PathVariable String projectId) {
         // FIX: Instead of returning raw JSON which the frontend might display as text,
         // we return the object. The framework (Jackson) handles serialization.
         // The logic tested ensures we return the structured object, not a String representation of JSON.

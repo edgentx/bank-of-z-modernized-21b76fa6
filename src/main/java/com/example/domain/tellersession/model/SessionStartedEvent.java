@@ -5,7 +5,7 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 
 public record SessionStartedEvent(
-    String aggregateId,
+    String sessionId,
     String tellerId,
     String terminalId,
     Instant occurredAt
@@ -14,10 +14,12 @@ public record SessionStartedEvent(
     public String type() {
         return "session.started";
     }
+
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return sessionId;
     }
+
     @Override
     public Instant occurredAt() {
         return occurredAt;

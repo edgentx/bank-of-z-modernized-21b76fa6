@@ -1,24 +1,16 @@
 package com.example.ports;
 
-import com.example.domain.shared.Command;
-import java.util.concurrent.CompletionStage;
-
 /**
- * Port interface for reporting defects to external systems (e.g., Slack, GitHub).
- * This decouples the domain logic from the specific implementation of Slack Webhooks or GitHub Issues API.
+ * Port interface for reporting defects.
+ * Used by the Temporal Worker logic to decouple from specific implementations.
  */
 public interface DefectReporterPort {
 
     /**
-     * Asynchronously reports a defect.
-     * @param cmd The command containing defect details.
-     * @return A CompletionStage containing the report ID or URL.
+     * Reports a defect to the specified channel, including a formatted link.
+     *
+     * @param channelId The target Slack channel ID.
+     * @param url The GitHub issue URL to include.
      */
-    CompletionStage<String> reportDefect(Command cmd);
-
-    /**
-     * Validates the format of the generated report body.
-     * Used for testing requirements without actual side-effects.
-     */
-    String generateBodyPreview(Command cmd);
+    void reportDefect(String channelId, String url);
 }

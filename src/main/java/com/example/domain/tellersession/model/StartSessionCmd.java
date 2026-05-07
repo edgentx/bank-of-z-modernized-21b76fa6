@@ -8,6 +8,8 @@ public record StartSessionCmd(
         String sessionId,
         String tellerId,
         String terminalId,
-        boolean authenticated,
-        Instant initiatedAt
-) implements Command {}
+        boolean isAuthenticated,
+        String currentTerminalState, // Represents the operational context/screen state
+        Instant occurredAt
+) implements Command {
+}

@@ -10,8 +10,7 @@ import java.util.List;
 
 /**
  * ReconciliationBatch Aggregate
- * Handles the logic for forcing a batch to a balanced state
- * and starting the reconciliation process for a period.
+ * Handles the logic for starting a batch and forcing a batch to a balanced state.
  */
 public class ReconciliationBatch extends AggregateRoot {
     private final String batchId;
@@ -20,7 +19,7 @@ public class ReconciliationBatch extends AggregateRoot {
     private boolean areAllEntriesAccounted = true;
 
     public enum Status {
-        OPEN, BALANCED, CLOSED, STARTED
+        OPEN, BALANCED, CLOSED
     }
 
     public ReconciliationBatch(String batchId) {
@@ -34,11 +33,11 @@ public class ReconciliationBatch extends AggregateRoot {
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof ForceBalanceCmd c) {
-            return forceBalance(c);
-        }
         if (cmd instanceof StartReconciliationCmd c) {
             return startReconciliation(c);
+        }
+        if (cmd instanceof ForceBalanceCmd c) {
+            return forceBalance(c);
         }
         throw new UnknownCommandException(cmd);
     }
@@ -54,26 +53,20 @@ public class ReconciliationBatch extends AggregateRoot {
             throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
         }
 
-        // Validate Command fields
-        if (cmd.batchId() == null || cmd.batchId().isBlank()) {
-            throw new IllegalArgumentException("Batch ID is required to start reconciliation.");
-        }
-        if (cmd.start() == null || cmd.end() == null) {
-            throw new IllegalArgumentException("Batch window start and end dates are required.");
-        }
-        if (cmd.start().isAfter(cmd.end())) {
-            throw new IllegalArgumentException("Batch window start must be before end.");
+        // Invariant: Only Open batches can be started
+        if (status != Status.OPEN) {
+            throw new IllegalStateException("Cannot start a batch that is not OPEN.");
         }
 
         var event = new ReconciliationStartedEvent(
                 this.batchId,
-                cmd.start(),
-                cmd.end(),
+                cmd.windowStart(),
+                cmd.windowEnd(),
                 Instant.now()
         );
 
-        // Apply state changes
-        this.status = Status.STARTED;
+        // Apply state changes (Conceptually, though Status remains OPEN, we might track RUNNING in a fuller impl)
+        // For now, emitting the event is the primary side-effect required.
         addEvent(event);
         incrementVersion();
 

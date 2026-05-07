@@ -1,46 +1,35 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
+import org.springframework.stereotype.Component;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock adapter for Slack Notification.
- * Stores messages in memory for verification in tests.
+ * Mock implementation of the Slack Notification Port.
+ * Captures messages in memory to verify content without external I/O.
  */
+@Component
 public class MockSlackNotificationAdapter implements SlackNotificationPort {
 
-    private final List<String> sentBodies = new ArrayList<>();
+    private final List<String> messages = new ArrayList<>();
 
     @Override
-    public void sendDefectNotification(String defectId, String message, URI githubUrl) {
-        // Simulate the construction of the Slack message body.
-        // This logic mimics what the real implementation might do.
-        // The bug (VW-454) implies that githubUrl might be missing here.
-        
-        String body = String.format(
-            "Defect Report: %s\nMessage: %s\nGitHub Issue: %s", 
-            defectId, 
-            message, 
-            (githubUrl != null ? githubUrl.toString() : "PENDING")
-        );
-        
-        sentBodies.add(body);
-        
-        // In a real scenario, this would do an HTTP POST.
-        // System.out.println("[Mock Slack] Sent: " + body);
+    public void sendMessage(String messageBody) {
+        System.out.println("[MockSlack] Captured message: " + messageBody);
+        this.messages.add(messageBody);
     }
 
-    public String getLastSentBody() {
-        if (sentBodies.isEmpty()) {
-            throw new IllegalStateException("No messages sent");
+    @Override
+    public String getLastMessageBody() {
+        if (messages.isEmpty()) {
+            return null;
         }
-        return sentBodies.get(sentBodies.size() - 1);
+        return messages.get(messages.size() - 1);
     }
 
     public void clear() {
-        sentBodies.clear();
+        messages.clear();
     }
 }

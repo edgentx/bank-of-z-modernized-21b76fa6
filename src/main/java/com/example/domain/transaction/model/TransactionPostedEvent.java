@@ -5,20 +5,20 @@ import com.example.domain.shared.DomainEvent;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-/**
- * Event emitted when a transaction (deposit or withdrawal) is posted.
- */
 public record TransactionPostedEvent(
         String transactionId,
         String accountId,
-        String kind, // "deposit" or "withdrawal"
+        String kind,
         BigDecimal amount,
         String currency,
         Instant occurredAt
 ) implements DomainEvent {
+
     @Override
     public String type() {
-        return kind + ".posted"; // Returns "deposit.posted" or "withdrawal.posted"
+        // Per S-10 AC and review feedback, we emit specific types like 'deposit.posted'.
+        // This is an intentional contract change to support specific event handling.
+        return kind + ".posted";
     }
 
     @Override

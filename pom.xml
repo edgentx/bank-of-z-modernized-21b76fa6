@@ -32,7 +32,6 @@
         </dependency>
 
         <!-- Markdown Dependencies (Pinned versions as they are NOT in Spring Boot BOM) -->
-        <!-- Using Flexmark as the primary implementation based on compiler errors -->
         <dependency>
             <groupId>com.vladsch.flexmark</groupId>
             <artifactId>flexmark-all</artifactId>

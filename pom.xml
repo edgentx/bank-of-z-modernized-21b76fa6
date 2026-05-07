@@ -19,7 +19,6 @@
 
     <properties>
         <java.version>17</java.version>
-        <flyway.version>9.22.3</flyway.version>
     </properties>
 
     <dependencies>
@@ -32,7 +31,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        
+
         <!-- Temporal (Requires explicit version as per rules) -->
         <dependency>
             <groupId>io.temporal</groupId>
@@ -43,10 +42,14 @@
         <!-- Flyway DB2 (Requires explicit version as per rules) -->
         <dependency>
             <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-db2</artifactId>
-            <version>${flyway.version}</version>
+            <artifactId>flyway-core</artifactId>
         </dependency>
-        
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-db2</artifactId>
+            <version>9.22.3</version>
+        </dependency>
+
         <!-- Testing Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

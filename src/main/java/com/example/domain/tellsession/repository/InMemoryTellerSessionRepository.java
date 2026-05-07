@@ -1,22 +1,20 @@
 package com.example.domain.tellsession.repository;
 
 import com.example.domain.tellsession.model.TellerSessionAggregate;
-import com.example.domain.tellsession.repository.TellerSessionRepository;
+
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 public class InMemoryTellerSessionRepository implements TellerSessionRepository {
     private final Map<String, TellerSessionAggregate> store = new HashMap<>();
 
     @Override
-    public TellerSessionAggregate save(TellerSessionAggregate aggregate) {
+    public void save(TellerSessionAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
-        return aggregate;
     }
 
     @Override
-    public Optional<TellerSessionAggregate> findById(String id) {
-        return Optional.ofNullable(store.get(id));
+    public TellerSessionAggregate load(String id) {
+        return store.get(id);
     }
 }

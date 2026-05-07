@@ -1,19 +1,16 @@
 package com.example.ports;
 
-import java.util.Map;
-
 /**
  * Port for interacting with GitHub issues.
+ * This abstracts the external GitHub API interaction.
  */
 public interface GitHubPort {
-
     /**
-     * Creates a new issue in the repository.
+     * Creates a new issue on GitHub.
      *
-     * @param title  The title of the issue.
-     * @param body   The body content of the issue.
-     * @param labels Optional labels to add to the issue.
+     * @param title The issue title.
+     * @param body The issue body.
      * @return The HTML URL of the created issue.
      */
-    String createIssue(String title, String body, Map<String, String> labels);
+    String createIssue(String title, String body);
 }

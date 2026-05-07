@@ -1,13 +1,15 @@
 package com.example.steps;
 
-import io.cucumber.junit.Cucumber;
-import io.cucumber.junit.CucumberOptions;
-import org.junit.runner.RunWith;
+import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectClasspathResource;
+import org.junit.platform.suite.api.Suite;
 
-@RunWith(Cucumber.class)
-@CucumberOptions(
-    features = {"features/S-FB-1.feature"},
-    glue = {"com.example.steps"},
-    plugin = {"pretty", "html:target/cucumber-report"}
-)
-public class SFB1TestSuite {}
+/**
+ * Test Suite configuration for Cucumber tests related to Story S-FB-1.
+ * This allows running the feature file via standard JUnit 5 engines.
+ */
+@Suite
+@IncludeEngines("cucumber")
+@SelectClasspathResource("features/S-FB-1.feature")
+public class SFB1TestSuite {
+}

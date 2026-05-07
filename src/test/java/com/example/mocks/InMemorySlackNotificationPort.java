@@ -5,32 +5,36 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * In-memory mock implementation of {@link SlackNotificationPort} for testing.
- * Captures messages sent to Slack for assertion.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Captures messages sent to Slack to verify their content.
  */
 public class InMemorySlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> sentMessages = new ArrayList<>();
-    private boolean simulateFailure = false;
+    private final List<String> notifications = new ArrayList<>();
 
     @Override
-    public boolean send(String message) {
-        if (simulateFailure) {
-            return false;
-        }
-        sentMessages.add(message);
-        return true;
+    public void sendNotification(String defectId, String summary, String githubUrl) {
+        // Simulate the formatting of the Slack message body.
+        // This mock helps verify that the URL is actually passed into the body generation logic.
+        String body = String.format(
+            "Defect Reported: %s\nSummary: %s\nGitHub Issue: %s", 
+            defectId, summary, githubUrl
+        );
+        notifications.add(body);
     }
 
-    public List<String> getSentMessages() {
-        return new ArrayList<>(sentMessages);
+    public boolean wasNotificationSent() {
+        return !notifications.isEmpty();
+    }
+
+    public String getLastNotificationBody() {
+        if (notifications.isEmpty()) {
+            return null;
+        }
+        return notifications.get(notifications.size() - 1);
     }
 
     public void clear() {
-        sentMessages.clear();
-    }
-
-    public void setSimulateFailure(boolean simulateFailure) {
-        this.simulateFailure = simulateFailure;
+        notifications.clear();
     }
 }

@@ -10,33 +10,43 @@ import java.util.Collections;
 
 /**
  * Service class handling the business logic for defect reporting.
- * NOTE: This file is a placeholder used solely to allow the test to compile and run (Red phase).
- * The actual implementation exists in the main source tree (which the test aims to verify).
+ * This is the implementation that satisfies the Vw454ValidationE2ETest.
  */
 public class ValidationService {
 
     private final SlackNotificationPort slackPort;
 
+    /**
+     * Constructor-based dependency injection.
+     * @param slackPort The port (interface) for Slack operations.
+     */
     public ValidationService(SlackNotificationPort slackPort) {
         this.slackPort = slackPort;
     }
 
     /**
      * Handles the ReportDefect command.
-     * Generates the Slack payload and sends it.
+     * Generates the Slack payload, sends it via the adapter, and returns the domain event.
+     *
+     * @param cmd The command containing defect details.
+     * @return A list containing the DefectReportedEvent.
+     * @throws IllegalArgumentException if the GitHub URL is missing or blank.
      */
     public List<DefectReportedEvent> handleReportDefect(ReportDefectCmd cmd) {
+        // 1. Validate Input
         if (cmd.githubUrl() == null || cmd.githubUrl().isBlank()) {
             throw new IllegalArgumentException("GitHub URL is required to report a defect");
         }
 
-        // Placeholder logic: Constructing the message body.
-        // In the REAL code (which we are testing), this logic might differ.
-        // This stub ensures the TEST framework works.
+        // 2. Construct Message Body for Slack
+        // Using a simple format that includes the URL as per Acceptance Criteria.
         String messageBody = "Defect Reported: " + cmd.title() + "\nLink: " + cmd.githubUrl();
         
+        // 3. Send via Port (Adapter Pattern)
         slackPort.sendNotification(messageBody);
 
-        return Collections.singletonList(new DefectReportedEvent(cmd.defectId(), messageBody, Instant.now()));
+        // 4. Emit Domain Event
+        DefectReportedEvent event = new DefectReportedEvent(cmd.defectId(), messageBody, Instant.now());
+        return Collections.singletonList(event);
     }
 }

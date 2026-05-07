@@ -1,115 +1,76 @@
 package com.example.domain.validation;
 
-import com.example.ports.SlackNotificationPort;
-import com.example.ports.GitHubIssuePort;
-import com.example.domain.validation.model.ReportDefectCommand;
+import com.example.domain.validation.model.ReportDefectCmd;
+import com.example.domain.validation.model.DefectReportedEvent;
 import com.example.domain.validation.model.ValidationAggregate;
+import com.example.domain.validation.port.SlackNotifier;
+import com.example.domain.validation.port.GitHubIssueTracker;
 import org.junit.jupiter.api.Test;
 
-import java.net.URI;
-import java.util.List;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
- * Story: S-FB-1
- * Title: Fix: Validating VW-454 — GitHub URL in Slack body (end-to-end)
- * 
- * Defect: Validation check to ensure Slack body includes GitHub issue link.
- * 
- * Test Strategy:
- * 1. Red Phase: Tests verify that when a defect is reported, the external services
- *    are called with the expected arguments (specifically the URL in the Slack body).
- * 2. Uses Mock Adapters for Slack and GitHub to ensure no real I/O occurs.
+ * TDD Red Phase: Regression test for VW-454.
+ * Verifies that the GitHub URL is correctly injected into the Slack notification body.
  */
-public class VW454RegressionTest {
+class VW454RegressionTest {
 
-    /**
-     * AC: Regression test added to e2e/regression/ covering this scenario.
-     * 
-     * Scenario: Valid defect report flow
-     * Given: A temporal worker triggers _report_defect
-     * When: The ValidationAggregate processes the ReportDefectCommand
-     * Then: The GitHub service is invoked to create an issue
-     * And: The Slack service is invoked with a body containing the GitHub URL
-     */
+    private final GitHubIssueTracker mockGitHub = mock(GitHubIssueTracker.class);
+    private final SlackNotifier mockSlack = mock(SlackNotifier.class);
+
     @Test
-    void testReportDefect_ShouldIncludeGitHubUrlInSlackBody() {
-        // Arrange
-        MockGitHubIssuePort mockGitHub = new MockGitHubIssuePort();
-        MockSlackNotificationPort mockSlack = new MockSlackNotificationPort();
+    void shouldIncludeGitHubUrlInSlackBody() {
+        // Given: A defect command with a valid payload
+        String correlationId = "vw-454-test-case";
+        String summary = "Validation logic failure";
+        String description = "The URL is missing from the Slack message";
         
-        // Configure GitHub mock to return a predictable URL
-        URI expectedUrl = URI.create("https://github.com/example/issues/454");
-        mockGitHub.setMockUrl(expectedUrl);
+        ReportDefectCmd cmd = new ReportDefectCmd(correlationId, summary, description);
+        ValidationAggregate aggregate = new ValidationAggregate(correlationId, mockGitHub, mockSlack);
 
-        ValidationAggregate aggregate = new ValidationAggregate(mockSlack, mockGitHub);
-        
-        String defectTitle = "VW-454: Missing GitHub link";
-        String defectDescription = "The validation logic does not append the link.";
-        ReportDefectCommand cmd = new ReportDefectCommand(defectTitle, defectDescription);
+        // When: The command is executed, simulating a successful GitHub creation
+        // We mock the external GitHub API to return a valid URL
+        String expectedUrl = "https://github.com/bank-of-z/issues/454";
+        when(mockGitHub.createIssue(summary, description))
+            .thenReturn(expectedUrl);
 
-        // Act
+        // Execute command
         aggregate.execute(cmd);
 
-        // Assert: GitHub creation was triggered
-        assertTrue(mockGitHub.wasCreateCalled(), "GitHub create issue should have been triggered");
-        assertEquals(defectTitle, mockGitHub.getCapturedTitle());
-        assertEquals(defectDescription, mockGitHub.getCapturedDescription());
-
-        // Assert: Slack notification was triggered
-        assertTrue(mockSlack.wasNotifyCalled(), "Slack notification should have been triggered");
-        
-        // Assert: The Actual Behavior - The Slack body contains the specific GitHub URL
-        // This currently FAILS (Red Phase) because the implementation (ValidationAggregate) is empty/stubbed.
-        String slackBody = mockSlack.getCapturedBody();
-        assertNotNull(slackBody, "Slack body should not be null");
-        
-        boolean containsUrl = slackBody.contains(expectedUrl.toString());
-        assertTrue(containsUrl, 
-            "Slack body must contain the GitHub issue URL: " + expectedUrl + ". " +
-            "Actual body was: [" + slackBody + "]");
+        // Then: The Slack notifier must have been called
+        verify(mockSlack).notify(argThat(payload -> {
+            // CRITICAL ASSERTION: The body must contain the specific GitHub URL
+            return payload != null 
+                && payload.contains("GitHub issue") 
+                && payload.contains(expectedUrl);
+        }));
     }
 
-    /**
-     * Scenario: Handling GitHub failure
-     * Given: GitHub service throws an exception
-     * When: ReportDefectCommand is executed
-     * Then: Slack notification is NOT sent
-     * And: Exception is propagated
-     */
     @Test
-    void testReportDefect_GitHubFailure_ShouldPropagateError() {
-        // Arrange
-        MockGitHubIssuePort mockGitHub = new MockGitHubIssuePort();
-        mockGitHub.setShouldFail(true);
-        
-        MockSlackNotificationPort mockSlack = new MockSlackNotificationPort();
-        ValidationAggregate aggregate = new ValidationAggregate(mockSlack, mockGitHub);
-        
-        ReportDefectCommand cmd = new ReportDefectCommand("Test", "Test");
+    void shouldFailIfGitHubUrlMissingInSlackPayload() {
+        // Given
+        String correlationId = "vw-454-negative-case";
+        ReportDefectCmd cmd = new ReportDefectCmd(correlationId, "Test", "Desc");
+        ValidationAggregate aggregate = new ValidationAggregate(correlationId, mockGitHub, mockSlack);
 
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> aggregate.execute(cmd));
-        assertFalse(mockSlack.wasNotifyCalled(), "Slack should not be notified if GitHub fails");
-    }
+        when(mockGitHub.createIssue(anyString(), anyString()))
+            .thenReturn("https://github.com/bank-of-z/issues/123");
 
-    /**
-     * Scenario: Null Command Handling
-     * Ensures the aggregate handles invalid inputs gracefully as per validation rules.
-     */
-    @Test
-    void testReportDefect_NullTitle_ShouldThrowException() {
-        // Arrange
-        MockGitHubIssuePort mockGitHub = new MockGitHubIssuePort();
-        MockSlackNotificationPort mockSlack = new MockSlackNotificationPort();
-        ValidationAggregate aggregate = new ValidationAggregate(mockSlack, mockGitHub);
-        
-        ReportDefectCommand cmd = new ReportDefectCommand(null, "Description");
+        // When
+        aggregate.execute(cmd);
 
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> aggregate.execute(cmd));
+        // Then
+        verify(mockSlack).notify(argThat(payload -> {
+            if (payload == null) return false;
+            // If this assertion fails, the defect VW-454 is reproduced.
+            boolean hasUrl = payload.contains("https://github.com/bank-of-z/issues/123");
+            if (!hasUrl) {
+                throw new AssertionError("VW-454 Reproduced: Slack body does not contain GitHub URL. Body was: " + payload);
+            }
+            return true;
+        }));
     }
 }

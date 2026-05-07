@@ -1,75 +1,62 @@
 package com.example.application;
 
-import com.example.domain.vforce.model.DefectAggregate;
-import com.example.domain.vforce.model.DefectReportedEvent;
-import com.example.domain.vforce.model.ReportDefectCmd;
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackPort;
+import com.example.domain.validation.DefectAggregate;
+import com.example.domain.validation.model.DefectReportedEvent;
+import com.example.domain.validation.model.ReportDefectCmd;
+import com.example.ports.SlackNotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * Application service orchestrating the defect reporting flow.
- * 1. Receives ReportDefectCmd
- * 2. Calls GitHubPort to create an issue (External Side Effect 1)
- * 3. Updates Aggregate with result
- * 4. Publishes event containing URL
- * 5. Notifies Slack (External Side Effect 2) with URL in body.
+ * Application Service handling the defect reporting use case.
+ * This acts as the glue between the Temporal trigger (or Controller) and the Domain/Ports.
  */
 @Service
 public class DefectReportingService {
-    private static final Logger log = LoggerFactory.getLogger(DefectReportingService.class);
-    private final GitHubPort gitHubPort;
-    private final SlackPort slackPort;
 
-    public DefectReportingService(GitHubPort gitHubPort, SlackPort slackPort) {
-        this.gitHubPort = gitHubPort;
-        this.slackPort = slackPort;
+    private static final Logger log = LoggerFactory.getLogger(DefectReportingService.class);
+    private final SlackNotificationPort slackNotificationPort;
+
+    public DefectReportingService(SlackNotificationPort slackNotificationPort) {
+        this.slackNotificationPort = slackNotificationPort;
     }
 
-    public DefectReportedEvent reportDefect(ReportDefectCmd cmd) {
-        log.info("Reporting defect: {}", cmd.summary());
-
-        // 1. Create GitHub Issue
-        String githubUrl;
-        try {
-            githubUrl = gitHubPort.createIssue(cmd.summary(), cmd.description());
-            log.info("GitHub issue created: {}", githubUrl);
-        } catch (Exception e) {
-            log.error("Failed to create GitHub issue", e);
-            githubUrl = "ERROR: Failed to create GitHub issue";
+    /**
+     * Handles the ReportDefect command.
+     * 1. Executes logic via Aggregate.
+     * 2. Notifies external systems (Slack) via Ports.
+     */
+    public void reportDefect(ReportDefectCmd cmd) {
+        DefectAggregate aggregate = new DefectAggregate(cmd.defectId());
+        
+        // Execute domain logic
+        var events = aggregate.execute(cmd);
+        
+        // Handle events (Side effects)
+        for (var event : events) {
+            if (event instanceof DefectReportedEvent e) {
+                handleDefectReported(e);
+            }
         }
+    }
 
-        // 2. Update Aggregate (State transition)
-        // In a real CQRS scenario, we'd load an existing aggregate. 
-        // For reporting, we often create a new ID or use a specific one.
-        // Assuming a new ID generation for this report lifecycle.
-        String defectId = java.util.UUID.randomUUID().toString();
-        DefectAggregate aggregate = new DefectAggregate(defectId);
+    private void handleDefectReported(DefectReportedEvent event) {
+        // Construct the Slack Message Body
+        // Requirement: "Slack body includes GitHub issue: <url>"
+        String messageBody = String.format(
+            "Defect Reported: %s%nGitHub issue: %s", 
+            event.defectId(), 
+            event.githubUrl()
+        );
 
-        var events = aggregate.execute(new DefectAggregate.ReportDefectCommand(
-            cmd.summary(), 
-            cmd.description(), 
-            githubUrl
-        ));
-
-        if (events.isEmpty()) {
-            throw new IllegalStateException("Failed to report defect");
+        // Send Notification
+        boolean success = slackNotificationPort.sendMessage("#vforce360-issues", messageBody);
+        
+        if (!success) {
+            // In a real system, we might retry or publish a Failed event.
+            // For S-FB-1 fix, we ensure the URL is passed correctly.
+            log.warn("Failed to send Slack notification for defect {}", event.defectId());
         }
-
-        DefectReportedEvent event = (DefectReportedEvent) events.get(0);
-
-        // 3. Notify Slack (End-to-End Verification)
-        try {
-            slackPort.notifyDefectReported(cmd.summary(), event.githubIssueUrl());
-            log.info("Slack notification sent for defect {}", defectId);
-        } catch (Exception e) {
-            log.error("Failed to send Slack notification", e);
-            // Depending on policy, we might throw here or compensate.
-            // For now, we log and continue to ensure the event is returned.
-        }
-
-        return event;
     }
 }

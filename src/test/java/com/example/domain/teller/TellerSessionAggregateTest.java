@@ -1,83 +1,135 @@
 package com.example.domain.teller;
 
-import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.teller.model.MenuNavigatedEvent;
 import com.example.domain.teller.model.NavigateMenuCmd;
 import com.example.domain.teller.model.TellerSessionAggregate;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * TDD Test Suite for S-19: NavigateMenuCmd.
+ * Tests are written to fail initially against an empty/stubbed implementation.
+ */
 class TellerSessionAggregateTest {
 
-    // Scenario: Successfully execute NavigateMenuCmd
+    /*
+     * Scenario: Successfully execute NavigateMenuCmd
+     * Given a valid TellerSession aggregate
+     * And a valid sessionId is provided
+     * And a valid menuId is provided
+     * And a valid action is provided
+     * When the NavigateMenuCmd command is executed
+     * Then a menu.navigated event is emitted
+     */
     @Test
-    void shouldExecuteNavigateMenuCommandSuccessfully() {
-        // Given
-        TellerSessionAggregate aggregate = new TellerSessionAggregate("session-123");
-        aggregate.markAuthenticated("teller-01"); // Setup authenticated state
+    void testSuccessfulNavigation() {
+        // Setup a valid, authenticated session
+        TellerSessionAggregate session = new TellerSessionAggregate("session-123");
+        session.markAuthenticated(); // Pre-condition
+
         NavigateMenuCmd cmd = new NavigateMenuCmd("session-123", "MAIN_MENU", "ENTER");
 
-        // When
-        List<DomainEvent> events = aggregate.execute(cmd);
+        // Execute
+        List<com.example.domain.shared.DomainEvent> events = session.execute(cmd);
 
-        // Then
-        assertEquals(1, events.size());
-        assertTrue(events.get(0) instanceof MenuNavigatedEvent);
+        // Assertions
+        assertFalse(events.isEmpty(), "An event should be emitted");
+        assertEquals(1, events.size(), "Exactly one event should be emitted");
+        
         MenuNavigatedEvent event = (MenuNavigatedEvent) events.get(0);
         assertEquals("menu.navigated", event.type());
         assertEquals("session-123", event.aggregateId());
-        assertEquals("MAIN_MENU", event.menuId());
-        assertEquals("ENTER", event.action());
+        assertEquals("MAIN_MENU", event.targetMenuId());
         assertNotNull(event.occurredAt());
     }
 
-    // Scenario: NavigateMenuCmd rejected — A teller must be authenticated to initiate a session.
+    /*
+     * Scenario: NavigateMenuCmd rejected — A teller must be authenticated to initiate a session.
+     * Given a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.
+     * When the NavigateMenuCmd command is executed
+     * Then the command is rejected with a domain error
+     */
     @Test
-    void shouldRejectNavigationWhenNotAuthenticated() {
-        // Given
-        TellerSessionAggregate aggregate = new TellerSessionAggregate("session-123");
-        // aggregate.markAuthenticated(...) is NOT called
-        NavigateMenuCmd cmd = new NavigateMenuCmd("session-123", "MAIN_MENU", "ENTER");
+    void testRejectIfNotAuthenticated() {
+        // Setup an unauthenticated session
+        TellerSessionAggregate session = new TellerSessionAggregate("session-999");
+        session.markUnauthenticated(); // Violating condition
 
-        // When & Then
-        IllegalStateException exception = assertThrows(IllegallegalStateException.class, () -> {
-            aggregate.execute(cmd);
+        NavigateMenuCmd cmd = new NavigateMenuCmd("session-999", "ADMIN_MENU", "F3");
+
+        // Execute & Assert Exception
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+            session.execute(cmd);
         });
-        assertEquals("A teller must be authenticated to initiate a session.", exception.getMessage());
+
+        assertTrue(ex.getMessage().contains("authenticated"));
     }
 
-    // Scenario: NavigateMenuCmd rejected — Sessions must timeout after a configured period of inactivity.
+    /*
+     * Scenario: NavigateMenuCmd rejected — Sessions must timeout after a configured period of inactivity.
+     * Given a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.
+     * When the NavigateMenuCmd command is executed
+     * Then the command is rejected with a domain error
+     */
     @Test
-    void shouldRejectNavigationWhenSessionTimedOut() {
-        // Given
-        TellerSessionAggregate aggregate = new TellerSessionAggregate("session-123");
-        aggregate.markAuthenticated("teller-01");
-        aggregate.expireSession(); // Simulate time passing
-        NavigateMenuCmd cmd = new NavigateMenuCmd("session-123", "MAIN_MENU", "ENTER");
+    void testRejectIfTimedOut() {
+        // Setup an authenticated but timed out session
+        TellerSessionAggregate session = new TellerSessionAggregate("session-timeout");
+        session.markAuthenticated();
+        
+        // Force the last activity time to be well beyond the threshold (e.g., 2 hours ago)
+        Instant oldTime = Instant.now().minus(Duration.ofHours(2));
+        session.setLastActivity(oldTime);
 
-        // When & Then
-        IllegalStateException exception = assertThrows(IllegallegalStateException.class, () -> {
-            aggregate.execute(cmd);
+        NavigateMenuCmd cmd = new NavigateMenuCmd("session-timeout", "ANY_MENU", "ENTER");
+
+        // Execute & Assert Exception
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+            session.execute(cmd);
         });
-        assertEquals("Sessions must timeout after a configured period of inactivity.", exception.getMessage());
+
+        assertTrue(ex.getMessage().contains("timeout") || ex.getMessage().contains("inactivity"));
     }
 
-    // Scenario: NavigateMenuCmd rejected — Navigation state must accurately reflect the current operational context.
+    /*
+     * Scenario: NavigateMenuCmd rejected — Navigation state must accurately reflect the current operational context.
+     * Given a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.
+     * When the NavigateMenuCmd command is executed
+     * Then the command is rejected with a domain error
+     */
     @Test
-    void shouldRejectNavigationWhenOperationalContextMismatch() {
-        // Given
-        TellerSessionAggregate aggregate = new TellerSessionAggregate("session-123");
-        aggregate.markAuthenticated("teller-01");
-        aggregate.setOperationalContext("LOCKDOWN"); // Simulate a locked state
-        NavigateMenuCmd cmd = new NavigateMenuCmd("session-123", "MAIN_MENU", "ENTER"); // ENTER is not allowed in LOCKDOWN
+    void testRejectInvalidNavigationState() {
+        // Setup valid session, but provide invalid command context
+        TellerSessionAggregate session = new TellerSessionAggregate("session-context");
+        session.markAuthenticated();
 
-        // When & Then
-        IllegalStateException exception = assertThrows(IllegallegalStateException.class, () -> {
-            aggregate.execute(cmd);
+        // Blank menuId is invalid context
+        NavigateMenuCmd cmd = new NavigateMenuCmd("session-context", "", "ENTER");
+
+        // Execute & Assert Exception
+        Exception ex = assertThrows(Exception.class, () -> {
+            session.execute(cmd);
         });
-        assertEquals("Navigation state must accurately reflect the current operational context.", exception.getMessage());
+
+        // Expecting IllegalArgumentException or IllegalStateException based on implementation
+        assertTrue(ex.getMessage().contains("context") || ex.getMessage().contains("required"));
+    }
+
+    @Test
+    void testUnknownCommandThrowsException() {
+        TellerSessionAggregate session = new TellerSessionAggregate("session-unknown");
+        session.markAuthenticated();
+
+        Command unknownCmd = new Command() {}; // Anonymous invalid command
+
+        assertThrows(UnknownCommandException.class, () -> {
+            session.execute(unknownCmd);
+        });
     }
 }

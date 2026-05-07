@@ -6,24 +6,23 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.3</version>
+        <version>3.2.0</version>
         <relativePath/>
     </parent>
+    
     <groupId>com.example</groupId>
     <artifactId>teller-core</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <name>teller-core</name>
     <description>Teller Core Domain</description>
-
+    
     <properties>
         <java.version>17</java.version>
-        <cucumber.version>7.15.0</cucumber.version>
-        <flyway.version>10.10.0</flyway.version>
-        <temporal.version>1.22.0</temporal.version>
+        <flyway.version>9.22.3</flyway.version>
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Starters -->
+        <!-- Spring Boot Starters (BOM Managed) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -40,86 +39,62 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-integration</artifactId>
         </dependency>
+        
+        <!-- Databases (BOM Managed) -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-batch</artifactId>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
         </dependency>
-
-        <!-- Database (DB2) & Migration -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-db2</artifactId>
+            <artifactId>flyway-database-db2</artifactId>
             <version>${flyway.version}</version>
         </dependency>
-
-        <!-- Mongo (VForce360 shared) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
-        </dependency>
-
-        <!-- IBM MQ JMS -->
-        <dependency>
-            <groupId>com.ibm.mq</groupId>
-            <artifactId>com.ibm.mq.allclient</artifactId>
-            <version>9.3.5.0</version>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.jms</groupId>
-            <artifactId>jakarta.jms-api</artifactId>
-        </dependency>
-
-        <!-- Temporal (Workflows) -->
+        
+        <!-- Temporal (EXPLICIT VERSION REQUIRED - not in Spring BOM) -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>${temporal.version}</version>
+            <version>1.22.0</version>
         </dependency>
-
-        <!-- Redis (Session) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-
-        <!-- Observability -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-otel</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <version>1.36.0</version>
-        </dependency>
-
-        <!-- Storage -->
-        <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-            <version>8.5.7</version>
-        </dependency>
-
-        <!-- Testing -->
+        
+        <!-- Testing (BOM Managed) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
-            <version>${cucumber.version}</version>
+            <version>7.14.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>${cucumber.version}</version>
+            <version>7.14.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-spring</artifactId>
+            <version>7.14.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

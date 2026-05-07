@@ -1,21 +1,17 @@
 package com.example.ports;
 
 /**
- * Port for interacting with Temporal workflows.
+ * Port interface for Temporal workflow interactions.
+ * Real implementation would trigger the Temporal workflow.
+ * Test implementation orchestrates the flow synchronously for validation.
  */
 public interface TemporalWorkflowPort {
-    
-    /**
-     * Triggers the _report_defect workflow.
-     */
-    void triggerReportDefect(String defectId, String summary, String description);
 
     /**
-     * Internal handler interface for the workflow logic (Dependency Injection).
+     * Simulates triggering the report_defect workflow.
+     * This orchestrates the logic that eventually calls the Slack port.
+     * 
+     * @param issueId The GitHub URL/ID of the issue being reported.
      */
-    interface ReportDefectHandler {
-        String handle(String defectId, String summary, String description);
-    }
-
-    void setReportDefectHandler(ReportDefectHandler handler);
+    void executeReportDefectWorkflow(String issueId);
 }

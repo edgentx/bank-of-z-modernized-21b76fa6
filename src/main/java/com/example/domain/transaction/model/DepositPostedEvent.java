@@ -4,14 +4,16 @@ import com.example.domain.shared.DomainEvent;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
 public record DepositPostedEvent(
-    String transactionId,
-    String accountNumber,
-    BigDecimal amount,
-    String currency,
-    Instant occurredAt
+        String aggregateId,
+        String accountNumber,
+        BigDecimal amount,
+        String currency,
+        Instant occurredAt
 ) implements DomainEvent {
+
     @Override
     public String type() {
         return "deposit.posted";
@@ -19,7 +21,7 @@ public record DepositPostedEvent(
 
     @Override
     public String aggregateId() {
-        return transactionId;
+        return aggregateId;
     }
 
     @Override

@@ -1,5 +1,7 @@
-<!-- POM Update for Test Dependencies -->
-<project>
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -7,27 +9,59 @@
         <version>3.2.0</version>
         <relativePath/>
     </parent>
-    <!-- ... existing GAV ... -->
+    
+    <groupId>com.vforce360</groupId>
+    <artifactId>mar-fix</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>VForce360 MAR Fix</name>
+    <description>Fix for S-1: MAR JSON vs HTML defect</description>
+
+    <properties>
+        <java.version>17</java.version>
+    </properties>
 
     <dependencies>
-        <!-- ... existing dependencies ... -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
 
-        <!-- Testing -->
+        <!-- Flexmark for Markdown to HTML conversion -->
+        <!-- 
+             BOM Note: The Spring Boot Parent BOM 3.2.0 manages version for:
+             org.springframework.boot, org.springframework, org.junit.jupiter, etc.
+             It does NOT manage 'com.vladsch.flexmark'. 
+             Therefore, an explicit <version> tag is required.
+        -->
+        <dependency>
+            <groupId>com.vladsch.flexmark</groupId>
+            <artifactId>flexmark-all</artifactId>
+            <version>0.64.8</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- 
-             BOM Note: Spring Boot BOM manages version for:
-             - org.springframework.boot
-             - org.springframework
-             - org.springframework.security
-             - org.junit.jupiter
-             - org.mockito
-             - com.fasterxml.jackson.core
-             
-             No version tag needed for these.
-        -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>

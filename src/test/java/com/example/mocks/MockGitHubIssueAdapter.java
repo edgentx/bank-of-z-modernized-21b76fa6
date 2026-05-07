@@ -1,28 +1,41 @@
 package com.example.mocks;
 
-import com.example.domain.validation.port.GitHubIssuePort;
+import com.example.ports.GitHubIssuePort;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- * Mock adapter for GitHub Issue creation.
- * Returns deterministic URLs for testing without hitting real API.
- */
 public class MockGitHubIssueAdapter implements GitHubIssuePort {
+    private final List<CallLog> calls = new ArrayList<>();
+    private URI nextResult;
 
-    private String urlToReturn = "https://github.com/mock/repo/issues/1";
-    private boolean shouldReturnNull = false;
+    public static class CallLog {
+        public final String title;
+        public final String body;
+
+        public CallLog(String title, String body) {
+            this.title = title;
+            this.body = body;
+        }
+    }
 
     @Override
-    public String createIssue(String title, String description) {
-        if (shouldReturnNull) return null;
-        // Simple logic to generate a consistent URL based on input
-        return urlToReturn;
+    public URI createIssue(String title, String body) {
+        calls.add(new CallLog(title, body));
+        // Default to a dummy URI if not set
+        return nextResult != null ? nextResult : URI.create("https://github.com/example/issues/1");
     }
 
-    public void setUrlToReturn(String url) {
-        this.urlToReturn = url;
+    public void setNextResult(URI uri) {
+        this.nextResult = uri;
     }
 
-    public void setShouldReturnNull(boolean shouldReturnNull) {
-        this.shouldReturnNull = shouldReturnNull;
+    public List<CallLog> getCalls() {
+        return calls;
+    }
+    
+    public void reset() {
+        calls.clear();
+        nextResult = null;
     }
 }

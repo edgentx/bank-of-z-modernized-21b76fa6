@@ -3,29 +3,18 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
-public class SessionEndedEvent implements DomainEvent {
-    private final String aggregateId;
-    private final Instant occurredAt;
-
-    public SessionEndedEvent(String aggregateId, Instant occurredAt) {
-        this.aggregateId = Objects.requireNonNull(aggregateId);
-        this.occurredAt = Objects.requireNonNull(occurredAt);
+public record SessionEndedEvent(
+        String aggregateId,
+        Instant occurredAt
+) implements DomainEvent {
+    public SessionEndedEvent(String aggregateId) {
+        this(aggregateId, Instant.now());
     }
 
     @Override
     public String type() {
         return "session.ended";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

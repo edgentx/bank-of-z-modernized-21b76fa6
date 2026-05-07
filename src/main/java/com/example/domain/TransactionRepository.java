@@ -1,5 +1,8 @@
 package com.example.domain;
 
+import java.util.UUID;
+
 public interface TransactionRepository {
-    void save(Transaction transaction);
+    Transaction save(Transaction transaction);
+    Transaction findById(UUID id);
 }

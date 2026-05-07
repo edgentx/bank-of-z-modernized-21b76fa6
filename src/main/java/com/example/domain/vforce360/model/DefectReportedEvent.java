@@ -2,16 +2,34 @@ package com.example.domain.vforce360.model;
 
 import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
+import java.util.Objects;
 
+/**
+ * Domain event emitted when a defect is reported by the VForce360 PM diagnostic flow.
+ */
 public record DefectReportedEvent(
-    String type,
     String aggregateId,
-    Instant occurredAt,
-    String defectId,
+    String description,
+    String reporter,
     String severity,
-    String githubIssueUrl
+    Instant occurredAt
 ) implements DomainEvent {
-    public DefectReportedEvent(String defectId, String severity, String githubIssueUrl, Instant occurredAt) {
-        this("DefectReportedEvent", defectId, occurredAt, defectId, severity, githubIssueUrl);
+
+    public DefectReportedEvent {
+        Objects.requireNonNull(aggregateId);
+        Objects.requireNonNull(description);
+        Objects.requireNonNull(reporter);
+        Objects.requireNonNull(severity);
+        Objects.requireNonNull(occurredAt);
+    }
+
+    @Override
+    public String type() {
+        return "DefectReported";
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

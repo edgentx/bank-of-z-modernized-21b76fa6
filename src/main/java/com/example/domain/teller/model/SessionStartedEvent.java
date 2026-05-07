@@ -11,14 +11,14 @@ import java.util.UUID;
 public class SessionStartedEvent implements DomainEvent {
 
     private final String eventId;
-    private final String sessionId;
+    private final String aggregateId;
     private final String tellerId;
     private final String terminalId;
     private final Instant occurredAt;
 
-    public SessionStartedEvent(String sessionId, String tellerId, String terminalId, Instant occurredAt) {
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
         this.eventId = UUID.randomUUID().toString();
-        this.sessionId = sessionId;
+        this.aggregateId = aggregateId;
         this.tellerId = tellerId;
         this.terminalId = terminalId;
         this.occurredAt = occurredAt;
@@ -31,7 +31,7 @@ public class SessionStartedEvent implements DomainEvent {
 
     @Override
     public String aggregateId() {
-        return sessionId;
+        return aggregateId;
     }
 
     @Override
@@ -39,6 +39,11 @@ public class SessionStartedEvent implements DomainEvent {
         return occurredAt;
     }
 
-    public String tellerId() { return tellerId; }
-    public String terminalId() { return terminalId; }
+    public String tellerId() {
+        return tellerId;
+    }
+
+    public String terminalId() {
+        return terminalId;
+    }
 }

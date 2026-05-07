@@ -1,33 +1,49 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-import java.util.ArrayList;
-import java.util.List;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures payloads sent to Slack without making external HTTP calls.
+ * Captures the last sent payload to allow verification in tests.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> payloads = new ArrayList<>();
-    private boolean shouldSucceed = true;
+    private String lastChannel;
+    private Map<String, Object> lastPayload;
+    private boolean sendCalled = false;
 
     @Override
-    public boolean send(String payload) {
-        this.payloads.add(payload);
-        return shouldSucceed;
+    public void sendNotification(String channel, Map<String, Object> payload) {
+        this.lastChannel = channel;
+        this.lastPayload = new HashMap<>(payload); // Defensive copy
+        this.sendCalled = true;
     }
 
-    public List<String> getPayloads() {
-        return new ArrayList<>(payloads);
+    public boolean isSendCalled() {
+        return sendCalled;
     }
 
-    public void clear() {
-        payloads.clear();
+    public String getLastChannel() {
+        return lastChannel;
     }
 
-    public void setShouldSucceed(boolean flag) {
-        this.shouldSucceed = flag;
+    public Map<String, Object> getLastPayload() {
+        return lastPayload;
+    }
+
+    public String getLastMessageBody() {
+        if (lastPayload != null && lastPayload.containsKey("text")) {
+            return lastPayload.get("text").toString();
+        }
+        return null;
+    }
+
+    public void reset() {
+        this.lastChannel = null;
+        this.lastPayload = null;
+        this.sendCalled = false;
     }
 }

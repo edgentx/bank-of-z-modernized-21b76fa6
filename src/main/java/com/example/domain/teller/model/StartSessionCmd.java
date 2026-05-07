@@ -7,6 +7,6 @@ public record StartSessionCmd(
     String tellerId,
     String terminalId,
     boolean authenticated,
-    String navigationState,
-    boolean timedOut
+    int timeoutMinutes,
+    String initialContext
 ) implements Command {}

@@ -3,6 +3,11 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to initiate a teller session following successful authentication.
+ * Command to initiate a teller session.
+ * Corresponds to Story S-18.
  */
-public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {}
+public record StartSessionCmd(
+    String sessionId,
+    String tellerId,
+    String terminalId
+) implements Command {}

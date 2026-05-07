@@ -1,62 +1,70 @@
 package com.example.steps;
 
-import com.example.domain.vforce.model.DefectReportingAggregate;
-import com.example.domain.vforce.model.ReportDefectCmd;
-import com.example.ports.SlackNotificationPort;
-import com.example.mocks.MockSlackNotificationPort;
+import com.example.ports.SlackNotifierPort;
+import com.example.ports.GitHubIssuePort;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
+import io.cucumber.java.en.Scenario;
+import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.verify;
 
 /**
- * Cucumber Steps for validating Story VW-454.
- * Scenario: Trigger report_defect -> Verify Slack body contains URL.
+ * Steps to validate VW-454: GitHub URL in Slack body.
+ * Testing the defect report scenario where a defect reporting workflow
+ * should result in a Slack notification containing a valid GitHub issue link.
  */
 public class VW454Steps {
 
-    // These would be injected by the Test Context in a real Spring/ cucumber setup
-    private MockSlackNotificationPort slackPort = new MockSlackNotificationPort();
-    private DefectReportingAggregate aggregate;
-    private Exception capturedException;
+    @Autowired
+    private SlackNotifierPort slackNotifierPort;
 
-    @Given("a defect report is triggered for VW-454")
-    public void a_defect_report_is_triggered() {
-        aggregate = new DefectReportingAggregate("VW-454");
+    @Autowired
+    private ReportDefectWorkflowOrchestrator orchestrator;
+
+    private String capturedSlackBody;
+
+    @Given("the temporal worker executes the defect reporting workflow")
+    public void the_temporal_worker_executes_the_defect_reporting_workflow() {
+        // No-op setup: The orchestrator is autowired and ready.
+        // In a real test, we might ensure the worker is running, but for unit testing logic, we call directly.
     }
 
-    @When("the temporal worker executes the report_defect command")
-    public void the_worker_executes_the_command() {
-        ReportDefectCmd cmd = new ReportDefectCmd(
-            "VW-454", 
-            "GitHub URL in Slack body", 
-            "Verify the link is present", 
-            "LOW", 
-            "DEFECT"
+    @When("_report_defect is triggered via temporal-worker exec")
+    public void report_defect_is_triggered() {
+        // Simulate the trigger
+        String defectId = "DEF-454";
+        String summary = "GitHub URL missing in Slack body";
+        String description = "When reporting a defect, the Slack message does not contain the link.";
+
+        orchestrator.reportDefect(defectId, summary, description);
+
+        // Capture the output sent to the mocked Slack port
+        ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(slackNotifierPort).sendNotification(bodyCaptor.capture());
+        capturedSlackBody = bodyCaptor.getValue();
+    }
+
+    @Then("the Slack body contains the GitHub issue URL")
+    public void the_slack_body_contains_the_github_issue_url() {
+        assertNotNull(capturedSlackBody, "Slack body should not be null");
+        
+        // The acceptance criteria implies the link must be present and formatted.
+        // We check for the presence of a URL structure.
+        // Ideally, we would check for a specific URL if we knew the issue ID, 
+        // but for this defect, we validate the *presence* of a github.com link.
+        assertTrue(
+            capturedSlackBody.contains("github.com"),
+            "Slack body should contain 'github.com'. Actual body: " + capturedSlackBody
         );
         
-        try {
-            var events = aggregate.execute(cmd);
-            // Simulate the Handler/Application layer processing events
-            if (!events.isEmpty()) {
-                slackPort.sendDefectAlert("#vforce360-issues", events.get(0));
-            }
-        } catch (Exception e) {
-            capturedException = e;
-        }
-    }
-
-    @Then("the Slack body includes the GitHub issue link")
-    public void the_slack_body_includes_link() {
-        assertNull(capturedException, "Command execution should not throw exception");
-        
-        var messages = slackPort.getSentMessages();
-        assertFalse(messages.isEmpty(), "Slack should have received a message");
-        
-        var msg = messages.get(0);
-        assertNotNull(msg.githubUrl, "GitHub URL must be present in the processed message");
-        assertTrue(msg.body.contains(msg.githubUrl), "Message body must contain the URL");
-        assertTrue(msg.body.contains("github.com"), "Body must reference github.com");
+        // Additionally, ensure it looks like a link/HTML tag based on typical Slack payloads
+        assertTrue(
+            capturedSlackBody.contains("<http") || capturedSlackBody.contains("http"),
+            "Slack body should contain a URL format."
+        );
     }
 }

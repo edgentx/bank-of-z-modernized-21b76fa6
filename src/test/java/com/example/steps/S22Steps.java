@@ -1,11 +1,9 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
+import com.example.domain.navigation.model.InputValidatedEvent;
+import com.example.domain.navigation.model.ScreenMapAggregate;
+import com.example.domain.navigation.model.ValidateScreenInputCmd;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.userinterface.model.ScreenFieldDefinition;
-import com.example.domain.userinterface.model.ScreenMapAggregate;
-import com.example.domain.userinterface.model.ValidateScreenInputCmd;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -19,89 +17,73 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class S22Steps {
 
-    private ScreenMapAggregate aggregate;
-    private ValidateScreenInputCmd cmd;
+    private ScreenMapAggregate screenMap;
+    private Map<String, String> inputFields;
     private List<DomainEvent> resultEvents;
-    private Exception thrownException;
-
-    // --- Scenario 1: Success ---
+    private Exception caughtException;
 
     @Given("a valid ScreenMap aggregate")
     public void aValidScreenMapAggregate() {
-        aggregate = new ScreenMapAggregate("SCREEN-001");
-        
-        // Configure a valid map with one mandatory field and one optional field
-        Map<String, ScreenFieldDefinition> defs = new HashMap<>();
-        defs.put("ACCOUNT_NUM", new ScreenFieldDefinition("ACCOUNT_NUM", 10, true));
-        defs.put("AMOUNT", new ScreenFieldDefinition("AMOUNT", 12, false));
-        aggregate.configureFieldDefinitions(defs);
+        screenMap = new ScreenMapAggregate("SCREEN_001");
+        // Configure: USER_ID is mandatory, max 10 chars. NAME is optional, max 50.
+        screenMap.defineField("USER_ID", true, 10);
+        screenMap.defineField("NAME", false, 50);
+        inputFields = new HashMap<>();
+        caughtException = null;
+    }
+
+    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
+    public void aScreenMapAggregateThatViolatesMandatoryFields() {
+        screenMap = new ScreenMapAggregate("SCREEN_001");
+        screenMap.defineField("USER_ID", true, 10); // Mandatory
+        inputFields = new HashMap<>();
+        // Leaving inputFields empty to violate the rule
+    }
+
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void aScreenMapAggregateThatViolatesFieldLengths() {
+        screenMap = new ScreenMapAggregate("SCREEN_001");
+        screenMap.defineField("USER_ID", true, 5); // Very short constraint
+        inputFields = new HashMap<>();
+        inputFields.put("USER_ID", "123456"); // Length 6 > 5
     }
 
     @And("a valid screenId is provided")
     public void aValidScreenIdIsProvided() {
-        // screenId is part of the command, handled in the next step or here implicitly
-        // We construct the command fully in the next step for simplicity, or store parts here.
+        // Implicitly handled by the aggregate initialization and command creation
     }
 
     @And("a valid inputFields is provided")
     public void aValidInputFieldsIsProvided() {
-        Map<String, String> inputs = new HashMap<>();
-        inputs.put("ACCOUNT_NUM", "1234567890"); // Valid length, mandatory provided
-        inputs.put("AMOUNT", "100.00");
-        
-        cmd = new ValidateScreenInputCmd("SCREEN-001", "LOGIN_SCREEN", inputs);
+        inputFields.put("USER_ID", "ALICE");
+        inputFields.put("NAME", "Alice In Wonderland");
     }
 
     @When("the ValidateScreenInputCmd command is executed")
     public void theValidateScreenInputCmdCommandIsExecuted() {
         try {
-            resultEvents = aggregate.execute(cmd);
+            ValidateScreenInputCmd cmd = new ValidateScreenInputCmd(screenMap.id(), inputFields);
+            resultEvents = screenMap.execute(cmd);
         } catch (Exception e) {
-            thrownException = e;
+            caughtException = e;
         }
     }
 
     @Then("a input.validated event is emitted")
     public void aInputValidatedEventIsEmitted() {
-        assertNull(thrownException, "Should not have thrown an exception");
         assertNotNull(resultEvents);
         assertEquals(1, resultEvents.size());
-        assertEquals("input.validated", resultEvents.get(0).type());
-    }
-
-    // --- Scenario 2: Mandatory Field Violation ---
-
-    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void aScreenMapAggregateThatViolatesMandatoryFields() {
-        aggregate = new ScreenMapAggregate("SCREEN-002");
-        Map<String, ScreenFieldDefinition> defs = new HashMap<>();
-        defs.put("REF_ID", new ScreenFieldDefinition("REF_ID", 15, true)); // Mandatory
-        aggregate.configureFieldDefinitions(defs);
-
-        // Missing REF_ID
-        Map<String, String> inputs = new HashMap<>(); 
-        cmd = new ValidateScreenInputCmd("SCREEN-002", "SUBMIT_SCREEN", inputs);
+        assertTrue(resultEvents.get(0) instanceof InputValidatedEvent);
+        
+        InputValidatedEvent event = (InputValidatedEvent) resultEvents.get(0);
+        assertEquals("input.validated", event.type());
+        assertEquals("SCREEN_001", event.aggregateId());
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(thrownException);
-        // Checking for specific message or type allows precise validation
-        assertTrue(thrownException instanceof IllegalArgumentException);
-        assertTrue(thrownException.getMessage().contains("Mandatory field"));
-    }
-
-    // --- Scenario 3: Field Length Violation ---
-
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void aScreenMapAggregateThatViolatesFieldLengths() {
-        aggregate = new ScreenMapAggregate("SCREEN-003");
-        Map<String, ScreenFieldDefinition> defs = new HashMap<>();
-        defs.put("SHORT_CODE", new ScreenFieldDefinition("SHORT_CODE", 5, false)); // Max 5 chars
-        aggregate.configureFieldDefinitions(defs);
-
-        Map<String, String> inputs = new HashMap<>();
-        inputs.put("SHORT_CODE", "123456"); // Length 6 > 5
-        cmd = new ValidateScreenInputCmd("SCREEN-003", "DATA_ENTRY", inputs);
+        assertNotNull(caughtException);
+        assertTrue(caughtException instanceof IllegalStateException);
+        assertTrue(caughtException.getMessage().contains("mandatory") || caughtException.getMessage().contains("constraints"));
     }
 }

@@ -4,10 +4,21 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to initiate a new Teller Session.
- * Context: S-18
+ * Validates authentication, timeout status, and navigation context state.
  */
 public record StartSessionCmd(
-    String sessionId,
-    String tellerId,
-    String terminalId
-) implements Command {}
+        String tellerId,
+        String terminalId,
+        boolean isAuthenticated,
+        boolean isTimedOut,
+        boolean isNavStateInvalid
+) implements Command {
+
+    public StartSessionCmd(String tellerId, String terminalId, boolean isAuthenticated) {
+        this(tellerId, terminalId, isAuthenticated, false, false);
+    }
+
+    public StartSessionCmd(String tellerId, String terminalId, boolean isAuthenticated, boolean isTimedOut) {
+        this(tellerId, terminalId, isAuthenticated, isTimedOut, false);
+    }
+}

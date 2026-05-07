@@ -1,36 +1,46 @@
 package com.example.mocks;
 
-import com.example.ports.SlackNotificationPort;
+import com.example.domain.vforce.ports.SlackNotificationPort;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Stores messages in memory to verify contents without external I/O.
+ * Captures messages sent to Slack to verify content without external I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> postedMessages = new ArrayList<>();
-    private boolean shouldFail = false;
+    private final List<String> sentMessages = new ArrayList<>();
+    private boolean simulateFailure = false;
 
     @Override
-    public boolean postMessage(String body) {
-        if (shouldFail) {
+    public boolean sendDefectReport(String messageBody) {
+        if (simulateFailure) {
             return false;
         }
-        postedMessages.add(body);
+        sentMessages.add(messageBody);
         return true;
     }
 
-    public List<String> getPostedMessages() {
-        return new ArrayList<>(postedMessages);
+    /**
+     * Retrieves the list of messages sent during the test.
+     */
+    public List<String> getSentMessages() {
+        return new ArrayList<>(sentMessages);
     }
 
+    /**
+     * Clears the message history.
+     */
     public void clear() {
-        postedMessages.clear();
+        sentMessages.clear();
     }
 
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
+    /**
+     * Configures the mock to simulate a send failure.
+     */
+    public void setSimulateFailure(boolean simulateFailure) {
+        this.simulateFailure = simulateFailure;
     }
 }

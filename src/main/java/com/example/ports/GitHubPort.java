@@ -1,16 +1,17 @@
 package com.example.ports;
 
-import java.util.Optional;
-
 /**
- * Port interface for GitHub interactions.
- * Used to mock the GitHub API in tests.
+ * Port for interacting with GitHub issues.
+ * Used to verify defect VW-454.
  */
 public interface GitHubPort {
+
     /**
-     * Creates an issue for the defect.
-     * @param defectId The internal defect ID.
+     * Creates a new GitHub issue.
+     *
+     * @param title The title of the issue.
+     * @param body The body content of the issue.
      * @return The URL of the created issue.
      */
-    String createIssue(String defectId, String title, String description);
+    String createIssue(String title, String body);
 }

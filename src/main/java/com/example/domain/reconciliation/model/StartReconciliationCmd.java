@@ -6,6 +6,7 @@ import java.time.Instant;
 
 /**
  * Command to start the reconciliation process for a specific batch window.
+ * Used in S-16.
  */
 public record StartReconciliationCmd(
         String batchId,

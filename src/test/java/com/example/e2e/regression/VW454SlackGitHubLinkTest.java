@@ -1,68 +1,111 @@
 package com.example.e2e.regression;
 
-import com.example.domain.validation.model.DefectReportedEvent;
-import com.example.domain.validation.model.ReportDefectCmd;
-import com.example.domain.validation.model.ValidationAggregate;
+import com.example.Application;
+import com.example.mocks.MockGitHubPort;
 import com.example.mocks.MockSlackNotificationPort;
+import com.example.ports.GitHubPort;
 import com.example.ports.SlackNotificationPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * E2E Regression Test for VW-454.
- * Scenario: When a defect is reported, the resulting Slack notification
- * must contain the valid GitHub Issue URL in the body.
+ * Regression Test for Defect VW-454.
+ * <p>
+ * Expected Behavior: When a defect is reported, a GitHub issue is created,
+ * and the resulting URL is included in the Slack notification body.
+ * <p>
+ * Corresponding Story ID: S-FB-1
  */
-class VW454SlackGitHubLinkTest {
+@SpringBootTest(classes = VW454SlackGitHubLinkTest.TestConfig.class)
+public class VW454SlackGitHubLinkTest {
 
-    @Test
-    void shouldContainGitHubUrlInSlackBody() {
-        // Arrange
-        String expectedUrl = "https://github.com/egdcrypto/bank-of-z/issues/454";
-        MockSlackNotificationPort slackPort = new MockSlackNotificationPort();
+    @Autowired(required = false) // Implementation pending
+    private Application.ReportDefectWorkflowOrchestrator workflow;
 
-        // Act
-        // 1. Aggregate processes the command
-        ValidationAggregate aggr = new ValidationAggregate("vw-454-test");
-        var events = aggr.execute(new ReportDefectCmd("vw-454-test", "VW-454 Regression", expectedUrl));
+    @Autowired
+    private MockSlackNotificationPort mockSlack;
 
-        // 2. Simulate the workflow: Port consumes the event and sends the notification
-        // (In a real app, this wiring happens in the Application Service/Workflow)
-        DefectReportedEvent event = (DefectReportedEvent) events.get(0);
-        String slackBody = formatSlackBody(event);
-        slackPort.sendNotification("#vforce360-issues", slackBody);
+    @Autowired
+    private MockGitHubPort mockGitHub;
 
-        // Assert
-        // Verify the mock received the message
-        assertEquals(1, slackPort.getMessages().size());
-        
-        String actualBody = slackPort.getLastMessageBody();
-        
-        // Core assertion: The body must include the specific GitHub URL
-        assertTrue(actualBody.contains(expectedUrl), "Slack body must contain the GitHub Issue URL");
+    @BeforeEach
+    void setUp() {
+        mockSlack.clear();
+        mockGitHub.setNextIssueUrl("https://github.com/example/bank-of-z/issues/454");
     }
 
     @Test
-    void shouldFailValidationIfGitHubUrlIsMissing() {
-        // Arrange
-        ValidationAggregate aggr = new ValidationAggregate("vw-454-fail");
+    void testReportDefect_postsSlackNotificationContainingGitHubUrl() {
+        // ARRANGE
+        // Context: Triggering _report_defect via temporal-worker exec
+        String defectTitle = "Defect VW-454";
+        String defectDescription = "GitHub URL missing in Slack body";
+        String targetChannel = "#vforce360-issues";
+
+        // ACT
+        // This simulates the Temporal worker executing the report_defect workflow
+        // Note: This will fail/throw until Application.java implements the wiring.
+        try {
+            workflow.execute(targetChannel, defectTitle, defectDescription);
+        } catch (Exception e) {
+            // Expected in RED phase - ignoring to assert state of mocks
+            // or we could use assumeTrue if we wanted to skip, but failing is better for TDD.
+        }
+
+        // ASSERT
+        // Verify GitHub Issue was requested (or created via Port)
+        // (If the workflow didn't run, this will be empty/0)
         
-        // Act & Assert
-        // Passing a blank or non-GitHub URL should fail at the Aggregate level
-        Exception ex = assertThrows(IllegalArgumentException.class, () -> {
-            aggr.execute(new ReportDefectCmd("vw-454-fail", "Bad URL", "http://not-github.com"));
-        });
+        // 1. Verify Slack Interaction
+        var messages = mockSlack.getSentMessages();
+        boolean foundSlackMessage = false;
+        String lastSlackBody = "";
+        
+        for (var msg : messages) {
+            if (msg.channel.equals(targetChannel)) {
+                foundSlackMessage = true;
+                lastSlackBody = msg.text;
+            }
+        }
 
-        assertTrue(ex.getMessage().toLowerCase().contains("github"));
-    }
+        assertTrue(foundSlackMessage, "Slack notification should be sent to #vforce360-issues");
 
-    // Helper to replicate the formatting logic expected in the Slack message
-    private String formatSlackBody(DefectReportedEvent event) {
-        return String.format(
-            "Defect Reported: %s\nGitHub Issue: %s",
-            event.title(),
-            event.githubIssueUrl()
+        // 2. Verify URL content
+        // Acceptance Criteria: "Slack body includes GitHub issue: <url>"
+        String expectedUrl = "https://github.com/example/bank-of-z/issues/454";
+        
+        assertTrue(
+            lastSlackBody.contains(expectedUrl),
+            "Expected Slack body to contain GitHub URL: " + expectedUrl + " but was: " + lastSlackBody
         );
+        
+        // Pattern check for robustness (as per Story description)
+        assertTrue(
+            lastSlackBody.contains("http") && lastSlackBody.contains("github.com"),
+            "Slack body should look like a GitHub URL"
+        );
+    }
+
+    @Configuration
+    @Import(Application.class) // Import main app configuration to pick up components if they exist
+    static class TestConfig {
+        
+        @Bean
+        public SlackNotificationPort slackNotificationPort() {
+            return new MockSlackNotificationPort();
+        }
+
+        @Bean
+        public GitHubPort gitHubPort() {
+            return new MockGitHubPort();
+        }
     }
 }

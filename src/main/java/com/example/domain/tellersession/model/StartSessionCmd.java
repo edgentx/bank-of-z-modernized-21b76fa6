@@ -1,17 +1,11 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
-import java.time.Instant;
 
 /**
- * Command to initiate a new teller session.
- * Carries authentication status, terminal identification, and navigation context.
+ * Command to start a new teller session.
+ * @param sessionId The unique ID of the session.
+ * @param tellerId The authenticated ID of the teller.
+ * @param terminalId The ID of the terminal being used.
  */
-public record StartSessionCmd(
-    String sessionId,
-    String tellerId,
-    String terminalId,
-    boolean isAuthenticated,
-    String navigationState,
-    Instant lastActivityTimestamp
-) implements Command {}
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {}

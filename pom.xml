@@ -5,42 +5,34 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.5</version>
-        <relativePath/> 
+        <version>3.2.0</version>
+        <relativePath/>
     </parent>
-    
     <groupId>com.example</groupId>
-    <artifactId>teller-core</artifactId>
+    <artifactId>egdcrypto-bank-of-z-modernized</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>teller-core</name>
-    <description>Teller Core Domain Project</description>
-    
+    <name>Bank of Z Modernized</name>
+    <description>Demo project for Spring Boot</description>
+
     <properties>
         <java.version>17</java.version>
-        <cucumber.version>7.20.1</cucumber.version>
+        <cucumber.version>7.14.0</cucumber.version>
     </properties>
-    
+
     <dependencies>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
-        
+        <!-- Spring Boot Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.ibm.db2</groupId>
             <artifactId>jcc</artifactId>
             <scope>runtime</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
         </dependency>
 
         <!-- Cucumber Dependencies -->
@@ -61,6 +53,13 @@
             <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Testing -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -71,4 +70,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>

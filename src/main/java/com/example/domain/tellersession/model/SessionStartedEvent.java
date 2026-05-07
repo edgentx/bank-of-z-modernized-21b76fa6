@@ -5,24 +5,31 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Domain event emitted when a teller session is started.
+ */
 public record SessionStartedEvent(
-        String eventId,
-        String aggregateId,
-        String tellerId,
-        String terminalId,
-        Instant occurredAt
+    String aggregateId,
+    String tellerId,
+    String terminalId,
+    Instant occurredAt
 ) implements DomainEvent {
-    public SessionStartedEvent {
-        if (eventId == null) eventId = UUID.randomUUID().toString();
-        if (occurredAt == null) occurredAt = Instant.now();
-    }
-
-    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), aggregateId, tellerId, terminalId, occurredAt);
-    }
 
     @Override
     public String type() {
         return "session.started";
+    }
+
+    // Constructors not strictly needed for Java records, but explicit mapping helps clarity
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.tellerId = tellerId;
+        this.terminalId = terminalId;
+        this.occurredAt = occurredAt;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

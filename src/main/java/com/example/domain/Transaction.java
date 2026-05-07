@@ -1,101 +1,88 @@
 package com.example.domain;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Currency;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
 /**
  * Transaction Aggregate Root.
- * Manages state consistency and invariant enforcement for transaction operations.
+ * Implements Execute(cmd) pattern.
  */
 public class Transaction {
 
     private final UUID transactionId;
     private final String accountNumber;
     private final DomainConfig config;
-    private BigDecimal balance;
-    private final List<DomainEvent> events = new LinkedList<>();
+    private final List<Object> events = new ArrayList<>();
+    
+    private BigDecimal currentBalance;
     private boolean posted = false;
 
-    // Constructor for aggregate creation/initialization
     public Transaction(UUID transactionId, String accountNumber, DomainConfig config) {
         this.transactionId = transactionId;
         this.accountNumber = accountNumber;
         this.config = config;
-        this.balance = BigDecimal.ZERO;
+        this.currentBalance = BigDecimal.ZERO;
     }
 
-    // Getters required for testing and state inspection
+    /**
+     * Executes a command against this aggregate.
+     * Throws DomainException if invariants are violated.
+     * Returns void; check getEvents() for emitted events on success.
+     */
+    public void execute(PostDepositCmd cmd) {
+        // 1. Invariant: Amount must be > 0
+        if (cmd.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new DomainException("Transaction amounts must be greater than zero.");
+        }
+
+        // 2. Invariant: Cannot alter posted transactions
+        if (this.posted) {
+            throw new DomainException("Transactions cannot be altered or deleted once posted.");
+        }
+
+        // 3. Invariant: Transaction amount within limits
+        if (cmd.amount().compareTo(config.maxTransactionAmount()) > 0) {
+             throw new DomainException("Transaction amount exceeds maximum allowed amount.");
+        }
+
+        // 4. Invariant: Resulting balance is valid
+        // Assuming this aggregate tracks the balance for the validation context
+        BigDecimal newBalance = this.currentBalance.add(cmd.amount());
+        if (newBalance.compareTo(config.maxAccountBalance()) > 0) {
+            throw new DomainException("A transaction must result in a valid account balance (exceeds max).");
+        }
+
+        // Apply state change
+        this.currentBalance = newBalance;
+
+        // Emit Event
+        DepositPostedEvent event = new DepositPostedEvent(
+            cmd.accountNumber(),
+            cmd.amount(),
+            cmd.currency(),
+            java.time.LocalDateTime.now()
+        );
+        
+        this.events.add(event);
+    }
+
+    // Used for testing to simulate persisted state
+    public void markPosted() {
+        this.posted = true;
+    }
+
+    public List<Object> getEvents() {
+        return List.copyOf(events);
+    }
+
     public UUID getId() {
         return transactionId;
     }
 
-    public String getAccountNumber() {
-        return accountNumber;
-    }
-
     public BigDecimal getBalance() {
-        return balance;
-    }
-
-    public List<DomainEvent> getEvents() {
-        return List.copyOf(events);
-    }
-
-    public boolean isPosted() {
-        return posted;
-    }
-
-    /**
-     * Sets balance directly. Used in test setup to simulate aggregate state hydration.
-     * In a real repository hydration, this would be part of a factory or private loader.
-     */
-    public void setBalance(BigDecimal balance) {
-        this.balance = balance;
-    }
-
-    /**
-     * Sets the posted flag. Used in test setup to simulate an immutable transaction.
-     */
-    public void setPosted(boolean posted) {
-        this.posted = posted;
-    }
-
-    /**
-     * Executes the PostDepositCmd command.
-     * Enforces invariants before applying state changes and emitting events.
-     */
-    public void execute(PostDepositCmd cmd) {
-        // Validate pre-conditions
-        if (posted) {
-            throw new IllegalStateException("Transaction cannot be altered or deleted once posted; corrections require a new reversing transaction.");
-        }
-
-        if (cmd.amount() == null || cmd.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Transaction amounts must be greater than zero.");
-        }
-
-        // Calculate potential new balance
-        BigDecimal potentialBalance = this.balance.add(cmd.amount());
-
-        // Validate account balance invariant
-        if (potentialBalance.compareTo(config.maxAccountBalance()) > 0) {
-            throw new IllegalArgumentException("A transaction must result in a valid account balance (enforced via aggregate validation).");
-        }
-
-        // Apply state change
-        this.balance = potentialBalance;
-        this.posted = true;
-
-        // Emit event
-        DepositPostedEvent event = new DepositPostedEvent(
-            cmd.transactionId(),
-            cmd.accountNumber(),
-            cmd.amount(),
-            cmd.currency().getCurrencyCode()
-        );
-        this.events.add(event);
+        return currentBalance;
     }
 }

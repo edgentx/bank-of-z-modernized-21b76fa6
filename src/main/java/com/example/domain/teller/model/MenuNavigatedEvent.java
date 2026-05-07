@@ -5,25 +5,20 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Event emitted when the teller successfully navigates to a new menu.
- */
-public record MenuNavigatedEvent(
-    String aggregateId,
-    String targetMenuId,
-    String action,
-    Instant occurredAt
-) implements DomainEvent {
-
-    public MenuNavigatedEvent(String aggregateId, String targetMenuId, String action, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.targetMenuId = targetMenuId;
-        this.action = action;
-        this.occurredAt = occurredAt;
+public record MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) implements DomainEvent {
+    public MenuNavigatedEvent {
+        // Ensure final fields are non-null
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
+        if (menuId == null) throw new IllegalArgumentException("menuId required");
     }
 
     @Override
     public String type() {
         return "menu.navigated";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
     }
 }

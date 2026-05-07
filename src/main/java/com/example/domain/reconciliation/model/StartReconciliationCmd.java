@@ -6,7 +6,6 @@ import java.time.Instant;
 
 public record StartReconciliationCmd(
         String batchId,
-        Instant batchWindowStart,
-        Instant batchWindowEnd
-) implements Command {
-}
+        Instant startWindow,
+        Instant endWindow
+) implements Command {}

@@ -1,18 +1,17 @@
 package com.example.domain;
 
 import java.math.BigDecimal;
+import java.util.Currency;
+import java.util.UUID;
 
-public class PostDepositCmd {
-    public String accountNumber;
-    public BigDecimal amount;
-    public String currency;
-
-    // Default constructor for Cucumber/Gherkin mapping
-    public PostDepositCmd() {}
-
-    public PostDepositCmd(String accountNumber, BigDecimal amount, String currency) {
-        this.accountNumber = accountNumber;
-        this.amount = amount;
-        this.currency = currency;
-    }
+/**
+ * Command to credit funds to a specific account.
+ * Implemented as a Java Record for immutability and data carrier semantics.
+ */
+public record PostDepositCmd(
+    UUID transactionId,
+    String accountNumber,
+    BigDecimal amount,
+    Currency currency
+) {
 }

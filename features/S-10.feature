@@ -1,5 +1,4 @@
 Feature: Implement PostDepositCmd on Transaction (transaction-processing)
-
   Feature: PostDepositCmd
 
     Scenario: Successfully execute PostDepositCmd

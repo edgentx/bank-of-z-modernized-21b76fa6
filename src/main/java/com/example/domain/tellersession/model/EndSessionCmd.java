@@ -1,10 +1,9 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
-import java.util.UUID;
 
 /**
- * Command to end an existing teller session.
- * Encapsulates the session ID to be terminated.
+ * Command to terminate an active Teller Session.
+ * Clears sensitive state and emits SessionEndedEvent.
  */
-public record EndSessionCmd(UUID sessionId) implements Command {}
+public record EndSessionCmd(String sessionId) implements Command {}

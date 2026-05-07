@@ -1,15 +1,15 @@
 package com.example.steps;
 
-import org.junit.runner.RunWith;
-import io.cucumber.junit.Cucumber;
-import io.cucumber.junit.CucumberOptions;
+import org.junit.platform.suite.api.IncludeClassNamePatterns;
+import org.junit.platform.suite.api.SelectClasses;
+import org.junit.platform.suite.api.Suite;
 
-@RunWith(Cucumber.class)
-@CucumberOptions(
-    features = "features/S-FB-1.feature", 
-    glue = {"com.example.steps"},
-    plugin = {"pretty", "html:target/cucumber-reports/S-FB-1.html"}
-)
+/**
+ * Test Suite to run the Cucumber test for S-FB-1.
+ */
+@Suite
+@IncludeClassNamePatterns(".*Test")
+@SelectClasses(VW454Steps.class)
 public class VW454TestSuite {
-    // This class serves as the test runner for the Cucumber feature file.
+    // JUnit 5 Suite configuration
 }

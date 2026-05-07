@@ -1,34 +1,147 @@
-<!-- Just the diff for the dependency fix -->
-<!-- In the provided context, the error was about flyway-db2:jar:10.4.1 not being found. -->
-<!-- This usually happens because Flyway changed their artifact group/classifier structure for DB2 in newer versions or it requires a different repository. -->
-<!-- Fix: We remove the specific DB2 dependency if it's causing resolution failure or correct the artifact ID. -->
-<!-- For DB2, the artifact is typically flyway-database-db2 under the org.flywaydb group in modern versions, or specific legacy versions. -->
-<!-- Given '10.4.1' is requested, we will assume it might be a typo for a valid version or the artifact ID is wrong. -->
-<!-- However, the prompt says 'Do NOT introduce new files; edit only the files needed to make the build green.' -->
-<!-- Since pom.xml is the root build file, I am providing the fix for the dependency error. -->
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.3</version>
+        <relativePath/>
+    </parent>
 
-<!-- Original likely had: -->
-<!-- <dependency>
-    <groupId>org.flywaydb</groupId>
-    <artifactId>flyway-db2</artifactId>
-    <version>10.4.1</version>
-  </dependency> -->
+    <groupId>com.example</groupId>
+    <artifactId>bank-of-z</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>bank-of-z</name>
+    <description>Bank of Z - Legacy Modernization</description>
 
-<!-- The correct artifact for Flyway 10.x with DB2 is flyway-database-db2 and requires a version tag if not in BOM, but since Spring Boot BOM is used, we should check compatibility. -->
-<!-- But to fix the specific build error immediately: -->
+    <properties>
+        <java.version>17</java.version>
+        <flyway.version>10.4.1</flyway.version>
+    </properties>
 
-<project>
-  <!-- ... -->
-  <dependencies>
-    <!-- ... -->
-    <!-- Fixing the Flyway DB2 dependency error -->
-    <dependency>
-      <groupId>org.flywaydb</groupId>
-      <artifactId>flyway-database-db2</artifactId>
-      <!-- Spring Boot 3.x BOM manages Flyway core, but NOT the community database modules like flyway-database-db2.
-           According to Rule 9, we MUST declare the version explicitly if it's not in the closed set. -->
-      <version>10.4.1</version>
-    </dependency>
-  </dependencies>
-  <!-- ... -->
+    <dependencies>
+        <!-- Spring Boot Dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-activemq</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-batch</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-integration</artifactId>
+        </dependency>
+
+        <!-- Flyway for DB2 -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-db2</artifactId>
+            <version>${flyway.version}</version>
+        </dependency>
+
+        <!-- IBM MQ & DB2 Drivers -->
+        <dependency>
+            <groupId>com.ibm.db2</groupId>
+            <artifactId>jcc</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.ibm.mq</groupId>
+            <artifactId>com.ibm.mq.allclient</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Temporal & MinIO -->
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-spring-boot-starter</artifactId>
+            <version>1.22.3</version>
+        </dependency>
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>8.5.7</version>
+        </dependency>
+
+        <!-- OpenTelemetry -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+            <version>1.36.0</version>
+        </dependency>
+
+        <!-- Testing -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>7.15.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-spring</artifactId>
+            <version>7.15.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit</artifactId>
+            <version>7.15.0</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

@@ -1,10 +1,10 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.transaction.model.TransactionAggregate;
 import com.example.domain.transaction.model.PostWithdrawalCmd;
+import com.example.domain.transaction.model.TransactionAggregate;
 import com.example.domain.transaction.model.WithdrawalPostedEvent;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -17,80 +17,97 @@ import static org.junit.jupiter.api.Assertions.*;
 public class S11Steps {
 
     private TransactionAggregate aggregate;
-    private String aggregateId = "txn-123";
-    private String accountNumber = "acct-456";
-    private BigDecimal amount;
-    private String currency = "USD";
+    private PostWithdrawalCmd cmd;
     private List<DomainEvent> resultEvents;
-    private Throwable thrownException;
+    private Exception thrownException;
 
     @Given("a valid Transaction aggregate")
     public void a_valid_Transaction_aggregate() {
-        aggregate = new TransactionAggregate(aggregateId);
-    }
-
-    @Given("a valid accountNumber is provided")
-    public void a_valid_accountNumber_is_provided() {
-        // accountNumber defaults to "acct-456"
-    }
-
-    @Given("a valid amount is provided")
-    public void a_valid_amount_is_provided() {
-        this.amount = new BigDecimal("100.00");
-    }
-
-    @Given("a valid currency is provided")
-    public void a_valid_currency_is_provided() {
-        // currency defaults to "USD"
+        this.aggregate = new TransactionAggregate("tx-123");
+        this.aggregate.setCurrentAccountBalance(new BigDecimal("1000.00"));
     }
 
     @Given("a Transaction aggregate that violates: Transaction amounts must be greater than zero.")
-    public void a_Transaction_aggregate_that_violates_amounts_must_be_greater_than_zero() {
-        aggregate = new TransactionAggregate(aggregateId);
-        this.amount = new BigDecimal("-50.00");
+    public void a_Transaction_aggregate_that_violates_amount_gt_zero() {
+        this.aggregate = new TransactionAggregate("tx-invalid-amount");
+        this.aggregate.setCurrentAccountBalance(BigDecimal.ONE);
     }
 
-    @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted")
-    public void a_Transaction_aggregate_that_violates_once_posted() {
-        // Create and immediately 'post' a transaction to put it in a non-editable state
-        aggregate = new TransactionAggregate(aggregateId);
-        Command initialCmd = new PostWithdrawalCmd(aggregateId, accountNumber, new BigDecimal("10.00"), "USD");
-        aggregate.execute(initialCmd);
-        aggregate.markPosted(); // Mutates state to simulate posted status
+    @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.")
+    public void a_Transaction_aggregate_that_violates_immutability() {
+        this.aggregate = new TransactionAggregate("tx-already-posted");
+        this.aggregate.setCurrentAccountBalance(BigDecimal.ONE);
+        // Simulate aggregate state where posted is already true
+        this.aggregate.markPosted();
     }
 
-    @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance")
-    public void a_Transaction_aggregate_that_violates_valid_account_balance() {
-        aggregate = new TransactionAggregate(aggregateId);
-        // Using a massive amount that implies insufficient funds logic (enforced by aggregate validation)
-        this.amount = new BigDecimal("999999999.00");
+    @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance (enforced via aggregate validation).")
+    public void a_Transaction_aggregate_that_violates_balance_validation() {
+        this.aggregate = new TransactionAggregate("tx-insufficient-funds");
+        // Set balance to 0, withdrawal attempt will be > 0
+        this.aggregate.setCurrentAccountBalance(BigDecimal.ZERO);
+    }
+
+    @And("a valid accountNumber is provided")
+    public void a_valid_accountNumber_is_provided() {
+        // We defer command creation to the When block to control parameters
+    }
+
+    @And("a valid amount is provided")
+    public void a_valid_amount_is_provided() {
+    }
+
+    @And("a valid currency is provided")
+    public void a_valid_currency_is_provided() {
     }
 
     @When("the PostWithdrawalCmd command is executed")
     public void the_PostWithdrawalCmd_command_is_executed() {
-        Command cmd = new PostWithdrawalCmd(aggregateId, accountNumber, amount, currency);
+        // Default valid parameters unless overridden by specific scenario logic context
+        // Since Cucumber executes steps sequentially, we determine parameters here.
+        String acc = "ACC-001";
+        BigDecimal amt = new BigDecimal("50.00");
+        String curr = "USD";
+
+        // Adjust for specific invalid cases based on the context provided by the "Given" steps above
+        // Checking "already posted" scenario: Amount could be valid, but state is invalid
+        // Checking "amount <= 0" scenario: We need to pass invalid amount
+        if (aggregate.id().equals("tx-invalid-amount")) {
+            amt = BigDecimal.ZERO;
+        }
+        
+        // Checking "balance" scenario: Amount valid, but balance insufficient
+        if (aggregate.id().equals("tx-insufficient-funds")) {
+            amt = new BigDecimal("100.00"); // Balance is 0
+        }
+
+        this.cmd = new PostWithdrawalCmd(acc, amt, curr);
+
         try {
-            resultEvents = aggregate.execute(cmd);
+            this.resultEvents = aggregate.execute(cmd);
+            this.thrownException = null;
         } catch (Exception e) {
-            thrownException = e;
+            this.thrownException = e;
+            this.resultEvents = null;
         }
     }
 
     @Then("a withdrawal.posted event is emitted")
     public void a_withdrawal_posted_event_is_emitted() {
         assertNotNull(resultEvents);
-        assertFalse(resultEvents.isEmpty());
+        assertEquals(1, resultEvents.size());
         assertTrue(resultEvents.get(0) instanceof WithdrawalPostedEvent);
-        
         WithdrawalPostedEvent event = (WithdrawalPostedEvent) resultEvents.get(0);
         assertEquals("withdrawal.posted", event.type());
-        assertEquals(aggregateId, event.aggregateId());
+        assertEquals("ACC-001", event.accountNumber());
+        assertEquals(new BigDecimal("50.00"), event.amount());
+        assertEquals("USD", event.currency());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
         assertNotNull(thrownException);
-        // Verify it's a domain exception (IllegalArgumentException or IllegalStateException)
-        assertTrue(thrownException instanceof IllegalArgumentException || thrownException instanceof IllegalStateException);
+        // The domain rules throw either IllegalStateException or IllegalArgumentException
+        assertTrue(thrownException instanceof IllegalStateException || thrownException instanceof IllegalArgumentException);
     }
 }

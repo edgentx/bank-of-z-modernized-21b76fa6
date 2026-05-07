@@ -2,117 +2,99 @@ package com.example.steps;
 
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.tellersession.model.SessionStartedEvent;
-import com.example.domain.tellersession.model.StartSessionCmd;
-import com.example.domain.tellersession.model.TellerSessionAggregate;
+import com.example.domain.teller.model.SessionStartedEvent;
+import com.example.domain.teller.model.StartSessionCmd;
+import com.example.domain.teller.model.TellerSessionAggregate;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class S18Steps {
 
-    // This is a lightweight state holder specific to the test execution context,
-    // effectively acting as a transient repository.
-    private static class TestContext {
-        TellerSessionAggregate aggregate;
-        StartSessionCmd command;
-        List<DomainEvent> resultEvents;
-        Exception caughtException;
-    }
+    private TellerSessionAggregate aggregate;
+    private List<DomainEvent> resultEvents;
+    private Exception thrownException;
 
-    private final TestContext ctx = new TestContext();
+    private static final String SESSION_ID = "sess-123";
+    private static final String TELLER_ID = "teller-01";
+    private static final String TERMINAL_ID = "term-42";
 
     @Given("a valid TellerSession aggregate")
-    public void aValidTellerSessionAggregate() {
-        String sessionId = "session-123";
-        ctx.aggregate = new TellerSessionAggregate(sessionId);
-        // Default valid state: authenticated, ready to start
-        ctx.aggregate.markAsAuthenticated();
-        ctx.aggregate.setCurrentNavigationState("IDLE");
+    public void a_valid_teller_session_aggregate() {
+        aggregate = new TellerSessionAggregate(SESSION_ID);
+        // Ensure preconditions for success are met: Authenticated and IDLE
+        aggregate.markAuthenticated();
     }
 
-    @Given("a valid tellerId is provided")
-    public void aValidTellerIdIsProvided() {
-        // We construct the command in the 'When' step, but we can note the intent here
-        // or verify that the command we build will use a valid ID.
+    @And("a valid tellerId is provided")
+    public void a_valid_teller_id_is_provided() {
+        // Handled in the command construction in the 'When' step
     }
 
-    @Given("a valid terminalId is provided")
-    public void aValidTerminalIdIsProvided() {
-        // Same as above
+    @And("a valid terminalId is provided")
+    public void a_valid_terminal_id_is_provided() {
+        // Handled in the command construction in the 'When' step
     }
 
     @When("the StartSessionCmd command is executed")
-    public void theStartSessionCmdCommandIsExecuted() {
-        String sessionId = "session-123";
-        String tellerId = "teller-01";
-        String terminalId = "term-A";
-
-        // If the specific 'Given' steps haven't defined the command, we default to a valid one.
-        // In Cucumber, we often set up state in 'Given' that 'When' consumes.
-        ctx.command = new StartSessionCmd(sessionId, tellerId, terminalId);
-
+    public void the_start_session_cmd_command_is_executed() {
+        Command cmd = new StartSessionCmd(SESSION_ID, TELLER_ID, TERMINAL_ID);
         try {
-            ctx.resultEvents = ctx.aggregate.execute(ctx.command);
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            ctx.caughtException = e;
+            thrownException = e;
         }
     }
 
     @Then("a session.started event is emitted")
-    public void aSessionStartedEventIsEmitted() {
-        assertNull(ctx.caughtException, "Should not have thrown an exception");
-        assertNotNull(ctx.resultEvents, "Result events list should not be null");
-        assertEquals(1, ctx.resultEvents.size(), "Should emit exactly one event");
-
-        DomainEvent event = ctx.resultEvents.get(0);
+    public void a_session_started_event_is_emitted() {
+        assertNotNull(resultEvents, "Events should not be null");
+        assertEquals(1, resultEvents.size(), "Exactly one event should be emitted");
+        
+        DomainEvent event = resultEvents.get(0);
         assertTrue(event instanceof SessionStartedEvent, "Event should be SessionStartedEvent");
-
-        SessionStartedEvent started = (SessionStartedEvent) event;
-        assertEquals("session.started", started.type());
-        assertEquals("session-123", started.aggregateId());
+        
+        SessionStartedEvent sse = (SessionStartedEvent) event;
+        assertEquals(SESSION_ID, sse.aggregateId());
+        assertEquals("session.started", sse.type());
     }
 
-    // --- Negative Scenarios ---
+    // ---------------------------
+    // Rejection Scenarios
+    // ---------------------------
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void aTellerSessionAggregateThatViolatesAuth() {
-        ctx.aggregate = new TellerSessionAggregate("session-unauth");
-        // Intentionally NOT calling markAsAuthenticated()
-        // Defaults to false, so this violates the invariant.
+    public void a_teller_session_aggregate_that_violates_authentication() {
+        aggregate = new TellerSessionAggregate(SESSION_ID);
+        // Intentionally NOT calling markAuthenticated(). 
+        // Default authenticated is false.
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void aTellerSessionAggregateThatViolatesTimeout() {
-        ctx.aggregate = new TellerSessionAggregate("session-timeout");
-        ctx.aggregate.markAsAuthenticated();
-        ctx.aggregate.setCurrentNavigationState("IDLE");
-
-        // Set last activity to 20 minutes ago to violate the 15 minute timeout
-        ctx.aggregate.setLastActivityAt(Instant.now().minus(Duration.ofMinutes(20)));
+    public void a_teller_session_aggregate_that_violates_timeout() {
+        aggregate = new TellerSessionAggregate(SESSION_ID);
+        aggregate.markAuthenticated(); // Must be authenticated to pass first check
+        aggregate.forceInactive(); // Force timeout
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void aTellerSessionAggregateThatViolatesNavigationState() {
-        ctx.aggregate = new TellerSessionAggregate("session-nav-error");
-        ctx.aggregate.markAsAuthenticated();
-        // Set state to something incompatible with starting a new session (e.g. deep in a workflow)
-        ctx.aggregate.setCurrentNavigationState("CUSTOMER_SEARCH_IN_PROGRESS");
+    public void a_teller_session_aggregate_that_violates_navigation_state() {
+        aggregate = new TellerSessionAggregate(SESSION_ID);
+        aggregate.markAuthenticated(); // Must be authenticated
+        aggregate.corruptNavState(); // Force invalid state
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(ctx.caughtException, "An exception should have been thrown");
-        assertTrue(ctx.caughtException instanceof IllegalStateException, "Exception should be IllegalStateException (Domain Error)");
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(thrownException, "Expected an exception to be thrown");
+        assertTrue(thrownException instanceof IllegalStateException, "Expected IllegalStateException");
         
-        // Verify the error message matches the invariant logic if desired, or just type checking.
-        System.out.println("Caught expected domain error: " + ctx.caughtException.getMessage());
+        // Verify the message contains the specific invariant violation (optional but good for robustness)
+        assertTrue(!thrownException.getMessage().isBlank());
     }
-
 }

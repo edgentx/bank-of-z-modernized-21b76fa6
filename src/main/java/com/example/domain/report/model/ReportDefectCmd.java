@@ -3,12 +3,7 @@ package com.example.domain.report.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to report a defect (e.g., from PM diagnostic tools).
- * This triggers a workflow that creates a GitHub issue and notifies Slack.
+ * Command to initiate the defect reporting workflow.
+ * Part of the Report Aggregate context.
  */
-public record ReportDefectCmd(
-    String defectId,
-    String title,
-    String description,
-    String severity
-) implements Command {}
+public record ReportDefectCmd(String issueId, String description) implements Command {}

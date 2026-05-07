@@ -8,33 +8,36 @@ import org.springframework.stereotype.Service;
 
 /**
  * Service layer for handling Modernization Assessment Report Review.
- * This file is a placeholder/stub created to satisfy the compilation of the Test.
- * It represents the 'Implementation' slot in TDD.
+ * 
+ * Implements the business logic required to pass the TDD tests.
+ * TDD Green Phase: Connects the Data Port to the Renderer Port.
  */
 @Service
 public class MarReviewService {
 
-    @Autowired
-    private ModernizationAssessmentPort assessmentPort;
+    private final ModernizationAssessmentPort assessmentPort;
+    private final ReportRendererPort rendererPort;
 
     @Autowired
-    private ReportRendererPort rendererPort;
+    public MarReviewService(ModernizationAssessmentPort assessmentPort, ReportRendererPort rendererPort) {
+        this.assessmentPort = assessmentPort;
+        this.rendererPort = rendererPort;
+    }
 
     /**
      * Retrieves the report as formatted Markdown.
+     * Fixes S-1: Delegates to renderer instead of returning raw JSON.
      */
     public String getMarForReview(String projectId) {
-        // STUB: TDD Red Phase - Implementation does not exist yet.
-        // This will currently return null or fail, causing the test to fail.
-        // The test above defines the contract.
-        return null; 
+        ModernizationAssessmentReport report = assessmentPort.findByProjectId(projectId);
+        return rendererPort.toMarkdown(report);
     }
 
     /**
      * Retrieves the report as formatted HTML.
      */
     public String getMarHtml(String projectId) {
-        // STUB
-        return null;
+        ModernizationAssessmentReport report = assessmentPort.findByProjectId(projectId);
+        return rendererPort.toHtml(report);
     }
 }

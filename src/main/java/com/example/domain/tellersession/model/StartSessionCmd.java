@@ -2,12 +2,13 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
 
-import java.time.Instant;
-
+/**
+ * Command to initiate a Teller Session.
+ * Context: S-18 - user-interface-navigation
+ */
 public record StartSessionCmd(
     String sessionId,
     String tellerId,
     String terminalId,
-    String expectedNavigationState,
-    Instant sessionTimeoutAt
+    boolean isAuthenticated
 ) implements Command {}

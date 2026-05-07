@@ -4,12 +4,9 @@ import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
-/**
- * Test Suite for S-18 (TellerSession).
- * Runs the Cucumber scenarios defined in features/S-18.feature.
- */
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features/S-18.feature")
+@SelectClasspathResource("features")
 public class S18TestSuite {
+    // JUnit 5 Suite to run Cucumber features
 }

@@ -7,35 +7,25 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record TransferInitiatedEvent(
-    String aggregateId,
-    String fromAccountId,
-    String toAccountId,
-    BigDecimal amount,
-    String currency,
-    Instant occurredAt
+        String eventId,
+        String aggregateId,
+        String fromAccountId,
+        String toAccountId,
+        BigDecimal amount,
+        String currency,
+        Instant occurredAt
 ) implements DomainEvent {
-
     public TransferInitiatedEvent {
-        if (aggregateId == null || aggregateId.isBlank()) {
-            throw new IllegalArgumentException("aggregateId cannot be null or blank");
-        }
-        if (occurredAt == null) {
-            occurredAt = Instant.now();
-        }
+        Objects.requireNonNull(eventId);
+        Objects.requireNonNull(aggregateId);
+    }
+
+    public TransferInitiatedEvent(String aggregateId, String fromAccountId, String toAccountId, BigDecimal amount, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, fromAccountId, toAccountId, amount, "USD", occurredAt);
     }
 
     @Override
     public String type() {
         return "transfer.initiated";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

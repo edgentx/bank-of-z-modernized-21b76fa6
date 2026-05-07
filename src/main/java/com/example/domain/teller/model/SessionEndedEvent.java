@@ -6,29 +6,24 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event emitted when a teller session is terminated.
+ * Event emitted when a TellerSession is successfully terminated.
  */
-public class SessionEndedEvent implements DomainEvent {
-    private final String aggregateId;
-    private final Instant occurredAt;
+public record SessionEndedEvent(
+        String aggregateId,
+        Instant occurredAt
+) implements DomainEvent {
 
-    public SessionEndedEvent(String aggregateId, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.occurredAt = occurredAt;
+    public SessionEndedEvent {
+        if (aggregateId == null || aggregateId.isBlank()) {
+            throw new IllegalArgumentException("aggregateId cannot be null");
+        }
+        if (occurredAt == null) {
+            throw new IllegalArgumentException("occurredAt cannot be null");
+        }
     }
 
     @Override
     public String type() {
         return "session.ended";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

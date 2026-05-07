@@ -6,19 +6,14 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record SessionStartedEvent(
-    String eventId,
     String aggregateId,
     String tellerId,
     String terminalId,
     Instant occurredAt
 ) implements DomainEvent {
     public SessionStartedEvent {
-        if (eventId == null) eventId = UUID.randomUUID().toString();
-        if (occurredAt == null) occurredAt = Instant.now();
-    }
-
-    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId) {
-        this(UUID.randomUUID().toString(), aggregateId, tellerId, terminalId, Instant.now());
+        // Ensure aggregateId is never null, though in a real constructor it might be defaulted.
+        // Here we assume the caller provides it.
     }
 
     @Override

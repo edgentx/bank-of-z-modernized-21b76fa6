@@ -3,12 +3,11 @@ package com.example.domain.validation.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to report a defect, triggered by Temporal workflow.
- * Contains the context needed to generate a GitHub issue link.
+ * Command to report a defect.
+ * Used to trigger the defect reporting workflow which includes Slack notifications.
  */
 public record ReportDefectCommand(
     String defectId,
-    String projectId,
     String severity,
-    String title
+    String githubUrl
 ) implements Command {}

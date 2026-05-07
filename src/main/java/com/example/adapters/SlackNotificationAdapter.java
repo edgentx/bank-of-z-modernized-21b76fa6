@@ -1,26 +1,52 @@
 package com.example.adapters;
 
 import com.example.ports.SlackNotificationPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import java.io.IOException;
+import java.util.Map;
 
-/**
- * Real implementation of the Slack Notification Port.
- * In a production environment, this would make an HTTP call to the Slack Web API.
- * For the scope of S-FB-1 (Logic Fix), this acts as the stub placeholder,
- * logging the output to verify the build pipeline.
- */
 @Component
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
-    private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
+    private final OkHttpClient client;
+    private final ObjectMapper objectMapper;
+    private final String webhookUrl;
+
+    private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+
+    public SlackNotificationAdapter(OkHttpClient client,
+                                    ObjectMapper objectMapper,
+                                    @Value("${slack.webhook.url}") String webhookUrl) {
+        this.client = client;
+        this.objectMapper = objectMapper;
+        this.webhookUrl = webhookUrl;
+    }
 
     @Override
-    public boolean postMessage(String body) {
-        // Production Note: Replace this with WebClient/RestTemplate call to Slack API.
-        // Example: webClient.post().uri(SLACK_WEBHOOK_URL).bodyValue(body).retrieve();
-        log.info("[Slack Adapter] Posting message: {}", body);
-        return true;
+    public void sendNotification(String messageBody) {
+        try {
+            Map<String, String> payload = Map.of("text", messageBody);
+            String jsonBody = objectMapper.writeValueAsString(payload);
+
+            Request request = new Request.Builder()
+                .url(webhookUrl)
+                .post(RequestBody.create(jsonBody, JSON))
+                .build();
+
+            try (Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    throw new RuntimeException("Failed to send Slack notification: " + response.code());
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error communicating with Slack API", e);
+        }
     }
 }

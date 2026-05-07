@@ -6,28 +6,27 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record ReconciliationStartedEvent(
-        String event_id,
         String aggregateId,
-        Instant batchWindowStart,
-        Instant batchWindowEnd,
+        String eventId,
+        String batchWindow,
         Instant occurredAt
 ) implements DomainEvent {
-    public ReconciliationStartedEvent(String aggregateId, Instant start, Instant end, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), aggregateId, start, end, occurredAt);
+    public ReconciliationStartedEvent(String aggregateId, String batchWindow, Instant occurredAt) {
+        this(
+                aggregateId,
+                UUID.randomUUID().toString(),
+                batchWindow,
+                occurredAt
+        );
     }
 
     @Override
     public String type() {
-        return "reconciliation.started";
+        return "ReconciliationStarted";
     }
 
     @Override
     public String aggregateId() {
         return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

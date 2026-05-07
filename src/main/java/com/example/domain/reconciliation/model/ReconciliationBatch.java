@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * ReconciliationBatch Aggregate
- * Handles the logic for forcing a batch to a balanced state and starting a new reconciliation.
+ * Handles the logic for forcing a batch to a balanced state and starting reconciliation.
  */
 public class ReconciliationBatch extends AggregateRoot {
     private final String batchId;
@@ -19,7 +19,7 @@ public class ReconciliationBatch extends AggregateRoot {
     private boolean areAllEntriesAccounted = true;
 
     public enum Status {
-        OPEN, BALANCED, CLOSED
+        OPEN, BALANCED, CLOSED, IN_PROGRESS
     }
 
     public ReconciliationBatch(String batchId) {
@@ -53,25 +53,20 @@ public class ReconciliationBatch extends AggregateRoot {
             throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
         }
 
-        // Validate Command fields
-        if (cmd.startWindow() == null || cmd.startWindow().isBlank()) {
-            throw new IllegalArgumentException("Start window is required.");
-        }
-
-        if (cmd.endWindow() == null || cmd.endWindow().isBlank()) {
-            throw new IllegalArgumentException("End window is required.");
+        // Invariant: Batch must be in OPEN state to start
+        if (status != Status.OPEN) {
+            throw new IllegalStateException("Cannot start reconciliation on a batch that is not OPEN.");
         }
 
         var event = new ReconciliationStartedEvent(
                 this.batchId,
-                cmd.startWindow(),
-                cmd.endWindow(),
+                cmd.windowStart(),
+                cmd.windowEnd(),
                 Instant.now()
         );
 
         // Apply state changes
-        // Assuming status remains OPEN or moves to a processing state, requirements don't specify status change other than invariants.
-        // We will leave status OPEN unless logic implies otherwise.
+        this.status = Status.IN_PROGRESS;
         addEvent(event);
         incrementVersion();
 

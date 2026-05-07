@@ -2,7 +2,7 @@ package com.example.steps;
 
 import com.example.domain.PostWithdrawalCmd;
 import com.example.domain.Transaction;
-import com.example.domain.TransactionRepository;
+import com.example.domain.WithdrawalPosted;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -10,99 +10,98 @@ import io.cucumber.java.en.When;
 import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
-import java.util.UUID;
+import java.util.Currency;
 
 public class S11Steps {
 
     private Transaction transaction;
-    private final TransactionRepository repository = new InMemoryTransactionRepository();
-    private Exception capturedException;
-    private Object lastEvent;
+    private String accountNumber;
+    private BigDecimal amount;
+    private Currency currency;
+    private Exception caughtException;
+    private Object resultingEvent;
 
-    // --- Given ---
-
+    // Setup for Happy Path
     @Given("a valid Transaction aggregate")
     public void aValidTransactionAggregate() {
-        transaction = new Transaction(UUID.randomUUID());
+        // Initialize with 1000.00 USD balance to allow valid withdrawals
+        this.transaction = new Transaction();
+        transaction.setCurrentBalance(new BigDecimal("1000.00"));
     }
 
-    @Given("a valid accountNumber is provided")
+    @And("a valid accountNumber is provided")
     public void aValidAccountNumberIsProvided() {
-        // Context setup - assuming state is held in the transaction or context
+        this.accountNumber = "ACC-123-456";
     }
 
-    @Given("a valid amount is provided")
+    @And("a valid amount is provided")
     public void aValidAmountIsProvided() {
-        // Context setup
+        this.amount = new BigDecimal("50.00");
     }
 
-    @Given("a valid currency is provided")
+    @And("a valid currency is provided")
     public void aValidCurrencyIsProvided() {
-        // Context setup
+        this.currency = Currency.getInstance("USD");
     }
 
-    // --- Violation States ---
-
+    // Setup for Negative Amount Constraint
     @Given("a Transaction aggregate that violates: Transaction amounts must be greater than zero.")
-    public void aTransactionAggregateThatViolatesAmountsGreaterThanZero() {
-        transaction = new Transaction(UUID.randomUUID());
-        // Simulate a state where the amount logic is handled, but command is invalid.
-        // The command will carry the invalid amount.
+    public void aTransactionAggregateThatViolatesAmountsMustBeGreaterThanZero() {
+        this.transaction = new Transaction();
+        transaction.setCurrentBalance(new BigDecimal("1000.00"));
+        // We will trigger the violation by passing a negative amount in the next step
+        // Setting the state variable to negative to indicate this scenario path
+        this.amount = new BigDecimal("-100.00"); 
+        this.accountNumber = "ACC-123";
+        this.currency = Currency.getInstance("USD");
     }
 
+    // Setup for Immutability Constraint (Already Posted)
     @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.")
-    public void aTransactionAggregateThatViolatesAlterationPolicy() {
-        transaction = new Transaction(UUID.randomUUID());
-        // Mark transaction as posted internally for the sake of the test scenario
+    public void aTransactionAggregateThatViolatesImmutability() {
+        this.transaction = new Transaction();
+        // Force the aggregate into a 'posted' state
         transaction.markAsPosted();
+        this.accountNumber = "ACC-123";
+        this.amount = new BigDecimal("10.00");
+        this.currency = Currency.getInstance("USD");
     }
 
+    // Setup for Valid Balance Constraint (Insufficient Funds)
     @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance (enforced via aggregate validation).")
-    public void aTransactionAggregateThatViolatesAccountBalanceValidation() {
-        transaction = new Transaction(UUID.randomUUID());
-        // Set a current balance that would make a withdrawal invalid
-        transaction.setCurrentBalance(BigDecimal.ZERO); // Empty account
+    public void aTransactionAggregateThatViolatesValidAccountBalance() {
+        this.transaction = new Transaction();
+        // Set balance to 0, any withdrawal will cause invalid balance
+        transaction.setCurrentBalance(BigDecimal.ZERO);
+        this.accountNumber = "ACC-123";
+        this.amount = new BigDecimal("10.00");
+        this.currency = Currency.getInstance("USD");
     }
-
-    // --- When ---
 
     @When("the PostWithdrawalCmd command is executed")
     public void thePostWithdrawalCmdCommandIsExecuted() {
         try {
-            // Defaults for a valid command, can be overridden if needed by context
-            String acct = "123456";
-            BigDecimal amt = BigDecimal.TEN; // Default valid amount
-            String curr = "USD";
-
-            // If context implies a specific violation, we adjust params or state.
-            // S11Steps logic is simple: we try to execute.
-            
-            PostWithdrawalCmd cmd = new PostWithdrawalCmd(acct, amt, curr);
-            lastEvent = transaction.execute(cmd);
+            PostWithdrawalCmd cmd = new PostWithdrawalCmd(accountNumber, amount, currency);
+            this.resultingEvent = transaction.execute(cmd);
         } catch (IllegalArgumentException | IllegalStateException e) {
-            capturedException = e;
+            this.caughtException = e;
         }
     }
 
-    // --- Then ---
-
     @Then("a withdrawal.posted event is emitted")
     public void aWithdrawalPostedEventIsEmitted() {
-        Assertions.assertNotNull(lastEvent);
-        Assertions.assertTrue(lastEvent.getClass().getSimpleName().contains("Event"));
+        Assertions.assertNotNull(resultingEvent);
+        Assertions.assertTrue(resultingEvent instanceof WithdrawalPosted);
+        WithdrawalPosted event = (WithdrawalPosted) resultingEvent;
+        Assertions.assertEquals(accountNumber, event.getAccountNumber());
+        Assertions.assertEquals(amount, event.getAmount());
+        Assertions.assertEquals(currency, event.getCurrency());
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(capturedException);
-    }
-
-    // --- Infrastructure Stubs ---
-
-    private static class InMemoryTransactionRepository implements TransactionRepository {
-        @Override
-        public void save(Transaction aggregate) {
-            // No-op for in-memory validation
-        }
+        Assertions.assertNotNull(caughtException);
+        // Verify it's a RuntimeException (Domain Logic Violation)
+        Assertions.assertTrue(caughtException instanceof RuntimeException);
     }
 }

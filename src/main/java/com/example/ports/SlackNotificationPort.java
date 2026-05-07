@@ -1,16 +1,18 @@
 package com.example.ports;
 
+import java.util.Map;
+
 /**
- * Port for sending notifications to Slack.
- * Used by defect reporting workflows to broadcast results.
+ * Port interface for sending Slack notifications.
+ * Implementations must handle the specific formatting of the message body,
+ * ensuring that external URLs (like GitHub) are correctly formatted.
  */
 public interface SlackNotificationPort {
-
     /**
-     * Sends a message to a configured Slack channel.
+     * Sends a notification to the configured Slack channel.
      *
-     * @param channel The target channel (e.g. "#vforce360-issues")
-     * @param body The message body text
+     * @param messagePayload A map containing the message details.
+     *                       Expected keys: "text", "defectId", "githubUrl"
      */
-    void sendMessage(String channel, String body);
+    void sendNotification(Map<String, String> messagePayload);
 }

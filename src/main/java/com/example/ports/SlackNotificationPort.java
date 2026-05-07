@@ -1,15 +1,16 @@
 package com.example.ports;
 
 /**
- * Port for sending notifications to Slack.
- * Used by the Temporal workflow worker to report defects.
+ * Port interface for sending notifications to Slack.
+ * Used by the Temporal workflow implementation.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends a message to a configured Slack channel.
+     * Sends a notification payload to the configured Slack channel.
      *
-     * @param messageBody The formatted body of the message (supports Slack markdown).
+     * @param payload The formatted message to be sent.
+     * @return true if the API call accepted the request, false otherwise.
      */
-    void sendMessage(String messageBody);
+    boolean send(String payload);
 }

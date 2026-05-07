@@ -4,15 +4,19 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
+/**
+ * Event emitted when a reconciliation batch has started processing.
+ */
 public record ReconciliationStartedEvent(
         String aggregateId,
-        Instant batchWindowStart,
-        Instant batchWindowEnd,
+        Instant windowStart,
+        Instant windowEnd,
         Instant occurredAt
 ) implements DomainEvent {
+
     @Override
     public String type() {
-        return "reconciliation.started";
+        return "ReconciliationStarted";
     }
 
     @Override

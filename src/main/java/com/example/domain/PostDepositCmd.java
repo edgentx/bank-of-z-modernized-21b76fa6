@@ -3,20 +3,32 @@ package com.example.domain;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-/**
- * Command to credit funds to a specific account.
- * Part of S-10: Implement PostDepositCmd.
- */
-public record PostDepositCmd(UUID transactionId, String accountNumber, BigDecimal amount, String currency) {
-    public PostDepositCmd {
-        if (accountNumber == null || accountNumber.isBlank()) {
-            throw new IllegalArgumentException("Account number cannot be null or blank");
-        }
-        if (amount == null) {
-            throw new IllegalArgumentException("Amount cannot be null");
-        }
-        if (currency == null || currency.isBlank()) {
-            throw new IllegalArgumentException("Currency cannot be null or blank");
-        }
+public class PostDepositCmd {
+    private final UUID transactionId;
+    private final BigDecimal amount;
+    private final String currency;
+    private final String accountNumber;
+
+    public PostDepositCmd(UUID transactionId, BigDecimal amount, String currency, String accountNumber) {
+        this.transactionId = transactionId;
+        this.amount = amount;
+        this.currency = currency;
+        this.accountNumber = accountNumber;
+    }
+
+    public UUID getTransactionId() {
+        return transactionId;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public String getAccountNumber() {
+        return accountNumber;
     }
 }

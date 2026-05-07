@@ -14,4 +14,14 @@ public record SessionStartedEvent(
     public String type() {
         return "session.started";
     }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
 }

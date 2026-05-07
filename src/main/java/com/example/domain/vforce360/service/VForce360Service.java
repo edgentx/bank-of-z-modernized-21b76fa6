@@ -1,38 +1,49 @@
 package com.example.domain.vforce360.service;
 
-import com.example.domain.shared.DomainEvent;
+import com.example.adapters.GithubIssueAdapter;
+import com.example.domain.shared.Command;
+import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.vforce360.model.DefectReportedEvent;
 import com.example.domain.vforce360.model.ReportDefectCmd;
 import com.example.domain.vforce360.model.VForce360Aggregate;
-import com.example.ports.VForce360NotificationPort;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
- * Application Service for VForce360.
- * Orchestrates the execution of commands by the Aggregate and ensures
- * events are published to the notification infrastructure.
+ * Service handling VForce360 domain logic.
+ * S-FB-1: Orchestrates defect reporting to GitHub/Slack.
  */
 @Service
 public class VForce360Service {
 
-    private final VForce360NotificationPort notificationPort;
+    private final GithubIssueAdapter githubAdapter;
 
-    public VForce360Service(VForce360NotificationPort notificationPort) {
-        this.notificationPort = notificationPort;
+    public VForce360Service(GithubIssueAdapter githubAdapter) {
+        this.githubAdapter = githubAdapter;
     }
 
     /**
-     * Handles the ReportDefectCmd.
-     * 1. Instantiates Aggregate.
-     * 2. Executes Command.
-     * 3. Publishes resulting events to Slack/Temporal.
+     * Handles the ReportDefect command, executes aggregate logic,
+     * and triggers the external integration (GitHub).
      */
-    public void reportDefect(ReportDefectCmd cmd) {
-        VForce360Aggregate aggregate = new VForce360Aggregate();
+    public String handleReportDefect(ReportDefectCmd cmd) {
+        VForce360Aggregate aggregate = new VForce360Aggregate(cmd.defectId());
         
-        // Execute business logic
-        for (DomainEvent event : aggregate.execute(cmd)) {
-            // Publish event (E2E Link verification happens here)
-            notificationPort.publishDefect(event);
+        // Execute domain logic
+        List<DefectReportedEvent> events = aggregate.execute(cmd);
+        
+        if (!events.isEmpty()) {
+            DefectReportedEvent event = events.get(0);
+            
+            // Call adapter to create the issue and get the URL
+            String url = githubAdapter.createIssue(event);
+            
+            // In a full CQRS implementation, we would persist events here.
+            // For S-FB-1, we return the URL for validation/Slack notification.
+            return url;
         }
+        
+        throw new RuntimeException("Failed to report defect");
     }
 }

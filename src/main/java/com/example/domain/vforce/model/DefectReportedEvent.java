@@ -5,35 +5,52 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event emitted when a defect is reported to the VForce360 system.
- * Contains the GitHub issue URL for traceability.
+ * Event emitted when a defect is reported.
+ * This file is a STUB implementation designed to FAIL the tests above (Red Phase).
  */
-public record DefectReportedEvent(
-    String aggregateId,
-    String type,
-    String description,
-    String githubIssueUrl,
-    Instant occurredAt
-) implements DomainEvent {
-    public DefectReportedEvent {
-        if (aggregateId == null || aggregateId.isBlank()) throw new IllegalArgumentException("aggregateId required");
-        if (type == null || type.isBlank()) throw new IllegalArgumentException("type required");
-        if (occurredAt == null) throw new IllegalArgumentException("occurredAt required");
-        // githubIssueUrl can be null if GitHub creation failed, but the event still must be emitted.
+public class DefectReportedEvent implements DomainEvent {
+
+    private final String aggregateId;
+    private final String title;
+    private final String description;
+    private final String severity;
+    private final String type;
+    private final Instant occurredAt;
+
+    public DefectReportedEvent(String aggregateId, String title, String description, String severity, String type, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.title = title;
+        this.description = description;
+        this.severity = severity;
+        this.type = type;
+        this.occurredAt = occurredAt;
     }
 
-    // Factory to simplify creation in aggregates
-    public static DefectReportedEvent create(String description, String githubUrl) {
-        return new DefectReportedEvent(
-            UUID.randomUUID().toString(),
-            "DefectReported",
-            description,
-            githubUrl,
-            Instant.now()
-        );
+    @Override
+    public String type() {
+        return "DefectReportedEvent";
     }
 
-    @Override public String type() { return type; }
-    @Override public String aggregateId() { return aggregateId; }
-    @Override public Instant occurredAt() { return occurredAt; }
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
+
+    public String getTitle() { return title; }
+    public String getDescription() { return description; }
+    public String getSeverity() { return severity; }
+    public String getType() { return type; }
+
+    /**
+     * CRITICAL METHOD FOR VW-454.
+     * This stub returns null, causing the validation test to fail.
+     */
+    public String getGitHubUrl() {
+        return null; // Red Phase: Intentional failure
+    }
 }

@@ -2,18 +2,13 @@ package com.vforce360.mar;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.ComponentScan;
 
-/**
- * Main Application Entry Point.
- * This file acts as the anchor for the Spring Boot context.
- */
 @SpringBootApplication
+@ComponentScan(basePackages = {"com.vforce360.mar", "com.vforce360.mar.ports", "com.vforce360.mar.adapters"})
 public class Application {
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
-
-    // NOTE: Implementation classes (Controller, Service, Ports) 
-    // must be added to this package or sub-packages to be picked up by component scan.
 }

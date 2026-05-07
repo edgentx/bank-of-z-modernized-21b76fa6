@@ -1,53 +1,45 @@
 package com.example.application;
 
-import com.example.domain.vforce360.model.ReportDefectCmd;
-import com.example.domain.vforce360.model.VForce360Aggregate;
-import com.example.ports.GitHubPort;
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.ReportDefectCmd;
 import com.example.ports.SlackNotificationPort;
-import com.example.ports.VForce360Repository;
 import org.springframework.stereotype.Service;
-import java.util.Map;
 
+/**
+ * Application Service responsible for orchestrating the defect reporting use case.
+ * It handles the execution of the command via the Aggregate and uses the
+ * SlackNotificationPort to dispatch the resulting message.
+ */
 @Service
 public class DefectReportingService {
 
-    private final VForce360Repository repository;
-    private final GitHubPort gitHubPort;
     private final SlackNotificationPort slackNotificationPort;
 
-    public DefectReportingService(VForce360Repository repository,
-                                  GitHubPort gitHubPort,
-                                  SlackNotificationPort slackNotificationPort) {
-        this.repository = repository;
-        this.gitHubPort = gitHubPort;
+    public DefectReportingService(SlackNotificationPort slackNotificationPort) {
         this.slackNotificationPort = slackNotificationPort;
     }
 
+    /**
+     * Handles the ReportDefectCommand.
+     * 1. Instantiates the Aggregate.
+     * 2. Executes the command.
+     * 3. Uses the resulting event payload to notify via Slack.
+     *
+     * @param cmd The command containing defect details.
+     */
     public void reportDefect(ReportDefectCmd cmd) {
-        // Create Aggregate
-        // Using a simple UUID generation for ID as ReportDefectCmd doesn't inherently have one
-        String defectId = java.util.UUID.randomUUID().toString();
-        VForce360Aggregate aggregate = new VForce360Aggregate(defectId);
+        var aggregate = new DefectAggregate(cmd.defectId());
 
-        // Execute Command
-        aggregate.execute(cmd);
+        // Execute command logic (validation and event creation)
+        var events = aggregate.execute(cmd);
 
-        // Call GitHub Adapter
-        String issueUrl = gitHubPort.createIssue(cmd.title(), cmd.body(), Map.of(
-            "project", cmd.project(),
-            "severity", cmd.severity()
-        ));
-
-        // Call Slack Adapter with URL in body
-        // This satisfies VW-454: URL must be in the Slack body
-        String slackMessage = String.format(
-            "Defect Reported: %s\nGitHub Issue URL: %s",
-            cmd.title(),
-            issueUrl
-        );
-        slackNotificationPort.sendNotification(slackMessage);
-
-        // Save Aggregate
-        repository.save(aggregate);
+        // Process events (In a CQRS system, we might persist events here, but for
+        // this S-FB-1 fix, we primarily care that the notification is sent).
+        events.forEach(event -> {
+            if (event instanceof com.example.domain.defect.model.DefectReportedEvent reportedEvent) {
+                // Trigger the side-effect (Slack notification)
+                slackNotificationPort.send(reportedEvent.notificationBody());
+            }
+        });
     }
 }

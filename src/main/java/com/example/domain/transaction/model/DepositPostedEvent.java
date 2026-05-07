@@ -6,13 +6,23 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-public record DepositPostedEvent(
-    String aggregateId,
-    String accountNumber,
-    BigDecimal amount,
-    String currency,
-    Instant occurredAt
-) implements DomainEvent {
+public class DepositPostedEvent implements DomainEvent {
+    private final String eventId;
+    private final String aggregateId;
+    private final String accountNumber;
+    private final BigDecimal amount;
+    private final String currency;
+    private final Instant occurredAt;
+
+    public DepositPostedEvent(String transactionId, String accountNumber, BigDecimal amount, String currency, Instant occurredAt) {
+        this.eventId = UUID.randomUUID().toString();
+        this.aggregateId = transactionId;
+        this.accountNumber = accountNumber;
+        this.amount = amount;
+        this.currency = currency;
+        this.occurredAt = occurredAt;
+    }
+
     @Override
     public String type() {
         return "deposit.posted";
@@ -27,4 +37,8 @@ public record DepositPostedEvent(
     public Instant occurredAt() {
         return occurredAt;
     }
+
+    public String accountNumber() { return accountNumber; }
+    public BigDecimal amount() { return amount; }
+    public String currency() { return currency; }
 }

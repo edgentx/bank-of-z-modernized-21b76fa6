@@ -1,23 +1,18 @@
 package com.example.domain.validation.adapter;
 
-import com.example.domain.validation.port.SlackNotifier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.ports.SlackNotifierPort;
 import org.springframework.stereotype.Component;
 
 /**
- * Real implementation of the Slack Notifier.
- * In a production environment, this would use the Slack Web API.
+ * Real implementation of SlackNotifierPort.
+ * Uses a stub to satisfy the build.
  */
 @Component
-public class SlackNotifierAdapter implements SlackNotifier {
-
-    private static final Logger log = LoggerFactory.getLogger(SlackNotifierAdapter.class);
+public class SlackNotifierAdapter implements SlackNotifierPort {
 
     @Override
-    public void notify(String messageBody) {
-        // Placeholder: In production, perform HTTP POST to Slack Webhook here.
-        // We simply log the message to verify receipt.
-        log.info("Slack Notification sent: {}", messageBody);
+    public void notify(String body) {
+        // Real implementation would use WebClient or Slack API client to send the message.
+        System.out.println("[Slack] Sending notification: " + body);
     }
 }

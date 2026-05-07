@@ -1,97 +1,112 @@
 package com.example.steps;
 
-import com.example.domain.navigation.model.*;
-import com.example.domain.navigation.repository.InMemoryScreenMapRepository;
-import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.navigation.model.RenderScreenCmd;
+import com.example.domain.navigation.model.ScreenMapAggregate;
+import com.example.domain.navigation.model.ScreenRenderedEvent;
+import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S21Steps {
 
     private ScreenMapAggregate aggregate;
-    private final InMemoryScreenMapRepository repo = new InMemoryScreenMapRepository();
-    private Throwable thrownException;
-    private List<com.example.domain.shared.DomainEvent> resultingEvents;
+    private RenderScreenCmd cmd;
+    private List<DomainEvent> resultEvents;
+    private Exception capturedException;
 
     @Given("a valid ScreenMap aggregate")
-    public void aValidScreenMapAggregate() {
-        this.aggregate = new ScreenMapAggregate("screen-001");
-    }
-
-    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void aScreenMapAggregateWithMissingFields() {
-        this.aggregate = new ScreenMapAggregate("screen-error-001");
-    }
-
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void aScreenMapAggregateWithInvalidBmsLengths() {
-        this.aggregate = new ScreenMapAggregate("screen-bms-001");
+    public void a_valid_screen_map_aggregate() {
+        aggregate = new ScreenMapAggregate("sm-1");
     }
 
     @And("a valid screenId is provided")
-    public void aValidScreenIdIsProvided() {
-        // Context setup, ID is part of the aggregate construction, or passed via command
-        // For this scenario, we assume the command uses the aggregate's ID or the ID provided in context.
+    public void a_valid_screen_id_is_provided() {
+        // Handled in the When clause construction for simplicity in this pattern,
+        // or we could store the screenId in a instance variable.
+        // For these scenarios, we construct the command with valid data in the 'When' step
+        // or specific Given steps.
     }
 
     @And("a valid deviceType is provided")
-    public void aValidDeviceTypeIsProvided() {
-        // Context setup
+    public void a_valid_device_type_is_provided() {
+        // Same as above
     }
 
+    // --- Scenario 1 ---
+
     @When("the RenderScreenCmd command is executed")
-    public void theRenderScreenCmdCommandIsExecuted() {
-        // Default valid command values for the happy path
-        String screenId = (aggregate != null) ? aggregate.id() : "unknown";
-        String deviceType = "3270";
-
-        // Specific overrides based on scenario context would strictly be handled via scenario state,
-        // but given the step definitions, we map the "Given" context to command inputs.
-        // Scenario 1: Valid inputs (defaults)
-        // Scenario 2: Violates mandatory fields -> We will simulate this by passing nulls via specific test logic if needed,
-        // but the aggregate validation handles the rejection based on its internal state or command content.
-
-        RenderScreenCmd cmd = new RenderScreenCmd(screenId, deviceType);
-
-        // Adjust command for specific error scenarios based on the "Given" descriptions
-        if (aggregate.id().equals("screen-error-001")) {
-            // Simulate missing mandatory fields in the command for the error scenario
-             cmd = new RenderScreenCmd(null, null);
-        } else if (aggregate.id().equals("screen-bms-001")) {
-            // Simulate invalid length for BMS constraint
-            cmd = new RenderScreenCmd(screenId, "DEVICE_TYPE_TOO_LONG_FOR_BMS");
-        }
-
-        try {
-            resultingEvents = aggregate.execute(cmd);
-        } catch (IllegalArgumentException | IllegalStateException | UnknownCommandException e) {
-            thrownException = e;
-        }
+    public void the_render_screen_cmd_command_is_executed() {
+        // Default valid execution context
+        cmd = new RenderScreenCmd("SCRN01", "3270");
+        executeCommand();
     }
 
     @Then("a screen.rendered event is emitted")
-    public void aScreenRenderedEventIsEmitted() {
-        Assertions.assertNotNull(resultingEvents);
-        Assertions.assertFalse(resultingEvents.isEmpty());
-        Assertions.assertEquals("screen.rendered", resultingEvents.get(0).type());
-        Assertions.assertTrue(resultingEvents.get(0) instanceof ScreenRenderedEvent);
+    public void a_screen_rendered_event_is_emitted() {
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
         
-        ScreenRenderedEvent event = (ScreenRenderedEvent) resultingEvents.get(0);
-        Assertions.assertEquals("screen-001", event.aggregateId());
-        Assertions.assertNotNull(event.occurredAt());
+        ScreenRenderedEvent event = (ScreenRenderedEvent) resultEvents.get(0);
+        assertEquals("screen.rendered", event.type());
+        assertEquals("SCRN01", event.screenId());
+        assertEquals("3270", event.deviceType());
+        assertEquals(aggregate.id(), event.aggregateId());
+    }
+
+    // --- Scenario 2: Validation ---
+
+    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
+    public void a_screen_map_aggregate_that_violates_mandatory_fields() {
+        aggregate = new ScreenMapAggregate("sm-2");
+        // We set the command with invalid data (nulls) here or in the When.
+        // Since Cucumber 'Given' sets context, let's prepare the command state.
+        // But the method signature for 'When... executed' is shared.
+        // We will use a flag or specific context.
+        // However, Cucumber steps are distinct. We can overload or use a context variable.
+        // Let's look at the 'When' step. We need a way to pass the 'bad' command.
+    }
+
+    // Custom When for Scenario 2
+    @When("the RenderScreenCmd command is executed with invalid fields")
+    public void the_render_screen_cmd_command_is_executed_with_invalid_fields() {
+        cmd = new RenderScreenCmd(null, "3270"); // screenId is null
+        executeCommand();
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(thrownException);
-        Assertions.assertTrue(
-            thrownException instanceof IllegalArgumentException || 
-            thrownException instanceof IllegalStateException
-        );
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(capturedException);
+        assertTrue(capturedException instanceof IllegalArgumentException);
+        assertTrue(capturedException.getMessage().contains("mandatory") || 
+                   capturedException.getMessage().contains("required"));
+    }
+
+    // --- Scenario 3: Legacy Constraints ---
+
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void a_screen_map_aggregate_that_violates_field_lengths() {
+        aggregate = new ScreenMapAggregate("sm-3");
+    }
+
+    @When("the RenderScreenCmd command is executed with long fields")
+    public void the_render_screen_cmd_command_is_executed_with_long_fields() {
+        // Constraint is max 8 chars. "TOOLONGSCREENID" is > 8.
+        cmd = new RenderScreenCmd("TOOLONGSCREENID", "3270");
+        executeCommand();
+    }
+
+    private void executeCommand() {
+        try {
+            resultEvents = aggregate.execute(cmd);
+        } catch (Exception e) {
+            capturedException = e;
+        }
     }
 }

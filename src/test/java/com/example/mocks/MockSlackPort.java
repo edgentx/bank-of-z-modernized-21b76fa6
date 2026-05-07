@@ -1,26 +1,31 @@
 package com.example.mocks;
 
 import com.example.ports.SlackPort;
-
 import java.util.ArrayList;
 import java.util.List;
 
-/** Mock Slack Port for testing. */
+/**
+ * Mock implementation of SlackPort for testing.
+ * Records sent messages to allow verification of content, specifically URLs.
+ */
 public class MockSlackPort implements SlackPort {
-    private final List<String> postedMessages = new ArrayList<>();
+
+    private final List<String> sentMessages = new ArrayList<>();
 
     @Override
-    public String postMessage(String channel, String text) {
-        postedMessages.add(text);
-        return text;
+    public void sendMessage(String message) {
+        sentMessages.add(message);
     }
 
-    public String getLastMessageBody() {
-        if (postedMessages.isEmpty()) return null;
-        return postedMessages.get(postedMessages.size() - 1);
+    public List<String> getSentMessages() {
+        return new ArrayList<>(sentMessages);
     }
 
-    public boolean containsLink(String url) {
-        return postedMessages.stream().anyMatch(msg -> msg.contains(url));
+    public boolean wasUrlSent(String url) {
+        return sentMessages.stream().anyMatch(msg -> msg.contains(url));
+    }
+
+    public void reset() {
+        sentMessages.clear();
     }
 }

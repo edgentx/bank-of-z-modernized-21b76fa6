@@ -8,8 +8,11 @@ public record StartSessionCmd(
         String sessionId,
         String tellerId,
         String terminalId,
-        boolean isAuthenticated,
-        String currentTerminalState, // Represents the operational context/screen state
-        Instant occurredAt
+        Instant sessionTimeoutAt
 ) implements Command {
+
+    // Helper for the navigation invariant check
+    public String expectedNavigationState() {
+        return "IDLE";
+    }
 }

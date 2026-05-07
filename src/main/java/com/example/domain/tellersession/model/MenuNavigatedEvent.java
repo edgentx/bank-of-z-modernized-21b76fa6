@@ -4,6 +4,9 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
+/**
+ * Event emitted when a Teller successfully navigates to a new menu context.
+ */
 public record MenuNavigatedEvent(
     String aggregateId,
     String menuId,
@@ -16,12 +19,12 @@ public record MenuNavigatedEvent(
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 }

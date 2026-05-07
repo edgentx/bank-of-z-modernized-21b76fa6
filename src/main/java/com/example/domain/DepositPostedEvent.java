@@ -1,29 +1,23 @@
 package com.example.domain;
 
 import java.math.BigDecimal;
-import java.util.Currency;
 import java.util.UUID;
 
-public record DepositPostedEvent(
-        String eventId,
-        String transactionId,
-        String accountNumber,
-        BigDecimal amount,
-        Currency currency,
-        String type
-) {
-    public DepositPostedEvent {
-        type = "deposit.posted";
+public class DepositPostedEvent {
+    private final UUID transactionId;
+    private final String accountNumber;
+    private final BigDecimal amount;
+    private final String currency;
+
+    public DepositPostedEvent(UUID transactionId, String accountNumber, BigDecimal amount, String currency) {
+        this.transactionId = transactionId;
+        this.accountNumber = accountNumber;
+        this.amount = amount;
+        this.currency = currency;
     }
 
-    public static DepositPostedEvent create(String transactionId, PostDepositCmd cmd) {
-        return new DepositPostedEvent(
-                UUID.randomUUID().toString(),
-                transactionId,
-                cmd.accountNumber(),
-                cmd.amount(),
-                cmd.currency(),
-                "deposit.posted"
-        );
-    }
+    public UUID getTransactionId() { return transactionId; }
+    public String getAccountNumber() { return accountNumber; }
+    public BigDecimal getAmount() { return amount; }
+    public String getCurrency() { return currency; }
 }

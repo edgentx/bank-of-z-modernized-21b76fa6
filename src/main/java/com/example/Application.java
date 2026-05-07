@@ -1,38 +1,35 @@
 package com.example;
 
-import com.example.ports.GitHubIssuePort;
-import com.example.ports.SlackNotificationPort;
-import com.example.workflow.ReportDefectWorkflow;
-import com.example.workflow.ReportDefectWorkflowImpl;
-import com.example.adapters.RealGitHubIssueAdapter;
-import com.example.adapters.RealSlackNotificationAdapter;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackNotificationPort;
+import com.example.adapters.GitHubAdapter;
+import com.example.adapters.SlackNotificationAdapter;
+import com.example.workflows.DefectReportWorkflow;
+import com.example.workflows.DefectReportActivities;
+import com.example.workflows.DefectReportActivitiesImpl;
 
-/**
- * Bank of Z Main Application
- * Configures Workflow and Adapters.
- */
 @SpringBootApplication
 public class Application {
 
     public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
+        SpringApplication.run(Application.java, args);
     }
 
     @Bean
-    public GitHubIssuePort gitHubIssuePort() {
-        return new RealGitHubIssueAdapter();
+    public GitHubPort gitHubPort() {
+        return new GitHubAdapter();
     }
 
     @Bean
     public SlackNotificationPort slackNotificationPort() {
-        return new RealSlackNotificationAdapter();
+        return new SlackNotificationAdapter();
     }
 
     @Bean
-    public ReportDefectWorkflow reportDefectWorkflow(GitHubIssuePort gitHubPort, SlackNotificationPort slackPort) {
-        return new ReportDefectWorkflowImpl(gitHubPort, slackPort);
+    public DefectReportActivities defectReportActivities(GitHubPort gitHubPort, SlackNotificationPort slackPort) {
+        return new DefectReportActivitiesImpl(gitHubPort, slackPort);
     }
 }

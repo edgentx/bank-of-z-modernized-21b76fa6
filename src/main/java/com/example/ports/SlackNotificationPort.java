@@ -1,15 +1,14 @@
 package com.example.ports;
 
 /**
- * Port for Slack notification operations.
- * Used to decouple the domain logic from the actual Slack API implementation.
+ * Port for Slack notifications.
+ * Implementation should handle formatting details and API interaction.
  */
 public interface SlackNotificationPort {
-    
     /**
      * Posts a message to the configured Slack channel.
-     * @param body The message body content.
-     * @return true if the message was accepted by the client.
+     *
+     * @param message The formatted message body to send.
      */
-    boolean postMessage(String body);
+    void postMessage(String message);
 }

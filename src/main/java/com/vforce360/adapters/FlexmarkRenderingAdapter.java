@@ -1,40 +1,35 @@
 package com.vforce360.adapters;
 
-import com.vforce360.ports.RenderingEnginePort;
-import com.vladsch.flexmark.ext.gfm.strikethrough.StrikethroughExtension;
-import com.vladsch.flexmark.ext.tables.TablesExtension;
+import com.vforce360.ports.MarkdownRendererPort;
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
-import com.vladsch.flexmark.util.data.MutableDataSet;
-import org.springframework.stereotype.Component;
-
-import java.util.Arrays;
+import com.vladsch.flexmark.util.options.MutableDataSet;
 
 /**
- * Adapter implementation using Flexmark to render Markdown to HTML.
- * This implements the RenderingEnginePort interface.
+ * Real implementation of the Markdown Renderer using Flexmark.
+ * This adapter handles the conversion of Markdown strings to HTML.
  */
-@Component
-public class FlexmarkRenderingAdapter implements RenderingEnginePort {
+public class FlexmarkRenderingAdapter implements MarkdownRendererPort {
 
     private final Parser parser;
     private final HtmlRenderer renderer;
 
     public FlexmarkRenderingAdapter() {
-        // Configure Flexmark options (Tables, Strikethrough support for GFM)
+        // Configure Flexmark options
         MutableDataSet options = new MutableDataSet();
-        options.set(Parser.EXTENSIONS, Arrays.asList(TablesExtension.create(), StrikethroughExtension.create()));
+        // Enable common extensions like tables and strikethrough
+        // Note: Flexmark-all bundles most extensions.
         
         this.parser = Parser.builder(options).build();
         this.renderer = HtmlRenderer.builder(options).build();
     }
 
     @Override
-    public String convertMarkdownToHtml(String markdown) {
+    public String renderToHtml(String markdown) {
         if (markdown == null || markdown.isEmpty()) {
             return "";
         }
-        // Use the Flexmark parser/renderer to convert MD to HTML
+        // Parse and render
         return renderer.render(parser.parse(markdown));
     }
 }

@@ -16,6 +16,7 @@
         <spring-cloud.version>2023.0.0</spring-cloud.version>
         <temporal.version>1.22.1</temporal.version>
         <okhttp.version>4.12.0</okhttp.version>
+        <okio.version>3.6.0</okio.version>
     </properties>
 
     <dependencies>
@@ -41,6 +42,13 @@
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
             <version>${okhttp.version}</version>
+        </dependency>
+        
+        <!-- OkIO (Dependency of OkHttp, ensuring version match) -->
+        <dependency>
+            <groupId>com.squareup.okio</groupId>
+            <artifactId>okio</artifactId>
+            <version>${okio.version}</version>
         </dependency>
 
         <!-- Testing (BOM Managed) -->

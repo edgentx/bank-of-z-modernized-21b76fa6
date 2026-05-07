@@ -30,7 +30,7 @@
             <artifactId>mockito-inline</artifactId>
             <!-- EXPLICIT VERSION REQUIRED to fix build error: 'dependencies.dependency.version' for org.mockito:mockito-inline:jar is missing -->
             <!-- Spring Boot Parent BOM does not pin mockito-inline version explicitly in 3.2.0 -->
-            <version>5.2.0</version> 
+            <version>5.2.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -3,14 +3,15 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
-public class SessionEndedEvent implements DomainEvent {
-    private final String aggregateId;
-    private final Instant occurredAt;
-
+public record SessionEndedEvent(
+        String eventId,
+        String aggregateId,
+        Instant occurredAt
+) implements DomainEvent {
     public SessionEndedEvent(String aggregateId, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.occurredAt = occurredAt;
+        this(UUID.randomUUID().toString(), aggregateId, occurredAt);
     }
 
     @Override

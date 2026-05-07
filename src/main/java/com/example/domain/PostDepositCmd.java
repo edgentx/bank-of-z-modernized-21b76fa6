@@ -1,26 +1,23 @@
 package com.example.domain;
 
-import java.util.Currency;
 import java.math.BigDecimal;
+import java.util.Currency;
+import java.util.UUID;
 
 /**
- * Command to post a deposit to a transaction.
- * Records: S-10
+ * Command to post a deposit to a transaction aggregate.
+ * Uses Java Record for immutability.
  */
 public record PostDepositCmd(
-        String transactionId,
-        String accountNumber,
-        BigDecimal amount,
-        Currency currency
+    UUID transactionId,
+    String accountNumber,
+    BigDecimal amount,
+    Currency currency
 ) {
     public PostDepositCmd {
-        if (transactionId == null || transactionId.isBlank()) {
-            throw new IllegalArgumentException("Transaction ID cannot be null or blank");
-        }
-        if (accountNumber == null || accountNumber.isBlank()) {
-            throw new IllegalArgumentException("Account Number cannot be null or blank");
-        }
-        // Note: Invariant checks (amount > 0) are handled by the Aggregate logic,
-        // but basic structural integrity can be validated here if desired.
+        if (transactionId == null) throw new IllegalArgumentException("transactionId cannot be null");
+        if (accountNumber == null || accountNumber.isBlank()) throw new IllegalArgumentException("accountNumber cannot be blank");
+        if (amount == null) throw new IllegalArgumentException("amount cannot be null");
+        if (currency == null) throw new IllegalArgumentException("currency cannot be null");
     }
 }

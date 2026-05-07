@@ -1,16 +1,24 @@
 package com.example.ports;
 
+import java.util.Optional;
+
 /**
- * Port for creating issues in an external tracker (e.g., GitHub).
+ * Port for interacting with an external Issue Tracker (e.g., GitHub, Jira).
+ * This interface isolates the domain logic from external API specifics.
  */
 public interface IssueTrackerPort {
 
     /**
-     * Creates a new issue in the tracker.
-     *
-     * @param title The title of the issue
-     * @param body The body content of the issue
-     * @return The full URL to the created issue.
+     * Represents the URL of a created issue.
+     * @param url The full URL to the issue.
      */
-    String createIssue(String title, String body);
+    record IssueUrl(String url) {}
+
+    /**
+     * Retrieves the URL for a specific issue ID.
+     *
+     * @param issueId The unique identifier (e.g., "VW-454").
+     * @return An IssueUrl record containing the URL, or empty if not found.
+     */
+    Optional<IssueUrl> getIssueUrl(String issueId);
 }

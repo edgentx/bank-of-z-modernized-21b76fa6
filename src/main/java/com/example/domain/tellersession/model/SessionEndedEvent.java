@@ -6,17 +6,15 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Domain event published when a TellerSession is successfully terminated.
- * Signifies that sensitive state has been cleared and the session is closed.
+ * Event emitted when a Teller Session is successfully terminated.
  */
 public record SessionEndedEvent(
         String aggregateId,
         Instant occurredAt
 ) implements DomainEvent {
 
-    public SessionEndedEvent(String aggregateId, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.occurredAt = occurredAt;
+    public SessionEndedEvent(String aggregateId) {
+        this(aggregateId, Instant.now());
     }
 
     @Override

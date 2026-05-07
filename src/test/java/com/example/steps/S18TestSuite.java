@@ -4,6 +4,9 @@ import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
+/**
+ * JUnit 5 Suite wrapper to run Cucumber features for S-18.
+ */
 @Suite
 @IncludeEngines("cucumber")
 @SelectClasspathResource("features/S-18.feature")

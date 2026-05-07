@@ -1,33 +1,28 @@
 package com.example.mocks;
 
-import com.example.domain.slack.ports.SlackNotifierPort;
+import com.example.ports.SlackNotifier;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotifierPort for testing.
- * Captures messages sent to Slack to verify content without real network calls.
+ * Mock implementation of SlackNotifier for testing.
+ * Captures messages sent during command execution.
  */
-public class MockSlackNotifier implements SlackNotifierPort {
-
-    private final List<String> sentMessages = new ArrayList<>();
+public class MockSlackNotifier implements SlackNotifier {
+    public final List<String> messages = new ArrayList<>();
+    public String lastChannel;
+    public String lastMessage;
 
     @Override
-    public void sendNotification(String message) {
-        // In a real mock, we might record or assert here immediately.
-        // For TDD red phase, we just record.
-        this.sentMessages.add(message);
+    public void send(String channel, String message) {
+        this.lastChannel = channel;
+        this.lastMessage = message;
+        this.messages.add(message);
     }
 
-    public List<String> getSentMessages() {
-        return new ArrayList<>(sentMessages);
-    }
-
-    public void clear() {
-        sentMessages.clear();
-    }
-
-    public boolean hasReceivedMessageContaining(String substring) {
-        return sentMessages.stream().anyMatch(msg -> msg.contains(substring));
+    public void reset() {
+        messages.clear();
+        lastChannel = null;
+        lastMessage = null;
     }
 }

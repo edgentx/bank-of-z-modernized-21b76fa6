@@ -8,23 +8,26 @@
         <version>3.2.0</version>
         <relativePath/>
     </parent>
+    
     <groupId>com.example</groupId>
-    <artifactId>bank-of-z-teller</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>Bank of Z Teller Session</name>
-    <description>Teller Session Domain Aggregate (S-20)</description>
+    <artifactId>egdcrypto-bank-of-z-modernized</artifactId>
+    <version>21b76fa6-feature-s-20</version>
+    <name>egdcrypto-bank-of-z-modernized</name>
+    <description>Bank of Z Modernization</description>
+    
     <properties>
         <java.version>17</java.version>
         <cucumber.version>7.14.0</cucumber.version>
     </properties>
+    
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>com.ibm.db2</groupId>
@@ -36,7 +39,6 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Cucumber BDD Dependencies -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>

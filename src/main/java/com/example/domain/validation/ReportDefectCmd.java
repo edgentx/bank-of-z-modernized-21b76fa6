@@ -1,15 +1,17 @@
 package com.example.domain.validation;
 
 import com.example.domain.shared.Command;
+import java.util.Map;
 
 /**
  * Command to report a defect.
- * Driven by Story S-FB-1 (Validating VW-454).
+ * Triggered via temporal-worker exec (per S-FB-1).
  */
 public record ReportDefectCmd(
     String defectId,
     String title,
-    String description,
-    String projectId,
-    String severity
+    String severity,
+    String component,
+    String project,
+    Map<String, String> metadata
 ) implements Command {}

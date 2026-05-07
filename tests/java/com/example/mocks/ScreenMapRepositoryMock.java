@@ -5,18 +5,18 @@ import com.example.domain.ui.repository.ScreenMapRepository;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class ScreenMapRepositoryMock implements ScreenMapRepository {
     private final Map<String, ScreenMapAggregate> store = new HashMap<>();
 
     @Override
-    public ScreenMapAggregate save(ScreenMapAggregate aggregate) {
+    public void save(ScreenMapAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
-        return aggregate;
     }
 
     @Override
-    public ScreenMapAggregate findById(String id) {
-        return store.get(id);
+    public Optional<ScreenMapAggregate> findById(String id) {
+        return Optional.ofNullable(store.get(id));
     }
 }

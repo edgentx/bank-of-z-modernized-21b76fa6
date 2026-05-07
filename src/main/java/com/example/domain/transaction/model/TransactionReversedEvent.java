@@ -7,15 +7,15 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record TransactionReversedEvent(
-    String aggregateId,
-    String originalTransactionId,
-    BigDecimal amount,
-    String accountId,
-    Instant occurredAt
+        String aggregateId,
+        String originalTransactionId,
+        BigDecimal amount,
+        String accountNumber,
+        Instant occurredAt
 ) implements DomainEvent {
 
     public TransactionReversedEvent {
-        // Validation if necessary
+        // Validating record components if needed, though constructor is implicit
     }
 
     @Override
@@ -23,8 +23,13 @@ public record TransactionReversedEvent(
         return "transaction.reversed";
     }
 
-    // Ensure we match the interface strictly
+    @Override
     public String aggregateId() {
         return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

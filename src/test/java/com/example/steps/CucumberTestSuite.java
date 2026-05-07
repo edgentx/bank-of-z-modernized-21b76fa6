@@ -1,17 +1,15 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.Configuration;
+import org.junit.platform.suite.api.ConfigurationParameter;
 import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
+import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
+
 @Suite
 @IncludeEngines("cucumber")
 @SelectClasspathResource("features")
-@Configuration(
-    // If using strict glue, uncomment and ensure package matches
-    // glue = "com.example.steps"
-)
+@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
 public class CucumberTestSuite {
-    // This class acts as the JUnit 5 entry point for Cucumber
 }

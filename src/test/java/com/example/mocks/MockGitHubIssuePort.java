@@ -1,42 +1,30 @@
 package com.example.mocks;
 
-import com.example.domain.vforce.ports.GitHubIssuePort;
+import com.example.ports.GitHubIssuePort;
+import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Mock implementation of GitHubIssuePort for testing.
- * Returns a deterministic URL pattern to verify integration without external I/O.
+ * Mock implementation of GitHubIssuePort.
+ * Simulates creating an issue and returning a predictable URL.
  */
+@Component
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private String fixedUrl = "https://github.com/fake-org/repo/issues/454";
-    private String lastTitle;
-    private String lastDescription;
+    private final Map<String, String> mockIssues = new HashMap<>();
+    private int counter = 1;
 
     @Override
-    public String createIssue(String title, String description) {
-        this.lastTitle = title;
-        this.lastDescription = description;
-        return fixedUrl;
+    public String createIssue(String title, String body) {
+        // Simulate GitHub API call returning a URL
+        String url = "https://github.com/mock-org/repo/issues/" + (counter++);
+        mockIssues.put(url, title);
+        return url;
     }
 
-    /**
-     * Retrieves the title of the last created issue.
-     */
-    public String getLastTitle() {
-        return lastTitle;
-    }
-
-    /**
-     * Retrieves the description of the last created issue.
-     */
-    public String getLastDescription() {
-        return lastDescription;
-    }
-
-    /**
-     * Sets a specific URL to be returned by the mock.
-     */
-    public void setFixedUrl(String url) {
-        this.fixedUrl = url;
+    public int getIssueCount() {
+        return mockIssues.size();
     }
 }

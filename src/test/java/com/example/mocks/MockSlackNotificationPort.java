@@ -1,33 +1,47 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-import org.springframework.stereotype.Component;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock adapter for Slack operations.
- * In a real test scenario, this might be replaced by Mockito.mock(),
- * but as a Mock Adapter Pattern requested in the prompt, we can implement it.
- * However, to perform verification (assertions), we usually need to spy on this
- * or add verification state to it. For strict Mockito usage, we would mock the interface.
- * Here we provide the Spring Bean implementation.
+ * Mock adapter for Slack notifications.
+ * Captures messages in memory for verification during tests.
  */
-@Component
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public String lastPostedChannel;
-    public String lastPostedBody;
+    public static class PostedMessage {
+        public final String channelId;
+        public final String body;
 
-    @Override
-    public void postMessage(String channel, String body) {
-        // Capture state for verification if not using pure Mockito mocks in the test.
-        this.lastPostedChannel = channel;
-        this.lastPostedBody = body;
-        
-        // System.out.println("[MockSlack] Posted to " + channel + ": " + body);
+        public PostedMessage(String channelId, String body) {
+            this.channelId = channelId;
+            this.body = body;
+        }
     }
 
-    // Helper for assertions if needed
-    public boolean wasUrlPosted(String expectedUrl) {
-        return lastPostedBody != null && lastPostedBody.contains(expectedUrl);
+    private final List<PostedMessage> messages = new ArrayList<>();
+
+    @Override
+    public void postMessage(String channelId, String messageBody) {
+        // Store in memory instead of calling real API
+        this.messages.add(new PostedMessage(channelId, messageBody));
+    }
+
+    public List<PostedMessage> getMessages() {
+        return messages;
+    }
+
+    public void clear() {
+        messages.clear();
+    }
+
+    /**
+     * Helper assertion to check if the last message contained the specific GitHub URL.
+     */
+    public boolean lastMessageContainsUrl(String url) {
+        if (messages.isEmpty()) return false;
+        PostedMessage last = messages.get(messages.size() - 1);
+        return last.body.contains(url);
     }
 }

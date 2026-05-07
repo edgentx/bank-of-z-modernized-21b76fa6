@@ -1,28 +1,41 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Objects;
 
 /**
- * Domain event emitted when a TellerSession is successfully terminated.
+ * Event emitted when a teller session is ended.
  */
 public record TellerSessionEndedEvent(
-        String eventId,
+        String type,
         String aggregateId,
+        String tellerId,
         Instant occurredAt
 ) implements DomainEvent {
     public TellerSessionEndedEvent {
-        if (eventId == null) eventId = UUID.randomUUID().toString();
+        Objects.requireNonNull(type, "type cannot be null");
+        Objects.requireNonNull(aggregateId, "aggregateId cannot be null");
+        Objects.requireNonNull(tellerId, "tellerId cannot be null");
+        Objects.requireNonNull(occurredAt, "occurredAt cannot be null");
     }
 
-    public TellerSessionEndedEvent(String aggregateId) {
-        this(UUID.randomUUID().toString(), aggregateId, Instant.now());
+    public TellerSessionEndedEvent(String aggregateId, String tellerId) {
+        this("teller.session.ended", aggregateId, tellerId, Instant.now());
     }
 
     @Override
     public String type() {
-        return "session.ended";
+        return type;
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

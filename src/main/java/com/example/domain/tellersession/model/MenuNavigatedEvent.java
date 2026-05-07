@@ -5,14 +5,24 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-public record MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) implements DomainEvent {
-    public MenuNavigatedEvent(String aggregateId, String menuId, String action) {
-        this(aggregateId, menuId, action, Instant.now());
+public record MenuNavigatedEvent(
+        String aggregateId,
+        String menuId,
+        String action,
+        Instant occurredAt
+) implements DomainEvent {
+    public MenuNavigatedEvent {
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
     }
 
     @Override
     public String type() {
         return "menu.navigated";
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 
     @Override

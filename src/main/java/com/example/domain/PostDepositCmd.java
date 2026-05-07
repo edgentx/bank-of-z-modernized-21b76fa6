@@ -1,15 +1,21 @@
 package com.example.domain;
 
-import java.math.BigDecimal;
+import java.util.UUID;
 
 public class PostDepositCmd {
-    public String accountNumber;
-    public BigDecimal amount;
-    public String currency;
+    private final String accountNumber;
+    private final Money amount;
 
-    public PostDepositCmd(String accountNumber, BigDecimal amount, String currency) {
+    public PostDepositCmd(String accountNumber, Money amount) {
         this.accountNumber = accountNumber;
         this.amount = amount;
-        this.currency = currency;
+    }
+
+    public String getAccountNumber() {
+        return accountNumber;
+    }
+
+    public Money getAmount() {
+        return amount;
     }
 }

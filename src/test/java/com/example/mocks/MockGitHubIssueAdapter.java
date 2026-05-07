@@ -1,41 +1,39 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
 
+import java.util.HashSet;
+import java.util.Set;
+
+/**
+ * Mock implementation of GitHubIssuePort for testing.
+ * Allows verification of inputs and simulation of success/failure.
+ */
 public class MockGitHubIssueAdapter implements GitHubIssuePort {
-    private final List<CallLog> calls = new ArrayList<>();
-    private URI nextResult;
 
-    public static class CallLog {
-        public final String title;
-        public final String body;
-
-        public CallLog(String title, String body) {
-            this.title = title;
-            this.body = body;
-        }
-    }
+    private final Set<String> createdTitles = new HashSet<>();
+    private String mockUrl = "https://github.com/mock-repo/issues/1";
+    private boolean shouldFail = false;
 
     @Override
-    public URI createIssue(String title, String body) {
-        calls.add(new CallLog(title, body));
-        // Default to a dummy URI if not set
-        return nextResult != null ? nextResult : URI.create("https://github.com/example/issues/1");
+    public String createIssue(String title, String body) {
+        if (shouldFail) {
+            throw new RuntimeException("Simulated GitHub API failure");
+        }
+        createdTitles.add(title);
+        // Return a predictable URL containing the defect ID (assuming title contains it)
+        return mockUrl + "?q=" + title.replace(" ", "%20");
     }
 
-    public void setNextResult(URI uri) {
-        this.nextResult = uri;
+    public boolean hasCreatedIssue(String title) {
+        return createdTitles.contains(title);
     }
 
-    public List<CallLog> getCalls() {
-        return calls;
+    public void setMockUrl(String url) {
+        this.mockUrl = url;
     }
-    
-    public void reset() {
-        calls.clear();
-        nextResult = null;
+
+    public void setShouldFail(boolean shouldFail) {
+        this.shouldFail = shouldFail;
     }
 }

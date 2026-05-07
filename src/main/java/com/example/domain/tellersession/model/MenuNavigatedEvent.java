@@ -11,15 +11,17 @@ public record MenuNavigatedEvent(
         String action,
         Instant occurredAt
 ) implements DomainEvent {
-
-    public MenuNavigatedEvent {
-        // Ensure non-null for event storage safety
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
-        if (occurredAt == null) occurredAt = Instant.now();
+    public MenuNavigatedEvent(String aggregateId, String menuId, String action) {
+        this(aggregateId, menuId, action, Instant.now());
     }
 
     @Override
     public String type() {
         return "menu.navigated";
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

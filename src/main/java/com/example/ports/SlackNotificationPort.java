@@ -1,9 +1,11 @@
 package com.example.ports;
 
+import com.example.domain.validation.model.DefectReportedEvent;
+
 /**
- * Port for sending Slack notifications.
- * Used by Temporal workflows to alert users.
+ * Port interface for Slack notifications.
+ * Used to mock the external Slack API in tests.
  */
 public interface SlackNotificationPort {
-    void send(String messageBody);
+    void sendNotification(DefectReportedEvent event);
 }

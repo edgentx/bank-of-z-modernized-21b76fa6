@@ -6,17 +6,16 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record SessionEndedEvent(
-        String aggregateId,
-        String type,
-        Instant occurredAt
+    String aggregateId,
+    Instant occurredAt
 ) implements DomainEvent {
-    public SessionEndedEvent(String aggregateId, Instant endedAt) {
-        this(aggregateId, "session.ended", endedAt);
+    public SessionEndedEvent(String id) {
+        this(id, Instant.now());
     }
 
     @Override
     public String type() {
-        return type;
+        return "session.ended";
     }
 
     @Override

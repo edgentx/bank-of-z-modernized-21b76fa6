@@ -3,9 +3,10 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
- * Event emitted when a Teller successfully navigates to a new menu context.
+ * Event emitted when a menu navigation is successfully executed.
  */
 public record MenuNavigatedEvent(
     String aggregateId,
@@ -16,15 +17,5 @@ public record MenuNavigatedEvent(
     @Override
     public String type() {
         return "menu.navigated";
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
     }
 }

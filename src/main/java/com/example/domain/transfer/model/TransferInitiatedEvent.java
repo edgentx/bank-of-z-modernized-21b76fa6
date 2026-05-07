@@ -6,25 +6,18 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record TransferInitiatedEvent(
-    String transferId,
+    String eventId,
+    String aggregateId,
     String fromAccountId,
     String toAccountId,
     BigDecimal amount,
     String currency,
     Instant occurredAt
 ) implements DomainEvent {
-    @Override
-    public String type() {
-        return "transfer.initiated";
+    public TransferInitiatedEvent(String aggregateId, String fromAccountId, String toAccountId, BigDecimal amount, String currency, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, fromAccountId, toAccountId, amount, currency, occurredAt);
     }
-
-    @Override
-    public String aggregateId() {
-        return transferId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
+    @Override public String type() { return "transfer.initiated"; }
+    @Override public String aggregateId() { return aggregateId; }
+    @Override public Instant occurredAt() { return occurredAt; }
 }

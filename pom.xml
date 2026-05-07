@@ -15,6 +15,7 @@
         <flyway-db2.version>10.0.1</flyway-db2.version>
     </properties>
     <dependencies>
+        <!-- Core Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
@@ -24,11 +25,31 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Flyway DB2 Dependency with explicit version as required -->
+
+        <!-- Flyway DB2 Dependency with explicit version as required by rules -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-db2</artifactId>
             <version>${flyway-db2.version}</version>
+        </dependency>
+
+        <!-- Cucumber for E2E/Regression tests -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>7.18.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit</artifactId>
+            <version>7.18.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-spring</artifactId>
+            <version>7.18.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

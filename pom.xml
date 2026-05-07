@@ -6,38 +6,34 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.3</version>
+        <version>3.3.5</version>
         <relativePath/>
     </parent>
+    
     <groupId>com.example</groupId>
     <artifactId>bank-of-z</artifactId>
     <version>1.0.0</version>
-    <name>Bank-of-Z Modernization</name>
-    <description>Domain-driven design clone of a legacy core banking system</description>
-
+    <name>bank-of-z</name>
+    <description>Bank of Z: Modernized Legacy Core</description>
+    
     <properties>
         <java.version>21</java.version>
-        <cucumber.version>7.16.1</cucumber.version>
-        <reactor.version>2023.0.3</reactor.version>
+        <cucumber.version>7.20.1</cucumber.version>
     </properties>
-
+    
     <dependencies>
         <!-- Spring Boot Starters -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -47,64 +43,43 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-batch</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.integration</groupId>
+            <artifactId>spring-integration-jms</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.integration</groupId>
+            <artifactId>spring-integration-mongodb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
 
-        <!-- Database Drivers -->
+        <!-- Runtime Dependencies (BOM pinned or explicit versions) -->
         <dependency>
             <groupId>com.ibm.db2</groupId>
             <artifactId>jcc</artifactId>
             <scope>runtime</scope>
         </dependency>
-        
-        <!-- IBM MQ JMS -->
         <dependency>
             <groupId>com.ibm.mq</groupId>
             <artifactId>com.ibm.mq.allclient</artifactId>
-            <version>9.3.5.0</version>
+            <version>9.4.1.0</version>
+            <scope>runtime</scope>
         </dependency>
-
-        <!-- CICS/IMS Bridge -->
-        <dependency>
-            <groupId>com.ibm.cics</groupId>
-            <artifactId>com.ibm.cics.server.invocation</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-
-        <!-- Temporal Workflow -->
-        <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>1.22.3</version>
-        </dependency>
-
-        <!-- Redis Cache -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.lettuce</groupId>
-            <artifactId>lettuce-core</artifactId>
-        </dependency>
-
-        <!-- MinIO S3 -->
-        <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-            <version>8.5.7</version>
-        </dependency>
-
-        <!-- OpenTelemetry -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-otel</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <version>1.36.0</version>
-        </dependency>
-
-        <!-- Flyway Migration -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -115,14 +90,12 @@
             <version>10.10.0</version>
         </dependency>
 
-        <!-- GraalVM -->
+        <!-- Testing Dependencies -->
         <dependency>
-            <groupId>org.graalvm.polyglot</groupId>
-            <artifactId>polyglot</artifactId>
-            <version>23.1.1</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
-
-        <!-- Cucumber BDD -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
@@ -140,18 +113,6 @@
             <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <!-- Testing -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
@@ -159,25 +120,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>21</source>
-                    <target>21</target>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <properties>
-                        <configurationParameters>
-                            cucumber.junit-platform.naming-strategy=long
-                        </configurationParameters>
-                    </properties>
-                </configuration>
             </plugin>
         </plugins>
     </build>

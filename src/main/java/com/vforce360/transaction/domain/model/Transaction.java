@@ -43,7 +43,7 @@ public class Transaction extends AggregateRoot {
         // We check the invariant using the port to simulate external balance check
         BigDecimal currentBalance = accountStatePort.getBalance(this.accountNumber);
         BigDecimal projectedBalance = currentBalance.add(cmd.getAmount());
-        
+
         // Simulating a business rule (e.g., max balance cap or negative balance prevention)
         if (projectedBalance.compareTo(new BigDecimal("1000000")) > 0) {
              return Result.error(new DomainError("A transaction must result in a valid account balance (enforced via aggregate validation)."));
@@ -57,16 +57,15 @@ public class Transaction extends AggregateRoot {
 
         // Emit event
         DepositPostedEvent event = new DepositPostedEvent(
-            this.transactionId, 
-            this.accountNumber, 
-            this.amount, 
+            this.transactionId,
+            this.accountNumber,
+            this.amount,
             this.currency,
             this.postedAt
         );
-        
-        // In a real scenario, this event would be stored in the uncommitted events list of AggregateRoot
-        // For this snippet, we acknowledge emission.
-        // this.raiseEvent(event);
+
+        // Add event to uncommitted events list inherited from AggregateRoot
+        this.raiseEvent(event);
 
         return Result.success(null);
     }

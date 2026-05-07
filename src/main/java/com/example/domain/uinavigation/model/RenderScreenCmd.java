@@ -3,11 +3,7 @@ package com.example.domain.uinavigation.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to render a specific screen adapted for a user's device.
- * Part of User Interface Navigation (ScreenMap) domain.
+ * Command to trigger the rendering of a specific screen map.
+ * Records the target device type to adapt the layout.
  */
-public record RenderScreenCmd(
-    String aggregateId,
-    String screenId,
-    String deviceType
-) implements Command {}
+public record RenderScreenCmd(String screenId, String deviceType) implements Command {}

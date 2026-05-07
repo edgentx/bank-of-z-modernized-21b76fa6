@@ -1,29 +1,24 @@
 package com.example.domain.teller.model;
 
 import com.example.domain.shared.DomainEvent;
-import java.time.Instant;
-import java.util.Set;
 
-/**
- * Event emitted when a teller session is successfully started.
- * Context: S-18
- */
+import java.time.Instant;
+import java.util.UUID;
+
 public record SessionStartedEvent(
-    String sessionId,
-    String tellerId,
-    String terminalId,
-    Set<String> permissions,
-    String navigationState,
-    Instant occurredAt
+        String aggregateId,
+        String tellerId,
+        String terminalId,
+        Instant occurredAt
 ) implements DomainEvent {
-    @Override
-    public String type() {
-        return "session.started";
+    public SessionStartedEvent {
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
+        if (occurredAt == null) occurredAt = Instant.now();
     }
 
     @Override
-    public String aggregateId() {
-        return sessionId;
+    public String type() {
+        return "session.started";
     }
 
     @Override

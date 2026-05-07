@@ -1,17 +1,23 @@
 package com.example.workflow;
 
+import com.example.domain.shared.DefectReportedEvent;
 import com.example.ports.GitHubPort;
 import com.example.ports.SlackNotifierPort;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Implementation of the ReportDefectWorkflow.
- * This is the class under test.
- * Note: Currently a stub to satisfy compilation while in Red phase.
+ * This class orchestrates the reporting of a defect by creating an issue in GitHub
+ * and notifying a Slack channel with the resulting URL.
  */
 public class ReportDefectWorkflowImpl implements ReportDefectWorkflow {
 
     private final GitHubPort gitHub;
     private final SlackNotifierPort slack;
+    private final List<DefectReportedEvent> eventLog = new ArrayList<>();
 
     public ReportDefectWorkflowImpl(GitHubPort gitHub, SlackNotifierPort slack) {
         this.gitHub = gitHub;
@@ -23,10 +29,18 @@ public class ReportDefectWorkflowImpl implements ReportDefectWorkflow {
         // 1. Create GitHub Issue
         String issueUrl = gitHub.createIssue(defectId, description);
 
-        // 2. Notify Slack
-        // The defect here is that we were NOT including issueUrl in the body.
-        // To make tests fail initially (Red Phase), we send a body without the URL.
-        String body = "Defect Reported: " + defectId; 
+        // 2. Emit Domain Event (Internal state management)
+        DefectReportedEvent event = new DefectReportedEvent(defectId, issueUrl, Instant.now());
+        eventLog.add(event);
+
+        // 3. Notify Slack
+        // FIX FOR S-FB-1: Ensure the issueUrl is included in the Slack body.
+        String body = "Defect Reported: " + defectId + "\nGitHub Issue: " + issueUrl;
         slack.notify(body);
+    }
+
+    // Exposed for testing/validation purposes if needed, though not part of the primary interface
+    public List<DefectReportedEvent> getEventLog() {
+        return new ArrayList<>(eventLog);
     }
 }

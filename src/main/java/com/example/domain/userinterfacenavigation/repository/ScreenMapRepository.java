@@ -1,11 +1,11 @@
-package com.example.domain.userinterfacenavigation.repository;
+package com.example.domain.uimodel.repository;
 
 import com.example.domain.userinterfacenavigation.model.ScreenMapAggregate;
 import java.util.Optional;
 
 /**
- * Repository interface for ScreenMap aggregates.
- * Previously referenced ScreenMapAggregate from wrong package; corrected to userinterfacenavigation.model.
+ * Legacy/Alternative package reference for ScreenMap Repository.
+ * Bridges uimodel package to the concrete userinterfacenavigation aggregate.
  */
 public interface ScreenMapRepository {
     ScreenMapAggregate save(ScreenMapAggregate aggregate);

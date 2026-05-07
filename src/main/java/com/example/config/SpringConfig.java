@@ -1,48 +1,44 @@
 package com.example.config;
 
-import com.example.adapters.GitHubIssueAdapter;
+import com.example.adapters.GitHubAdapter;
 import com.example.adapters.SlackNotificationAdapter;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.application.DefectReportingActivity;
+import com.example.domain.verification.service.VerificationService;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackNotificationPort;
 import okhttp3.OkHttpClient;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import java.util.concurrent.TimeUnit;
+import org.springframework.context.annotation.Import;
+
+import java.time.Duration;
 
 @Configuration
+@Import({AdapterConfiguration.class})
 public class SpringConfig {
 
-    @Value("${github.repo.owner}")
-    private String repoOwner;
-
-    @Value("${github.repo.name}")
-    private String repoName;
-
-    @Value("${github.token}")
-    private String githubToken;
-
+    /**
+     * Bean for the Domain Service.
+     * Depends on Ports (Interfaces), which are implemented by Adapters.
+     */
     @Bean
-    public OkHttpClient okHttpClient() {
-        return new OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
-            .build();
+    public VerificationService verificationService(
+            GitHubPort gitHubPort,
+            SlackNotificationPort slackNotificationPort) {
+        return new VerificationService(gitHubPort, slackNotificationPort);
+    }
+
+    // The specific Adapter implementations are auto-detected by component scanning (@Component),
+    // so we don't strictly need to define them as beans here unless we need specific configuration.
+    // However, to ensure the Port interfaces are injected correctly into the Service:
+    
+    @Bean
+    public GitHubPort gitHubPort(GitHubAdapter gitHubAdapter) {
+        return gitHubAdapter;
     }
 
     @Bean
-    public ObjectMapper objectMapper() {
-        return new ObjectMapper();
-    }
-
-    @Bean
-    public GitHubIssueAdapter gitHubIssueAdapter(OkHttpClient client, ObjectMapper mapper) {
-        return new GitHubIssueAdapter(client, mapper, repoOwner, repoName, githubToken);
-    }
-
-    @Bean
-    public SlackNotificationAdapter slackNotificationAdapter(OkHttpClient client, ObjectMapper mapper, 
-                                                             @Value("${slack.webhook.url}") String webhookUrl) {
-        return new SlackNotificationAdapter(client, mapper, webhookUrl);
+    public SlackNotificationPort slackNotificationPort(SlackNotificationAdapter slackNotificationAdapter) {
+        return slackNotificationAdapter;
     }
 }

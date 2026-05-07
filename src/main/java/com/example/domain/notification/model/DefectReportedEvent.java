@@ -3,17 +3,15 @@ package com.example.domain.notification.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
 /**
- * Event emitted when a defect is successfully formatted and validated.
+ * Event emitted when a defect report is generated.
+ * Contains the payload intended for external delivery (e.g., Slack).
  */
 public record DefectReportedEvent(
-    String notificationId,
-    String title,
-    String formattedBody,
-    String githubIssueUrl,
-    Instant occurredAt
+        String aggregateId,
+        String messageBody,
+        Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
@@ -22,7 +20,7 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return notificationId;
+        return aggregateId;
     }
 
     @Override

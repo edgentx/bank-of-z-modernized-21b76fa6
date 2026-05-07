@@ -1,18 +1,16 @@
 package com.example.ports;
 
 /**
- * Port interface for GitHub issue integration.
- * Implementations must handle the creation of issues via the GitHub API.
+ * Port for interacting with GitHub issue tracking.
  */
 public interface GitHubPort {
 
     /**
-     * Creates a remote issue on GitHub for the given defect.
+     * Creates a new issue in the repository.
      *
-     * @param defectId The internal ID of the defect.
-     * @param title The title of the issue.
-     * @param body The description body of the issue.
-     * @return The URL of the created issue.
+     * @param title The issue title
+     * @param description The issue body/description
+     * @return The HTML URL of the created issue
      */
-    String createRemoteIssue(String defectId, String title, String body);
+    String createIssue(String title, String description);
 }

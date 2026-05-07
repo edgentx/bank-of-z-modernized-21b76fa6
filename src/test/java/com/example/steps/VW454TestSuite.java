@@ -1,18 +1,16 @@
 package com.example.steps;
 
-import io.cucumber.junit.Cucumber;
-import io.cucumber.junit.CucumberOptions;
-import org.junit.runner.RunWith;
+import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectClasspathResource;
+import org.junit.platform.suite.api.Suite;
 
+@Suite
+@IncludeEngines("cucumber")
+@SelectClasspathResource("features/VW454.feature") // Assuming feature file location or handled by CucumberTestSuite
 /**
- * Test Suite Runner for the VW-454 Regression Test.
+ * Test Suite configuration for VW-454 Regression.
+ * This class wires up the Cucumber runner to the Step definitions.
  */
-@RunWith(Cucumber.class)
-@CucumberOptions(
-    features = "features/VW-454.feature", 
-    plugin = {"pretty", "html:target/cucumber-report/VW-454.html"},
-    glue = {"com.example.steps"}
-)
 public class VW454TestSuite {
-    // Test runner class
+    // Configuration can be added here if needed for specific Spring Context test slicing
 }

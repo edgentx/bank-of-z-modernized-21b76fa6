@@ -12,16 +12,13 @@ public record InitiateTransferCmd(
         String fromAccountId,
         String toAccountId,
         BigDecimal amount,
-        String currency,
-        BigDecimal availableBalance
+        String currency
 ) implements Command {
-
     public InitiateTransferCmd {
-        Objects.requireNonNull(transferId, "transferId required");
-        Objects.requireNonNull(fromAccountId, "fromAccountId required");
-        Objects.requireNonNull(toAccountId, "toAccountId required");
-        Objects.requireNonNull(amount, "amount required");
-        Objects.requireNonNull(currency, "currency required");
-        Objects.requireNonNull(availableBalance, "availableBalance required");
+        Objects.requireNonNull(transferId, "transferId cannot be null");
+        Objects.requireNonNull(fromAccountId, "fromAccountId cannot be null");
+        Objects.requireNonNull(toAccountId, "toAccountId cannot be null");
+        Objects.requireNonNull(amount, "amount cannot be null");
+        Objects.requireNonNull(currency, "currency cannot be null");
     }
 }

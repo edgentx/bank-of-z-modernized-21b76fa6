@@ -2,31 +2,32 @@ package com.example.domain.vforce360.model;
 
 import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
-import java.util.Map;
+import java.util.UUID;
 
 /**
- * Event emitted when a defect is reported.
- * Contains the GitHub URL and the Slack payload for validation.
+ * Domain event emitted when a defect is reported in the VForce360 system.
+ * Ideally immutable, following the DomainEvent contract.
  */
 public record DefectReportedEvent(
-    String defectId,
-    String title,
-    String githubUrl,
-    String slackBody,
-    Instant occurredAt
+        String aggregateId, // Project ID or similar aggregate identifier
+        String type,
+        Instant occurredAt,
+        String defectId,
+        String title,
+        String description,
+        String reporter,
+        String severity
 ) implements DomainEvent {
-    @Override
-    public String type() {
-        return "DefectReported";
-    }
-
-    @Override
-    public String aggregateId() {
-        return defectId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public DefectReportedEvent(String aggregateId, String title, String description, String reporter, String severity) {
+        this(
+                aggregateId,
+                "DefectReportedEvent",
+                Instant.now(),
+                UUID.randomUUID().toString(),
+                title,
+                description,
+                reporter,
+                severity
+        );
     }
 }

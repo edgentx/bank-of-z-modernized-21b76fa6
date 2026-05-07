@@ -8,14 +8,16 @@ import com.example.domain.shared.UnknownCommandException;
 import java.time.Instant;
 import java.util.List;
 
+/**
+ * ReconciliationBatch Aggregate
+ * Handles the logic for forcing a batch to a balanced state.
+ */
 public class ReconciliationBatch extends AggregateRoot {
 
     private final String batchId;
-    private Status status = Status.NONE;
+    private boolean balanced = false;
     private boolean previousBatchPending = false;
-    private boolean entriesMissing = false;
-
-    public enum Status { NONE, STARTED, BALANCED, FAILED }
+    private boolean entriesAccountedFor = false;
 
     public ReconciliationBatch(String batchId) {
         this.batchId = batchId;
@@ -35,64 +37,37 @@ public class ReconciliationBatch extends AggregateRoot {
     }
 
     private List<DomainEvent> forceBalance(ForceBalanceCmd cmd) {
-        // Validation 1: Batch Status
-        if (status != Status.STARTED) {
-            throw new IllegalStateException("Batch must be in STARTED state to force balance");
-        }
-
-        // Validation 2: Pending Batch (S-17 Scenario 2)
-        // "A reconciliation batch cannot be executed if a previous batch is still pending."
+        // Invariant: A reconciliation batch cannot be executed if a previous batch is still pending.
         if (previousBatchPending) {
-            throw new IllegalStateException("Cannot force balance: A previous batch is still pending.");
+            throw new IllegalStateException("Cannot force balance: previous batch is still pending.");
         }
 
-        // Validation 3: Missing Entries (S-17 Scenario 3)
-        // "All transaction entries must be accounted for during the reconciliation period."
-        if (entriesMissing) {
-            throw new IllegalArgumentException("Cannot force balance: Not all transaction entries are accounted for.");
+        // Invariant: All transaction entries must be accounted for during the reconciliation period.
+        if (!entriesAccountedFor) {
+            throw new IllegalStateException("Cannot force balance: transaction entries are not accounted for.");
         }
 
-        // Command Validations
-        if (cmd.operatorId() == null || cmd.operatorId().isBlank()) {
-            throw new IllegalArgumentException("operatorId is required");
-        }
-        if (cmd.justification() == null || cmd.justification().isBlank()) {
-            throw new IllegalArgumentException("justification is required");
+        if (balanced) {
+            throw new IllegalStateException("Batch is already balanced.");
         }
 
-        // Apply state change
-        var event = new ReconciliationBalancedEvent(
-            this.batchId,
-            cmd.operatorId(),
-            cmd.justification(),
-            Instant.now()
-        );
-
-        this.status = Status.BALANCED;
+        var event = new ReconciliationBalancedEvent(batchId, cmd.operatorId(), cmd.justification(), Instant.now());
+        this.balanced = true;
         addEvent(event);
         incrementVersion();
         return List.of(event);
     }
 
-    /**
-     * Test helper to simulate internal state checks.
-     * In a real implementation, this might be derived from a value object
-     * containing a summary of the transactions being reconciled.
-     */
-    public void simulatePendingConstraint(boolean isPending) {
-        this.previousBatchPending = isPending;
+    // State setters for testing
+    public void setPreviousBatchPending(boolean pending) {
+        this.previousBatchPending = pending;
     }
 
-    public void simulateMissingEntries(boolean isMissing) {
-        this.entriesMissing = isMissing;
+    public void setEntriesAccountedFor(boolean accounted) {
+        this.entriesAccountedFor = accounted;
     }
-
-    // Internal state mutation (simplified for BDD)
-    public void apply(ReconciliationStartedEvent event) {
-        this.status = Status.STARTED;
-    }
-
-    public Status getStatus() {
-        return status;
+    
+    public boolean isBalanced() {
+        return balanced;
     }
 }

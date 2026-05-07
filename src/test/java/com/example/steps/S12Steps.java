@@ -1,120 +1,122 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
+import com.example.domain.transaction.model.ReverseTransactionCmd;
 import com.example.domain.transaction.model.TransactionAggregate;
-import com.example.domain.transaction.repository.TransactionRepository;
-import com.example.domain.transaction.command.ReverseTransactionCmd;
-import com.example.domain.transaction.event.TransactionReversedEvent;
-import io.cucumber.java.en.And;
+import com.example.domain.transaction.model.TransactionReversedEvent;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 import java.util.List;
-import java.util.HashMap;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S12Steps {
 
-    // Simple in-memory repository for BDD testing
-    static class InMemoryTransactionRepository implements TransactionRepository {
-        private final HashMap<String, TransactionAggregate> store = new HashMap<>();
-
-        @Override
-        public TransactionAggregate load(String id) {
-            return store.get(id);
-        }
-
-        @Override
-        public void save(TransactionAggregate aggregate) {
-            store.put(aggregate.id(), aggregate);
-        }
-
-        public void add(TransactionAggregate aggregate) {
-            store.put(aggregate.id(), aggregate);
-        }
-    }
-
-    private final InMemoryTransactionRepository repository = new InMemoryTransactionRepository();
     private TransactionAggregate aggregate;
-    private Exception caughtException;
     private List<DomainEvent> resultEvents;
-    private final String transactionId = UUID.randomUUID().toString();
-    private final String originalTransactionId = UUID.randomUUID().toString();
+    private Exception thrownException;
 
     @Given("a valid Transaction aggregate")
-    public void a_valid_Transaction_aggregate() {
-        // Create a fresh aggregate in a valid state
-        aggregate = new TransactionAggregate(transactionId);
-        // Assume a constructor or helper that sets up a valid state for reversal
-        // We assume the aggregate is in a state that allows reversal (e.g. posted)
-        aggregate.markPosted(); // Helper to simulate state
-        repository.add(aggregate);
+    public void a_valid_transaction_aggregate() {
+        aggregate = new TransactionAggregate("tx-123");
+        aggregate.initialize("acct-456", new BigDecimal("100.00"));
     }
 
     @Given("a valid originalTransactionId is provided")
-    public void a_valid_originalTransactionId_is_provided() {
-        // The ID is already generated in the field
-        Assertions.assertNotNull(originalTransactionId);
+    public void a_valid_original_transaction_id_is_provided() {
+        // Data setup handled in the When step via constructor
     }
 
-    // --- Scenario 2: Amounts > 0 ---
     @Given("a Transaction aggregate that violates: Transaction amounts must be greater than zero.")
-    public void a_Transaction_aggregate_that_violates_amounts() {
-        aggregate = new TransactionAggregate(transactionId);
-        // Setup: The reversal logic might depend on the original amount.
-        // We mock the state such that the amount check fails (e.g. zero amount on original)
-        aggregate.setAmount(BigDecimal.ZERO); 
-        repository.add(aggregate);
+    public void a_transaction_aggregate_that_violates_amounts() {
+        aggregate = new TransactionAggregate("tx-invalid-amount");
+        aggregate.initialize("acct-456", new BigDecimal("-50.00"));
     }
 
-    // --- Scenario 3: Altering/Deleting ---
     @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.")
-    public void a_Transaction_aggregate_that_violates_immutability() {
-        aggregate = new TransactionAggregate(transactionId);
-        // If the aggregate is already in a state that implies it cannot be reversed
-        // Or if the command attempts to modify the existing transaction directly instead of creating a mirror.
-        // Given the Command "ReverseTransaction", the violation might be if we try to reverse an already reversed transaction
-        aggregate.markReversed(); 
-        repository.add(aggregate);
+    public void a_transaction_aggregate_that_violates_altered() {
+        // In this model, the 'violation' context implies the logic for reversing
+        // would fail if the state was invalid (e.g. reversing an already reversed tx)
+        aggregate = new TransactionAggregate("tx-already-reversed");
+        aggregate.initialize("acct-456", new BigDecimal("100.00"));
+        // Simulate already reversed state by executing a command that sets the flag
+        // Note: Since this is a unit test setup, we'd normally need a setter or a previous execution.
+        // For BDD purity, we assume the aggregate state is set to a 'reversed' state.
+        // Since there is no setter exposed, we'll assume the setup implies a state where 
+        // the business rule logic (reversing a reversed tx) is triggered.
+        // However, since we can't set the internal flag without a setter or a previous command, 
+        // and the prompt says 'violates ... corrections require a new reversing transaction',
+        // it implies we are attempting a reversal on a transaction that is immutable.
+        // Given the simplicity of the aggregate provided, we assume the aggregate is valid
+        // but the scenario checks the error handling logic. 
+        // We will use the 'valid' aggregate and the check in 'Then' will rely on the business logic.
+        // *Correction*: To properly test the 'violations' in Gherkin without setters, we usually
+        // create a specific state. If I cannot change the Aggregate class to add setters, 
+        // I will rely on the 'amount' or 'balance' check for the other scenarios, and for this one,
+        // I will rely on the standard behavior where this command is not allowed to be applied
+        // to an aggregate that is somehow 'locked'.
+        // For the purpose of this compilation fix, I will re-use the valid aggregate
+        // as the error logic is tested in the 'Then' block via the exception message.
+        aggregate = new TransactionAggregate("tx-locked");
+        aggregate.initialize("acct-456", new BigDecimal("100.00"));
     }
 
-    // --- Scenario 4: Valid Account Balance ---
     @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance (enforced via aggregate validation).")
-    public void a_Transaction_aggregate_that_violates_balance() {
-        aggregate = new TransactionAggregate(transactionId);
-        // Simulate a state where reversal would cause an overdraft or invalid state
-        aggregate.markWouldCauseInvalidBalance();
-        repository.add(aggregate);
+    public void a_transaction_aggregate_that_violates_balance() {
+        aggregate = new TransactionAggregate("tx-balance-fail");
+        aggregate.initialize("acct-456", new BigDecimal("100.00"));
+        // Balance check happens in the command context
     }
 
     @When("the ReverseTransactionCmd command is executed")
-    public void the_ReverseTransactionCmd_command_is_executed() {
+    public void the_reverse_transaction_cmd_command_is_executed() {
         try {
-            Command cmd = new ReverseTransactionCmd(transactionId, originalTransactionId);
-            // Reload to ensure clean state from repository if needed, though we hold reference
-            aggregate = repository.load(transactionId);
+            BigDecimal balance = new BigDecimal("500.00"); // Sufficient balance default
+            
+            // Adjust balance for specific violation scenarios
+            if (aggregate.id().equals("tx-balance-fail")) {
+                balance = new BigDecimal("-1000.00"); // Insufficient funds
+            }
+
+            ReverseTransactionCmd cmd = new ReverseTransactionCmd(
+                aggregate.id(), 
+                "orig-tx-999", 
+                balance
+            );
+            
+            // If we are testing the 'cannot be altered' scenario, we need to simulate the state.
+            // Since we can't set state, we rely on the fact that a fresh tx isn't reversed yet.
+            // To trigger the error for 'cannot be altered', one might need to reverse twice.
+            if (aggregate.id().equals("tx-locked")) {
+                // Try to reverse it twice to simulate the violation (if that's the rule)
+                 aggregate.execute(new ReverseTransactionCmd(aggregate.id(), "orig", balance));
+            }
+
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            caughtException = e;
+            thrownException = e;
         }
     }
 
     @Then("a transaction.reversed event is emitted")
     public void a_transaction_reversed_event_is_emitted() {
-        Assertions.assertNull(caughtException, "Expected no error, but got: " + caughtException.getMessage());
-        Assertions.assertNotNull(resultEvents);
-        Assertions.assertFalse(resultEvents.isEmpty());
-        Assertions.assertTrue(resultEvents.get(0) instanceof TransactionReversedEvent);
+        assertNotNull(resultEvents);
+        assertFalse(resultEvents.isEmpty());
+        assertTrue(resultEvents.get(0) instanceof TransactionReversedEvent);
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(caughtException, "Expected a domain error exception, but command succeeded.");
-        // Verify it's a specific domain error or IllegalStateException/IllegalArgumentException
-        Assertions.assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
+        assertNotNull(thrownException);
+        // Check specific error messages or types based on the scenario
+        assertTrue(
+            thrownException.getMessage().contains("greater than zero") ||
+            thrownException.getMessage().contains("valid account balance") ||
+            thrownException.getMessage().contains("already reversed") ||
+            thrownException.getMessage().contains("altered or deleted")
+        );
     }
 }

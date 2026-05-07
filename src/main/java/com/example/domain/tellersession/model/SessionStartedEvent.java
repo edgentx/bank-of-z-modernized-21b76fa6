@@ -7,7 +7,6 @@ import java.util.UUID;
 
 /**
  * Domain event emitted when a teller session is successfully started.
- * Story S-18.
  */
 public record SessionStartedEvent(
         String aggregateId,
@@ -15,14 +14,12 @@ public record SessionStartedEvent(
         String terminalId,
         Instant occurredAt
 ) implements DomainEvent {
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId) {
+        this(aggregateId, tellerId, terminalId, Instant.now());
+    }
 
     @Override
     public String type() {
         return "session.started";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
     }
 }

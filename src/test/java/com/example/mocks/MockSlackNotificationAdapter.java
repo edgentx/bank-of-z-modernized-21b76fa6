@@ -1,34 +1,20 @@
 package com.example.mocks;
 
-import com.example.ports.SlackNotificationPort;
-
 /**
- * Mock adapter for SlackNotificationPort.
- * Captures message payloads for assertion in tests.
+ * In-memory mock implementation of the Slack port.
  */
-public class MockSlackNotificationAdapter implements SlackNotificationPort {
-
-    private boolean notifyCalled = false;
-    private String capturedChannel;
-    private String capturedBody;
+public class MockSlackNotificationAdapter implements MockSlackNotificationPort {
+    private String lastBody;
 
     @Override
-    public void postMessage(String channel, String body) {
-        this.notifyCalled = true;
-        this.capturedChannel = channel;
-        this.capturedBody = body;
+    public void sendNotification(String channel, String body) {
+        this.lastBody = body;
+        // System.out.println("[MockSlack] Sent to " + channel + ": " + body);
     }
 
-    // Test inspection methods
-    public boolean wasNotifyCalled() {
-        return notifyCalled;
-    }
-
-    public String getCapturedBody() {
-        return capturedBody;
-    }
-
-    public String getCapturedChannel() {
-        return capturedChannel;
+    @Override
+    public boolean lastBodyContains(String text) {
+        if (lastBody == null) return false;
+        return lastBody.contains(text);
     }
 }

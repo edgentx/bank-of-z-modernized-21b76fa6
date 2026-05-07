@@ -3,22 +3,19 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
-    <groupId>com.example</groupId>
-    <artifactId>egdcrypto-bank-of-z-modernized</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-    <packaging>jar</packaging>
-
-    <name>Bank of Z Modernization</name>
-    <description>Domain-Driven Design implementation for Bank of Z</description>
-
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.2.0</version>
         <relativePath/>
     </parent>
-
+    
+    <groupId>com.example</groupId>
+    <artifactId>egdcrypto-bank-of-z-modernized</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <name>BANK OF Z MODERNIZED</name>
+    <description>Domain-Driven Design implementation for Bank of Z</description>
+    
     <properties>
         <java.version>17</java.version>
         <cucumber.version>7.14.0</cucumber.version>
@@ -32,23 +29,26 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.ibm.db2</groupId>
+            <artifactId>jcc</artifactId>
+            <scope>runtime</scope>
         </dependency>
         
-        <!-- Domain Shared (Local) -->
+        <!-- Testing Dependencies -->
         <dependency>
-            <groupId>com.example</groupId>
-            <artifactId>domain-shared</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/../domain-shared/target/domain-shared-1.0.0-SNAPSHOT.jar</systemPath>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
-
-        <!-- Cucumber -->
+        
+        <!-- Cucumber Dependencies -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
@@ -66,39 +66,20 @@
             <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
-        
-        <!-- Testing -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <source>17</source>
                     <target>17</target>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <properties>
-                        <configurationParameters>
-                            cucumber.junit-platform.naming-strategy=long
-                        </configurationParameters>
-                    </properties>
                 </configuration>
             </plugin>
         </plugins>

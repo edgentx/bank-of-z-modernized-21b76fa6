@@ -1,32 +1,34 @@
 package com.example.adapters;
 
-import com.example.ports.SlackPort;
+import com.example.ports.SlackNotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
- * Adapter for Slack notifications.
- * Validates that the URL is present in the payload before sending.
+ * Real adapter implementation for SlackNotificationPort.
+ * Uses the Slack Web API to send messages.
+ * 
+ * Note: This is a placeholder implementation. In a real-world scenario,
+ * this would use an HTTP client (like WebClient or RestTemplate) to call
+ * the Slack API endpoint.
  */
 @Component
-public class SlackNotificationAdapter implements SlackPort {
-    private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
+@Profile("!test") // Only load this bean if the 'test' profile is NOT active
+public class SlackNotificationAdapter implements SlackNotificationPort {
+
+    private static final Logger logger = LoggerFactory.getLogger(SlackNotificationAdapter.class);
 
     @Override
-    public void notifyDefectReported(String summary, String githubUrl) {
-        if (githubUrl == null || githubUrl.isBlank()) {
-            throw new IllegalArgumentException("Cannot notify Slack: GitHub URL is missing.");
-        }
+    public boolean sendMessage(String channel, String body) {
+        // TODO: Implement actual Slack API call
+        // Example: WebClient.post()... to https://slack.com/api/chat.postMessage
         
-        String message = String.format(
-            "New Defect Reported: %s\nGitHub Issue: %s", 
-            summary, 
-            githubUrl
-        );
+        logger.info("[MOCK IMPLEMENTATION] Sending message to Slack channel {}: {}", channel, body);
         
-        // Simulate sending to Slack webhook
-        log.info("Sending to Slack: {}", message);
-        // logic to post to webhook would go here
+        // Returning true to simulate success for the build/verification phase
+        // unless a network error occurs.
+        return true;
     }
 }

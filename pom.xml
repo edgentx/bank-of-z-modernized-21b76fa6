@@ -28,7 +28,7 @@
             <scope>test</scope>
         </dependency>
         
-        <!-- CommonMark (Markdown Parser) - Adding to support the implementation later -->
+        <!-- CommonMark (Markdown Parser) -->
         <dependency>
             <groupId>org.commonmark</groupId>
             <artifactId>commonmark</artifactId>

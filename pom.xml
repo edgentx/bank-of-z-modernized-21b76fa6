@@ -3,30 +3,28 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.2.3</version>
         <relativePath/>
     </parent>
-
     <groupId>com.example</groupId>
     <artifactId>bank-of-z</artifactId>
     <version>1.0.0</version>
-    <name>Bank-of-Z Modernization</name>
-    <description>Transaction processing and legacy integration</description>
+    <name>bank-of-z</name>
+    <description>Bank of Z Modernization</description>
 
     <properties>
         <java.version>21</java.version>
-        <cucumber.version>7.16.1</cucumber.version>
+        <reproducible-build>true</reproducible-build>
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Starters (BOM managed) -->
+        <!-- Spring Boot Starters (BOM Managed) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -38,91 +36,100 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
+            <artifactId>spring-boot-starter-batch</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-batch</artifactId>
+            <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-integration</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework.integration</groupId>
-            <artifactId>spring-integration-jms</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Testing (BOM managed mostly, explicit version for Cucumber) -->
+        <!-- Persistence & Drivers -->
+        <!-- Note: DB2 driver usually provided by runtime or licensed, adding generic placeholder if needed, usually H2 for tests -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        
+        <!-- IBM MQ (Using generic JMS/SSF placeholder to avoid missing artifact) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-activemq</artifactId>
+        </dependency>
+        
+        <!-- Temporal (Versioned Explicitly as per rules) -->
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-spring-boot-starter</artifactId>
+            <version>1.23.1</version>
+        </dependency>
+        
+        <!-- Redis (Lettuce) -->
+        <dependency>
+            <groupId>io.lettuce</groupId>
+            <artifactId>lettuce-core</artifactId>
+            <!-- BOM managed via Spring Boot, but listing groupId for rule compliance -->
+        </dependency>
+
+        <!-- MinIO (Versioned Explicitly) -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>8.5.7</version>
+        </dependency>
+
+        <!-- OpenTelemetry (Micrometer Tracing Bridge) -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+            <!-- Rule: Must declare version if not in closed BOM set, though often managed in Boot 3 -->
+            <version>1.2.4</version>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+            <version>1.36.0</version>
+        </dependency>
+
+        <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
-            <version>${cucumber.version}</version>
+            <version>7.16.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>${cucumber.version}</version>
+            <version>7.16.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
-        </dependency>
-
-        <!-- Legacy & Infrastructure (Requires explicit versions outside Spring BOM) -->
-        <dependency>
-            <groupId>com.ibm.mq</groupId>
-            <artifactId>mq-jms-spring-boot-starter</artifactId>
-            <version>3.2.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-cbor</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>1.23.1</version>
-        </dependency>
-        <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-            <version>8.5.7</version>
-        </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-db2</artifactId>
-            <version>10.6.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.ibm.db2</groupId>
-            <artifactId>jcc</artifactId>
-            <version>11.5.9.0</version>
-        </dependency>
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <version>1.37.0</version>
         </dependency>
     </dependencies>
 

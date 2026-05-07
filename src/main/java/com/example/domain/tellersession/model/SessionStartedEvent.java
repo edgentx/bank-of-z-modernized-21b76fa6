@@ -9,25 +9,28 @@ public record SessionStartedEvent(
         String aggregateId,
         String tellerId,
         String terminalId,
-        Instant occurredAt,
-        String stateId
+        Instant occurredAt
 ) implements DomainEvent {
-    public SessionStartedEvent {
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
-    }
 
-    public static SessionStartedEvent create(String aggregateId, String tellerId, String terminalId) {
-        return new SessionStartedEvent(
-                aggregateId,
-                tellerId,
-                terminalId,
-                Instant.now(),
-                UUID.randomUUID().toString()
-        );
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.tellerId = tellerId;
+        this.terminalId = terminalId;
+        this.occurredAt = occurredAt;
     }
 
     @Override
     public String type() {
         return "session.started";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

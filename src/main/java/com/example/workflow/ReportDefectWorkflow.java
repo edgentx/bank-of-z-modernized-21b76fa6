@@ -24,12 +24,10 @@ public class ReportDefectWorkflow {
         String url = gitHubService.createIssue(cmd);
 
         // Step 2: Notify Slack with the URL
-        // We construct a synthetic event here for notification purposes
         var event = new com.example.domain.defect.model.DefectReportedEvent(
             cmd.defectId(), cmd.title(), java.time.Instant.now()
         );
-        
-        // In the defect scenario, we must ensure the URL is passed correctly
+
         slackService.notifyDefect(event, url);
     }
 }

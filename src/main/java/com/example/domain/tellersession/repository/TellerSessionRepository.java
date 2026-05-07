@@ -1,8 +1,8 @@
 package com.example.domain.tellersession.repository;
 
-import com.example.domain.tellersession.model.TellerSession;
+import com.example.domain.tellersession.model.TellerSessionAggregate;
 
 public interface TellerSessionRepository {
-    TellerSession save(TellerSession aggregate);
-    TellerSession load(String id);
+    void save(TellerSessionAggregate aggregate);
+    TellerSessionAggregate load(String id);
 }

@@ -1,17 +1,16 @@
 package com.example.domain.vforce360.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Event emitted when a defect is successfully reported.
- */
 public record DefectReportedEvent(
-        String event_Id,
-        String defectId,
+        String aggregateId,
         String title,
-        String slackNotificationBody,
+        String severity,
+        String component,
+        String githubUrl,
         Instant occurredAt
 ) implements DomainEvent {
     @Override
@@ -21,7 +20,7 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return defectId;
+        return aggregateId;
     }
 
     @Override

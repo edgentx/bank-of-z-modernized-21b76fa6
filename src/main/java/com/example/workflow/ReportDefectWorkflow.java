@@ -1,33 +1,18 @@
 package com.example.workflow;
 
-import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.infrastructure.github.GitHubIssueService;
-import com.example.infrastructure.slack.SlackNotificationService;
-import org.springframework.stereotype.Component;
+import java.net.URI;
 
 /**
- * Orchestrator for the Report Defect process (Temporal-like workflow).
+ * Workflow interface for reporting defects.
  */
-@Component
-public class ReportDefectWorkflow {
+public interface ReportDefectWorkflow {
 
-    private final GitHubIssueService gitHubService;
-    private final SlackNotificationService slackService;
-
-    public ReportDefectWorkflow(GitHubIssueService gitHubService, SlackNotificationService slackService) {
-        this.gitHubService = gitHubService;
-        this.slackService = slackService;
-    }
-
-    public void execute(ReportDefectCmd cmd) {
-        // Step 1: Create GitHub Issue
-        String url = gitHubService.createIssue(cmd);
-
-        // Step 2: Notify Slack with the URL
-        var event = new com.example.domain.defect.model.DefectReportedEvent(
-            cmd.defectId(), cmd.title(), java.time.Instant.now()
-        );
-
-        slackService.notifyDefect(event, url);
-    }
+    /**
+     * Executes the report_defect workflow.
+     * Creates a GitHub issue and then sends a Slack notification.
+     *
+     * @param defectId The ID of the defect (e.g. VW-454)
+     * @param message  The validation error message
+     */
+    void execute(String defectId, String message);
 }

@@ -6,34 +6,29 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event emitted when a teller session is terminated.
- * ID: S-20
+ * Event emitted when a teller session is ended.
+ * Part of S-20: EndSessionCmd on TellerSession.
  */
 public record SessionEndedEvent(
+        String eventId,
         String aggregateId,
-        String tellerId,
-        String reason,
         Instant occurredAt
 ) implements DomainEvent {
-
     public SessionEndedEvent {
-        // Basic validation
-        if (aggregateId == null || aggregateId.isBlank()) throw new IllegalArgumentException("aggregateId required");
-        if (occurredAt == null) occurredAt = Instant.now();
+        if (eventId == null || eventId.isBlank()) {
+            eventId = UUID.randomUUID().toString();
+        }
+        if (occurredAt == null) {
+            occurredAt = Instant.now();
+        }
+    }
+
+    public SessionEndedEvent(String aggregateId) {
+        this(UUID.randomUUID().toString(), aggregateId, Instant.now());
     }
 
     @Override
     public String type() {
         return "session.ended";
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
     }
 }

@@ -6,14 +6,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event emitted when a Teller session is successfully started.
- * Used by: S-18 (StartSessionCmd)
+ * Event emitted when a teller successfully starts a session.
  */
 public record SessionStartedEvent(
-    String aggregateId,
-    String tellerId,
-    String terminalId,
-    Instant occurredAt
+        String aggregateId,
+        String tellerId,
+        String terminalId,
+        Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
@@ -21,12 +20,12 @@ public record SessionStartedEvent(
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId();
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return occurredAt();
     }
 }

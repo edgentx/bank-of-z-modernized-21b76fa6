@@ -1,6 +1,5 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.teller.model.SessionStartedEvent;
 import com.example.domain.teller.model.StartSessionCmd;
@@ -9,42 +8,53 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
+import java.time.Instant;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Cucumber Steps for S-18: Teller Session Start Feature.
+ */
 public class S18Steps {
 
+    // Test Context
     private TellerSessionAggregate aggregate;
-    private Command command;
-    private List<DomainEvent> resultingEvents;
+    private StartSessionCmd command;
+    private List<DomainEvent> resultEvents;
     private Exception caughtException;
 
+    // Constants
+    private static final String VALID_SESSION_ID = "session-123";
+    private static final String VALID_TELLER_ID = "teller-001";
+    private static final String VALID_TERMINAL_ID = "term-01";
+
     @Given("a valid TellerSession aggregate")
-    public void a_valid_teller_session_aggregate() {
-        aggregate = new TellerSessionAggregate("session-123");
-        aggregate.markAsAuthenticated(); // Assume authenticated for valid case
+    public void a_valid_TellerSession_aggregate() {
+        aggregate = new TellerSessionAggregate(VALID_SESSION_ID);
+        // Default valid state: Authenticated, IDLE, Valid Context
+        aggregate.markAuthenticated(true);
+        aggregate.setState(TellerSessionAggregate.SessionState.IDLE);
+        aggregate.setNavigationContext("HOME");
+        aggregate.setLastActivityAt(Instant.now());
     }
 
     @And("a valid tellerId is provided")
-    public void a_valid_teller_id_is_provided() {
-        // Teller ID is part of the command construction, handled in 'When'
+    public void a_valid_tellerId_is_provided() {
+        // Handled in @When block construction
     }
 
     @And("a valid terminalId is provided")
-    public void a_valid_terminal_id_is_provided() {
-        // Terminal ID is part of the command construction, handled in 'When'
+    public void a_valid_terminalId_is_provided() {
+        // Handled in @When block construction
     }
 
     @When("the StartSessionCmd command is executed")
-    public void the_start_session_cmd_command_is_executed() {
-        // Default to valid data if not set by specific violation context
-        String tellerId = "teller-1";
-        String terminalId = "TERM-01";
-        command = new StartSessionCmd(tellerId, terminalId);
-        
+    public void the_StartSessionCmd_command_is_executed() {
         try {
-            resultingEvents = aggregate.execute(command);
+            command = new StartSessionCmd(VALID_SESSION_ID, VALID_TELLER_ID, VALID_TERMINAL_ID);
+            resultEvents = aggregate.execute(command);
         } catch (Exception e) {
             caughtException = e;
         }
@@ -52,63 +62,48 @@ public class S18Steps {
 
     @Then("a session.started event is emitted")
     public void a_session_started_event_is_emitted() {
-        Assertions.assertNotNull(resultingEvents);
-        Assertions.assertFalse(resultingEvents.isEmpty());
-        Assertions.assertTrue(resultingEvents.get(0) instanceof SessionStartedEvent);
-        Assertions.assertEquals("session.started", resultingEvents.get(0).type());
+        assertNotNull(resultEvents, "Events should not be null");
+        assertEquals(1, resultEvents.size(), "One event should be emitted");
+        
+        DomainEvent event = resultEvents.get(0);
+        assertTrue(event instanceof SessionStartedEvent, "Event should be SessionStartedEvent");
+        
+        SessionStartedEvent startedEvent = (SessionStartedEvent) event;
+        assertEquals("session.started", startedEvent.type());
+        assertEquals(VALID_TELLER_ID, startedEvent.tellerId());
+        assertEquals(VALID_TERMINAL_ID, startedEvent.terminalId());
     }
 
+    // --- Negative Scenarios ---
+
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_teller_session_aggregate_that_violates_authentication() {
-        aggregate = new TellerSessionAggregate("session-401");
-        aggregate.markAsUnauthenticated();
+    public void a_TellerSession_aggregate_that_violates_authentication() {
+        aggregate = new TellerSessionAggregate(VALID_SESSION_ID);
+        aggregate.markAuthenticated(false); // Violation
+        aggregate.setState(TellerSessionAggregate.SessionState.IDLE);
+        aggregate.setNavigationContext("HOME");
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_teller_session_aggregate_that_violates_timeout() {
-        aggregate = new TellerSessionAggregate("session-timeout");
-        aggregate.markAsAuthenticated();
-        aggregate.markAsStale(); // Helper method in aggregate to simulate old timestamp
+    public void a_TellerSession_aggregate_that_violates_timeout() {
+        aggregate = new TellerSessionAggregate(VALID_SESSION_ID);
+        aggregate.markAuthenticated(true);
+        aggregate.setState(TellerSessionAggregate.SessionState.TIMED_OUT); // Violation
+        aggregate.setNavigationContext("HOME");
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_teller_session_aggregate_that_violates_nav_state() {
-        aggregate = new TellerSessionAggregate("session-nav-error");
-        aggregate.markAsAuthenticated();
-    }
-
-    // Override the When step for the negative case to trigger the violation logic if needed,
-    // or rely on the aggregate state setup above.
-    // For the Navigation state violation, we need to send a BAD terminalId in the command.
-    @When("the StartSessionCmd command is executed with invalid context")
-    public void the_start_session_cmd_command_is_executed_with_invalid_context() {
-        // Use a terminal ID that violates the validation rule (e.g., not TERM-*)
-        command = new StartSessionCmd("teller-1", "INVALID-TERM");
-        try {
-            resultingEvents = aggregate.execute(command);
-        } catch (Exception e) {
-            caughtException = e;
-        }
-    }
-
-    // Cucumber will match this regex to the scenario steps
-    @When("the StartSessionCmd command is executed")
-    public void the_start_session_cmd_command_is_executed_generic() {
-        // Re-use standard execution logic for other failures (Auth, Timeout)
-        // But for the specific "Navigation state" scenario, Cucumber might pick the wrong one if we aren't careful.
-        // However, based on the scenarios provided:
-        // "Navigation state..." -> uses specific invalid context step.
-        // The rest use standard execution.
-        
-        // If we are in the Nav state scenario, the command was already created in the specific When hook.
-        // But Cucumber hooks execute in order.
-        // Let's unify: The default When handles Auth and Timeout because they rely on AGGREGATE state.
-        // The Nav scenario relies on COMMAND state.
+    public void a_TellerSession_aggregate_that_violates_navigation_state() {
+        aggregate = new TellerSessionAggregate(VALID_SESSION_ID);
+        aggregate.markAuthenticated(true);
+        aggregate.setState(TellerSessionAggregate.SessionState.ERROR); // Violation context mismatch
+        aggregate.setNavigationContext("INVALID_CONTEXT");
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(caughtException);
-        Assertions.assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
+        assertNotNull(caughtException, "Exception should have been thrown");
+        assertTrue(caughtException instanceof IllegalStateException, "Exception should be IllegalStateException (Domain Error)");
+        assertFalse(caughtException.getMessage().isBlank(), "Exception message should not be blank");
     }
 }

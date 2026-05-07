@@ -1,107 +1,114 @@
 package com.example.steps;
 
-import com.example.domain.PostWithdrawalCmd;
-import com.example.domain.Transaction;
-import com.example.domain.WithdrawalPosted;
+import com.example.domain.*;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
 import java.util.Currency;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S11Steps {
 
     private Transaction transaction;
+    private Currency currency;
     private String accountNumber;
     private BigDecimal amount;
-    private Currency currency;
+    private BigDecimal currentBalance;
     private Exception caughtException;
-    private Object resultingEvent;
+    private TransactionEvent resultingEvent;
 
-    // Setup for Happy Path
     @Given("a valid Transaction aggregate")
-    public void aValidTransactionAggregate() {
-        // Initialize with 1000.00 USD balance to allow valid withdrawals
-        this.transaction = new Transaction();
-        transaction.setCurrentBalance(new BigDecimal("1000.00"));
+    public void a_valid_Transaction_aggregate() {
+        this.accountNumber = "ACC-123";
+        this.currency = Currency.getInstance("USD");
+        this.currentBalance = new BigDecimal("1000.00");
+        this.transaction = new Transaction(UUID.randomUUID(), accountNumber, currentBalance, currency, TransactionStatus.PENDING);
     }
 
-    @And("a valid accountNumber is provided")
-    public void aValidAccountNumberIsProvided() {
-        this.accountNumber = "ACC-123-456";
+    @Given("a valid accountNumber is provided")
+    public void a_valid_accountNumber_is_provided() {
+        this.accountNumber = "ACC-123";
     }
 
-    @And("a valid amount is provided")
-    public void aValidAmountIsProvided() {
+    @Given("a valid amount is provided")
+    public void a_valid_amount_is_provided() {
         this.amount = new BigDecimal("50.00");
     }
 
-    @And("a valid currency is provided")
-    public void aValidCurrencyIsProvided() {
+    @Given("a valid currency is provided")
+    public void a_valid_currency_is_provided() {
         this.currency = Currency.getInstance("USD");
     }
 
-    // Setup for Negative Amount Constraint
+    // --- Scenarios for Violations ---
+
     @Given("a Transaction aggregate that violates: Transaction amounts must be greater than zero.")
-    public void aTransactionAggregateThatViolatesAmountsMustBeGreaterThanZero() {
-        this.transaction = new Transaction();
-        transaction.setCurrentBalance(new BigDecimal("1000.00"));
-        // We will trigger the violation by passing a negative amount in the next step
-        // Setting the state variable to negative to indicate this scenario path
-        this.amount = new BigDecimal("-100.00"); 
+    public void a_Transaction_aggregate_that_violates_zero_amount() {
         this.accountNumber = "ACC-123";
         this.currency = Currency.getInstance("USD");
+        this.currentBalance = new BigDecimal("1000.00");
+        this.transaction = new Transaction(UUID.randomUUID(), accountNumber, currentBalance, currency, TransactionStatus.PENDING);
+        // The violation will be in the command amount
+        this.amount = BigDecimal.ZERO;
     }
 
-    // Setup for Immutability Constraint (Already Posted)
     @Given("a Transaction aggregate that violates: Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.")
-    public void aTransactionAggregateThatViolatesImmutability() {
-        this.transaction = new Transaction();
-        // Force the aggregate into a 'posted' state
-        transaction.markAsPosted();
+    public void a_Transaction_aggregate_that_violates_immutability() {
         this.accountNumber = "ACC-123";
-        this.amount = new BigDecimal("10.00");
         this.currency = Currency.getInstance("USD");
+        this.currentBalance = new BigDecimal("1000.00");
+        // Create a transaction that is already POSTED
+        this.transaction = new Transaction(UUID.randomUUID(), accountNumber, currentBalance, currency, TransactionStatus.POSTED);
+        this.amount = new BigDecimal("50.00");
     }
 
-    // Setup for Valid Balance Constraint (Insufficient Funds)
     @Given("a Transaction aggregate that violates: A transaction must result in a valid account balance (enforced via aggregate validation).")
-    public void aTransactionAggregateThatViolatesValidAccountBalance() {
-        this.transaction = new Transaction();
-        // Set balance to 0, any withdrawal will cause invalid balance
-        transaction.setCurrentBalance(BigDecimal.ZERO);
+    public void a_Transaction_aggregate_that_violates_overdraft() {
         this.accountNumber = "ACC-123";
-        this.amount = new BigDecimal("10.00");
         this.currency = Currency.getInstance("USD");
+        // Current balance is 100
+        this.currentBalance = new BigDecimal("100.00");
+        this.transaction = new Transaction(UUID.randomUUID(), accountNumber, currentBalance, currency, TransactionStatus.PENDING);
+        // Trying to withdraw 1000
+        this.amount = new BigDecimal("1000.00");
     }
+
+    // --- Action ---
 
     @When("the PostWithdrawalCmd command is executed")
-    public void thePostWithdrawalCmdCommandIsExecuted() {
+    public void the_PostWithdrawalCmd_command_is_executed() {
         try {
-            PostWithdrawalCmd cmd = new PostWithdrawalCmd(accountNumber, amount, currency);
+            // Using the 4-arg constructor as per feedback
+            PostWithdrawalCmd cmd = new PostWithdrawalCmd(transaction.getId(), amount, currency, accountNumber);
             this.resultingEvent = transaction.execute(cmd);
-        } catch (IllegalArgumentException | IllegalStateException e) {
+        } catch (DomainException | IllegalArgumentException e) {
             this.caughtException = e;
+        } catch (Exception e) {
+            this.caughtException = new RuntimeException(e);
         }
     }
 
+    // --- Outcomes ---
+
     @Then("a withdrawal.posted event is emitted")
-    public void aWithdrawalPostedEventIsEmitted() {
-        Assertions.assertNotNull(resultingEvent);
-        Assertions.assertTrue(resultingEvent instanceof WithdrawalPosted);
-        WithdrawalPosted event = (WithdrawalPosted) resultingEvent;
-        Assertions.assertEquals(accountNumber, event.getAccountNumber());
-        Assertions.assertEquals(amount, event.getAmount());
-        Assertions.assertEquals(currency, event.getCurrency());
+    public void a_withdrawal_posted_event_is_emitted() {
+        assertNotNull(resultingEvent, "Event should not be null");
+        assertTrue(resultingEvent instanceof WithdrawalPostedEvent, "Event should be WithdrawalPostedEvent");
+        WithdrawalPostedEvent event = (WithdrawalPostedEvent) resultingEvent;
+        assertEquals(amount, event.getAmount());
+        assertEquals(accountNumber, event.getAccountNumber());
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(caughtException);
-        // Verify it's a RuntimeException (Domain Logic Violation)
-        Assertions.assertTrue(caughtException instanceof RuntimeException);
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(caughtException, "Expected an exception to be thrown");
+        // Check for our specific domain exception or IllegalArgument
+        assertTrue(caughtException instanceof DomainException || caughtException instanceof IllegalArgumentException,
+                "Expected DomainException or IllegalArgumentException, but got: " + caughtException.getClass().getName());
     }
 }

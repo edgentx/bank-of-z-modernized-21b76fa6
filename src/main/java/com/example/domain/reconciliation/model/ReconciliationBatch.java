@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * ReconciliationBatch Aggregate
- * Handles the logic for forcing a batch to a balanced state and starting the reconciliation process.
+ * Handles the logic for starting and forcing a batch to a balanced state.
  */
 public class ReconciliationBatch extends AggregateRoot {
     private final String batchId;
@@ -19,7 +19,7 @@ public class ReconciliationBatch extends AggregateRoot {
     private boolean areAllEntriesAccounted = true;
 
     public enum Status {
-        OPEN, BALANCED, CLOSED, STARTED, IN_PROGRESS
+        OPEN, BALANCED, CLOSED, STARTED
     }
 
     public ReconciliationBatch(String batchId) {
@@ -33,11 +33,11 @@ public class ReconciliationBatch extends AggregateRoot {
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof ForceBalanceCmd c) {
-            return forceBalance(c);
-        }
         if (cmd instanceof StartReconciliationCmd c) {
             return startReconciliation(c);
+        }
+        if (cmd instanceof ForceBalanceCmd c) {
+            return forceBalance(c);
         }
         throw new UnknownCommandException(cmd);
     }
@@ -53,20 +53,20 @@ public class ReconciliationBatch extends AggregateRoot {
             throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
         }
 
-        // Invariant: Only Open batches can be started
-        if (status != Status.OPEN) {
-            throw new IllegalStateException("Cannot start reconciliation on a batch that is not OPEN.");
-        }
-
         // Validate Command fields
-        if (cmd.batchWindow() == null || cmd.batchWindow().isBlank()) {
-            throw new IllegalArgumentException("Batch window is required to start reconciliation.");
+        if (cmd.batchWindowStart() == null || cmd.batchWindowEnd() == null) {
+            throw new IllegalArgumentException("Batch window start and end are required.");
         }
 
-        var event = new ReconciliationBatchStartedEvent(
+        if (cmd.batchWindowEnd().isBefore(cmd.batchWindowStart())) {
+            throw new IllegalArgumentException("Batch window end must be after start.");
+        }
+
+        var event = new ReconciliationStartedEvent(
                 this.batchId,
-                cmd.batchWindow(),
-                cmd.occurredAt() != null ? cmd.occurredAt() : Instant.now()
+                cmd.batchWindowStart(),
+                cmd.batchWindowEnd(),
+                Instant.now()
         );
 
         // Apply state changes

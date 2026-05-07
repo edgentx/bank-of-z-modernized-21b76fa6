@@ -3,27 +3,17 @@ package com.example.domain.uinavigation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
 /**
- * Domain event emitted when a screen is successfully rendered.
+ * Event emitted when a screen map is successfully rendered.
+ * Contains the generated layout (JSON) and metadata.
  */
 public record ScreenRenderedEvent(
     String aggregateId,
-    String screenId,
     String deviceType,
+    String layout,
     Instant occurredAt
 ) implements DomainEvent {
-
-    public ScreenRenderedEvent {
-        // Defensive copy/normalization could go here
-    }
-
-    // Explicit constructor to allow omitting UUID in tests/usage if needed, 
-    // though record is usually fine.
-    public ScreenRenderedEvent(String aggregateId, String screenId, String deviceType) {
-        this(aggregateId, screenId, deviceType, Instant.now());
-    }
 
     @Override
     public String type() {
@@ -33,5 +23,10 @@ public record ScreenRenderedEvent(
     @Override
     public String aggregateId() {
         return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

@@ -3,9 +3,7 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to initiate a teller session following successful authentication.
- * S-18
+ * Command to initiate a teller session.
+ * Requires a valid, authenticated teller ID and a terminal ID.
  */
-public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {
-    // Java Record acts as a DTO. Validation logic resides in the Aggregate.
-}
+public record StartSessionCmd(String tellerId, String terminalId) implements Command {}

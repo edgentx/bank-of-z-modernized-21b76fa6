@@ -3,20 +3,28 @@ package com.example.domain.reconciliation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Event emitted when a reconciliation batch is started.
+ * Corresponds to Story S-16.
  */
 public class ReconciliationStartedEvent implements DomainEvent {
+
+    private final String eventId = UUID.randomUUID().toString();
     private final String aggregateId;
-    private final Instant startWindow;
-    private final Instant endWindow;
+    private final String batchId;
+    private final Instant windowStart;
+    private final Instant windowEnd;
+    private final String operatorId;
     private final Instant occurredAt;
 
-    public ReconciliationStartedEvent(String aggregateId, Instant startWindow, Instant endWindow, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.startWindow = startWindow;
-        this.endWindow = endWindow;
+    public ReconciliationStartedEvent(String batchId, Instant windowStart, Instant windowEnd, String operatorId, Instant occurredAt) {
+        this.batchId = batchId;
+        this.aggregateId = batchId;
+        this.windowStart = windowStart;
+        this.windowEnd = windowEnd;
+        this.operatorId = operatorId;
         this.occurredAt = occurredAt;
     }
 
@@ -35,11 +43,19 @@ public class ReconciliationStartedEvent implements DomainEvent {
         return occurredAt;
     }
 
-    public Instant startWindow() {
-        return startWindow;
+    public String batchId() {
+        return batchId;
     }
 
-    public Instant endWindow() {
-        return endWindow;
+    public Instant windowStart() {
+        return windowStart;
+    }
+
+    public Instant windowEnd() {
+        return windowEnd;
+    }
+
+    public String operatorId() {
+        return operatorId;
     }
 }

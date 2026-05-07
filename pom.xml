@@ -14,7 +14,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.0</version> <!-- Aligning with a stable version matching the stack -->
+        <version>3.2.0</version> 
         <relativePath/>
     </parent>
 
@@ -24,7 +24,7 @@
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Starters (BOM Managed) -->
+        <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -55,7 +55,7 @@
         </dependency>
 
         <!-- Tech Stack Dependencies -->
-        <!-- DB2 (Provided by runtime usually, assuming driver present or scope provided) -->
+        <!-- DB2 Driver -->
         <dependency>
             <groupId>com.ibm.db2</groupId>
             <artifactId>jcc</artifactId>
@@ -86,20 +86,20 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Redis (BOM Managed) -->
+        <!-- Redis -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
-        <!-- MinIO (EXPLICIT VERSION REQUIRED) -->
+        <!-- MinIO -->
         <dependency>
             <groupId>io.minio</groupId>
             <artifactId>minio</artifactId>
             <version>8.5.7</version>
         </dependency>
 
-        <!-- OpenTelemetry (BOM Managed via Micrometer in Spring Boot 3.x) -->
+        <!-- OpenTelemetry -->
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-tracing-bridge-otel</artifactId>
@@ -109,7 +109,7 @@
             <artifactId>opentelemetry-exporter-otlp</artifactId>
         </dependency>
 
-        <!-- Flyway (BOM Managed) -->
+        <!-- Flyway -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -119,7 +119,7 @@
             <artifactId>flyway-db2</artifactId>
         </dependency>
 
-        <!-- Testing (BOM Managed) -->
+        <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

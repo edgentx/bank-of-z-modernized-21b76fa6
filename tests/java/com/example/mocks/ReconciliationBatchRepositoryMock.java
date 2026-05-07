@@ -5,18 +5,18 @@ import com.example.domain.reconciliation.repository.ReconciliationBatchRepositor
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class ReconciliationBatchRepositoryMock implements ReconciliationBatchRepository {
     private final Map<String, ReconciliationBatchAggregate> store = new HashMap<>();
 
     @Override
-    public ReconciliationBatchAggregate save(ReconciliationBatchAggregate aggregate) {
+    public void save(ReconciliationBatchAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
-        return aggregate;
     }
 
     @Override
-    public ReconciliationBatchAggregate findById(String id) {
-        return store.get(id);
+    public Optional<ReconciliationBatchAggregate> findById(String id) {
+        return Optional.ofNullable(store.get(id));
     }
 }

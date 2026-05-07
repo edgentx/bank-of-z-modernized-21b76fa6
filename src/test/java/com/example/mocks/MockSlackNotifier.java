@@ -6,33 +6,25 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotifier for testing.
- * Captures messages sent during test execution to verify contents.
+ * Stores messages in memory to verify content.
  */
 public class MockSlackNotifier implements SlackNotifier {
 
-    private final List<String> sentMessages = new ArrayList<>();
+    private final List<String> messages = new ArrayList<>();
 
     @Override
-    public void send(String messageBody) {
-        if (messageBody == null) {
-            throw new IllegalArgumentException("messageBody cannot be null");
-        }
-        // Simulate basic validation
-        sentMessages.add(messageBody);
+    public void send(String message) {
+        messages.add(message);
     }
 
-    public List<String> getSentMessages() {
-        return new ArrayList<>(sentMessages);
+    public String getLastPostedMessage() {
+        if (messages.isEmpty()) {
+            return null;
+        }
+        return messages.get(messages.size() - 1);
     }
 
     public void clear() {
-        sentMessages.clear();
-    }
-
-    /**
-     * Helper to verify if a specific URL was present in any of the sent messages.
-     */
-    public boolean wasUrlSent(String url) {
-        return sentMessages.stream().anyMatch(msg -> msg.contains(url));
+        messages.clear();
     }
 }

@@ -1,13 +1,16 @@
 package com.example.ports;
 
+import com.example.domain.defect.model.DefectReportedEvent;
+
 /**
- * Port interface for sending Slack notifications.
- * Used by the temporal workflow to alert the engineering team.
+ * Port for sending Slack notifications.
+ * Abstracts the Slack API/Webhook interaction.
  */
 public interface SlackNotifierPort {
     /**
-     * Sends a message to a configured Slack channel.
-     * @param messageBody The formatted body of the message.
+     * Sends a notification to Slack based on the domain event.
+     * @param event The event containing data for the message.
+     * @throws RuntimeException if the notification fails.
      */
-    void send(String messageBody);
+    void notify(DefectReportedEvent event);
 }

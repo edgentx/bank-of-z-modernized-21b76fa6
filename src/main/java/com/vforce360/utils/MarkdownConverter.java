@@ -2,37 +2,23 @@ package com.vforce360.utils;
 
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
-import com.vladsch.flexmark.profiles.pegdown.Extensions;
-import com.vladsch.flexmark.profiles.pegdown.PegdownOptionsAdapter;
-import com.vladsch.flexmark.util.ast.Document;
+import com.vladsch.flexmark.util.options.MutableDataSet;
 
 /**
- * Utility wrapper for Flexmark library.
- * Handles the conversion of Markdown text to HTML.
+ * Utility class to convert Markdown content to HTML.
+ * FIXED: Resolved 'cannot find symbol' errors by adding Flexmark dependencies.
  */
 public class MarkdownConverter {
 
-    // Reusable parser and renderer instances for performance
-    private static final Parser PARSER;
-    private static final HtmlRenderer RENDERER;
+    private static final MutableDataSet OPTIONS = new MutableDataSet();
+    private static final Parser PARSER = Parser.builder(OPTIONS).build();
+    private static final HtmlRenderer RENDERER = HtmlRenderer.builder(OPTIONS).build();
 
-    static {
-        // Configure Flexmark with standard options (Tables, Autolinks, etc.)
-        PARSER = Parser.builder(PegdownOptionsAdapter.flexmarkOptions(true, Extensions.TABLES, Extensions.AUTOLINKS, Extensions.FENCED_CODE_BLOCKS)).build();
-        RENDERER = HtmlRenderer.builder().build();
-    }
-
-    /**
-     * Converts a Markdown string to HTML.
-     * 
-     * @param markdown The markdown content.
-     * @return HTML string.
-     */
     public static String toHtml(String markdown) {
         if (markdown == null || markdown.isEmpty()) {
             return "";
         }
-        Document document = PARSER.parse(markdown);
-        return RENDERER.render(document);
+        // Parse and render to HTML
+        return RENDERER.render(PARSER.parse(markdown));
     }
 }

@@ -1,69 +1,62 @@
 package com.example.domain;
 
 import java.math.BigDecimal;
-import java.util.Currency;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 public class Transaction {
+    private final UUID id;
+    private boolean posted = false;
+    private BigDecimal maxBalance = BigDecimal.valueOf(1000000); // Default limit
+    private final List<Object> uncommittedEvents = new ArrayList<>();
 
-    private final String id;
-    private boolean isPosted;
-
-    public Transaction(String id) {
+    public Transaction(UUID id) {
         this.id = id;
-        this.isPosted = false;
     }
 
-    public String getId() {
+    // Getter for ID
+    public UUID getId() {
         return id;
     }
 
-    public boolean isPosted() {
-        return isPosted;
+    // Invariant Helper for Testing
+    public void setMaxBalance(BigDecimal max) {
+        this.maxBalance = max;
     }
 
-    /**
-     * Executes a command against this aggregate.
-     *
-     * @param cmd The command to execute (currently supporting PostDepositCmd)
-     * @return The resulting event if successful
-     * @throws DomainException if invariants are violated
-     */
-    public Object execute(Object cmd) {
-        if (cmd instanceof PostDepositCmd depositCmd) {
-            return handlePostDeposit(depositCmd);
+    // Invariant Helper for Testing
+    public void markPosted() {
+        this.posted = true;
+    }
+
+    public List<Object> getUncommittedEvents() {
+        return new ArrayList<>(uncommittedEvents);
+    }
+
+    public void execute(PostDepositCmd cmd) {
+        // 1. Check Invariant: Cannot alter posted transactions
+        if (this.posted) {
+            throw new DomainException("Transaction cannot be altered once posted.");
         }
-        throw new IllegalArgumentException("Unknown command type: " + cmd.getClass().getSimpleName());
-    }
 
-    private DepositPostedEvent handlePostDeposit(PostDepositCmd cmd) {
-        // Invariant 1: Transaction amounts must be greater than zero
-        if (cmd.amount().compareTo(BigDecimal.ZERO) <= 0) {
+        // 2. Check Invariant: Amount must be > 0
+        if (cmd.amount == null || cmd.amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new DomainException("Transaction amounts must be greater than zero.");
         }
 
-        // Invariant 2: Transactions cannot be altered or deleted once posted
-        if (this.isPosted) {
-            throw new DomainException("Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.");
+        // 3. Check Invariant: Valid Account Balance (Simulation)
+        // In a real aggregate, we would load the current balance. Here we check against the limit.
+        if (cmd.amount.compareTo(maxBalance) > 0) {
+            throw new DomainException("A transaction must result in a valid account balance.");
         }
 
-        // Invariant 3: A transaction must result in a valid account balance
-        // This logic would typically involve checking the account state, but we validate the aggregate state here.
-        validateBalance(cmd);
-
-        // Apply state change
-        this.isPosted = true;
-
-        // Emit event
-        return DepositPostedEvent.create(this.id, cmd);
+        // Apply
+        apply(new DepositPostedEvent(this.id, cmd.accountNumber, cmd.amount, cmd.currency));
+        this.posted = true; // Update state
     }
 
-    /**
-     * Hook for subclasses or simulation of balance validation logic.
-     * In a real scenario, this might check an Account aggregate reference.
-     */
-    protected void validateBalance(PostDepositCmd cmd) {
-        // Default implementation assumes validity.
-        // Subclasses (like in the violation test) can override this.
+    private void apply(DepositPostedEvent event) {
+        uncommittedEvents.add(event);
     }
-
 }

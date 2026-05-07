@@ -1,49 +1,38 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures the last sent payload to allow verification in tests.
+ * Captures messages sent to Slack to allow verification in tests.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private String lastChannel;
-    private Map<String, Object> lastPayload;
-    private boolean sendCalled = false;
+    public static class Message {
+        public final String channel;
+        public final String body;
+
+        public Message(String channel, String body) {
+            this.channel = channel;
+            this.body = body;
+        }
+    }
+
+    private final List<Message> messages = new ArrayList<>();
 
     @Override
-    public void sendNotification(String channel, Map<String, Object> payload) {
-        this.lastChannel = channel;
-        this.lastPayload = new HashMap<>(payload); // Defensive copy
-        this.sendCalled = true;
+    public void postMessage(String channel, String body) {
+        System.out.println("[MockSlack] Sending to " + channel + ": " + body);
+        this.messages.add(new Message(channel, body));
     }
 
-    public boolean isSendCalled() {
-        return sendCalled;
+    public List<Message> getMessages() {
+        return new ArrayList<>(messages);
     }
 
-    public String getLastChannel() {
-        return lastChannel;
-    }
-
-    public Map<String, Object> getLastPayload() {
-        return lastPayload;
-    }
-
-    public String getLastMessageBody() {
-        if (lastPayload != null && lastPayload.containsKey("text")) {
-            return lastPayload.get("text").toString();
-        }
-        return null;
-    }
-
-    public void reset() {
-        this.lastChannel = null;
-        this.lastPayload = null;
-        this.sendCalled = false;
+    public void clear() {
+        messages.clear();
     }
 }

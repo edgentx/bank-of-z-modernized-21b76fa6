@@ -6,14 +6,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record SessionStartedEvent(
-    String eventId,
-    String aggregateId,
-    String tellerId,
-    String terminalId,
-    Instant occurredAt
+        String aggregateId,
+        String tellerId,
+        String terminalId,
+        Instant occurredAt
 ) implements DomainEvent {
-    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), aggregateId, tellerId, terminalId, occurredAt);
+    public SessionStartedEvent {
+        // Validation if necessary
     }
 
     @Override
@@ -22,12 +21,12 @@ public record SessionStartedEvent(
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

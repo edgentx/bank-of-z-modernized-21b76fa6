@@ -4,26 +4,22 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Event hierarchy for Story S-11.
- * Events represent state changes that have occurred.
- */
-public sealed interface S11Event permits S11Event.WithdrawalPosted {
-
-    UUID eventId() default UUID.randomUUID();
-    Instant timestamp() default Instant.now();
+public sealed interface S11Event {
+    UUID transactionId();
+    Instant timestamp();
 
     record WithdrawalPosted(
-        UUID eventId,
-        Instant timestamp,
-        UUID transactionId,
-        UUID accountId,
-        BigDecimal amount,
-        String currency
-    ) implements S11Event {
-        public WithdrawalPosted {
-            // Defensive copy if needed, though records are immutable
-        }
-    }
+            UUID transactionId,
+            String accountNumber,
+            BigDecimal amount,
+            String currency,
+            BigDecimal balanceAfter,
+            Instant timestamp
+    ) implements S11Event {}
 
+    record TransactionRejected(
+            UUID transactionId,
+            String reason,
+            Instant timestamp
+    ) implements S11Event {}
 }

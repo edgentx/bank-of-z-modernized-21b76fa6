@@ -5,17 +5,20 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-public record MenuNavigatedEvent(
-        String aggregateId,
-        String menuId,
-        String action,
-        Instant occurredAt
-) implements DomainEvent {
+public record MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) implements DomainEvent {
+    public MenuNavigatedEvent {
+        // Defensive copy/validation if needed
+    }
     @Override
     public String type() {
-        return "menu.navigated";
+        return "teller.session.menu.navigated";
     }
-
-    // Default constructor workaround for record if needed, but explicit constructor is fine.
-    // Ensure consistent names with DomainEvent interface
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
 }

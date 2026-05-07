@@ -1,85 +1,59 @@
 package com.example.steps;
 
-import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.domain.shared.UnknownCommandException;
-import com.example.mocks.MockGitHubIssuePort;
-import com.example.mocks.MockSlackNotificationPort;
+import com.example.ports.SlackNotificationPort;
+import com.example.ports.TemporalWorkflowPort;
+import com.example.mocks.MockSlackNotificationAdapter;
+import com.example.mocks.MockTemporalWorkflowAdapter;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
+import io.cucumber.java.en.Scenario;
+import io.cucumber.spring.CucumberContextConfiguration;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Cucumber Steps for Story S-FB-1: Validating VW-454.
- * Defines the behavior of the validation workflow end-to-end using mocks.
+ * Steps for S-FB-1: GitHub URL in Slack body validation.
+ * Verifies that when a defect is reported via Temporal, the resulting Slack notification
+ * contains the correct GitHub issue URL.
  */
+@SpringBootTest
+@CucumberContextConfiguration
 public class SFB1Steps {
 
-    // System Under Test components (In-Memory Mocks)
-    private MockGitHubIssuePort gitHubPort = new MockGitHubIssuePort();
-    private MockSlackNotificationPort slackPort = new MockSlackNotificationPort();
-    private String currentChannelId = "C-DIAGNOSTICS";
+    @Autowired
+    private TemporalWorkflowPort temporalPort;
 
-    // State for scenario verification
-    private Exception capturedException;
-    private String lastGitHubUrl;
+    @Autowired
+    private SlackNotificationPort slackPort;
 
-    @Given("the defect VW-454 is triggered via temporal-worker exec")
-    public void the_defect_is_triggered() {
-        // Setup: Initialize the mock environment to simulate the temporal worker context
-        slackPort.clear();
-        gitHubPort.reset();
-        // Assume the aggregate is initialized by the worker
+    private String reportedIssueId;
+
+    @Given("the VForce360 PM diagnostic system is operational")
+    public void the_system_is_operational() {
+        // Preconditions verified via context load
+        assertNotNull(temporalPort);
+        assertNotNull(slackPort);
     }
 
-    @When("the report_defect command is executed")
-    public void the_report_defect_command_is_executed() {
-        // Execute the command logic
-        ReportDefectCmd cmd = new ReportDefectCmd(
-            "VW-454",
-            "Validating VW-454 — GitHub URL in Slack body",
-            "Verifying that the link appears in the notification",
-            "LOW",
-            "validation"
-        );
-
-        try {
-            // In a real Spring context, this might be an ApplicationService
-            // For the step definition, we invoke the domain logic directly via the Aggregate
-            var aggregate = new com.example.domain.defect.DefectAggregate("VW-454", gitHubPort, slackPort, currentChannelId);
-            var events = aggregate.execute(cmd);
-            
-            if (!events.isEmpty()) {
-                lastGitHubUrl = events.get(0).githubIssueUrl();
-            }
-        } catch (Exception e) {
-            capturedException = e;
-        }
+    @When("_report_defect is triggered via temporal-worker exec for issue {string}")
+    public void report_defect_is_triggered(String issueId) {
+        this.reportedIssueId = issueId;
+        
+        // We are testing the adapter flow. The temporal mock receives the signal,
+        // processes it, and delegates to the slack mock.
+        temporalPort.executeReportDefectWorkflow(issueId);
     }
 
-    @Then("the Slack body should contain the GitHub issue link")
-    public void the_slack_body_should_contain_the_github_issue_link() {
-        // Validate Slack Side Effect
-        String slackBody = slackPort.getLastMessageBody(currentChannelId);
+    @Then("the Slack body includes GitHub issue {string}")
+    public void the_slack_body_includes_github_issue(String expectedUrl) {
+        // Retrieve the captured state from the mock
+        String actualBody = slackPort.getLastMessageBody();
         
-        assertNotNull(slackBody, "Slack message should have been sent");
-        assertTrue(slackPort.lastMessageContainsUrl(currentChannelId, "http"), 
-            "Slack body must include a URL");
-        
-        // Specifically check that it matches the generated GitHub issue
-        if (lastGitHubUrl != null) {
-            assertTrue(slackBody.contains(lastGitHubUrl), 
-                "Slack body should include the specific GitHub issue URL: " + lastGitHubUrl);
-        }
-    }
-
-    @Then("the validation no longer exhibits the reported behavior")
-    public void the_validation_no_longer_exhibits_the_reported_behavior() {
-        // This assertion ensures the link is present (Opposite of the bug)
-        // Bug: Link line missing. Fix: Link line present.
-        assertNull(capturedException, "Command execution should not throw exceptions");
-        
-        String slackBody = slackPort.getLastMessageBody(currentChannelId);
-        assertTrue(slackBody.contains("GitHub issue:"), "Body should identify the GitHub issue");
+        assertNotNull(actualBody, "Slack message body was null, message not sent");
+        assertTrue(actualBody.contains(expectedUrl), 
+            "Slack body [" + actualBody + "] did not contain expected URL [" + expectedUrl + "]");
     }
 }

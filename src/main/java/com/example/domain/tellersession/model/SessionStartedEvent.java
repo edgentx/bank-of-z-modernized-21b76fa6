@@ -1,18 +1,27 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
+import java.util.UUID;
 
 /**
- * Internal event used to hydrate the aggregate for testing.
+ * Event representing the start of a session. Used to hydrate the aggregate for testing.
  */
 public record SessionStartedEvent(
-    String aggregateId,
-    String tellerId,
-    String terminalId,
-    Instant occurredAt
+        String aggregateId,
+        String tellerId,
+        Instant occurredAt
 ) implements DomainEvent {
-    @Override public String type() { return "session.started"; }
-    @Override public String aggregateId() { return aggregateId; }
-    @Override public Instant occurredAt() { return occurredAt; }
+
+    public SessionStartedEvent {
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
+        if (tellerId == null) throw new IllegalArgumentException("tellerId required");
+        if (occurredAt == null) occurredAt = Instant.now();
+    }
+
+    @Override
+    public String type() {
+        return "session.started";
+    }
 }

@@ -12,5 +12,4 @@ import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
 @SelectClasspathResource("features")
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
 public class CucumberTestSuite {
-    // This class acts as the test runner for Cucumber via JUnit 5
 }

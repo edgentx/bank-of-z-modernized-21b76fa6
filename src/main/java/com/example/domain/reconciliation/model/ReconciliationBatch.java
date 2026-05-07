@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * ReconciliationBatch Aggregate
- * Handles the logic for forcing a batch to a balanced state and starting reconciliation.
+ * Handles the logic for forcing a batch to a balanced state and starting a new reconciliation.
  */
 public class ReconciliationBatch extends AggregateRoot {
     private final String batchId;
@@ -19,7 +19,7 @@ public class ReconciliationBatch extends AggregateRoot {
     private boolean areAllEntriesAccounted = true;
 
     public enum Status {
-        OPEN, BALANCED, CLOSED
+        OPEN, STARTED, BALANCED, CLOSED
     }
 
     public ReconciliationBatch(String batchId) {
@@ -35,7 +35,8 @@ public class ReconciliationBatch extends AggregateRoot {
     public List<DomainEvent> execute(Command cmd) {
         if (cmd instanceof ForceBalanceCmd c) {
             return forceBalance(c);
-        } else if (cmd instanceof StartReconciliationCmd c) {
+        }
+        if (cmd instanceof StartReconciliationCmd c) {
             return startReconciliation(c);
         }
         throw new UnknownCommandException(cmd);
@@ -52,17 +53,9 @@ public class ReconciliationBatch extends AggregateRoot {
             throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
         }
 
-        // Invariant: Cannot start if batch is not OPEN
+        // Invariant: Only Open batches can be started
         if (status != Status.OPEN) {
-            throw new IllegalStateException("Cannot start reconciliation on a batch that is not OPEN.");
-        }
-
-        if (cmd.batchWindowStart() == null || cmd.batchWindowEnd() == null) {
-            throw new IllegalArgumentException("Batch window start and end are required.");
-        }
-
-        if (cmd.batchWindowEnd().isBefore(cmd.batchWindowStart())) {
-            throw new IllegalArgumentException("Batch window end cannot be before start.");
+            throw new IllegalStateException("Cannot start a batch that is not OPEN.");
         }
 
         var event = new ReconciliationStartedEvent(
@@ -72,6 +65,8 @@ public class ReconciliationBatch extends AggregateRoot {
                 Instant.now()
         );
 
+        // Apply state changes
+        this.status = Status.STARTED;
         addEvent(event);
         incrementVersion();
 

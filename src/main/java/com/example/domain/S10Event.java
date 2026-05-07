@@ -1,9 +1,7 @@
 package com.example.domain;
 
-import java.math.BigDecimal;
-import java.util.UUID;
-
-// Marker interface for events related to this story
+/**
+ * Marker interface for S10 Events.
+ */
 public interface S10Event {
-    UUID getTransactionId();
 }

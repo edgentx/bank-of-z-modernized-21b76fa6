@@ -4,12 +4,13 @@ import com.example.domain.shared.Command;
 
 import java.time.Instant;
 
-/**
- * Command to start the reconciliation process for a batch.
- */
-public record StartReconciliationCmd(
-        String batchId,
-        Instant start,
-        Instant end
-) implements Command {
+public record StartReconciliationCmd(String batchId, Instant batchWindow) implements Command {
+    public StartReconciliationCmd {
+        if (batchId == null || batchId.isBlank()) {
+            throw new IllegalArgumentException("batchId cannot be null or blank");
+        }
+        if (batchWindow == null) {
+            throw new IllegalArgumentException("batchWindow cannot be null");
+        }
+    }
 }

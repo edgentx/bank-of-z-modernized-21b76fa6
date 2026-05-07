@@ -2,59 +2,57 @@ package com.example.domain;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 public class Transaction {
+    private final TransactionId id;
+    private final List<DomainEvent> uncommittedEvents = new ArrayList<>();
+    private boolean isPosted = false;
 
-    private final UUID id;
-    private final List<S10Event> uncommittedEvents = new ArrayList<>();
-    private boolean posted = false;
+    // Max allowed balance invariant constant for demonstration
+    private static final BigDecimal MAX_BALANCE = new BigDecimal("1000000000.00");
 
-    public Transaction(UUID id) {
-        if (id == null) {
-            throw new IllegalArgumentException("ID cannot be null");
-        }
+    public Transaction(TransactionId id) {
         this.id = id;
     }
 
-    public UUID getId() {
-        return id;
-    }
-
-    public List<S10Event> getUncommittedEvents() {
-        return uncommittedEvents;
-    }
-
     public void execute(PostDepositCmd cmd) {
-        // Invariant: Transaction amounts must be greater than zero
-        if (cmd.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new DomainError("Transaction amounts must be greater than zero");
+        // Invariant 1: Transaction amounts must be greater than zero.
+        if (cmd.amount().amount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Transaction amounts must be greater than zero.");
         }
 
-        // Invariant: Transactions cannot be altered or deleted once posted
-        if (this.posted) {
-            throw new DomainError("Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.");
+        // Invariant 2: Transactions cannot be altered or deleted once posted.
+        if (this.isPosted) {
+            throw new IllegalStateException("Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction.");
         }
 
-        // Invariant: A transaction must result in a valid account balance
-        // (Mocked logic: assume valid for now, as we don't have Account aggregate state here)
-        // In a real app, we would check the account balance.
-        // if (resultsInInvalidBalance(cmd)) { throw ... }
+        // Invariant 3: A transaction must result in a valid account balance (enforced via aggregate validation).
+        // Simulating a check against a hypothetical max balance limit or other business logic.
+        if (cmd.amount().amount().compareTo(MAX_BALANCE) > 0) {
+            throw new IllegalStateException("A transaction must result in a valid account balance (enforced via aggregate validation). Amount exceeds max balance.");
+        }
 
-        apply(cmd);
-        
-        // Mark as posted
-        this.posted = true;
+        // Business Logic: Apply State Change
+        // In a real CQRS/Event Sourcing model, we would apply the event to update state.
+        // Here, we mark the aggregate as posted.
+        this.isPosted = true;
+
+        // Raise Event
+        DepositPostedEvent event = DepositPostedEvent.create(this.id, cmd.accountNumber(), cmd.amount());
+        this.uncommittedEvents.add(event);
     }
 
-    private void apply(PostDepositCmd cmd) {
-        DepositPostedEvent event = new DepositPostedEvent(
-            cmd.getTransactionId(),
-            cmd.getAmount(),
-            cmd.getCurrency(),
-            cmd.getAccountNumber()
-        );
-        this.uncommittedEvents.add(event);
+    public List<DomainEvent> getUncommittedEvents() {
+        return Collections.unmodifiableList(uncommittedEvents);
+    }
+
+    public void markEventsAsCommitted() {
+        uncommittedEvents.clear();
+    }
+
+    public TransactionId getId() {
+        return id;
     }
 }

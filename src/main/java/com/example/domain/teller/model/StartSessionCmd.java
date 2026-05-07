@@ -2,7 +2,6 @@ package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * Command to initiate a teller session.

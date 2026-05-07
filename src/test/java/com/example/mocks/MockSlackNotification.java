@@ -5,34 +5,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * In-memory mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to Slack for verification.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Captures messages to verify content without real I/O.
  */
 public class MockSlackNotification implements SlackNotificationPort {
-
-    public record Message(String channel, String body) {}
-
-    private final List<Message> sentMessages = new ArrayList<>();
+    private final List<String> messages = new ArrayList<>();
 
     @Override
-    public void sendMessage(String channel, String body) {
-        this.sentMessages.add(new Message(channel, body));
+    public void sendMessage(String messageBody) {
+        // In a real test spy, we might throw exceptions if configured to do so.
+        // For now, just capture the message.
+        this.messages.add(messageBody);
     }
 
-    public List<Message> getSentMessages() {
-        return new ArrayList<>(sentMessages);
+    public List<String> getMessages() {
+        return new ArrayList<>(messages);
     }
 
     public void clear() {
-        sentMessages.clear();
-    }
-
-    /**
-     * Helper to verify if a specific URL was sent to a specific channel.
-     */
-    public boolean wasUrlSentToChannel(String url, String channel) {
-        return sentMessages.stream()
-            .filter(m -> m.channel().equals(channel))
-            .anyMatch(m -> m.body().contains(url));
+        messages.clear();
     }
 }

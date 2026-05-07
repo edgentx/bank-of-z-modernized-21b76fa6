@@ -3,12 +3,19 @@ package com.example.domain.defect.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.Map;
+import java.util.Objects;
 
+/**
+ * Domain event representing that a defect has been reported and requires notification.
+ */
 public record DefectReportedEvent(
-    String defectId,
-    String githubIssueUrl,
-    String slackChannelId,
-    Instant occurredAt
+        String defectId,
+        String title,
+        String description,
+        Map<String, String> metadata,
+        String githubIssueUrl,
+        Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {

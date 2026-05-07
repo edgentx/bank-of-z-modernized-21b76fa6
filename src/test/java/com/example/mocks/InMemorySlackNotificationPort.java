@@ -1,40 +1,45 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to Slack to verify their content.
+ * Mock adapter for Slack notifications.
+ * Stores messages in memory for test verification.
  */
 public class InMemorySlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> notifications = new ArrayList<>();
+    public static class SentMessage {
+        public final String channelId;
+        public final String body;
+
+        public SentMessage(String channelId, String body) {
+            this.channelId = channelId;
+            this.body = body;
+        }
+    }
+
+    private final List<SentMessage> messages = new ArrayList<>();
+    private boolean simulateFailure = false;
 
     @Override
-    public void sendNotification(String defectId, String summary, String githubUrl) {
-        // Simulate the formatting of the Slack message body.
-        // This mock helps verify that the URL is actually passed into the body generation logic.
-        String body = String.format(
-            "Defect Reported: %s\nSummary: %s\nGitHub Issue: %s", 
-            defectId, summary, githubUrl
-        );
-        notifications.add(body);
+    public boolean sendMessage(String channelId, String messageBody) {
+        if (simulateFailure) return false;
+        messages.add(new SentMessage(channelId, messageBody));
+        return true;
     }
 
-    public boolean wasNotificationSent() {
-        return !notifications.isEmpty();
-    }
-
-    public String getLastNotificationBody() {
-        if (notifications.isEmpty()) {
-            return null;
-        }
-        return notifications.get(notifications.size() - 1);
+    public List<SentMessage> getMessages() {
+        return List.copyOf(messages);
     }
 
     public void clear() {
-        notifications.clear();
+        messages.clear();
+    }
+
+    public void setSimulateFailure(boolean simulateFailure) {
+        this.simulateFailure = simulateFailure;
     }
 }

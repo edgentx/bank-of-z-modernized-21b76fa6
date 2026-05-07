@@ -1,103 +1,82 @@
 package com.example.domain;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 /**
  * Transaction Aggregate Root.
- * Handles the logic for debiting funds via PostWithdrawalCmd.
+ * Handles logic for posting withdrawals.
  */
 public class Transaction {
 
     private final UUID transactionId;
-    private String accountNumber;
     private BigDecimal currentBalance;
-    private BigDecimal amount;
     private String currency;
-    private boolean isPosted;
-    private final List<Object> uncommittedEvents = new ArrayList<>();
+    private boolean isPosted = false;
 
-    // Constructor for new Transaction creation
-    public Transaction(UUID transactionId, BigDecimal currentBalance) {
+    // Constructor for creating a new aggregate
+    public Transaction(UUID transactionId) {
+        if (transactionId == null) throw new IllegalArgumentException("Transaction ID cannot be null");
         this.transactionId = transactionId;
-        this.currentBalance = currentBalance;
-        this.isPosted = false;
-    }
-
-    public UUID getId() {
-        return transactionId;
-    }
-
-    public List<Object> getUncommittedEvents() {
-        return List.copyOf(uncommittedEvents);
-    }
-
-    public void markEventsAsCommitted() {
-        uncommittedEvents.clear();
     }
 
     /**
-     * Execute method implementing the PostWithdrawalCmd logic.
+     * Testing hook to simulate an existing state for the aggregate.
+     * In a real application, this state would be rebuilt from EventSourcing
+     * or loaded from a database.
      */
-    public WithdrawalPostedEvent execute(PostWithdrawalCmd cmd) {
-        // Invariant: Transactions cannot be altered once posted
+    public void loadStateForTest(BigDecimal balance, String currency) {
+        this.currentBalance = balance;
+        this.currency = currency;
+    }
+
+    /**
+     * Testing hook to simulate an immutable posted state.
+     */
+    public void markAsPosted() {
+        this.isPosted = true;
+    }
+
+    /**
+     * Execute method implementing the Command pattern.
+     * Dispatches the specific command logic and returns an Event.
+     */
+    public S11Event execute(S11Command command) {
+        if (command instanceof S11Command.PostWithdrawalCmd cmd) {
+            return handlePostWithdrawal(cmd);
+        }
+        throw new UnsupportedOperationException("Unknown command type: " + command.getClass().getSimpleName());
+    }
+
+    private S11Event handlePostWithdrawal(S11Command.PostWithdrawalCmd cmd) {
+        // Invariant: Transactions cannot be altered or deleted once posted
         if (this.isPosted) {
-            throw new DomainViolationException(
-                "Transactions cannot be altered or deleted once posted; corrections require a new reversing transaction."
-            );
+            throw new IllegalStateException("Cannot post withdrawal: Transaction is already posted and immutable.");
         }
 
         // Invariant: Transaction amounts must be greater than zero
-        if (cmd.getAmount() == null || cmd.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new DomainViolationException("Transaction amounts must be greater than zero.");
+        if (cmd.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than zero.");
         }
 
-        // Invariant: Transaction must result in a valid account balance (e.g., non-negative for standard accounts)
-        // Assuming valid means >= 0 for this domain context.
-        BigDecimal projectedBalance = this.currentBalance.subtract(cmd.getAmount());
-        if (projectedBalance.compareTo(BigDecimal.ZERO) < 0) {
-            throw new DomainViolationException(
-                "A transaction must result in a valid account balance (enforced via aggregate validation)."
-            );
+        // Contextual Invariant: A transaction must result in a valid account balance
+        // For this aggregate, we assume the 'currentBalance' represents the available funds.
+        // (In a full system, we might fetch the account, but per the prompt, we rely on aggregate validation).
+        if (cmd.amount().compareTo(this.currentBalance) > 0) {
+            throw new IllegalStateException("Transaction rejected: Insufficient funds for valid account balance.");
         }
 
-        // Apply state changes
-        this.accountNumber = cmd.getAccountNumber();
-        this.amount = cmd.getAmount();
-        this.currency = cmd.getCurrency();
-        this.currentBalance = projectedBalance;
-        this.isPosted = true;
+        // Apply state change (in-memory for the test, in reality we might persist or apply event)
+        this.currentBalance = this.currentBalance.subtract(cmd.amount());
+        this.isPosted = true; // Assuming this aggregate instance represents the single transaction being executed
 
-        // Create event
-        WithdrawalPostedEvent event = new WithdrawalPostedEvent(
+        return new S11Event.WithdrawalPosted(
+            UUID.randomUUID(),
+            java.time.Instant.now(),
             this.transactionId,
-            this.accountNumber,
-            this.amount,
-            this.currency,
-            this.currentBalance
+            cmd.accountId(),
+            cmd.amount(),
+            cmd.currency()
         );
-
-        uncommittedEvents.add(event);
-        return event;
-    }
-
-    // Getters for testing/verification
-    public String getAccountNumber() { return accountNumber; }
-    public BigDecimal getAmount() { return amount; }
-    public String getCurrency() { return currency; }
-    public boolean isPosted() { return isPosted; }
-    public BigDecimal getCurrentBalance() { return currentBalance; }
-
-    /**
-     * Helper to simulate a state where the transaction is already posted.
-     * In a real app, this would be loaded from the event store.
-     */
-    public void markAsPostedAlready(BigDecimal existingBalance) {
-        this.isPosted = true;
-        this.amount = BigDecimal.ONE; // Dummy value
-        this.accountNumber = "EXISTING";
-        this.currentBalance = existingBalance;
     }
 }

@@ -7,9 +7,5 @@ import java.time.Instant;
 /**
  * Command to start the reconciliation process for a specific batch window.
  */
-public record StartReconciliationCmd(
-        String batchId,
-        Instant windowStart,
-        Instant windowEnd
-) implements Command {
+public record StartReconciliationCmd(String batchId, Instant batchWindowStart, Instant batchWindowEnd) implements Command {
 }

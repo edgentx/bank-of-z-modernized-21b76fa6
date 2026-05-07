@@ -3,8 +3,8 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to terminate an existing TellerSession.
- * Encapsulates the Session ID to identify the target aggregate.
+ * Command to terminate an active teller session.
+ * Validates that the session exists and the teller is authorized.
  */
 public record EndSessionCmd(String sessionId) implements Command {
     public EndSessionCmd {

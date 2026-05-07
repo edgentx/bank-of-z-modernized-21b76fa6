@@ -2,14 +2,13 @@ package com.example.domain.userinterface.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.Map;
-
 /**
- * Command to render a specific screen layout.
+ * Command to render a specific screen layout for a device.
+ * Story S-21: RenderScreenCmd on ScreenMap.
  */
 public record RenderScreenCmd(
-        String screenId,
-        String deviceType,
-        Map<String, String> fields,
-        int bmsFieldLengthLimit
+    String screenMapId,
+    String screenId,
+    String deviceType,
+    String layoutDefinition // JSON string or similar structure representing the layout
 ) implements Command {}

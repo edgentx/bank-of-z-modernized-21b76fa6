@@ -10,18 +10,16 @@ import java.util.List;
 
 /**
  * ReconciliationBatch Aggregate
- * Handles the logic for starting batch reconciliation and forcing a batch to a balanced state.
+ * Handles the logic for starting and forcing a batch reconciliation.
  */
 public class ReconciliationBatch extends AggregateRoot {
     private final String batchId;
     private Status status = Status.OPEN;
     private boolean isPreviousBatchPending = false;
     private boolean areAllEntriesAccounted = true;
-    private Instant currentBatchWindowStart;
-    private Instant currentBatchWindowEnd;
 
     public enum Status {
-        OPEN, IN_PROGRESS, BALANCED, CLOSED
+        OPEN, STARTED, BALANCED, CLOSED
     }
 
     public ReconciliationBatch(String batchId) {
@@ -61,25 +59,24 @@ public class ReconciliationBatch extends AggregateRoot {
         }
 
         // Validate Command fields
-        if (cmd.batchWindowStart() == null || cmd.batchWindowEnd() == null) {
-            throw new IllegalArgumentException("Batch window start and end are required.");
+        if (cmd.windowStart() == null || cmd.windowEnd() == null) {
+            throw new IllegalArgumentException("Batch window must be defined.");
         }
-
-        if (cmd.batchWindowEnd().isBefore(cmd.batchWindowStart())) {
-            throw new IllegalArgumentException("Batch window end must be after start.");
+        if (cmd.operatorId() == null || cmd.operatorId().isBlank()) {
+            throw new IllegalArgumentException("Operator ID is required.");
         }
 
         var event = new ReconciliationStartedEvent(
                 this.batchId,
-                cmd.batchWindowStart(),
-                cmd.batchWindowEnd(),
+                cmd.batchId(),
+                cmd.windowStart(),
+                cmd.windowEnd(),
+                cmd.operatorId(),
                 Instant.now()
         );
 
         // Apply state changes
-        this.status = Status.IN_PROGRESS;
-        this.currentBatchWindowStart = cmd.batchWindowStart();
-        this.currentBatchWindowEnd = cmd.batchWindowEnd();
+        this.status = Status.STARTED;
         addEvent(event);
         incrementVersion();
 
@@ -97,12 +94,9 @@ public class ReconciliationBatch extends AggregateRoot {
             throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
         }
 
-        // Invariant: Only In Progress batches can be forced to balance (assuming we need to start first)
-        // Or OPEN if we allow skipping start. Based on "Kicks off the batch...", start should happen first.
-        // However, keeping previous logic allowing OPEN->BALANCED for backwards compatibility if needed,
-        // but standard flow is OPEN -> IN_PROGRESS -> BALANCED.
-        if (status != Status.IN_PROGRESS && status != Status.OPEN) {
-            throw new IllegalStateException("Cannot force balance on a batch that is not OPEN or IN_PROGRESS.");
+        // Invariant: Only Open or Started batches can be forced to balance? Assuming Started based on flow.
+        if (status == Status.CLOSED) {
+            throw new IllegalStateException("Cannot force balance on a CLOSED batch.");
         }
 
         // Validate Command fields

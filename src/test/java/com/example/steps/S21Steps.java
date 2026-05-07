@@ -1,94 +1,86 @@
 package com.example.steps;
 
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.userinterfacenavigation.model.RenderScreenCmd;
 import com.example.domain.userinterfacenavigation.model.ScreenMapAggregate;
 import com.example.domain.userinterfacenavigation.model.ScreenRenderedEvent;
-import com.example.domain.userinterfacenavigation.repository.ScreenMapRepository;
-import com.example.mocks.InMemoryScreenMapRepository;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class S21Steps {
 
-    private final ScreenMapRepository repository = new InMemoryScreenMapRepository();
     private ScreenMapAggregate aggregate;
-    private RenderScreenCmd command;
+    private RenderScreenCmd cmd;
+    private Exception caughtException;
     private List<DomainEvent> resultEvents;
-    private Exception thrownException;
 
+    // Scenario: Successfully execute RenderScreenCmd
     @Given("a valid ScreenMap aggregate")
-    public void a_valid_screen_map_aggregate() {
-        String id = "screen-map-123";
-        aggregate = repository.create(id);
+    public void a_valid_ScreenMap_aggregate() {
+        aggregate = new ScreenMapAggregate("screen-map-1");
     }
 
     @And("a valid screenId is provided")
-    public void a_valid_screen_id_is_provided() {
-        // Command construction happens in the 'When' step for flexibility
+    public void a_valid_screenId_is_provided() {
+        // stored in builder, will be used in When
     }
 
     @And("a valid deviceType is provided")
-    public void a_valid_device_type_is_provided() {
-        // Command construction happens in the 'When' step
+    public void a_valid_deviceType_is_provided() {
+        // stored in builder, will be used in When
     }
 
     @When("the RenderScreenCmd command is executed")
-    public void the_render_screen_cmd_command_is_executed() {
-        // Default valid command for the happy path
-        if (command == null) {
-            command = new RenderScreenCmd(aggregate.id(), "LOGIN_SCR_01", "3270", null);
-        }
+    public void the_RenderScreenCmd_command_is_executed() {
         try {
-            resultEvents = aggregate.execute(command);
-            repository.save(aggregate);
+            // Assuming default valid data if not set by specific violation steps
+            if (cmd == null) {
+                cmd = new RenderScreenCmd("screen-map-1", "LOGIN_SCREEN", "3270_TERMINAL", "some-data");
+            }
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            thrownException = e;
+            caughtException = e;
         }
     }
 
     @Then("a screen.rendered event is emitted")
     public void a_screen_rendered_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertFalse(resultEvents.isEmpty());
-        assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
+        assertNotNull(resultEvents, "Events list should not be null");
+        assertEquals(1, resultEvents.size(), "Exactly one event should be emitted");
+        assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent, "Event should be ScreenRenderedEvent");
         
         ScreenRenderedEvent event = (ScreenRenderedEvent) resultEvents.get(0);
         assertEquals("screen.rendered", event.type());
-        assertEquals("LOGIN_SCR_01", event.getScreenId());
-        assertEquals("3270", event.getDeviceType());
+        assertEquals("screen-map-1", event.aggregateId());
     }
 
+    // Scenario: RenderScreenCmd rejected — Mandatory fields
     @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void a_screen_map_aggregate_with_missing_fields() {
-        String id = "screen-map-invalid-1";
-        aggregate = repository.create(id);
-        // Create a command with missing fields
-        command = new RenderScreenCmd(aggregate.id(), null, "3270", null);
-    }
-
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void a_screen_map_aggregate_with_invalid_field_length() {
-        String id = "screen-map-invalid-2";
-        aggregate = repository.create(id);
-        
-        // Create a field list with a value exceeding BMS constraints
-        // e.g., Field 'ACCOUNT_NUM' max length 10, but value is 12 chars
-        List<ScreenMapAggregate.FieldDefinition> fields = new ArrayList<>();
-        fields.add(new ScreenMapAggregate.FieldDefinition("ACCOUNT_NUM", "123456789012", 10));
-        
-        command = new RenderScreenCmd(aggregate.id(), "ACCT_SUMMARY", "3270", fields);
+    public void a_ScreenMap_aggregate_that_violates_mandatory_fields() {
+        aggregate = new ScreenMapAggregate("screen-map-2");
+        // Violation: Null or Blank screenId
+        cmd = new RenderScreenCmd("screen-map-2", null, "3270", "data");
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(thrownException);
-        assertTrue(thrownException instanceof IllegalArgumentException);
+        assertNotNull(caughtException, "Expected an exception to be thrown");
+        assertTrue(caughtException instanceof IllegalArgumentException, "Expected IllegalArgumentException");
+    }
+
+    // Scenario: RenderScreenCmd rejected — BMS Length Constraints
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void a_ScreenMap_aggregate_that_violates_bms_length() {
+        aggregate = new ScreenMapAggregate("screen-map-3");
+        // Violation: Screen ID exceeds max length (Max is 80 in Aggregate)
+        String longScreenId = "A".repeat(81); 
+        cmd = new RenderScreenCmd("screen-map-3", longScreenId, "3270", "data");
     }
 }

@@ -19,7 +19,7 @@ public class ReconciliationBatch extends AggregateRoot {
     private boolean areAllEntriesAccounted = true;
 
     public enum Status {
-        OPEN, BALANCED, CLOSED, STARTED
+        OPEN, IN_PROGRESS, BALANCED, CLOSED
     }
 
     public ReconciliationBatch(String batchId) {
@@ -33,11 +33,11 @@ public class ReconciliationBatch extends AggregateRoot {
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof ForceBalanceCmd c) {
-            return forceBalance(c);
-        }
         if (cmd instanceof StartReconciliationCmd c) {
             return startReconciliation(c);
+        }
+        if (cmd instanceof ForceBalanceCmd c) {
+            return forceBalance(c);
         }
         throw new UnknownCommandException(cmd);
     }
@@ -54,20 +54,23 @@ public class ReconciliationBatch extends AggregateRoot {
         }
 
         // Validate Command fields
-        if (cmd.batchWindow() == null) {
-            throw new IllegalArgumentException("Batch window cannot be null.");
+        if (cmd.startWindow() == null || cmd.endWindow() == null) {
+            throw new IllegalArgumentException("Batch window (start/end) must be provided.");
+        }
+
+        if (cmd.endWindow().isBefore(cmd.startWindow())) {
+            throw new IllegalArgumentException("End window cannot be before start window.");
         }
 
         var event = new ReconciliationStartedEvent(
                 this.batchId,
-                cmd.batchWindow(),
+                cmd.startWindow(),
+                cmd.endWindow(),
                 Instant.now()
         );
 
         // Apply state changes
-        // Note: The story doesn't specify the state change, but typically it moves away from OPEN.
-        // We will assume it stays OPEN but is processed, or changes to STARTED.
-        // For safety, we keep it OPEN unless balanced.
+        this.status = Status.IN_PROGRESS;
         addEvent(event);
         incrementVersion();
 

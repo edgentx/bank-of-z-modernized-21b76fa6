@@ -1,7 +1,7 @@
 package com.vforce360.mar.adapters;
 
-import com.vforce360.mar.domain.ModernizationAssessmentReport;
-import com.vforce360.mar.ports.MarStoragePort;
+import com.vforce360.mar.services.MarService;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,17 +14,16 @@ import java.util.UUID;
 @RequestMapping("/api/mar")
 public class MarController {
 
-    private final MarStoragePort storagePort;
+    private final MarService marService;
 
-    public MarController(MarStoragePort storagePort) {
-        this.storagePort = storagePort;
+    public MarController(MarService marService) {
+        this.marService = marService;
     }
 
-    @GetMapping("/{id}/review")
+    @GetMapping(value = "/{id}/review", produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> getMarReview(@PathVariable UUID id) {
-        // Placeholder implementation - Returns the raw defect behavior
-        return ResponseEntity.ok(storagePort.findById(id)
-                .map(ModernizationAssessmentReport::getRawJsonContent)
-                .orElse("{}"));
+        // Delegate to service to get the rendered HTML
+        String htmlContent = marService.getMarReviewHtml(id);
+        return ResponseEntity.ok(htmlContent);
     }
 }

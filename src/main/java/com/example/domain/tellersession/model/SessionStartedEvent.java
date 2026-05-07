@@ -6,15 +6,21 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record SessionStartedEvent(
-    String aggregateId,
-    String tellerId,
-    String terminalId,
-    Instant occurredAt
+        String eventId,
+        String aggregateId,
+        String tellerId,
+        String terminalId,
+        Instant occurredAt
 ) implements DomainEvent {
     public SessionStartedEvent {
-        // Validation if needed
+        if (eventId == null) eventId = UUID.randomUUID().toString();
+        if (occurredAt == null) occurredAt = Instant.now();
     }
-    
+
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, tellerId, terminalId, occurredAt);
+    }
+
     @Override
     public String type() {
         return "session.started";

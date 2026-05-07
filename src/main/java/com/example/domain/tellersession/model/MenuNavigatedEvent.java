@@ -6,15 +6,19 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record MenuNavigatedEvent(
-    String aggregateId,
-    String menuId,
-    String action,
-    Instant occurredAt
+        String aggregateId,
+        String menuId,
+        String action,
+        String screenNavigationId,
+        Instant occurredAt
 ) implements DomainEvent {
+    public MenuNavigatedEvent {
+        if (screenNavigationId == null) screenNavigationId = UUID.randomUUID().toString();
+    }
 
     @Override
     public String type() {
-        return "menu.navigated";
+        return "teller.menu.navigated";
     }
 
     @Override

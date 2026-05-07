@@ -1,84 +1,72 @@
 package com.example.adapters;
 
-import com.example.ports.GitHubIssuePort;
+import com.example.ports.GitHubPort;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
+import java.util.Map;
 
-/**
- * Real implementation of GitHubIssuePort using OkHttp.
- */
 @Component
-public class GitHubIssueAdapter implements GitHubIssuePort {
-
-    private static final Logger log = LoggerFactory.getLogger(GitHubIssueAdapter.class);
-    private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+public class GitHubIssueAdapter implements GitHubPort {
 
     private final OkHttpClient client;
     private final ObjectMapper objectMapper;
+    private final String repoOwner;
+    private final String repoName;
+    private final String githubToken;
     private final String apiUrl;
-    private final String authToken;
 
-    public GitHubIssueAdapter(
-            OkHttpClient client,
-            ObjectMapper objectMapper,
-            @Value("${vforce360.github.api.url}") String apiUrl,
-            @Value("${vforce360.github.auth.token}") String authToken) {
+    private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+
+    // Constructor injection required for Spring Config
+    public GitHubIssueAdapter(OkHttpClient client,
+                              ObjectMapper objectMapper,
+                              @Value("${github.repo.owner}") String repoOwner,
+                              @Value("${github.repo.name}") String repoName,
+                              @Value("${github.token}") String githubToken) {
         this.client = client;
         this.objectMapper = objectMapper;
-        this.apiUrl = apiUrl;
-        this.authToken = authToken;
+        this.repoOwner = repoOwner;
+        this.repoName = repoName;
+        this.githubToken = githubToken;
+        this.apiUrl = "https://api.github.com/repos/" + repoOwner + "/" + repoName + "/issues";
     }
 
     @Override
-    public CompletableFuture<String> createIssue(String title, String body) {
+    public String createIssue(String title, String body, Map<String, String> labels) {
         try {
-            GitHubIssueRequest issueRequest = new GitHubIssueRequest(title, body);
-            String jsonBody = objectMapper.writeValueAsString(issueRequest);
+            Map<String, Object> payload = Map.of(
+                "title", title,
+                "body", body,
+                "labels", labels.keySet().toArray() // Simple extraction of keys as labels
+            );
 
-            RequestBody bodyReq = RequestBody.create(jsonBody, JSON);
+            String jsonBody = objectMapper.writeValueAsString(payload);
+
             Request request = new Request.Builder()
-                    .url(apiUrl)
-                    .addHeader("Authorization", "Bearer " + authToken)
-                    .addHeader("Accept", "application/vnd.github.v3+json")
-                    .post(bodyReq)
-                    .build();
+                .url(apiUrl)
+                .addHeader("Authorization", "token " + githubToken)
+                .addHeader("Accept", "application/vnd.github.v3+json")
+                .post(RequestBody.create(jsonBody, JSON))
+                .build();
 
-            CompletableFuture<String> future = new CompletableFuture<>();
-
-            client.newCall(request).enqueue(new Callback() {
-                @Override
-                public void onFailure(Call call, IOException e) {
-                    log.error("GitHub issue creation failed", e);
-                    future.completeExceptionally(e);
+            try (Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    throw new RuntimeException("Failed to create GitHub issue: " + response.code());
                 }
-
-                @Override
-                public void onResponse(Call call, Response response) throws IOException {
-                    try (response) {
-                        if (!response.isSuccessful()) {
-                            future.completeExceptionally(new IOException("Unexpected code " + response));
-                        } else {
-                            String responseBody = response.body().string();
-                            GitHubIssueResponse issueResponse = objectMapper.readValue(responseBody, GitHubIssueResponse.class);
-                            future.complete(issueResponse.htmlUrl());
-                        }
-                    }
-                }
-            });
-
-            return future;
-        } catch (Exception e) {
-            return CompletableFuture.failedFuture(e);
+                // Extract URL from response
+                String responseBody = response.body().string();
+                Map<String, Object> responseMap = objectMapper.readValue(responseBody, Map.class);
+                return (String) responseMap.get("html_url");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error communicating with GitHub API", e);
         }
     }
-
-    private record GitHubIssueRequest(String title, String body) {}
-    private record GitHubIssueResponse(String htmlUrl, int id) {}
 }

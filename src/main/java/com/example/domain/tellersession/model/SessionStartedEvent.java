@@ -8,10 +8,14 @@ public record SessionStartedEvent(
     String aggregateId,
     String tellerId,
     String terminalId,
+    String navigationState,
+    Instant sessionTimeoutAt,
     Instant occurredAt
 ) implements DomainEvent {
     @Override
-    public String type() {
-        return "session.started";
-    }
+    public String type() { return "session.started"; }
+    @Override
+    public String aggregateId() { return aggregateId(); }
+    @Override
+    public Instant occurredAt() { return occurredAt; }
 }

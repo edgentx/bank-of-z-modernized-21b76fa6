@@ -4,25 +4,23 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.2.5</version>
+    <version>3.2.0</version>
     <relativePath/>
   </parent>
-
   <groupId>com.example</groupId>
   <artifactId>bank-of-z</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>bank-of-z</name>
-  <description>Bank of Z - Legacy Modernization</description>
-
+  <name>Bank of Z Modernization</name>
+  <description>Core domain aggregates for Bank of Z platform</description>
   <properties>
-    <java.version>17</java.version>
-    <cucumber.version>7.18.0</cucumber.version>
-    <junit-platform-suite.version>1.10.2</junit-platform-suite.version>
-    <flyway-db2.version>10.0.1</flyway-db2.version>
-    <temporal.version>1.23.1</temporal.version>
+    <java.version>21</java.version>
+    <cucumber.version>7.14.0</cucumber.version>
   </properties>
-
   <dependencies>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -33,26 +31,29 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-security</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-integration</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-batch</artifactId>
     </dependency>
-
-    <!-- Databases --
     <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
-      <scope>runtime</scope>
+      <groupId>org.springframework.integration</groupId>
+      <artifactId>spring-integration-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.integration</groupId>
+      <artifactId>spring-integration-jms</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.ibm.mq</groupId>
+      <artifactId>mq-jms-spring-boot-starter</artifactId>
+      <version>3.1.5</version>
+    </dependency>
+    <dependency>
+      <groupId>io.temporal</groupId>
+      <artifactId>temporal-spring-boot-starter</artifactId>
+      <version>1.22.3</version>
     </dependency>
     <dependency>
       <groupId>org.flywaydb</groupId>
@@ -61,17 +62,13 @@
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-db2</artifactId>
-      <version>${flyway-db2.version}</version>
     </dependency>
-
-    <!-- Temporal --
     <dependency>
-      <groupId>io.temporal</groupId>
-      <artifactId>temporal-spring-boot-starter</artifactId>
-      <version>${temporal.version}</version>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>test</scope>
     </dependency>
-
-    <!-- Testing --
+    <!-- Test Dependencies -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
@@ -85,6 +82,12 @@
     </dependency>
     <dependency>
       <groupId>io.cucumber</groupId>
+      <artifactId>cucumber-spring</artifactId>
+      <version>${cucumber.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.cucumber</groupId>
       <artifactId>cucumber-junit-platform-engine</artifactId>
       <version>${cucumber.version}</version>
       <scope>test</scope>
@@ -92,21 +95,18 @@
     <dependency>
       <groupId>org.junit.platform</groupId>
       <artifactId>junit-platform-suite</artifactId>
-      <version>${junit-platform-suite.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
-
   <build>
     <plugins>
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
     </plugins>
   </build>

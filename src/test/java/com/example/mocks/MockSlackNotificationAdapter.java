@@ -2,51 +2,45 @@ package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Captures messages to verify content and recipients.
+ * Mock adapter for Slack Notification.
+ * Stores messages in memory for verification in tests.
  */
 public class MockSlackNotificationAdapter implements SlackNotificationPort {
 
-    public static class Message {
-        public final String channel;
-        public final String text;
-
-        public Message(String channel, String text) {
-            this.channel = channel;
-            this.text = text;
-        }
-    }
-
-    private final List<Message> messages = new ArrayList<>();
-    private boolean shouldFail = false;
+    private final List<String> sentBodies = new ArrayList<>();
 
     @Override
-    public boolean postMessage(String channel, String text) {
-        if (shouldFail) {
-            return false;
+    public void sendDefectNotification(String defectId, String message, URI githubUrl) {
+        // Simulate the construction of the Slack message body.
+        // This logic mimics what the real implementation might do.
+        // The bug (VW-454) implies that githubUrl might be missing here.
+        
+        String body = String.format(
+            "Defect Report: %s\nMessage: %s\nGitHub Issue: %s", 
+            defectId, 
+            message, 
+            (githubUrl != null ? githubUrl.toString() : "PENDING")
+        );
+        
+        sentBodies.add(body);
+        
+        // In a real scenario, this would do an HTTP POST.
+        // System.out.println("[Mock Slack] Sent: " + body);
+    }
+
+    public String getLastSentBody() {
+        if (sentBodies.isEmpty()) {
+            throw new IllegalStateException("No messages sent");
         }
-        messages.add(new Message(channel, text));
-        return true;
-    }
-
-    public List<Message> getMessages() {
-        return messages;
-    }
-
-    public Message getLastMessage() {
-        if (messages.isEmpty()) return null;
-        return messages.get(messages.size() - 1);
+        return sentBodies.get(sentBodies.size() - 1);
     }
 
     public void clear() {
-        messages.clear();
-    }
-
-    public void setShouldFail(boolean shouldFail) {
-        this.shouldFail = shouldFail;
+        sentBodies.clear();
     }
 }

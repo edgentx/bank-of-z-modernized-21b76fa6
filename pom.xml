@@ -32,7 +32,7 @@
       <artifactId>spring-boot-starter-validation</artifactId>
     </dependency>
 
-    <!-- HTTP Clients (OkHttp for GitHub, WebClient for Slack) -->
+    <!-- HTTP Clients -->
     <!-- com.squareup.okhttp3 requires explicit version as it is not in Spring BOM closed set -->
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>

@@ -1,27 +1,37 @@
 package com.example.mocks;
 
-import com.example.domain.validation.port.SlackNotificationPort;
+import com.example.ports.SlackNotificationPort;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Mock adapter for Slack Notification.
- * Stores messages in memory to verify behavior during tests without real I/O.
- */
 public class MockSlackNotificationAdapter implements SlackNotificationPort {
-    
-    private final List<String> sentMessages = new ArrayList<>();
+    private final List<CallLog> calls = new ArrayList<>();
 
-    @Override
-    public void sendNotification(String messageBody) {
-        // Simulate async sending or just store state
-        this.sentMessages.add(messageBody);
-        
-        // Simulate a potential failure mode or missing logic for negative testing
-        // (if the real system had a bug where URL wasn't appended, we'd append it wrong here)
+    public static class CallLog {
+        public final String message;
+        public final String details;
+
+        public CallLog(String message, String details) {
+            this.message = message;
+            this.details = details;
+        }
     }
 
-    public List<String> getSentMessages() {
-        return sentMessages;
+    @Override
+    public void postMessage(String message, String details) {
+        calls.add(new CallLog(message, details));
+    }
+
+    public List<CallLog> getCalls() {
+        return calls;
+    }
+    
+    public CallLog getFirstCall() {
+        if (calls.isEmpty()) return null;
+        return calls.get(0);
+    }
+
+    public void reset() {
+        calls.clear();
     }
 }

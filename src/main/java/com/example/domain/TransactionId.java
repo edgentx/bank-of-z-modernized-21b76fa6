@@ -1,7 +1,9 @@
 package com.example.domain;
 
-public record TransactionId(String value) {
-    public TransactionId {
-        if (value == null || value.isBlank()) throw new IllegalArgumentException("ID cannot be blank");
+import java.util.UUID;
+
+public record TransactionId(UUID value) {
+    public static TransactionId generate() {
+        return new TransactionId(UUID.randomUUID());
     }
 }

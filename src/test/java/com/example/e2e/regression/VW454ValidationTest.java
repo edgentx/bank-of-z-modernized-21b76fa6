@@ -1,99 +1,133 @@
 package com.example.e2e.regression;
 
-import com.example.mocks.MockGitHubPort;
+import com.example.domain.vforce360.model.DefectReportedEvent;
+import com.example.domain.vforce360.model.ReportDefectCmd;
 import com.example.mocks.MockSlackNotificationPort;
-import com.example.ports.GitHubPort;
 import com.example.ports.SlackNotificationPort;
+import io.temporal.testing.TestWorkflowEnvironment;
+import io.temporal.worker.Worker;
+import io.temporal.workflow.WorkflowInterface;
+import io.temporal.workflow.WorkflowMethod;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.time.Instant;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Regression test for VW-454: Validating GitHub URL in Slack body (end-to-end).
+ * Regression Test for Story S-FB-1.
+ * Validates VW-454: Ensure GitHub URL is present in the Slack body when a defect is reported.
  * 
- * Context:
- * Temporal Workflow: _report_defect
- * Steps:
- * 1. Create GitHub Issue.
- * 2. Send notification to Slack.
- * 
- * Expected Behavior:
- * The Slack notification body MUST contain the URL generated in Step 1.
+ * Testing strategy: Use Temporal TestWorkflowEnvironment to execute the workflow
+  * logic with a mocked Slack port.
  */
-public class VW454ValidationTest {
+@SpringBootTest
+class VW454ValidationTest {
 
-    private MockGitHubPort gitHubPort;
-    private MockSlackNotificationPort slackPort;
+    private TestWorkflowEnvironment testEnvironment;
+    private Worker worker;
+    private MockSlackNotificationPort mockSlack;
 
     @BeforeEach
     void setUp() {
-        gitHubPort = new MockGitHubPort();
-        slackPort = new MockSlackNotificationPort();
+        // Initialize Temporal test environment
+        testEnvironment = TestWorkflowEnvironment.newInstance();
+        worker = testEnvironment.newWorker("VFORCE360_TASK_QUEUE");
+        
+        // Initialize Mock
+        mockSlack = new MockSlackNotificationPort();
+        
+        // Register workflow and activities with mocks
+        // Note: In a real Spring setup, these might be auto-wired, but here we register explicitly for isolation.
+        worker.registerWorkflowImplementationTypes(DefectReportingWorkflowImpl.class);
+        
+        worker.registerActivitiesImplementations(new DefectReportingActivity(mockSlack));
+        
+        testEnvironment.start();
+    }
+
+    @AfterEach
+    void tearDown() {
+        testEnvironment.close();
     }
 
     @Test
-    void testSlackBodyContainsGitHubLink() {
-        // Arrange
-        String defectTitle = "VW-454 Regression Test";
-        String defectBody = "Automated reproduction of defect VW-454.";
-        String targetChannel = "#vforce360-issues";
-
-        // Act: Simulate the Workflow logic
-        // 1. Create Issue in GitHub
-        String githubUrl = gitHubPort.createIssue(defectTitle, defectBody);
-        
-        // 2. Construct Slack Payload (Defect: This logic is what we are testing)
-        String slackMessageBody = constructSlackMessage(defectTitle, githubUrl);
-        
-        // 3. Send to Slack
-        slackPort.postMessage(targetChannel, slackMessageBody);
-
-        // Assert: Verify the Acceptance Criteria
-        // "Slack body includes GitHub issue: <url>"
-        assertTrue(slackPort.messages.size() > 0, "Slack should have received a message");
-        
-        MockSlackNotificationPort.Message postedMsg = slackPort.messages.get(0);
-        assertNotNull(postedMsg.body(), "Message body should not be null");
-        
-        assertTrue(
-            postedMsg.body().contains(githubUrl), 
-            "Slack body must contain the specific GitHub issue URL created.\nExpected: " + githubUrl + "\nActual Body: " + postedMsg.body()
+    void testGitHubUrlInSlackBody() {
+        // ARRANGE
+        String expectedGithubUrl = "https://github.com/bank-of-z/issues/454";
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            "VW-454",
+            "GitHub URL missing in Slack",
+            "We need to verify the link is present",
+            Map.of("severity", "LOW")
         );
+
+        // ACT
+        // Execute the workflow via Temporal test framework
+        DefectReportingWorkflow workflow = testEnvironment.newWorkflowStub(DefectReportingWorkflow.class);
+        DefectReportedEvent result = workflow.reportDefect(cmd);
+
+        // ASSERT
+        // 1. Verify the workflow returned the event with the URL
+        assertThat(result).isNotNull();
+        assertThat(result.githubIssueUrl()).isEqualTo(expectedGithubUrl);
+
+        // 2. Verify the external dependency (Slack) was called correctly
+        // This is the core validation for VW-454.
+        assertThat(mockSlack.lastMessageContainsUrl(expectedGithubUrl))
+            .withFailMessage("Slack body should contain GitHub issue URL: " + expectedGithubUrl)
+            .isTrue();
+        
+        assertThat(mockSlack.getMessages()).hasSize(1);
+        assertThat(mockSlack.getMessages().get(0).channelId).isEqualTo("#vforce360-issues");
     }
 
-    @Test
-    void testSlackBodyFailsIfUrlMissing() {
-        // Arrange
-        String defectTitle = "VW-454 Bad Format Test";
-        String missingUrl = null;
-        String targetChannel = "#vforce360-issues";
-
-        // Act
-        // Construct a message simulating the DEFECT behavior (missing URL)
-        String slackMessageBody = "Defect reported: " + defectTitle + " (No link available)";
-        slackPort.postMessage(targetChannel, slackMessageBody);
-
-        // Assert
-        String expectedUrl = "https://github.com/mock-org/repo/issues/1";
-        assertFalse(
-            slackPort.containsUrlInBody(expectedUrl),
-            "In the defect state, the URL should not be present."
-        );
+    // --- Workflow Interface ---
+    @WorkflowInterface
+    public interface DefectReportingWorkflow {
+        @WorkflowMethod
+        DefectReportedEvent reportDefect(ReportDefectCmd cmd);
     }
 
-    /**
-     * Helper method representing the SUT (System Under Test) logic.
-     * In a real test, this would be inside the Workflow or Service class.
-     * Here we define the expectation of what the code SHOULD do.
-     */
-    private String constructSlackMessage(String title, String url) {
-        if (url == null) {
-            throw new IllegalArgumentException("GitHub URL cannot be null");
+    // --- Workflow Implementation (Stub for TDD Red Phase) ---
+    public static class DefectReportingWorkflowImpl implements DefectReportingWorkflow {
+        private final DefectReportingActivity activity = new DefectReportingActivity(new MockSlackNotificationPort());
+
+        @Override
+        public DefectReportedEvent reportDefect(ReportDefectCmd cmd) {
+            // Real implementation would go here
+            return new DefectReportedEvent(
+                cmd.defectId(), 
+                "https://github.com/bank-of-z/issues/454", 
+                cmd.metadata(), 
+                Instant.now()
+            );
         }
-        return String.format(
-            "Defect Reported: %s\nGitHub Issue: %s",
-            title, url
-        );
+    }
+
+    // --- Activity Interface ---
+    public interface DefectReportingActivity {
+        void notifySlack(String channelId, String message);
+    }
+
+    // --- Activity Implementation (Stub for TDD Red Phase) ---
+    public static class DefectReportingActivity implements DefectReportingActivity {
+        private final SlackNotificationPort slackPort;
+
+        public DefectReportingActivity(SlackNotificationPort slackPort) {
+            this.slackPort = slackPort;
+        }
+
+        @Override
+        public void notifySlack(String channelId, String message) {
+            // Intentionally doing nothing or doing wrong to satisfy Red Phase requirements initially,
+            // but the Mock captures the call.
+            slackPort.postMessage(channelId, message);
+        }
     }
 }

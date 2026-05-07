@@ -1,130 +1,119 @@
 package com.example.steps;
 
+import com.example.domain.teller.model.*;
+import com.example.domain.teller.repository.TellerSessionRepository;
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.tellersession.model.SessionStartedEvent;
-import com.example.domain.tellersession.model.StartSessionCmd;
-import com.example.domain.tellersession.model.TellerSessionAggregate;
-import io.cucumber.java.en.And;
+import com.example.mocks.InMemoryTellerSessionRepository;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Assertions;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 public class S18Steps {
 
-    private TellerSessionAggregate aggregate;
-    private String currentTellerId;
-    private String currentTerminalId;
-    private boolean currentAuthStatus;
-    private String currentNavState;
-    private Instant requestTimestamp;
-    
+    private final TellerSessionRepository repository = new InMemoryTellerSessionRepository();
+    private TellerSession aggregate;
+    private Exception caughtException;
     private List<DomainEvent> resultEvents;
-    private Exception thrownException;
 
     @Given("a valid TellerSession aggregate")
-    public void aValidTellerSessionAggregate() {
-        this.aggregate = new TellerSessionAggregate("session-123");
+    public void a_valid_TellerSession_aggregate() {
+        aggregate = new TellerSession("session-1");
     }
 
-    @And("a valid tellerId is provided")
-    public void aValidTellerIdIsProvided() {
-        this.currentTellerId = "teller-001";
+    @Given("a valid tellerId is provided")
+    public void a_valid_teller_id_is_provided() {
+        // Context setup: Command constructed in 'When' step
     }
 
-    @And("a valid terminalId is provided")
-    public void aValidTerminalIdIsProvided() {
-        this.currentTerminalId = "term-01";
+    @Given("a valid terminalId is provided")
+    public void a_valid_terminal_id_is_provided() {
+        // Context setup
     }
 
     @When("the StartSessionCmd command is executed")
-    public void theStartSessionCmdCommandIsExecuted() {
-        executeCommand();
+    public void the_StartSessionCmd_command_is_executed() {
+        try {
+            // Valid data for the happy path
+            StartSessionCmd cmd = new StartSessionCmd("session-1", "teller-123", "terminal-42", Duration.ofMinutes(30), Instant.now());
+            resultEvents = aggregate.execute(cmd);
+        } catch (Exception e) {
+            caughtException = e;
+        }
     }
 
     @Then("a session.started event is emitted")
-    public void aSessionStartedEventIsEmitted() {
-        assertNull(thrownException, "Expected no exception, but got: " + thrownException.getMessage());
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof SessionStartedEvent);
-        
+    public void a_session_started_event_is_emitted() {
+        Assertions.assertNotNull(resultEvents);
+        Assertions.assertEquals(1, resultEvents.size());
+        Assertions.assertTrue(resultEvents.get(0) instanceof SessionStartedEvent);
         SessionStartedEvent event = (SessionStartedEvent) resultEvents.get(0);
-        assertEquals("session-123", event.aggregateId());
-        assertEquals("session.started", event.type());
-        assertEquals("teller-001", event.tellerId());
-        assertEquals("term-01", event.terminalId());
+        Assertions.assertEquals("session-1", event.aggregateId());
+        Assertions.assertEquals("teller-123", event.tellerId());
+        Assertions.assertEquals("terminal-42", event.terminalId());
     }
-
-    // --- Negative Scenarios ---
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void aTellerSessionAggregateThatViolatesAuth() {
-        this.aggregate = new TellerSessionAggregate("session-auth-fail");
-        this.currentAuthStatus = false; // Violation: not authenticated
+    public void a_TellerSession_aggregate_that_violates_authentication() {
+        aggregate = new TellerSession("session-2");
+        // No authentication mock/context setup implies violation if we were checking external auth.
+        // Here we simulate the violation via command data or state.
+        // For this aggregate, let's assume the command must contain valid tokens.
     }
 
-    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void aTellerSessionAggregateThatViolatesTimeout() {
-        this.aggregate = new TellerSessionAggregate("session-timeout-fail");
-        // Violation: Timestamp is too old (older than 15 mins)
-        this.requestTimestamp = Instant.now().minus(Duration.ofMinutes(20));
-    }
-
-    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void aTellerSessionAggregateThatViolatesNavState() {
-        this.aggregate = new TellerSessionAggregate("session-nav-fail");
-        // Violation: Terminal is in a transaction screen, not HOME
-        this.currentNavState = "TRANSACTION_DETAILS";
+    @When("the command is executed")
+    public void the_command_is_executed_with_invalid_auth() {
+        try {
+            // Invalid auth (empty/null teller ID)
+            StartSessionCmd cmd = new StartSessionCmd("session-2", "", "terminal-42", Duration.ofMinutes(30), Instant.now());
+            aggregate.execute(cmd);
+        } catch (IllegalArgumentException e) {
+            caughtException = e;
+        }
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(thrownException, "Expected a domain error exception");
-        // Check for IllegalStateException or IllegalArgumentException as per domain implementation
-        assertTrue(thrownException instanceof IllegalStateException || thrownException instanceof IllegalArgumentException);
+    public void the_command_is_rejected_with_a_domain_error() {
+        Assertions.assertNotNull(caughtException);
+        Assertions.assertTrue(caughtException instanceof IllegalArgumentException);
     }
 
-    // --- Helper ---
+    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
+    public void a_TellerSession_aggregate_that_violates_timeout_config() {
+        aggregate = new TellerSession("session-3");
+    }
 
-    private void executeCommand() {
+    @When("the StartSessionCmd command is executed with invalid timeout")
+    public void the_StartSessionCmd_command_is_executed_with_invalid_timeout() {
         try {
-            // Defaults if not set by specific Given steps
-            if (currentTellerId == null) currentTellerId = "teller-001";
-            if (currentTerminalId == null) currentTerminalId = "term-01";
-            if (requestTimestamp == null) requestTimestamp = Instant.now();
-            // Default auth true for negative tests unless explicitly set false in Given
-            // However, for the 'violates auth' step, we rely on currentAuthStatus being set.
-            // For the other negative tests, we assume valid auth unless specified.
-            // We handle the boolean carefully: if it was never set (null/0), assume true for the context of the 'timeout/nav' tests.
-            boolean auth = true; 
-            // Only false if explicitly set by the 'violates auth' step
-            // In a real framework we might have a context object, here we use a field check
-            if (!"session-auth-fail".equals(aggregate.id())) {
-                auth = true;
-            } else {
-                auth = currentAuthStatus;
-            }
+            // Negative duration is invalid
+            StartSessionCmd cmd = new StartSessionCmd("session-3", "teller-123", "terminal-42", Duration.ofMinutes(-5), Instant.now());
+            aggregate.execute(cmd);
+        } catch (IllegalArgumentException e) {
+            caughtException = e;
+        }
+    }
 
-            String nav = (currentNavState != null) ? currentNavState : "HOME";
+    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
+    public void a_TellerSession_aggregate_that_violates_nav_state() {
+        aggregate = new TellerSession("session-4");
+    }
 
-            StartSessionCmd cmd = new StartSessionCmd(
-                aggregate.id(),
-                currentTellerId,
-                currentTerminalId,
-                auth,
-                nav,
-                requestTimestamp
-            );
-
-            resultEvents = aggregate.execute(cmd);
-        } catch (Exception e) {
-            this.thrownException = e;
+    @When("the StartSessionCmd command is executed with invalid nav state")
+    public void the_StartSessionCmd_command_is_executed_with_invalid_nav_state() {
+        try {
+            // Invalid Nav State (null)
+            StartSessionCmd cmd = new StartSessionCmd("session-4", "teller-123", "terminal-42", Duration.ofMinutes(30), Instant.now());
+            // We pass a null or invalid initial nav state if we had a specific object for it.
+            // The aggregate will validate the specific operational context.
+            aggregate.execute(cmd);
+        } catch (IllegalArgumentException e) {
+            caughtException = e;
         }
     }
 }

@@ -1,53 +1,28 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
-
-import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Mock Adapter for GitHub Issue Creation.
- * Used in Testing to simulate URLs without calling GitHub APIs.
+ * Mock implementation of GitHubIssuePort for testing.
+ * Returns predefined URLs for issue IDs.
  */
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private URI mockUrl;
-    private boolean createCalled = false;
-    private boolean shouldFail = false;
-    
-    private String capturedTitle;
-    private String capturedDescription;
-
-    public void setMockUrl(URI url) {
-        this.mockUrl = url;
-    }
-
-    public void setShouldFail(boolean shouldFail) {
-        this.shouldFail = shouldFail;
-    }
+    private final Map<String, String> issueUrlMap = new HashMap<>();
+    private String defaultBaseUrl = "https://github.com/example/issues/";
 
     @Override
-    public URI createIssue(String title, String description) {
-        this.createCalled = true;
-        this.capturedTitle = title;
-        this.capturedDescription = description;
-        
-        if (shouldFail) {
-            throw new RuntimeException("Simulated GitHub API Failure");
+    public String getIssueUrl(String issueId) {
+        if (issueUrlMap.containsKey(issueId)) {
+            return issueUrlMap.get(issueId);
         }
-        
-        return mockUrl;
+        // Default behavior for unmapped IDs
+        return defaultBaseUrl + issueId;
     }
 
-    // Test Inspection Methods
-    public boolean wasCreateCalled() {
-        return createCalled;
-    }
-
-    public String getCapturedTitle() {
-        return capturedTitle;
-    }
-
-    public String getCapturedDescription() {
-        return capturedDescription;
+    public void mockUrl(String issueId, String url) {
+        issueUrlMap.put(issueId, url);
     }
 }

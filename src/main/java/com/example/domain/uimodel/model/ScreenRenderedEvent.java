@@ -9,9 +9,10 @@ import java.util.UUID;
  * Domain event emitted when a screen is successfully rendered.
  */
 public record ScreenRenderedEvent(
-        String aggregateId,
-        DeviceType deviceType,
-        Instant occurredAt
+    String aggregateId,
+    String layoutName,
+    String deviceType,
+    Instant occurredAt
 ) implements DomainEvent {
 
     @Override
@@ -19,8 +20,13 @@ public record ScreenRenderedEvent(
         return "screen.rendered";
     }
 
-    // For safety/consistency with interface definition, though record handles constructor
-    public static ScreenRenderedEvent create(String screenId, DeviceType deviceType, Instant occurredAt) {
-        return new ScreenRenderedEvent(screenId, deviceType, occurredAt);
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

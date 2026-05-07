@@ -1,22 +1,48 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
-import org.springframework.stereotype.Component;
 
-import java.util.UUID;
+import java.util.Optional;
 
 /**
- * Mock adapter for GitHub operations.
- * Simulates creating an issue and returning a deterministic URL.
+ * Mock implementation of GitHubIssuePort for testing.
+ * Simulates GitHub API responses without network calls.
  */
-@Component
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
+    private String lastCreatedIssueUrl;
+    private boolean shouldReturnExisting = false;
+    private String existingIssueUrl;
+
     @Override
-    public String createIssue(String title, String body) {
-        // Simulate GitHub API latency or logic if necessary.
-        // Return a deterministic URL based on a generated ID.
-        String issueId = UUID.randomUUID().toString();
-        return "https://github.com/example/repo/issues/" + issueId;
+    public String createIssue(String title, String description) {
+        // Simulate GitHub generating a URL
+        this.lastCreatedIssueUrl = "https://github.com/fake-org/project/issues/" + System.hashCode(title);
+        return lastCreatedIssueUrl;
+    }
+
+    @Override
+    public Optional<String> findIssueUrlByTitle(String title) {
+        if (shouldReturnExisting && existingIssueUrl != null) {
+            return Optional.of(existingIssueUrl);
+        }
+        return Optional.empty();
+    }
+
+    // --- Test Helpers ---
+
+    public String getLastCreatedIssueUrl() {
+        return lastCreatedIssueUrl;
+    }
+
+    public void setExistingIssueUrl(String url) {
+        this.shouldReturnExisting = true;
+        this.existingIssueUrl = url;
+    }
+
+    public void reset() {
+        lastCreatedIssueUrl = null;
+        shouldReturnExisting = false;
+        existingIssueUrl = null;
     }
 }

@@ -3,21 +3,14 @@ package com.example.domain.uimodel.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
-public class ScreenRenderedEvent implements DomainEvent {
-    private final String aggregateId;
-    private final String screenId;
-    private final String layout;
-    private final Instant occurredAt;
-
-    public ScreenRenderedEvent(String aggregateId, String screenId, String layout, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.screenId = screenId;
-        this.layout = layout;
-        this.occurredAt = occurredAt;
-    }
-
+public record ScreenRenderedEvent(
+    String screenId,
+    String layoutJson,
+    String layoutContentType,
+    Instant occurredAt
+) implements DomainEvent {
     @Override
     public String type() {
         return "screen.rendered";
@@ -25,14 +18,11 @@ public class ScreenRenderedEvent implements DomainEvent {
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return screenId;
     }
 
     @Override
     public Instant occurredAt() {
         return occurredAt;
     }
-
-    public String screenId() { return screenId; }
-    public String layout() { return layout; }
 }

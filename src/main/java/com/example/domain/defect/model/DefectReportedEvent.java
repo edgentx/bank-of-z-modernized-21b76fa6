@@ -5,15 +5,22 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Domain Event representing that a defect has been reported internally.
- * This event triggers the Slack notification workflow.
+ * Event emitted when a defect is successfully reported and validated.
  */
 public record DefectReportedEvent(
-        String aggregateId,
-        String defectId,
-        String description,
-        Instant occurredAt
+    String defectId,
+    String title,
+    String githubIssueUrl,
+    Instant occurredAt
 ) implements DomainEvent {
+
+    public DefectReportedEvent(String defectId, String title, String githubIssueUrl, Instant occurredAt) {
+        this.defectId = defectId;
+        this.title = title;
+        this.githubIssueUrl = githubIssueUrl;
+        this.occurredAt = occurredAt;
+    }
+
     @Override
     public String type() {
         return "DefectReported";
@@ -21,11 +28,6 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
+        return defectId;
     }
 }

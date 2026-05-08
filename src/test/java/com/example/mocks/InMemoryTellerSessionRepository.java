@@ -3,29 +3,36 @@ package com.example.mocks;
 import com.example.domain.teller.model.TellerSessionAggregate;
 import com.example.domain.teller.repository.TellerSessionRepository;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 
-/**
- * In-memory implementation of TellerSessionRepository for testing.
- */
 public class InMemoryTellerSessionRepository implements TellerSessionRepository {
 
     private final Map<String, TellerSessionAggregate> store = new HashMap<>();
+    private final Duration defaultTimeout;
+
+    public InMemoryTellerSessionRepository(Duration defaultTimeout) {
+        this.defaultTimeout = defaultTimeout;
+    }
 
     @Override
     public void save(TellerSessionAggregate aggregate) {
-        Objects.requireNonNull(aggregate, "aggregate cannot be null");
         store.put(aggregate.id(), aggregate);
     }
 
     @Override
-    public TellerSessionAggregate load(String id) {
-        TellerSessionAggregate aggregate = store.get(id);
-        if (aggregate == null) {
-            throw new IllegalArgumentException("TellerSession not found: " + id);
-        }
+    public Optional<TellerSessionAggregate> findById(String id) {
+        // In a real scenario, we would deserialize. 
+        // For this in-memory test, we return the live instance or reconstruct.
+        // To allow test isolation/reconstruction in a simple in-memory map, 
+        // we assume the tests handle the lifecycle or we return the instance directly.
+        return Optional.ofNullable(store.get(id));
+    }
+
+    public TellerSessionAggregate createNew(String sessionId) {
+        TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId, defaultTimeout);
         return aggregate;
     }
 }

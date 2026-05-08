@@ -1,7 +1,12 @@
 package com.example.ports;
 
-import com.example.domain.slack.SlackMessage;
-
+/**
+ * Interface for sending Slack notifications.
+ * Port definition.
+ */
 public interface SlackNotifier {
-    void send(SlackMessage message);
+    /**
+     * Sends a notification message to Slack.
+     */
+    void sendNotification(String body);
 }

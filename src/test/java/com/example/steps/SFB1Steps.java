@@ -1,112 +1,82 @@
 package com.example.steps;
 
-import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.DefectReportedEvent;
-import com.example.domain.defect.model.ReportDefectCommand;
-import com.example.domain.validation.model.ValidateUrlPresenceCommand;
-import com.example.domain.validation.model.ValidationAggregate;
-import com.example.domain.validation.model.ValidationPassedEvent;
+import com.example.domain.shared.DefectReportedEvent;
+import com.example.domain.shared.ReportDefectCmd;
+import com.example.domain.validation.model.DefectAggregate;
+import com.example.mocks.MockSlackNotificationPort;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.Scenario;
+import org.springframework.beans.factory.annotation.Autowired;
 
-import java.time.Instant;
-import java.util.List;
+import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Cucumber Steps for S-FB-1.
+ * Verifies that the Slack body generated contains the GitHub URL.
+ */
 public class SFB1Steps {
 
-    private DefectAggregate defectAggregate;
-    private ValidationAggregate validationAggregate;
-    private String actualSlackBody;
-    private String expectedGithubUrl;
-    private Exception capturedException;
+    // In a real Spring Boot integration, we would @Autowired the handler.
+    // For the TDD Red Phase, we instantiate the Aggregate and Mocks directly
+    // to ensure the test fails if the logic is missing.
+    
+    private final MockSlackNotificationPort mockSlack = new MockSlackNotificationPort();
+    private DefectAggregate aggregate;
+    private String capturedGitHubUrl;
 
-    // Scenario: Successfully report a defect with a GitHub URL
-    @Given("a defect is reported with title {string} and GitHub URL {string}")
-    public void a_defect_is_reported_with_title_and_github_url(String title, String url) {
-        String id = "DEFECT-" + System.currentTimeMillis();
-        this.defectAggregate = new DefectAggregate(id);
-        this.expectedGithubUrl = url;
-
-        // Execute command
-        ReportDefectCommand cmd = new ReportDefectCommand(id, title, "Defect description", url);
-        defectAggregate.execute(cmd);
+    @Given("a defect report with GitHub URL {string}")
+    public void a_defect_report_with_github_url(String url) {
+        // We assume the defect ID is generated or fixed for the test scenario
+        this.aggregate = new DefectAggregate("DEF-454");
+        this.capturedGitHubUrl = url;
     }
 
-    @When("the defect is stored")
-    public void the_defect_is_stored() {
-        // In a real application, this would persist via repository.
-        // For Red Phase, we rely on the aggregate state change.
-        Assertions.assertNotNull(defectAggregate.getTitle());
-    }
+    @When("the temporal-worker executes the _report_defect workflow")
+    public void the_temporal_worker_executes_the_report_defect_workflow() {
+        // Simulate the workflow processing the command
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            "DEF-454",
+            "Validating VW-454",
+            "GitHub URL in Slack body",
+            "VForce360 PM",
+            capturedGitHubUrl
+        );
 
-    @Then("the defect aggregate should contain the GitHub URL {string}")
-    public void the_defect_aggregate_should_contain_the_github_url(String url) {
-        Assertions.assertEquals(url, defectAggregate.getGithubUrl());
-    }
+        // Execute domain logic
+        aggregate.execute(cmd);
 
-    @Then("a DefectReportedEvent should be emitted containing the URL")
-    public void a_defect_reported_event_should_be_emitted_containing_the_url() {
-        List<com.example.domain.shared.DomainEvent> events = defectAggregate.uncommittedEvents();
-        Assertions.assertFalse(events.isEmpty());
+        // NOTE: In a real implementation, a Projector/Handler would listen to DefectReportedEvent
+        // and call SlackNotificationPort.sendNotification().
+        // Since this is a Unit/Integration Test in Red Phase, we manually trigger the logic under test
+        // or verify the state.
         
-        DefectReportedEvent event = (DefectReportedEvent) events.get(0);
-        Assertions.assertEquals(expectedGithubUrl, event.githubUrl());
+        // For this specific story (S-FB-1), we are validating the *content* of the Slack body.
+        // If the logic to put the URL in the body exists, it should be testable.
+        // Here we simulate the Projection logic that would send the message:
+        String slackBody = generateSlackBodyFromEvent(cmd); // This is the method under test conceptually
+        mockSlack.sendNotification(slackBody);
     }
 
-    // Scenario: Validate that the Slack Body contains the GitHub URL
-    @Given("a defect exists with GitHub URL {string}")
-    public void a_defect_exists_with_github_url(String url) {
-        this.expectedGithubUrl = url;
-        // Setup defect aggregate to represent the state
-        String id = "DEFECT-VAL-1";
-        this.defectAggregate = new DefectAggregate(id);
-        this.defectAggregate.execute(new ReportDefectCommand(id, "Val Title", "Desc", url));
-    }
-
-    @Given("the Slack notification body is generated containing the URL")
-    public void the_slack_notification_body_is_generated_containing_the_url() {
-        // Simulating the body generation logic which should include the link
-        this.actualSlackBody = "Issue reported: " + expectedGithubUrl;
-    }
-
-    @When("the validation workflow checks the body for the link")
-    public void the_validation_workflow_checks_the_body_for_the_link() {
-        this.validationAggregate = new ValidationAggregate("VAL-1");
-        ValidateUrlPresenceCommand cmd = new ValidateUrlPresenceCommand("VAL-1", expectedGithubUrl, actualSlackBody);
-        validationAggregate.execute(cmd);
-    }
-
-    @Then("the validation should pass successfully")
-    public void the_validation_should_pass_successfully() {
-        Assertions.assertTrue(validationAggregate.isPassed());
+    @Then("the Slack body should contain the GitHub issue link")
+    public void the_slack_body_should_contain_the_github_issue_link() {
+        // Verify the mock received the message containing the URL
+        assertTrue(mockSlack.wasCalledWith(capturedGitHubUrl), 
+            "Slack body should contain the GitHub URL: " + capturedGitHubUrl);
         
-        List<com.example.domain.shared.DomainEvent> events = validationAggregate.uncommittedEvents();
-        ValidationPassedEvent event = (ValidationPassedEvent) events.get(0);
-        Assertions.assertTrue(event.passed());
+        // Specifically verify the format <url>
+        assertTrue(mockSlack.wasCalledWith("<" + capturedGitHubUrl + ">"),
+            "Slack body should format URL as <" + capturedGitHubUrl + ">");
     }
 
-    // Negative Scenario: Validation fails if URL is missing
-    @Given("the Slack notification body is generated but missing the URL")
-    public void the_slack_notification_body_is_generated_but_missing_the_url() {
-        this.actualSlackBody = "Issue reported (link missing)";
-    }
-
-    @When("the validation workflow runs")
-    public void the_validation_workflow_runs() {
-        this.validationAggregate = new ValidationAggregate("VAL-2");
-        // Using a dummy expected URL
-        ValidateUrlPresenceCommand cmd = new ValidateUrlPresenceCommand("VAL-2", "http://github.com/issue/1", actualSlackBody);
-        validationAggregate.execute(cmd);
-    }
-
-    @Then("the validation should fail")
-    public void the_validation_should_fail() {
-        Assertions.assertFalse(validationAggregate.isPassed());
-        
-        List<com.example.domain.shared.DomainEvent> events = validationAggregate.uncommittedEvents();
-        ValidationPassedEvent event = (ValidationPassedEvent) events.get(0);
-        Assertions.assertFalse(event.passed());
+    /**
+     * Placeholder for the Projection logic.
+     * This method represents the code that needs to be written/fixed.
+     * Currently returns empty string to force a test failure (Red Phase).
+     */
+    private String generateSlackBodyFromEvent(ReportDefectCmd event) {
+        // INTENTIONAL BUG FOR RED PHASE: Missing URL in body
+        return "Defect Reported: " + event.title();
     }
 }

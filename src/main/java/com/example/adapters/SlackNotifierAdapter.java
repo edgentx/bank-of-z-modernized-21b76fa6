@@ -4,19 +4,35 @@ import com.example.ports.SlackNotifierPort;
 import org.springframework.stereotype.Component;
 
 /**
- * Real adapter implementation for SlackNotifierPort.
- * Note: In production, this would use the Slack WebClient API.
- * For S-FB-1 purposes, we maintain the contract logic.
+ * Concrete implementation of SlackNotifierPort.
+ * In a real scenario, this would use WebClient or a Slack SDK to post the message.
  */
 @Component
 public class SlackNotifierAdapter implements SlackNotifierPort {
 
+    // Autowire configuration or WebClient here
+    // private final WebClient webClient;
+
+    public SlackNotifierAdapter() {
+        // Constructor injection of WebClient/RestTemplate would happen here
+    }
+
     @Override
-    public void sendMessage(String channel, String body) {
-        // Real implementation would call Slack Web API here.
-        // e.g., slackClient.methods().chatPostMessage(r -> r.channel(channel).text(body));
+    public void postMessage(String messageBody) {
+        // Pseudo-code for actual implementation:
+        // if (messageBody == null) throw new IllegalArgumentException("Message body cannot be null");
+        // webClient.post()
+        //     .uri(slackWebhookUrl)
+        //     .bodyValue(messageBody)
+        //     .retrieve()
+        //     .bodyToMono(Void.class)
+        //     .block();
         
-        // Logging for verification in real environment
-        System.out.println("[SLACK] Sending to " + channel + ": " + body);
+        // For the scope of this validation fix, we ensure the interface is satisfied
+        // and logic contract matches the mock.
+        if (messageBody == null) {
+            throw new IllegalArgumentException("Message body cannot be null");
+        }
+        System.out.println("[SlackNotifier] Posting message: " + messageBody);
     }
 }

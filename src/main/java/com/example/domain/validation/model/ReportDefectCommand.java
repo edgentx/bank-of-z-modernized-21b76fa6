@@ -4,10 +4,10 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to report a defect.
- * Used by the Temporal workflow to trigger domain logic.
+ * Typically triggered by an external workflow or user action.
  */
 public record ReportDefectCommand(
     String defectId,
-    String summary,
-    String githubUrl
+    String description,
+    String githubIssueUrl
 ) implements Command {}

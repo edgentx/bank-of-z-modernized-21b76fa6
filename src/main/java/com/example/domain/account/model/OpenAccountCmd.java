@@ -4,6 +4,9 @@ import com.example.domain.shared.Command;
 
 import java.math.BigDecimal;
 
+/**
+ * Command to open a new account.
+ */
 public record OpenAccountCmd(
     String accountId,
     String customerId,

@@ -1,49 +1,72 @@
 package com.example.application;
 
 import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.DefectRepository;
+import com.example.domain.defect.model.DefectReportedEvent;
 import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.domain.shared.SlackMessageValidator;
-import io.temporal.client.WorkflowClient;
-import io.temporal.client.WorkflowOptions;
+import com.example.ports.SlackNotificationPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+/**
+ * Application service handling the defect reporting process.
+ * Orchestrates the aggregate logic and the subsequent notification via Slack.
+ * This service acts as the 'Real Adapter' logic sitting behind the workflow/activity interface.
+ */
 @Service
 public class DefectReportService {
-    
-    private final DefectRepository defectRepository;
-    private final SlackMessageValidator validator;
-    private final WorkflowClient workflowClient;
 
-    public DefectReportService(DefectRepository defectRepository, 
-                               SlackMessageValidator validator,
-                               WorkflowClient workflowClient) {
-        this.defectRepository = defectRepository;
-        this.validator = validator;
-        this.workflowClient = workflowClient;
+    private static final Logger logger = LoggerFactory.getLogger(DefectReportService.class);
+    private static final String GITHUB_BASE_URL = "https://github.com/example/bank-of-z/issues/";
+    private static final String SLACK_CHANNEL = "#vforce360-issues";
+
+    private final SlackNotificationPort slackNotificationPort;
+
+    // Constructor injection of the port (adheres to Dependency Inversion)
+    public DefectReportService(SlackNotificationPort slackNotificationPort) {
+        this.slackNotificationPort = slackNotificationPort;
     }
 
+    /**
+     * Handles the reporting of a defect.
+     * 1. Validates logic via Aggregate.
+     * 2. Constructs message containing GitHub URL.
+     * 3. Sends notification via Slack Port.
+     */
     public void reportDefect(ReportDefectCmd cmd) {
-        // 1. Handle Domain Aggregate
-        var aggregate = new DefectAggregate(cmd.defectId());
-        aggregate.execute(cmd);
-        defectRepository.save(aggregate);
+        logger.info("Processing defect report: {}", cmd.defectId());
 
-        // 2. Trigger Temporal Workflow
-        // In a real scenario, we trigger the workflow, which then calls activities.
-        // For this E2E test context, we might be verifying the service interaction directly
-        // or assuming the Workflow picks it up. 
-        // To ensure the Validator is used as per the "Actual Behavior" check,
-        // we validate here before triggering the external async process.
-        
-        String expectedUrl = "https://github.com/bank-of-z/modernized/issues/" + cmd.defectId();
-        String slackBody = "Defect reported: <" + expectedUrl + ">";
-        
-        // This explicit call validates the requirement locally as part of the process
-        validator.validate(slackBody, expectedUrl);
+        // 1. Execute Domain Logic
+        DefectAggregate aggregate = new DefectAggregate(cmd.defectId());
+        List<DefectReportedEvent> events = aggregate.execute(cmd);
 
-        // Trigger Temporal Workflow (stub)
-        // DefectReportWorkflow workflow = workflowClient.newWorkflowStub(DefectReportWorkflow.class, ...);
-        // workflow.reportDefectWorkflow(...);
+        // 2. Handle side-effects (Notification)
+        for (DefectReportedEvent event : events) {
+            notifySlack(event);
+        }
+    }
+
+    /**
+     * Constructs the Slack message body ensuring the GitHub URL is present.
+     * Specifically addresses defect VW-454.
+     */
+    private void notifySlack(DefectReportedEvent event) {
+        // Construct the GitHub URL based on the issue ID
+        String githubUrl = GITHUB_BASE_URL + event.getIssueId();
+
+        // Construct the body text
+        String body = "Defect Reported: " + event.getDescription() + "\n" +
+                      "Issue: " + githubUrl;
+
+        logger.info("Sending notification to {}: {}", SLACK_CHANNEL, body);
+
+        // Send via port
+        boolean success = slackNotificationPort.sendMessage(SLACK_CHANNEL, body);
+
+        if (!success) {
+            logger.error("Failed to send Slack notification for defect {}", event.aggregateId());
+            // Depending on requirements, we might throw here or retry.
+            // For now, we log the failure.
+        }
     }
 }

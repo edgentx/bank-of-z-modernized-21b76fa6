@@ -9,7 +9,8 @@ import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
 
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features")
+@SelectClasspathResource("features/S-18.feature")
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
 public class S18TestSuite {
+    // JUnit 5 Suite to run Cucumber features for S-18
 }

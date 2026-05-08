@@ -3,18 +3,17 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
+/**
+ * Event representing the start of a session.
+ * (Required to support the "valid TellerSession aggregate" context in tests)
+ */
 public record SessionStartedEvent(
         String aggregateId,
         String tellerId,
-        Instant startedAt
+        String tillId,
+        Instant occurredAt
 ) implements DomainEvent {
-
-    public SessionStartedEvent(String sessionId, String tellerId, Instant startedAt) {
-        this(UUID.randomUUID().toString(), tellerId, startedAt);
-    }
-
     @Override
     public String type() {
         return "session.started";
@@ -27,6 +26,6 @@ public record SessionStartedEvent(
 
     @Override
     public Instant occurredAt() {
-        return startedAt;
+        return occurredAt;
     }
 }

@@ -1,4 +1,3 @@
-<!-- Just the relevant changes to fix the build and add dependencies -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" 
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -40,8 +39,6 @@
             <artifactId>temporal-sdk</artifactId>
             <version>1.22.0</version>
         </dependency>
-
-        <!-- Mockito (Already provided by starter-test, but listing for clarity if needed standalone) -->
     </dependencies>
 
     <build>

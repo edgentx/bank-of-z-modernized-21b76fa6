@@ -1,23 +1,23 @@
 package com.example.adapters;
 
-import com.example.ports.NotificationPort;
+import com.example.ports.SlackPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Adapter for Slack notification integration.
- * Implements the {@link NotificationPort} interface.
+ * Real-world implementation of SlackPort.
+ * In a production environment, this would use a Slack Webhook client or API.
  */
 @Component
-public class SlackAdapter implements NotificationPort {
+public class SlackAdapter implements SlackPort {
+
+    private static final Logger log = LoggerFactory.getLogger(SlackAdapter.class);
 
     @Override
-    public void sendNotification(String defectId, String ticketUrl) {
-        // Simulation of Slack API call
-        // In a real scenario, this would POST to chat.postMessage
-        // Body: "Defect Reported: " + defectId + "\nGitHub Issue: " + ticketUrl
-        
-        if (ticketUrl == null || ticketUrl.isBlank()) {
-            throw new IllegalArgumentException("GitHub URL cannot be null or blank when notifying Slack");
-        }
+    public void sendMessage(String channel, String body) {
+        // In a real implementation, this would call Slack Web API or a webhook.
+        // e.g. slackMethods.postMessage(chatPostMessage -> ...
+        log.info("[Slack Mock] Sending to channel {}: {}", channel, body);
     }
 }

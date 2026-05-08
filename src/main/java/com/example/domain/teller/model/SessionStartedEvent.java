@@ -5,28 +5,21 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Domain event emitted when a teller session is successfully started.
- */
 public record SessionStartedEvent(
-    String aggregateId,
-    String tellerId,
-    String terminalId,
-    Instant occurredAt,
-    UUID eventId
+        String aggregateId,
+        String tellerId,
+        String terminalId,
+        Instant occurredAt
 ) implements DomainEvent {
-    
     public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
-        this(aggregateId, tellerId, terminalId, occurredAt, UUID.randomUUID());
+        this.aggregateId = aggregateId;
+        this.tellerId = tellerId;
+        this.terminalId = terminalId;
+        this.occurredAt = occurredAt;
     }
 
     @Override
     public String type() {
         return "session.started";
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

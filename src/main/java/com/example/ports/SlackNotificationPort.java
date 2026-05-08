@@ -1,11 +1,16 @@
 package com.example.ports;
 
-import com.example.domain.shared.Command;
-
 /**
  * Port for sending Slack notifications.
- * Implemented by infrastructure adapters.
+ * Used to decouple the domain logic from the specific Slack implementation.
  */
 public interface SlackNotificationPort {
-    void sendNotification(String messageBody);
+
+    /**
+     * Sends a message to a specific Slack channel.
+     *
+     * @param channel The target channel (e.g. "#vforce360-issues").
+     * @param body    The message body content.
+     */
+    void sendMessage(String channel, String body);
 }

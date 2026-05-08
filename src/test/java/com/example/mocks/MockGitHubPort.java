@@ -1,32 +1,28 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
-
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * In-memory Mock for GitHub Port.
- * Allows tests to verify correct IDs are being queried and control the returned URL.
+ * Mock implementation of GitHubPort for testing.
+ * Simulates GitHub API calls without network I/O.
  */
 public class MockGitHubPort implements GitHubPort {
 
-    private final Map<String, String> urlMapping = new HashMap<>();
-    private String lastQueriedId;
-
-    public MockGitHubPort() {
-        // Default behavior for the story VW-454
-        urlMapping.put("VW-454", "https://github.com/vforce360/issues/454");
-    }
+    private final List<String> createdIssues = new ArrayList<>();
+    private String mockUrlPrefix = "https://github.com/mock-repo/issues/";
+    private int counter = 1;
 
     @Override
-    public String getIssueUrl(String defectId) {
-        this.lastQueriedId = defectId;
-        // If not explicitly mapped, return a dummy URL to keep tests predictable
-        return urlMapping.getOrDefault(defectId, "https://github.com/vforce360/issues/0");
+    public String createIssue(String title, String body) {
+        String url = mockUrlPrefix + counter++;
+        createdIssues.add(url);
+        // Simulate the behavior of returning a real URL
+        return url;
     }
 
-    public String getLastQueriedId() {
-        return lastQueriedId;
+    public List<String> getCreatedIssues() {
+        return new ArrayList<>(createdIssues);
     }
 }

@@ -6,12 +6,10 @@ package com.example.ports;
 public interface GitHubPort {
 
     /**
-     * Creates a new issue in the repository.
-     *
-     * @param title The title of the issue.
-     * @param body The body content of the issue.
-     * @return The full URL of the created issue (e.g., "https://github.com/org/repo/issues/123").
+     * Creates a GitHub issue for the given defect.
+     * @param title The issue title.
+     * @param body The issue body.
+     * @return The URL of the created issue.
      */
     String createIssue(String title, String body);
-
 }

@@ -3,11 +3,16 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
-public record SessionStartedEvent(String aggregateId, String tellerId, String initialScreen, Instant occurredAt) implements DomainEvent {
-    public SessionStartedEvent {
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
-        if (occurredAt == null) occurredAt = Instant.now();
+public record SessionStartedEvent(
+        String aggregateId,
+        String tellerId,
+        Instant startedAt
+) implements DomainEvent {
+
+    public SessionStartedEvent(String sessionId, String tellerId, Instant startedAt) {
+        this(UUID.randomUUID().toString(), tellerId, startedAt);
     }
 
     @Override
@@ -22,6 +27,6 @@ public record SessionStartedEvent(String aggregateId, String tellerId, String in
 
     @Override
     public Instant occurredAt() {
-        return occurredAt;
+        return startedAt;
     }
 }

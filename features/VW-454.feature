@@ -1,6 +1,6 @@
-Feature: VW-454 Regression Test
+Feature: Defect Reporting Integration
 
-  Scenario: Validating GitHub URL presence in Slack notification body
-    Given a defect report command exists for VW-454
-    When the report_defect workflow is executed via temporal-worker
-    Then the Slack body must include the GitHub issue URL
+  Scenario: Verify Slack body contains GitHub URL (VW-454)
+    Given a defect report is triggered for VW-454
+    When the report_defect workflow executes
+    Then the Slack body includes the GitHub issue link

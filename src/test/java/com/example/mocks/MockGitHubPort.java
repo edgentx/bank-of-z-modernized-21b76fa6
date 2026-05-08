@@ -2,22 +2,25 @@ package com.example.mocks;
 
 import com.example.ports.GitHubPort;
 
-/**
- * Mock implementation of GitHubPort for testing.
- * Returns predictable URLs to verify propagation to Slack.
- */
+import java.util.concurrent.CompletableFuture;
+
 public class MockGitHubPort implements GitHubPort {
+    private String responseUrl = "https://github.com/test/issues/42";
+    private boolean shouldFail = false;
 
-    private String mockUrlBase = "http://github.com/mocked-repo/issues/";
-    private int issueCounter = 1;
-
-    @Override
-    public String createIssue(String title, String body) {
-        // Simulate GitHub API returning a new URL
-        return mockUrlBase + issueCounter++;
+    public void setResponseUrl(String url) {
+        this.responseUrl = url;
     }
 
-    public void setMockUrlBase(String url) {
-        this.mockUrlBase = url;
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
+    }
+
+    @Override
+    public CompletableFuture<String> createIssue(String title, String body) {
+        if (shouldFail) {
+            return CompletableFuture.failedFuture(new RuntimeException("GitHub API Error"));
+        }
+        return CompletableFuture.completedFuture(responseUrl);
     }
 }

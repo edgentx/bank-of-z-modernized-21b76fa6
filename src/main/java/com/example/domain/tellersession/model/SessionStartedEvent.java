@@ -1,4 +1,4 @@
-package com.example.domain.telllersession.model;
+package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.DomainEvent;
 
@@ -6,23 +6,17 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event emitted when a teller session is successfully started.
+ * Event emitted when a Teller Session is successfully started.
  */
 public record SessionStartedEvent(
-        String aggregateId,
-        String tellerId,
-        String terminalId,
-        Instant occurredAt,
-        String eventId
+    String aggregateId,
+    String tellerId,
+    String terminalId,
+    Instant occurredAt
 ) implements DomainEvent {
 
-    public SessionStartedEvent {
-        if (eventId == null) eventId = UUID.randomUUID().toString();
-        if (occurredAt == null) occurredAt = Instant.now();
-    }
-
-    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
-        this(aggregateId, tellerId, terminalId, occurredAt, UUID.randomUUID().toString());
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId) {
+        this(aggregateId, tellerId, terminalId, Instant.now());
     }
 
     @Override

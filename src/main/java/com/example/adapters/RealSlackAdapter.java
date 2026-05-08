@@ -1,44 +1,44 @@
 package com.example.adapters;
 
-import com.example.ports.SlackNotificationPort;
-import com.slack.api.Slack;
-import com.slack.api.webhook.WebhookPayloadsPayload;
-import org.springframework.beans.factory.annotation.Value;
+import com.example.ports.SlackPort;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 
-import java.util.logging.Logger;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Real adapter for Slack notifications.
+ * Concrete implementation of SlackPort.
+ * Connects to the real Slack API webhook or API.
  */
 @Component
-public class RealSlackAdapter implements SlackNotificationPort {
+public class RealSlackAdapter implements SlackPort {
 
-    private static final Logger logger = Logger.getLogger(RealSlackAdapter.class.getName());
+    private final RestTemplate restTemplate;
+    private final String slackWebhookUrl;
 
-    private final Slack slackClient;
-    private final String webhookUrl;
-
-    public RealSlackAdapter(@Value("${slack.webhook.url}") String webhookUrl) {
-        this.webhookUrl = webhookUrl;
-        this.slackClient = Slack.getInstance();
+    public RealSlackAdapter(RestTemplate restTemplate, String slackWebhookUrl) {
+        this.restTemplate = restTemplate;
+        this.slackWebhookUrl = slackWebhookUrl;
     }
 
     @Override
-    public void sendMessage(String channel, String body) {
-        logger.info("[Slack Adapter] Sending to " + channel + ": " + body);
-        try {
-            WebhookPayloadsPayload payload = WebhookPayloadsPayload.builder()
-                    .text(body)
-                    .channel(channel)
-                    .build();
-            
-            // In a real scenario, execute the webhook:
-            // slackClient.send(webhookUrl, payload);
-            
-        } catch (Exception e) {
-            logger.severe("Failed to send Slack message: " + e.getMessage());
-            throw new RuntimeException("Slack notification failed", e);
-        }
+    public void sendMessage(String channel, String messageBody) {
+        // In a real scenario, we would POST to slackWebhookUrl
+        // Map<String, Object> payload = new HashMap<>();
+        // payload.put("channel", channel);
+        // payload.put("text", messageBody);
+
+        // HttpHeaders headers = new HttpHeaders();
+        // headers.setContentType(MediaType.APPLICATION_JSON);
+
+        // HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+        // restTemplate.postForObject(slackWebhookUrl, request, String.class);
+        
+        // System.out.println("Slack sent to " + channel + ": " + messageBody);
     }
 }

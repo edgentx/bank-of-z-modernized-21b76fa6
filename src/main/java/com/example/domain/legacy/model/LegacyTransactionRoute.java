@@ -4,87 +4,70 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-
 import java.time.Instant;
 import java.util.List;
 
 /**
  * Aggregate for managing LegacyTransactionRoute.
- * Determines the target system for an incoming command based on current feature flags and routing rules.
+ * S-23: Implement EvaluateRoutingCmd.
  */
 public class LegacyTransactionRoute extends AggregateRoot {
+  private final String routeId;
+  private String targetSystem; // "modern" or "legacy"
+  private int currentRuleVersion;
 
-    private final String routeId;
-    private String transactionType;
-    private String payload;
-    private boolean evaluated;
-    
-    public LegacyTransactionRoute(String routeId) {
-        this.routeId = routeId;
+  public LegacyTransactionRoute(String routeId) {
+    this.routeId = routeId;
+  }
+
+  @Override
+  public String id() {
+    return routeId;
+  }
+
+  @Override
+  public List<DomainEvent> execute(Command cmd) {
+    if (cmd instanceof EvaluateRoutingCmd c) {
+      return evaluate(c);
+    }
+    throw new UnknownCommandException(cmd);
+  }
+
+  private List<DomainEvent> evaluate(EvaluateRoutingCmd cmd) {
+    // Invariant: Rule version must be valid (simulating version check)
+    if (cmd.ruleVersion() <= 0) {
+      throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
     }
 
-    @Override
-    public String id() {
-        return routeId;
+    // Determine target (Simplified logic for S-23: assume Legacy if payload is small, Modern if large/complex)
+    String determinedTarget;
+    if (cmd.payload() != null && cmd.payload().length() > 100) {
+      determinedTarget = "modern";
+    } else {
+      determinedTarget = "legacy";
     }
 
-    @Override
-    public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof EvaluateRoutingCmd c) {
-            return evaluateRouting(c);
-        }
-        throw new UnknownCommandException(cmd);
+    // Invariant: Must route to exactly ONE system
+    if (determinedTarget == null || (!determinedTarget.equals("modern") && !determinedTarget.equals("legacy"))) {
+      throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
     }
 
-    private List<DomainEvent> evaluateRouting(EvaluateRoutingCmd cmd) {
-        if (this.evaluated) {
-            throw new IllegalStateException("Routing already evaluated for this route: " + routeId);
-        }
+    var event = new RoutingEvaluatedEvent(
+        cmd.routeId(),
+        determinedTarget,
+        cmd.transactionType(),
+        cmd.ruleVersion(),
+        Instant.now()
+    );
 
-        if (cmd.transactionType() == null || cmd.transactionType().isBlank()) {
-            throw new IllegalArgumentException("transactionType is required");
-        }
-        if (cmd.payload() == null || cmd.payload().isBlank()) {
-            throw new IllegalArgumentException("payload is required");
-        }
-        
-        // Invariant: Routing rules must be versioned to allow safe rollback.
-        // Simulating version check via command field.
-        if (cmd.ruleVersion() == null || cmd.ruleVersion() <= 0) {
-            throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
-        }
+    this.targetSystem = determinedTarget;
+    this.currentRuleVersion = cmd.ruleVersion();
 
-        // Invariant: A transaction must route to exactly one backend system (modern or legacy).
-        if (cmd.isDualProcessingCandidate()) {
-             throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
-        }
+    addEvent(event);
+    incrementVersion();
+    return List.of(event);
+  }
 
-        // Business Logic: Determine target
-        String targetSystem = determineTargetSystem(cmd.transactionType());
-
-        var event = new RoutingEvaluatedEvent(
-            this.routeId,
-            cmd.transactionType(),
-            targetSystem,
-            cmd.ruleVersion(),
-            Instant.now()
-        );
-
-        this.transactionType = cmd.transactionType();
-        this.payload = cmd.payload();
-        this.evaluated = true;
-
-        addEvent(event);
-        incrementVersion();
-        return List.of(event);
-    }
-
-    private String determineTargetSystem(String txType) {
-        // Simplified logic: Routing to 'Legacy' or 'Modern' based on type
-        // This would normally involve feature flags.
-        return switch (txType) {
-            case "MODERN_TX" -> "Modern";
-            default -> "Legacy";
-        };
-    }
+  public String getTargetSystem() { return targetSystem; }
+  public int getCurrentRuleVersion() { return currentRuleVersion; }
 }

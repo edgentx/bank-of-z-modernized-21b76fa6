@@ -1,16 +1,19 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
+
 import java.time.Instant;
-import java.util.UUID;
 
 /**
- * Command to initiate a teller session.
- * Enforces invariants regarding authentication and terminal validity.
+ * Command to start a teller session.
+ * S-18
  */
 public record StartSessionCmd(
-    String sessionId,
-    String tellerId,
-    String terminalId,
-    Instant sessionTimeoutAt
-) implements Command {}
+        String sessionId,
+        String tellerId,
+        String terminalId,
+        boolean isAuthenticated,
+        String navigationState,
+        Instant lastActivityAt
+) implements Command {
+}

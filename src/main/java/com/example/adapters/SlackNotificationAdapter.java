@@ -1,38 +1,30 @@
 package com.example.adapters;
 
-import com.example.domain.shared.DefectReportedEvent;
-import com.example.ports.NotificationPort;
+import com.example.ports.SlackNotificationPort;
 import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Real implementation of the NotificationPort for Slack.
- * Constructs the payload ensuring strict formatting rules (VW-454).
+ * Concrete implementation of SlackNotificationPort.
+ * In a real environment, this would use the Slack WebClient.
  */
 @Component
-public class SlackNotificationAdapter implements NotificationPort {
+public class SlackNotificationAdapter implements SlackNotificationPort {
 
-    private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
+    private static final Logger logger = LoggerFactory.getLogger(SlackNotificationAdapter.class);
 
     @Override
-    public void publishDefectReport(DefectReportedEvent event) {
-        // Construct the Slack body
-        // Requirement: 'GitHub Issue: <url>'
-        String body = String.format(
-            "Defect Reported: %s\nProject: %s\nGitHub Issue: <%s>",
-            event.getDefectId(),
-            event.getProjectId(),
-            event.getGithubUrl()
-        );
-
-        // In a real implementation, this would use the Slack WebAPI client.
-        // For this validation phase, we log to verify the string construction.
-        log.info("Sending Slack notification: {}", body);
-
-        // Verify internal constraint before sending
-        if (!body.contains("<" + event.getGithubUrl() + ">")) {
-            throw new IllegalStateException("Slack body construction failed: URL not properly formatted");
-        }
+    public void postMessage(String channel, String messageBody) {
+        // Real implementation would use Slack API Client here.
+        // For now, we log to verify execution.
+        logger.info("[SLACK MOCK] Posting to {}: {}", channel, messageBody);
+        
+        // Example Real Implementation Pattern:
+        // try {
+        //     SlackClient.getInstance().postMessage(channel, messageBody);
+        // } catch (SlackApiException e) {
+        //     throw new RuntimeException("Failed to post Slack message", e);
+        // }
     }
 }

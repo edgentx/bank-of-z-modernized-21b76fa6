@@ -3,32 +3,34 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Objects;
 
-/**
- * Domain Event for S-19: MenuNavigatedEvent.
- * Published when a teller successfully moves between screens.
- */
 public record MenuNavigatedEvent(
-    String aggregateId,
-    String previousMenuId,
-    String targetMenuId,
-    String action,
-    Instant occurredAt
+        String aggregateId,
+        String menuId,
+        String action,
+        String operationalContext,
+        Instant occurredAt
 ) implements DomainEvent {
 
     public MenuNavigatedEvent {
-        if (aggregateId == null || aggregateId.isBlank()) {
-            throw new IllegalArgumentException("aggregateId cannot be null");
-        }
-        // occurredAt defaults to now if null, though we usually pass it explicitly
-        if (occurredAt == null) {
-            occurredAt = Instant.now();
-        }
+        Objects.requireNonNull(aggregateId, "aggregateId cannot be null");
+        Objects.requireNonNull(menuId, "menuId cannot be null");
+        Objects.requireNonNull(occurredAt, "occurredAt cannot be null");
     }
 
     @Override
     public String type() {
         return "menu.navigated";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

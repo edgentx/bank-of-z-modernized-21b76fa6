@@ -1,15 +1,16 @@
 package com.example.steps;
 
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.teller.model.EndSessionCmd;
+import com.example.domain.teller.model.SessionEndedEvent;
 import com.example.domain.teller.model.TellerSessionAggregate;
-import com.example.domain.teller.model.TellerSessionEndedEvent;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -21,22 +22,46 @@ public class S20Steps {
     private Exception thrownException;
 
     @Given("a valid TellerSession aggregate")
-    public void aValidTellerSessionAggregate() {
-        aggregate = new TellerSessionAggregate("session-123");
-        aggregate.markAuthenticated(); // Simulate login
-        aggregate.setNavigationState("IDLE"); // Ensure valid context
+    public void a_valid_TellerSession_aggregate() {
+        String sessionId = "session-123";
+        aggregate = new TellerSessionAggregate(sessionId);
+        // Setup valid state
+        aggregate.setAuthenticated(true);
     }
 
-    @And("a valid sessionId is provided")
-    public void aValidSessionIdIsProvided() {
-        // Valid ID is implicitly used in the command execution step
-        // No specific state setup needed here for ID validity
+    @Given("a valid sessionId is provided")
+    public void a_valid_sessionId_is_provided() {
+        // Handled in the aggregate initialization above, primarily for semantic mapping
+    }
+
+    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
+    public void a_TellerSession_aggregate_that_violates_authentication() {
+        String sessionId = "session-violation-auth";
+        aggregate = new TellerSessionAggregate(sessionId);
+        aggregate.setAuthenticated(false); // Violation: not authenticated
+    }
+
+    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
+    public void a_TellerSession_aggregate_that_violates_timeout() {
+        String sessionId = "session-violation-timeout";
+        aggregate = new TellerSessionAggregate(sessionId);
+        aggregate.setAuthenticated(true);
+        // Set last activity to 1 hour ago (timeout is usually 30 mins)
+        aggregate.setLastActivityAt(Instant.now().minus(Duration.ofHours(1)));
+    }
+
+    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
+    public void a_TellerSession_aggregate_that_violates_navigation_state() {
+        String sessionId = "session-violation-nav";
+        aggregate = new TellerSessionAggregate(sessionId);
+        aggregate.setAuthenticated(true);
+        aggregate.setNavigationStateValid(false);
     }
 
     @When("the EndSessionCmd command is executed")
-    public void theEndSessionCmdCommandIsExecuted() {
+    public void the_EndSessionCmd_command_is_executed() {
         try {
-            EndSessionCmd cmd = new EndSessionCmd("session-123");
+            EndSessionCmd cmd = new EndSessionCmd(aggregate.id());
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             thrownException = e;
@@ -44,42 +69,20 @@ public class S20Steps {
     }
 
     @Then("a session.ended event is emitted")
-    public void aSessionEndedEventIsEmitted() {
-        assertNull(thrownException, "Expected no exception, but got: " + thrownException.getMessage());
-        assertNotNull(resultEvents, "Events list should not be null");
-        assertFalse(resultEvents.isEmpty(), "Events list should not be empty");
+    public void a_session_ended_event_is_emitted() {
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof SessionEndedEvent);
         
-        DomainEvent event = resultEvents.get(0);
-        assertTrue(event instanceof TellerSessionEndedEvent, "Event should be TellerSessionEndedEvent");
+        SessionEndedEvent event = (SessionEndedEvent) resultEvents.get(0);
         assertEquals("session.ended", event.type());
-    }
-
-    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void aTellerSessionAggregateThatViolatesAuth() {
-        aggregate = new TellerSessionAggregate("session-unauth");
-        // Do NOT markAuthenticated - leaves isAuthenticated = false
-        aggregate.setNavigationState("IDLE");
+        assertEquals(aggregate.id(), event.aggregateId());
+        assertFalse(aggregate.isActive()); // Verify side effect
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(thrownException, "Expected an exception to be thrown");
-        assertTrue(thrownException instanceof IllegalStateException, "Expected IllegalStateException");
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(thrownException);
+        assertTrue(thrownException instanceof IllegalStateException);
     }
-
-    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void aTellerSessionAggregateThatViolatesTimeout() {
-        aggregate = new TellerSessionAggregate("session-timeout");
-        aggregate.markAuthenticated();
-        aggregate.setNavigationState("IDLE");
-        aggregate.markTimedOut(); // Move lastActivity into the past
-    }
-
-    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void aTellerSessionAggregateThatViolatesNavigationState() {
-        aggregate = new TellerSessionAggregate("session-busy");
-        aggregate.markAuthenticated();
-        aggregate.setNavigationState("TRANSATION_PENDING"); // Invalid state for ending session
-    }
-
 }

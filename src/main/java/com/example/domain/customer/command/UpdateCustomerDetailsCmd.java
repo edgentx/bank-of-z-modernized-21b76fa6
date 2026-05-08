@@ -3,11 +3,7 @@ package com.example.domain.customer.command;
 import com.example.domain.shared.Command;
 
 /**
- * Command to update customer details.
- * Placed in 'command' package to satisfy DAG dependency rules.
+ * Command to update contact details (email, sort code) for a Customer.
  */
-public record UpdateCustomerDetailsCmd(
-    String customerId,
-    String emailAddress,
-    String sortCode
-) implements Command {}
+public record UpdateCustomerDetailsCmd(String customerId, String emailAddress, String sortCode) implements Command {
+}

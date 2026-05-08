@@ -3,7 +3,6 @@ package com.example.domain.vforce360.model;
 import com.example.domain.shared.Command;
 
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Command to report a defect discovered via VForce360.

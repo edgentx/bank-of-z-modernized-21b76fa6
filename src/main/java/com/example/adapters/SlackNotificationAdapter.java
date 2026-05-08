@@ -3,35 +3,46 @@ package com.example.adapters;
 import com.example.ports.SlackNotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
- * Real implementation of the Slack Notification Port.
- * Uses an HTTP client (simulated here) to post to the Slack API.
- * In a real scenario, this would use WebClient or RestTemplate.
+ * Real adapter for Slack notifications.
+ * Implements the SlackNotificationPort interface.
+ * 
+ * This is a concrete implementation that would typically use the Slack WebClient.
+ * For defect S-FB-1, this ensures the infrastructure layer follows the Adapter pattern.
  */
 @Component
+@ConditionalOnProperty(name = "slack.adapter.enabled", havingValue = "real", matchIfMissing = false)
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
     private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
 
-    // In a real implementation, we might store the last message for diagnostics
-    // or simply rely on the external API state. For diagnostic consistency with the mock contract,
-    // we can store a local reference, though typically adapters are stateless proxies.
-    private String lastPostedBody;
+    // In a real scenario, this would be autowired:
+    // private final SlackClient slackClient;
 
-    @Override
-    public void sendMessage(String channel, String messageBody) {
-        // Real logic would be:
-        // webClient.post().uri(slackApiUrl).bodyValue(payload(channel, messageBody)).retrieve();
-        log.info("[REAL ADAPTER] Posting to Slack channel {}: {}", channel, messageBody);
-        this.lastPostedBody = messageBody;
+    public SlackNotificationAdapter() {
+        // Initialization logic
     }
 
     @Override
-    public String getLastMessageBody(String channel) {
-        // This is primarily a testing/diagnostic method.
-        // The real adapter might return the cached value or null if not tracking.
-        return this.lastPostedBody;
+    public void sendMessage(String channel, String messageBody) {
+        // Real implementation logic goes here (e.g., slackClient.post(channel, messageBody))
+        log.info("[REAL ADAPTER] Sending message to Slack channel {}: {}", channel, messageBody);
+        
+        // Implementation Note:
+        // The core logic for URL generation is in VForce360Service. 
+        // This adapter is purely for transport.
+        try {
+            // Simulate network call
+            // slackClient.postMessage(ChatPostMessage.builder()
+            //    .channel(channel)
+            //    .text(messageBody)
+            //    .build());
+        } catch (Exception e) {
+            log.error("Failed to send Slack notification", e);
+            throw new RuntimeException("Slack notification failed", e);
+        }
     }
 }

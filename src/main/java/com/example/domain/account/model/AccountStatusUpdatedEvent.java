@@ -5,10 +5,13 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Event emitted when an account status is updated.
+ */
 public record AccountStatusUpdatedEvent(
         String aggregateId,
-        AccountStatus oldStatus,
-        AccountStatus newStatus,
+        AccountAggregate.AccountStatus oldStatus,
+        AccountAggregate.AccountStatus newStatus,
         Instant occurredAt
 ) implements DomainEvent {
 
@@ -18,12 +21,12 @@ public record AccountStatusUpdatedEvent(
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 }

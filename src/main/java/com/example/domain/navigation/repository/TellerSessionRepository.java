@@ -1,9 +1,10 @@
 package com.example.domain.navigation.repository;
 
-import com.example.domain.navigation.model.TellerSession;
+import com.example.domain.navigation.model.TellerSessionAggregate;
+
 import java.util.Optional;
 
 public interface TellerSessionRepository {
-    void save(TellerSession aggregate);
-    Optional<TellerSession> findById(String id);
+    TellerSessionAggregate save(TellerSessionAggregate aggregate);
+    Optional<TellerSessionAggregate> findById(String id);
 }

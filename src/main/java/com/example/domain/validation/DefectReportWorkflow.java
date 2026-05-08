@@ -1,14 +1,26 @@
 package com.example.domain.validation;
 
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.domain.defect.repository.DefectRepository;
 import com.example.domain.shared.SlackMessageValidator;
-import io.temporal.workflow.WorkflowInterface;
-import io.temporal.workflow.WorkflowMethod;
 
-@WorkflowInterface
-public interface DefectReportWorkflow {
+public class DefectReportWorkflow {
+    private final DefectRepository defectRepository;
+    private final SlackMessageValidator slackMessageValidator;
 
-    @WorkflowMethod
-    String reportDefectWorkflow(String defectId, String title, String severity);
+    public DefectReportWorkflow(DefectRepository defectRepository, SlackMessageValidator slackMessageValidator) {
+        this.defectRepository = defectRepository;
+        this.slackMessageValidator = slackMessageValidator;
+    }
 
-    // Default static method for helper logic if needed, or keep interface clean
+    public void reportDefect(ReportDefectCmd cmd) {
+        DefectAggregate aggregate = new DefectAggregate(cmd.defectId());
+        aggregate.execute(cmd);
+        defectRepository.save(aggregate);
+    }
+
+    public boolean validateMessage(String messageBody) {
+        return slackMessageValidator.isValid(messageBody);
+    }
 }

@@ -7,17 +7,18 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * In-memory repository for testing ScreenMap aggregates.
- * Mirrors the structure of InMemoryTransactionRepository.
+ * In-memory implementation of the ScreenMapRepository for testing.
  */
-public class InMemoryScreenMapRepository {
+public class InMemoryScreenMapRepository implements ScreenMapRepository {
+
     private final Map<String, ScreenMapAggregate> store = new HashMap<>();
 
-    public ScreenMapAggregate save(ScreenMapAggregate aggregate) {
+    @Override
+    public void save(ScreenMapAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
-        return aggregate;
     }
 
+    @Override
     public Optional<ScreenMapAggregate> findById(String id) {
         return Optional.ofNullable(store.get(id));
     }

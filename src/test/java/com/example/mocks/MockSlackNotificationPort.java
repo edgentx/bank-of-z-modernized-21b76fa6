@@ -1,23 +1,21 @@
 package com.example.mocks;
 
-import com.example.domain.shared.Command;
 import com.example.ports.SlackNotificationPort;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Records messages sent instead of posting to real Slack.
+ * Captures messages in memory to verify output without external I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
     public static class PostedMessage {
-        public final Command command;
+        public final String channel;
         public final String body;
 
-        public PostedMessage(Command command, String body) {
-            this.command = command;
+        public PostedMessage(String channel, String body) {
+            this.channel = channel;
             this.body = body;
         }
     }
@@ -25,23 +23,15 @@ public class MockSlackNotificationPort implements SlackNotificationPort {
     private final List<PostedMessage> postedMessages = new ArrayList<>();
 
     @Override
-    public void postDefectNotification(Command command, String messageBody) {
-        this.postedMessages.add(new PostedMessage(command, messageBody));
+    public void sendNotification(String channel, String messageBody) {
+        this.postedMessages.add(new PostedMessage(channel, messageBody));
     }
 
     public List<PostedMessage> getPostedMessages() {
-        return postedMessages;
+        return new ArrayList<>(postedMessages);
     }
 
     public void clear() {
         postedMessages.clear();
-    }
-    
-    /**
-     * Helper to check if the last message contains a specific text (e.g. GitHub URL).
-     */
-    public boolean lastMessageContains(String text) {
-        if (postedMessages.isEmpty()) return false;
-        return postedMessages.get(postedMessages.size() - 1).body.contains(text);
     }
 }

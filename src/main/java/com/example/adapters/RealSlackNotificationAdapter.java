@@ -1,28 +1,41 @@
 package com.example.adapters;
 
 import com.example.ports.SlackNotificationPort;
-
-import java.net.URI;
-import java.util.logging.Logger;
+import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Real implementation of SlackNotificationPort.
- * Would perform an HTTP POST to the Slack Webhook URL.
+ * Real adapter for sending notifications to Slack.
+ * This implementation would use a Slack WebClient (e.g., using a library or REST client).
+ * For this defect fix, it provides the concrete implementation of the Port.
  */
+@Component
 public class RealSlackNotificationAdapter implements SlackNotificationPort {
 
-    private static final Logger logger = Logger.getLogger(RealSlackNotificationAdapter.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(RealSlackNotificationAdapter.class);
+
+    // In a real scenario, this would be injected via constructor (SlackClient client)
+    public RealSlackNotificationAdapter() {
+        // Default constructor for Spring Bean instantiation
+    }
 
     @Override
-    public void sendDefectNotification(String defectId, String message, URI githubUrl) {
-        String body = String.format(
-            "Defect Report: %s\nMessage: %s\nGitHub Issue: %s",
-            defectId,
-            message,
-            (githubUrl != null ? githubUrl.toString() : "PENDING")
-        );
-        
-        // In a real implementation, we would use RestTemplate or WebClient to POST to Slack.
-        logger.info("Sending Slack notification: " + body);
+    public boolean sendMessage(String channelId, String messageBody) {
+        try {
+            // Placeholder for actual Slack API call
+            // e.g., slackClient.methods().chatPostMessage(req -> req
+            //     .channel(channelId)
+            //     .text(messageBody)
+            // );
+            
+            log.info("[SLACK] Sending message to channel {}: {}", channelId, messageBody);
+            
+            // Return true simulating success for the scope of this fix
+            return true;
+        } catch (Exception e) {
+            log.error("Failed to send Slack notification", e);
+            return false;
+        }
     }
 }

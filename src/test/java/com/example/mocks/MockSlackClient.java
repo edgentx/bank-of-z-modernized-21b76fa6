@@ -1,43 +1,29 @@
 package com.example.mocks;
 
-import com.example.ports.SlackPort;
+import com.example.ports.SlackWebhookPort;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackPort for testing.
- * Captures messages sent to allow assertion on content.
+ * Mock implementation of SlackWebhookPort for testing.
+ * Captures the body sent to Slack to verify content.
  */
-public class MockSlackClient implements SlackPort {
-    public static final class Message {
-        public final String channel;
-        public final String body;
+public class MockSlackClient implements SlackWebhookPort {
 
-        public Message(String channel, String body) {
-            this.channel = channel;
-            this.body = body;
-        }
-    }
-
-    private final List<Message> sentMessages = new ArrayList<>();
+    private final List<String> payloads = new ArrayList<>();
 
     @Override
-    public void sendMessage(String channel, String messageBody) {
-        sentMessages.add(new Message(channel, messageBody));
+    public void send(String body) {
+        this.payloads.add(body);
     }
 
-    public List<Message> getSentMessages() {
-        return new ArrayList<>(sentMessages);
+    public String getLastPayload() {
+        if (payloads.isEmpty()) return null;
+        return payloads.get(payloads.size() - 1);
     }
 
-    public Message getLastMessage() {
-        if (sentMessages.isEmpty()) {
-            throw new IllegalStateException("No messages sent");
-        }
-        return sentMessages.get(sentMessages.size() - 1);
-    }
-
-    public void reset() {
-        sentMessages.clear();
+    public boolean wasCalled() {
+        return !payloads.isEmpty();
     }
 }

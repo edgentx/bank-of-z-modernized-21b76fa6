@@ -3,21 +3,18 @@ package com.example.domain.uinavigation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.Objects;
 
-public record SessionStartedEvent(
-        String type,
-        String aggregateId,
-        Instant occurredAt,
-        String tellerId,
-        String terminalId
-) implements DomainEvent {
+public record SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) implements DomainEvent {
     public SessionStartedEvent {
-        if (type == null) type = "session.started";
-        Objects.requireNonNull(aggregateId, "aggregateId required");
-        Objects.requireNonNull(occurredAt, "occurredAt required");
+        Objects.requireNonNull(aggregateId);
+        Objects.requireNonNull(tellerId);
+        Objects.requireNonNull(terminalId);
+        Objects.requireNonNull(occurredAt);
     }
 
-    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
-        this("session.started", aggregateId, occurredAt, tellerId, terminalId);
+    @Override
+    public String type() {
+        return "session.started";
     }
 }

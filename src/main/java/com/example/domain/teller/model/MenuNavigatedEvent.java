@@ -6,15 +6,15 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record MenuNavigatedEvent(
-    String eventId,
     String aggregateId,
-    String targetMenuId,
+    String sessionId,
+    String menuId,
     String action,
-    String previousContext,
     Instant occurredAt
 ) implements DomainEvent {
-    public MenuNavigatedEvent(String aggregateId, String targetMenuId, String action, String previousContext, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), aggregateId, targetMenuId, action, previousContext, occurredAt);
+
+    public MenuNavigatedEvent(String sessionId, String menuId, String action, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), sessionId, menuId, action, occurredAt);
     }
 
     @Override

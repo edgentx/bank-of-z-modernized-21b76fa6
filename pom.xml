@@ -22,7 +22,6 @@
     <properties>
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- Temporal Version -- Explicitly pinned to resolve build error -->
         <temporal.version>1.23.1</temporal.version>
     </properties>
 
@@ -73,17 +72,14 @@
                 </configuration>
             </plugin>
         </plugins>
-        <!-- Adding Temporal repository for dependency resolution -->
-        <pluginRepositories>
-            <pluginRepository>
-                <id>temporal-snapshots</id>
-                <url>https://raw.githubusercontent.com/temporalio/sdk-java/master/dependency-uploads/</url>
-            </pluginRepository>
-        </pluginRepositories>
         <repositories>
             <repository>
-                <id>temporal-snapshots</id>
-                <url>https://raw.githubusercontent.com/temporalio/sdk-java/master/dependency-uploads/</url>
+                <id>spring-milestones</id>
+                <name>Spring Milestones</name>
+                <url>https://repo.spring.io/milestone</url>
+                <snapshots>
+                    <enabled>false</enabled>
+                </snapshots>
             </repository>
             <repository>
                 <id>maven-central</id>

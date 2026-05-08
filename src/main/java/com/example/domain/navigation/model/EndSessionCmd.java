@@ -1,12 +1,7 @@
 package com.example.domain.navigation.model;
 
 import com.example.domain.shared.Command;
-import java.time.Instant;
-import java.util.Objects;
 
-public record EndSessionCmd(String sessionId, Instant occurredAt) implements Command {
-    public EndSessionCmd {
-        Objects.requireNonNull(sessionId);
-        Objects.requireNonNull(occurredAt);
-    }
+public record EndSessionCmd(String sessionId) implements Command {
+    // Command to terminate a teller session and clear sensitive state.
 }

@@ -1,19 +1,19 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.ConfigurationParameter;
-import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasspathResource;
-import org.junit.platform.suite.api.Suite;
-
-import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
+import io.cucumber.junit.Cucumber;
+import io.cucumber.junit.CucumberOptions;
+import org.junit.runner.RunWith;
 
 /**
- * Test Suite configuration for running S-FB-1 tests.
+ * Test Suite Runner for S-FB-1.
+ * Placed in src/test/java to be picked up by Maven/Surefire.
  */
-@Suite
-@IncludeEngines("cucumber")
-@SelectClasspathResource("features")
-@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
+@RunWith(Cucumber.class)
+@CucumberOptions(
+    features = {"features/S-FB-1.feature"},
+    glue = {"com.example.steps"},
+    plugin = {"pretty", "html:target/cucumber-reports/S-FB-1.html"}
+)
 public class SFB1TestSuite {
-    // This class runs the Cucumber tests
+    // Test Suite entry point
 }

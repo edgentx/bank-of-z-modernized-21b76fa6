@@ -1,8 +1,9 @@
 package com.example.ports;
 
 /**
- * Port for Slack notification service.
+ * Port interface for Slack notification integration.
  */
 public interface SlackPort {
-    void sendNotification(String channel, String messageBody);
+    String getLastMessageBody();
+    void postMessage(String text);
 }

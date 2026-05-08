@@ -4,7 +4,7 @@ package com.example.ports;
  * Port for interacting with GitHub Issues API.
  */
 public interface GitHubPort {
-    
+
     /**
      * Creates a new issue in the repository.
      * @param title The title of the issue.

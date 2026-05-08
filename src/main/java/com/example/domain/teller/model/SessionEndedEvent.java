@@ -3,22 +3,22 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
-public record SessionEndedEvent(String aggregateId, Instant occurredAt) implements DomainEvent {
-    public static final String TYPE = "session.ended";
+/**
+ * Event emitted when a teller session is successfully terminated.
+ * Used in: S-20 (user-interface-navigation)
+ */
+public record SessionEndedEvent(
+        String aggregateId,
+        Instant occurredAt
+) implements DomainEvent {
+    public SessionEndedEvent(String aggregateId) {
+        this(aggregateId, Instant.now());
+    }
 
     @Override
     public String type() {
-        return TYPE;
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
+        return "session.ended";
     }
 }

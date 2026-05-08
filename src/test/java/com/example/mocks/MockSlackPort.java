@@ -1,37 +1,36 @@
 package com.example.mocks;
 
 import com.example.ports.SlackPort;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation for Slack.
- * Stores messages in memory for verification during tests.
+ * Mock for SlackPort to capture messages for assertion.
  */
-@Component
 public class MockSlackPort implements SlackPort {
 
-    private final List<String> sentBodies = new ArrayList<>();
+    public static class Message {
+        public final String channel;
+        public final String text;
+
+        public Message(String channel, String text) {
+            this.channel = channel;
+            this.text = text;
+        }
+    }
+
+    private final List<Message> messages = new ArrayList<>();
 
     @Override
-    public void sendMessage(String body) {
-        // Simulate sending a message
-        this.sentBodies.add(body);
+    public void sendMessage(String channel, String text) {
+        messages.add(new Message(channel, text));
     }
 
-    /**
-     * Helper method for assertions.
-     */
-    public String getLastMessageBody() {
-        if (sentBodies.isEmpty()) {
-            return null;
-        }
-        return sentBodies.get(sentBodies.size() - 1);
+    public List<Message> getMessages() {
+        return new ArrayList<>(messages);
     }
 
-    public void clear() {
-        sentBodies.clear();
+    public void reset() {
+        messages.clear();
     }
 }

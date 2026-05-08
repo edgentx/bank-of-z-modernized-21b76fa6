@@ -4,11 +4,12 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
+/**
+ * Event emitted when a customer's details are successfully updated.
+ */
 public record CustomerDetailsUpdatedEvent(
     String customerId,
-    String fullName,
     String emailAddress,
-    String governmentId,
     String sortCode,
     Instant occurredAt
 ) implements DomainEvent {

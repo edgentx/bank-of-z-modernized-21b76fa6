@@ -1,27 +1,27 @@
 package com.example.adapters;
 
 import com.example.ports.GitHubIssuePort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Real implementation of the GitHub Issue adapter.
- * In a production environment, this would use OkHttp or WebClient to call GitHub API.
+ * Real implementation of GitHubIssuePort.
+ * This would use WebClient or Octokit to post to the real GitHub API.
  */
 @Component
 public class GitHubIssueAdapter implements GitHubIssuePort {
 
+    private static final Logger log = LoggerFactory.getLogger(GitHubIssueAdapter.class);
+
     @Override
-    public String createIssue(String title, String description) {
-        // In a real implementation, this would perform an HTTP POST to GitHub API.
-        // e.g., httpClient.post(url, body);
+    public String createIssue(String title, String body) {
+        // Implementation for Real GitHub API
+        // Example: WebClient.post()...
+        log.info("[REAL ADAPTER] Creating GitHub Issue: {}", title);
         
-        if (title == null || title.isEmpty()) {
-            throw new IllegalArgumentException("Title required");
-        }
-        
-        // Simulate GitHub returning a URL. 
-        // Since we cannot call the real API in this snippet without external configuration,
-        // we assume the external system returns a valid URL structure.
-        return "https://github.com/example/vforce360/issues/" + System.currentTimeMillis();
+        // Return a dummy URL or the real one from the response.
+        // For the structure, we return a placeholder as we can't hit the real API in this context.
+        return "https://github.com/real-org/repo/issues/1";
     }
 }

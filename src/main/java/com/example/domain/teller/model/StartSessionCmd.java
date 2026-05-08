@@ -1,11 +1,16 @@
 package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
+import java.time.Instant;
 
-public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {
-  public StartSessionCmd {
-    if (sessionId == null || sessionId.isBlank()) throw new IllegalArgumentException("sessionId required");
-    if (tellerId == null || tellerId.isBlank()) throw new IllegalArgumentException("tellerId required");
-    if (terminalId == null || terminalId.isBlank()) throw new IllegalArgumentException("terminalId required");
-  }
+/**
+ * Command to start a new teller session.
+ */
+public record StartSessionCmd(
+        String sessionId,
+        String tellerId,
+        String terminalId,
+        Boolean isAuthenticated,
+        Instant timestamp
+) implements Command {
 }

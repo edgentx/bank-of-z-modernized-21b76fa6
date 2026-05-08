@@ -1,14 +1,26 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.SelectClasses;
-import org.junit.platform.suite.api.Suite;
+import com.example.e2e.regression.MockGitHubClient;
+import com.example.e2e.regression.MockSlackNotifier;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackPort;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 
-@Suite
-@SelectClasses({
-    VW454ValidationTest.class,
-    S10Steps.class,
-    S17Steps.class
-})
+/**
+ * Test Configuration for Cucumber Test Suites.
+ * Wires up the mock adapters for the regression tests.
+ */
+@TestConfiguration
 public class CucumberTestSuite {
-    // Standard JUnit Suite to run all verification tests
+
+    @Bean
+    public SlackPort slackPort() {
+        return new MockSlackNotifier();
+    }
+
+    @Bean
+    public GitHubPort gitHubPort() {
+        return new MockGitHubClient();
+    }
 }

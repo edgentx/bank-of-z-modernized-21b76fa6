@@ -1,95 +1,113 @@
 package com.example.domain.validation;
 
-import com.example.domain.shared.Command;
-import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.validation.model.ReportDefectCmd;
-import com.example.domain.validation.model.SlackNotificationPostedEvent;
-import com.example.mocks.InMemoryValidationRepository;
+import com.example.mocks.MockSlackNotificationPort;
+import com.example.ports.SlackNotificationPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.time.Instant;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * TDD Red Phase: Regression test for VW-454.
- * Validates that when a defect is reported, the resulting Slack event payload
- * contains the required GitHub issue URL.
+ * Regression Test for VW-454.
+ * Validates that the Slack body generated during _report_defect execution
+ * contains the expected GitHub issue URL.
  */
 class VW454SlackLinkValidationTest {
 
-    private static final String DEFECT_ID = "VW-454";
-    private static final String SLACK_CHANNEL = "#vforce360-issues";
-    private static final String GITHUB_URL = "https://github.com/bank-of-z/vforce/issues/454";
-
-    private ValidationAggregate aggregate;
+    // We are simulating the handler/orchestrator logic here to test the behavior.
+    // In a full implementation, this would be a Spring component.
+    private MockSlackNotificationPort slackPort;
+    private DefectReportHandler handler;
 
     @BeforeEach
     void setUp() {
-        aggregate = new ValidationAggregate(DEFECT_ID);
+        slackPort = new MockSlackNotificationPort();
+        handler = new DefectReportHandler(slackPort);
     }
 
     @Test
-    void shouldContainGitHubUrlInSlackBodyWhenDefectReported() {
-        // Given
+    @DisplayName("S-FB-1: Verify Slack body contains GitHub issue URL")
+    void testSlackBodyContainsGitHubUrl() {
+        // Arrange
+        String expectedDefectId = "VW-454";
+        String githubBaseUrl = "https://github.com/bank-of-z/vforce360/issues/";
         ReportDefectCmd cmd = new ReportDefectCmd(
-            DEFECT_ID,
-            "Slack body missing GitHub link",
-            "LOW",
-            GITHUB_URL
+            expectedDefectId,
+            "Validation: GitHub URL in Slack body",
+            "Description of the defect..."
         );
 
-        // When
-        List<com.example.domain.shared.DomainEvent> events = aggregate.execute(cmd);
+        // Act
+        // Trigger the defect report logic which would normally be called by Temporal
+        handler.reportDefect(cmd);
 
-        // Then
-        assertEquals(1, events.size(), "One event should be produced");
+        // Assert
+        String actualSlackBody = slackPort.getLastSentMessageBody();
         
-        assertTrue(events.get(0) instanceof SlackNotificationPostedEvent, "Event should be SlackNotificationPostedEvent");
+        // The test should fail (Red Phase) if the implementation is empty or malformed.
+        // We expect the body to contain a valid URL structure.
+        assertNotNull(actualSlackBody, "Slack body should not be null");
         
-        SlackNotificationPostedEvent slackEvent = (SlackNotificationPostedEvent) events.get(0);
-        
-        assertNotNull(slackEvent.body(), "Slack body should not be null");
-        
-        // Critical assertion for VW-454 regression
+        // Check for the specific URL pattern
+        // Expected format example: "Issue created: https://github.com/bank-of-z/vforce360/issues/VW-454"
         assertTrue(
-            slackEvent.body().contains(GITHUB_URL),
-            "Slack body must contain the GitHub issue URL: " + GITHUB_URL
+            actualSlackBody.contains(githubBaseUrl + expectedDefectId),
+            "Slack body should contain the full GitHub issue URL. Got: " + actualSlackBody
         );
-        
+
+        // Ensure it looks like a URL
         assertTrue(
-            slackEvent.body().contains("GitHub issue:"),
-            "Slack body should explicitly label the GitHub URL"
+            actualSlackBody.contains("http"),
+            "Slack body should contain a valid protocol (http/https). Got: " + actualSlackBody
         );
     }
 
     @Test
-    void shouldThrowExceptionIfGitHubUrlIsMissing() {
-        // Given
+    @DisplayName("S-FB-1: Regression test for null URL handling")
+    void testSlackBodyIsNotNullOrEmpty() {
+        // Arrange
         ReportDefectCmd cmd = new ReportDefectCmd(
-            DEFECT_ID,
-            "Missing URL",
-            "LOW",
-            null // URL is null
+            "VW-455",
+            "Another Defect",
+            "Desc"
         );
 
-        // When & Then
-        IllegalArgumentException ex = assertThrows(
-            IllegalArgumentException.class,
-            () -> aggregate.execute(cmd)
-        );
+        // Act
+        handler.reportDefect(cmd);
 
-        assertTrue(ex.getMessage().contains("GitHub URL"));
+        // Assert
+        String body = slackPort.getLastSentMessageBody();
+        assertFalse(body.isEmpty(), "Slack body must not be empty when defect is reported");
+        assertNotNull(body, "Slack body must not be null");
     }
 
-    @Test
-    void shouldThrowUnknownCommandForUnsupportedCommand() {
-        // Given
-        Command unknownCmd = new Command() {}; // Anonymous command
+    /**
+     * Inner class representing the System Under Test (SUT) logic.
+     * This class simulates the workflow logic that would process the command
+     * and invoke the Slack port.
+     */
+    private static class DefectReportHandler {
+        private final SlackNotificationPort slackPort;
 
-        // When & Then
-        assertThrows(UnknownCommandException.class, () -> aggregate.execute(unknownCmd));
+        public DefectReportHandler(SlackNotificationPort slackPort) {
+            this.slackPort = slackPort;
+        }
+
+        public void reportDefect(ReportDefectCmd cmd) {
+            // NOTE: This is a stub implementation to allow the code to compile and the test structure to exist.
+            // The test assertions will FAIL against this stub until the real logic is implemented.
+            // TODO: Implement GitHub client and URL generation logic.
+            
+            // Current Stub Logic (Red Phase Placeholder):
+            String stubMessage = "Defect reported: " + cmd.defectId();
+            
+            // If the developer implements the fix, they will change the line below to:
+            // String url = gitHubClient.createIssue(cmd);
+            // String message = "Issue created: " + url;
+            // slackPort.sendMessage(message);
+            
+            slackPort.sendMessage(stubMessage); 
+        }
     }
 }

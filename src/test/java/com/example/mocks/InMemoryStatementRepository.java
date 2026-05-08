@@ -11,13 +11,12 @@ public class InMemoryStatementRepository implements StatementRepository {
     private final Map<String, StatementAggregate> store = new HashMap<>();
 
     @Override
-    public StatementAggregate save(StatementAggregate aggregate) {
+    public void save(StatementAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
-        return aggregate;
     }
 
     @Override
-    public StatementAggregate findById(String id) {
-        return store.get(id);
+    public Optional<StatementAggregate> findById(String id) {
+        return Optional.ofNullable(store.get(id));
     }
 }

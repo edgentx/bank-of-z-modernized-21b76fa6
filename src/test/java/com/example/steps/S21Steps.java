@@ -1,104 +1,86 @@
 package com.example.steps;
 
-import com.example.domain.navigation.model.RenderScreenCmd;
-import com.example.domain.navigation.model.ScreenMapAggregate;
-import com.example.domain.navigation.model.ScreenRenderedEvent;
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import io.cucumber.java.en.And;
+import com.example.domain.userinterface.model.*;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Assertions;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.List;
 
 public class S21Steps {
 
-    private ScreenMapAggregate aggregate;
-    private String screenId;
-    private String deviceType;
-    private List<DomainEvent> resultEvents;
+    private ScreenMapAggregate screenMap;
     private Exception capturedException;
+    private List<DomainEvent> resultingEvents;
 
     @Given("a valid ScreenMap aggregate")
-    public void a_valid_ScreenMap_aggregate() {
-        screenId = "LOGIN_SCREEN";
-        aggregate = new ScreenMapAggregate(screenId);
+    public void a_valid_screen_map_aggregate() {
+        screenMap = new ScreenMapAggregate("screen-map-1");
     }
 
-    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void a_ScreenMap_aggregate_with_mandatory_violations() {
-        aggregate = new ScreenMapAggregate("ANY");
+    @Given("a valid screenId is provided")
+    public void a_valid_screen_id_is_provided() {
+        // Context managed in the When step via command object
     }
 
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void a_ScreenMap_aggregate_with_length_violations() {
-        aggregate = new ScreenMapAggregate("ANY");
-    }
-
-    @And("a valid screenId is provided")
-    public void a_valid_screenId_is_provided() {
-        // ID is set in 'a_valid_ScreenMap_aggregate'
-    }
-
-    @And("a valid deviceType is provided")
-    public void a_valid_deviceType_is_provided() {
-        this.deviceType = "3270_TERMINAL";
+    @Given("a valid deviceType is provided")
+    public void a_valid_device_type_is_provided() {
+        // Context managed in the When step via command object
     }
 
     @When("the RenderScreenCmd command is executed")
-    public void the_RenderScreenCmd_command_is_executed() {
-        // Setup command parameters based on scenario context
-        String cmdScreenId = screenId;
-        String cmdDeviceType = deviceType;
+    public void the_render_screen_cmd_command_is_executed() {
+        // Default valid command for the success scenario
+        RenderScreenCmd cmd = new RenderScreenCmd("screen-map-1", "LOGIN_SCR", "3270", List.of());
+        executeCommand(cmd);
+    }
 
-        // Handle negative scenario contexts (violations)
-        // If we are in the "mandatory violations" scenario, we might need to force nulls
-        // Note: Cucumber runs steps in order. If we didn't set deviceType, it might be null from previous run.
-        // But here we explicitly interpret the "violates" Given to imply we might pass bad data in the command.
-        // However, cleaner approach: The @Given sets up the aggregate. The @When constructs the command.
-        // Let's look at the specific violations:
-        // 1. Mandatory: Null/Blank screenId or deviceType.
-        // 2. Length: > 40 chars.
+    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
+    public void a_screen_map_aggregate_that_violates_mandatory_fields() {
+        screenMap = new ScreenMapAggregate("screen-map-1");
+    }
 
-        // Since the Given doesn't explicitly pass the bad values, we'll assume specific cases for simplicity
-        // or check if specific values were set (not implemented here for brevity, relying on setup). 
-        // To strictly follow BDD, we'd set specific context values in the Given.
-        
-        try {
-            // Defaults for success
-            if (cmdScreenId == null) cmdScreenId = "LOGIN_SCREEN"; 
-            if (cmdDeviceType == null) cmdDeviceType = "BROWSER";
-            
-            // Check for specific violation scenario conditions (heuristics for this demo)
-            if (deviceType != null && deviceType.equals("VIOLATE_MANDATORY")) {
-                cmdDeviceType = null; // Simulate missing mandatory field
-            }
-            if (screenId != null && screenId.equals("VIOLATE_LENGTH")) {
-                cmdScreenId = "THIS_SCREEN_ID_IS_FAR_TOO_LONG_FOR_LEGACY_BMS_CONSTRAINTS";
-            }
+    @When("the RenderScreenCmd command is executed with empty screenId")
+    public void the_render_screen_cmd_is_executed_with_empty_screenId() {
+        RenderScreenCmd cmd = new RenderScreenCmd("screen-map-1", "", "3270", List.of());
+        executeCommand(cmd);
+    }
 
-            RenderScreenCmd cmd = new RenderScreenCmd(cmdScreenId, cmdDeviceType);
-            resultEvents = aggregate.execute(cmd);
-        } catch (Exception e) {
-            capturedException = e;
-        }
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void a_screen_map_aggregate_that_violates_field_lengths() {
+        screenMap = new ScreenMapAggregate("screen-map-1");
+    }
+
+    @When("the RenderScreenCmd command is executed with invalid field lengths")
+    public void the_render_screen_cmd_is_executed_with_invalid_field_lengths() {
+        // BMS constraint: Field name usually max 12 chars, screen definition often 24x80 or similar constraints.
+        // We simulate a field name exceeding the legacy buffer limit.
+        RenderScreenCmd cmd = new RenderScreenCmd("screen-map-1", "LOGIN_SCR", "3270", List.of(new FieldDefinition("VERY_LONG_FIELD_NAME_EXCEEDS_BMS_LIMIT", 1, 1, 10)));
+        executeCommand(cmd);
     }
 
     @Then("a screen.rendered event is emitted")
     public void a_screen_rendered_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
-        
-        ScreenRenderedEvent event = (ScreenRenderedEvent) resultEvents.get(0);
-        assertEquals("screen.rendered", event.type());
-        assertNotNull(event.presentationLayout());
+        Assertions.assertNotNull(resultingEvents, "Events list should not be null");
+        Assertions.assertEquals(1, resultingEvents.size(), "One event should be emitted");
+        Assertions.assertTrue(resultingEvents.get(0) instanceof ScreenRenderedEvent, "Event should be ScreenRenderedEvent");
+        Assertions.assertEquals("screen.rendered", resultingEvents.get(0).type());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(capturedException);
-        // In Java, domain invariants are usually enforced by Exceptions (IllegalStateException/IllegalArgumentException)
-        assertTrue(capturedException instanceof IllegalArgumentException || capturedException instanceof IllegalStateException);
+        Assertions.assertNotNull(capturedException, "An exception should have been thrown");
+        Assertions.assertTrue(capturedException instanceof IllegalArgumentException, "Exception should be IllegalArgumentException (Domain Error)");
+    }
+
+    private void executeCommand(Command cmd) {
+        try {
+            resultingEvents = screenMap.execute(cmd);
+        } catch (Exception e) {
+            capturedException = e;
+        }
     }
 }

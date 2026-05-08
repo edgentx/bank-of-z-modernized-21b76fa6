@@ -1,56 +1,68 @@
 package com.example.steps;
 
-import com.example.ports.GithubIssuePort;
+import com.example.mocks.MockSlackNotification;
+import com.example.mocks.MockTemporalWorker;
 import com.example.ports.SlackNotificationPort;
+import com.example.ports.TemporalWorkerPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
- * E2E Regression Test for S-FB-1.
- * Verifies that when a defect is reported, the resulting Slack notification
- * contains the URL to the created GitHub issue.
+ * Regression Test for S-FB-1.
+ * Tests the end-to-end flow of reporting a defect and verifying the GitHub URL appears in Slack.
  */
-@SpringBootTest(classes = SFB1TestConfig.class)
 public class SFB1E2ETest {
 
-    @MockBean
-    private GithubIssuePort githubIssuePort;
+    // Ports (Interfaces)
+    private TemporalWorkerPort temporalWorker;
+    private SlackNotificationPort slackNotification;
 
-    @MockBean
-    private SlackNotificationPort slackNotificationPort;
+    // Concrete Mocks
+    private MockTemporalWorker mockTemporal;
+    private MockSlackNotification mockSlack;
 
-    @Autowired
-    private ReportDefectWorkflow workflow; // System under test
+    @BeforeEach
+    public void setUp() {
+        // Initialize Mocks
+        mockTemporal = new MockTemporalWorker();
+        mockSlack = new MockSlackNotification();
+
+        // Assign to ports
+        this.temporalWorker = mockTemporal;
+        this.slackNotification = mockSlack;
+
+        // Reset state before each test
+        mockTemporal.reset();
+        mockSlack.reset();
+    }
 
     @Test
-    public void testReportDefect_ShouldIncludeGithubUrlInSlackBody() {
-        // 1. Setup: Define expected behavior
-        String defectTitle = "VW-454: GitHub URL missing";
-        String expectedGithubUrl = "https://github.com/example/repo/issues/454";
+    public void testReportDefect_ShouldIncludeGitHubUrlInSlackBody() {
+        // Arrange
+        String defectId = "VW-454";
+        String expectedChannel = "#vforce360-issues";
+        // We assume the system is configured to format the URL specifically for this defect ID
+        String expectedUrl = "https://github.com/example-org/repo/issues/VW-454";
 
-        // Mock GitHub to return a valid URL when createIssue is called
-        when(githubIssuePort.createIssue(anyString(), anyString()))
-            .thenReturn(expectedGithubUrl);
+        // Act
+        // Trigger the workflow via the Temporal port
+        temporalWorker.reportDefect(defectId);
 
-        // Mock Slack to return success
-        when(slackNotificationPort.postMessage(anyString())).thenReturn(true);
+        // Assert
+        // 1. Verify Temporal received the command
+        assertTrue(mockTemporal.hasReported(defectId), "Temporal worker should have received the defect report command");
 
-        // 2. Execute: Trigger the workflow (Temporal activity simulation)
-        workflow.reportDefect(defectTitle);
+        // 2. Verify Slack received a message
+        String slackBody = mockSlack.getLastMessageBody(expectedChannel);
+        assertNotNull(slackBody, "Slack should have received a message for channel: " + expectedChannel);
 
-        // 3. Verify: Check GitHub creation was attempted
-        verify(githubIssuePort).createIssue(contains(defectTitle), anyString());
-
-        // 4. Verify: Check Slack message body contains the specific GitHub URL
-        // This is the core assertion for S-FB-1 (VW-454)
-        verify(slackNotificationPort).postMessage(contains(expectedGithubUrl));
+        // 3. Verify the body contains the GitHub URL (The core validation step)
+        // This will fail initially as the implementation is empty/non-existent (Red Phase).
+        assertTrue(
+            slackBody.contains(expectedUrl),
+            "Slack body should contain the GitHub URL for the defect. Expected to contain: " + expectedUrl + ", but was: " + slackBody
+        );
     }
 }

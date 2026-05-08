@@ -6,7 +6,7 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to Slack to verify content without real I/O.
+ * Captures messages sent during workflow execution to validate content.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
@@ -23,9 +23,9 @@ public class MockSlackNotificationPort implements SlackNotificationPort {
     private final List<SentMessage> messages = new ArrayList<>();
 
     @Override
-    public void send(String channel, String body) {
-        System.out.println("[MockSlack] Sending to " + channel + ": " + body);
-        this.messages.add(new SentMessage(channel, body));
+    public void send(String channel, String messageBody) {
+        // System.out.println("[MockSlack] Sent to " + channel + ": " + messageBody);
+        this.messages.add(new SentMessage(channel, messageBody));
     }
 
     public List<SentMessage> getMessages() {
@@ -34,12 +34,5 @@ public class MockSlackNotificationPort implements SlackNotificationPort {
 
     public void clear() {
         messages.clear();
-    }
-
-    /**
-     * Helper to check if any captured message body contains the specific text.
-     */
-    public boolean bodyContains(String text) {
-        return messages.stream().anyMatch(m -> m.body.contains(text));
     }
 }

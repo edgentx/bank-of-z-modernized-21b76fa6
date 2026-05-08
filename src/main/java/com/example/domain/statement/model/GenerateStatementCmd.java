@@ -6,7 +6,6 @@ import java.time.Instant;
 
 /**
  * Command to generate a new account statement for a specific period.
- * Immutable record.
  */
 public record GenerateStatementCmd(
     String statementId,
@@ -15,5 +14,5 @@ public record GenerateStatementCmd(
     Instant periodEnd,
     BigDecimal openingBalance,
     BigDecimal closingBalance,
-    BigDecimal previousClosingBalance // Balance of the period immediately preceding this one
+    BigDecimal previousClosingBalance // Context needed for validation
 ) implements Command {}

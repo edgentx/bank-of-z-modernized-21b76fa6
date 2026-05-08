@@ -1,17 +1,22 @@
 package com.example.domain.navigation.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.Objects;
 
+import java.util.UUID;
+
+/**
+ * Event emitted when a Teller Session is terminated.
+ */
 public class SessionEndedEvent implements DomainEvent {
-    private final String aggregateId;
+    private final String eventId;
+    private final String sessionId;
     private final Instant occurredAt;
 
-    public SessionEndedEvent(String aggregateId, Instant occurredAt) {
-        this.aggregateId = Objects.requireNonNull(aggregateId);
-        this.occurredAt = Objects.requireNonNull(occurredAt);
+    public SessionEndedEvent(String sessionId, Instant occurredAt) {
+        this.eventId = UUID.randomUUID().toString();
+        this.sessionId = sessionId;
+        this.occurredAt = occurredAt;
     }
 
     @Override
@@ -21,11 +26,15 @@ public class SessionEndedEvent implements DomainEvent {
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return sessionId;
     }
 
     @Override
     public Instant occurredAt() {
         return occurredAt;
+    }
+
+    public String getSessionId() {
+        return sessionId;
     }
 }

@@ -1,126 +1,113 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.statement.model.GenerateStatementCmd;
 import com.example.domain.statement.model.StatementAggregate;
 import com.example.domain.statement.model.StatementGeneratedEvent;
-import com.example.domain.statement.repository.StatementRepository;
-import com.example.mocks.InMemoryStatementRepository;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Cucumber Steps for S-8: Implement GenerateStatementCmd on Statement.
+ */
 public class S8Steps {
+
     private StatementAggregate aggregate;
-    private final StatementRepository repository = new InMemoryStatementRepository();
-    private Exception caughtException;
+    private Exception capturedException;
     private List<DomainEvent> resultEvents;
 
-    // Scenario Data
-    private static final String TEST_ID = "stmt-123";
-    private static final String TEST_ACCOUNT = "acc-456";
-    private static final Instant NOW = Instant.now();
-    private static final BigDecimal OPENING_BALANCE = new BigDecimal("100.00");
-    private static final BigDecimal CLOSING_BALANCE = new BigDecimal("500.00");
+    // Test Data Constants
+    private static final String TEST_STATEMENT_ID = "stmt-123";
+    private static final String TEST_ACCOUNT_NUMBER = "acc-456";
+    private static final LocalDate VALID_PERIOD_END = LocalDate.of(2023, Month.OCTOBER, 31);
+    private static final BigDecimal OPENING_BALANCE = new BigDecimal("1000.00");
+    private static final BigDecimal CLOSING_BALANCE = new BigDecimal("1500.00");
 
     @Given("a valid Statement aggregate")
     public void a_valid_statement_aggregate() {
-        aggregate = new StatementAggregate(TEST_ID);
-        repository.save(aggregate);
+        aggregate = new StatementAggregate(TEST_STATEMENT_ID);
+        // Simulating a clean state where the statement hasn't been generated yet
+        aggregate.setGenerated(false);
     }
 
-    @And("a valid accountNumber is provided")
+    @Given("a valid accountNumber is provided")
     public void a_valid_account_number_is_provided() {
-        // Account number is part of the command, handled in 'When'
+        // Context setup handled in the 'When' step construction
     }
 
-    @And("a valid periodEnd is provided")
+    @Given("a valid periodEnd is provided")
     public void a_valid_period_end_is_provided() {
-        // Period end is part of the command, handled in 'When'
+        // Context setup handled in the 'When' step construction
     }
 
     @When("the GenerateStatementCmd command is executed")
     public void the_generate_statement_cmd_command_is_executed() {
         GenerateStatementCmd cmd = new GenerateStatementCmd(
-                TEST_ID,
-                TEST_ACCOUNT,
-                NOW.minus(30, ChronoUnit.DAYS),
-                NOW,
-                OPENING_BALANCE,
-                CLOSING_BALANCE
+            TEST_STATEMENT_ID,
+            TEST_ACCOUNT_NUMBER,
+            VALID_PERIOD_END,
+            OPENING_BALANCE,
+            CLOSING_BALANCE
         );
-        executeCommand(cmd);
+
+        try {
+            resultEvents = aggregate.execute(cmd);
+        } catch (Exception e) {
+            capturedException = e;
+        }
     }
 
     @Then("a statement.generated event is emitted")
     public void a_statement_generated_event_is_emitted() {
-        Assertions.assertNotNull(resultEvents);
-        Assertions.assertEquals(1, resultEvents.size());
-        Assertions.assertTrue(resultEvents.get(0) instanceof StatementGeneratedEvent);
+        assertNotNull(resultEvents, "Result events should not be null");
+        assertEquals(1, resultEvents.size(), "One event should be emitted");
         
-        StatementGeneratedEvent event = (StatementGeneratedEvent) resultEvents.get(0);
-        Assertions.assertEquals(TEST_ID, event.aggregateId());
-        Assertions.assertEquals("statement.generated", event.type());
+        DomainEvent event = resultEvents.get(0);
+        assertTrue(event instanceof StatementGeneratedEvent, "Event should be StatementGeneratedEvent");
+        
+        StatementGeneratedEvent stmtEvent = (StatementGeneratedEvent) event;
+        assertEquals("statement.generated", stmtEvent.type());
+        assertEquals(TEST_STATEMENT_ID, stmtEvent.statementId());
+        assertEquals(TEST_ACCOUNT_NUMBER, stmtEvent.accountNumber());
     }
 
-    // --- Failure Scenarios ---
+    // --- Negative Scenarios ---
 
     @Given("a Statement aggregate that violates: A statement must be generated for a closed period and cannot be altered retroactively.")
-    public void a_statement_aggregate_that_violates_closed_period() {
-        aggregate = new StatementAggregate(TEST_ID);
-        aggregate.markAsClosed(); // Simulating the invariant violation condition
-        repository.save(aggregate);
+    public void a_statement_aggregate_that_violates_closed_period_constraint() {
+        aggregate = new StatementAggregate(TEST_STATEMENT_ID);
+        // Simulating that the statement is already generated (closed)
+        aggregate.setGenerated(true);
     }
 
     @Given("a Statement aggregate that violates: Statement opening balance must exactly match the closing balance of the previous statement.")
-    public void a_statement_aggregate_that_violates_balance_matching() {
-        // In a real scenario, we might load the previous statement to check.
-        // For this unit test/BDD, we simulate the situation where the command carries
-        // mismatched data, OR we can't test it easily here without a previous aggregate.
-        // However, since the prompt asks for a specific violation, we usually simulate this 
-        // by passing invalid data in the command. 
-        // But the 'Given' step suggests the AGGREGATE violates it. 
-        // Since the aggregate doesn't hold the 'previous' balance, we will assume 
-        // the test context implies we should pass a command that fails validation.
-        aggregate = new StatementAggregate(TEST_ID);
-        repository.save(aggregate);
-    }
-
-    @When("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        // Reusing the same execution logic, checking for exception in 'Then'
-        GenerateStatementCmd cmd = new GenerateStatementCmd(
-                TEST_ID,
-                TEST_ACCOUNT,
-                NOW.minus(30, ChronoUnit.DAYS),
-                NOW,
-                OPENING_BALANCE,
-                CLOSING_BALANCE
-        );
-        executeCommand(cmd);
+    public void a_statement_aggregate_that_violates_opening_balance_constraint() {
+        aggregate = new StatementAggregate(TEST_STATEMENT_ID);
+        aggregate.setGenerated(false);
+        // Simulate a previous closing balance of 2000.00
+        BigDecimal previousClosing = new BigDecimal("2000.00");
+        aggregate.setPreviousClosingBalance(previousClosing);
+        // The command will send 1000.00, violating the constraint
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected() {
-        Assertions.assertNotNull(caughtException);
-    }
-
-    // Helper
-    private void executeCommand(Command cmd) {
-        try {
-            // Reload to ensure we are acting on the persisted state if applicable, though in-memory
-            // aggregate reference is fine here.
-            resultEvents = aggregate.execute(cmd);
-        } catch (Exception e) {
-            caughtException = e;
-        }
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(capturedException, "Expected an exception to be thrown");
+        // We expect either an IllegalStateException (for closed period) or IllegalArgumentException (for balance mismatch)
+        assertTrue(
+            capturedException instanceof IllegalStateException || 
+            capturedException instanceof IllegalArgumentException,
+            "Expected a domain error exception, but got: " + capturedException.getClass().getSimpleName()
+        );
     }
 }

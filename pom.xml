@@ -21,6 +21,11 @@
       <artifactId>temporal-spring-boot-starter</artifactId>
       <version>${temporal.version}</version>
     </dependency>
+    <!-- Spring Web/Actuator for health checks if needed -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+    </dependency>
     <!-- Testing -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

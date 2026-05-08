@@ -1,30 +1,27 @@
 package com.example.adapters;
 
-import com.example.ports.VForce360NotificationPort;
+import com.example.ports.SlackNotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Real adapter implementation for VForce360NotificationPort.
- * In a production environment, this would use a Slack WebClient or similar HTTP client
- * to post the message to a webhook.
- * 
- * For the purpose of this modernization module, we log the action to simulate
- * the side effect, ensuring the system behavior is verifiable.
+ * Real implementation of {@link SlackNotificationPort}.
+ * In a production environment, this would use an HTTP client (e.g., WebClient)
+ * to call the Slack API. For the scope of this defect fix, it demonstrates
+ * the wiring required by the architecture.
  */
 @Component
-public class SlackNotificationAdapter implements VForce360NotificationPort {
+public class SlackNotificationAdapter implements SlackNotificationPort {
 
     private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
 
     @Override
-    public void reportDefect(String defectId, String message) {
-        // Simulated external call
-        // In production: webClient.post().uri(webhookUrl).body(message).send();
-        log.info("Sending Slack notification for defect {}: [{}], message body: \n{}", defectId, defectId, message);
+    public void postMessage(String channel, String body) {
+        // Production logic would go here:
+        // WebClient webClient = WebClient.create();
+        // webClient.post().uri("https://slack.com/api/chat.postMessage")...
         
-        // Logic to connect to IBM MQ or Temporal activity could go here if required
-        // by the wider architecture, but the Port interface abstracts this away.
+        log.info("[PROD MOCK] Posting to channel {}: {}", channel, body);
     }
 }

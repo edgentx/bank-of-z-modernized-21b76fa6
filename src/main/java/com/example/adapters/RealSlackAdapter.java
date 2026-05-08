@@ -1,21 +1,23 @@
 package com.example.adapters;
 
 import com.example.ports.SlackPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Real adapter implementation for Slack interactions.
- * This is a placeholder implementation. In a production environment, this would
- * use an HTTP client to post messages to a Slack Webhook.
+ * Real adapter for Slack API interactions.
+ * This is a placeholder for the actual HTTP client implementation.
  */
 @Component
 public class RealSlackAdapter implements SlackPort {
 
+    private static final Logger log = LoggerFactory.getLogger(RealSlackAdapter.class);
+
     @Override
-    public void sendMessage(String text) {
-        // TODO: Implement actual Slack Webhook call using WebClient/RestTemplate
-        // For the purpose of this defect fix, we log the message.
-        // The focus here is on validating the domain logic flow (VW-454).
-        System.out.println("[RealSlackAdapter] Sending message: " + text);
+    public boolean postMessage(String channel, String messageBody) {
+        // TODO: Implement actual Slack API call using WebClient or RestTemplate
+        log.warn("Slack integration not yet implemented. Called for channel: {}", channel);
+        return true;
     }
 }

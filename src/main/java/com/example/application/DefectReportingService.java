@@ -1,52 +1,52 @@
 package com.example.application;
 
-import com.example.domain.reporting.model.DefectAggregate;
-import com.example.domain.reporting.model.ReportDefectCmd;
-import com.example.ports.DefectRepositoryPort;
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.DefectReportedEvent;
+import com.example.domain.defect.model.ReportDefectCmd;
 import com.example.ports.SlackNotificationPort;
 import org.springframework.stereotype.Service;
 
 /**
- * Application Service orchestrating the defect reporting workflow.
- * This handles the 'Temporal-worker exec' simulation logic.
+ * Application Service handling the workflow of reporting a defect.
+ * Orchestrates the Aggregate logic and triggers the notification via the port.
  */
 @Service
 public class DefectReportingService {
 
-    private final DefectRepositoryPort repository;
     private final SlackNotificationPort slackNotificationPort;
 
-    public DefectReportingService(DefectRepositoryPort repository, SlackNotificationPort slackNotificationPort) {
-        this.repository = repository;
+    public DefectReportingService(SlackNotificationPort slackNotificationPort) {
         this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Handle the report_defect command.
-     * 1. Execute Aggregate logic (Validation + State Change)
-     * 2. Persist event
-     * 3. Trigger Notification (Slack) including GitHub URL
+     * Entry point for the Temporal Activity or REST controller.
+     * Executes the command to report the defect and notifies Slack if successful.
      */
-    public void reportDefect(ReportDefectCmd cmd) {
-        DefectAggregate aggregate = new DefectAggregate(cmd.defectId());
+    public void reportDefect(String defectId, String title, String description, String githubUrl, String channel) {
+        var aggregate = new DefectAggregate(defectId);
+        var cmd = new ReportDefectCmd(defectId, title, description, githubUrl, channel);
+
+        // Execute domain logic
         var events = aggregate.execute(cmd);
 
-        if (!events.isEmpty()) {
-            // Repository call (Temporal or DB)
-            repository.recordDefect(cmd.defectId(), cmd);
-
-            // Slack Notification Call
-            var event = events.get(0);
-            String slackBody = formatSlackBody(event.githubUrl(), cmd.severity());
-            slackNotificationPort.postMessage("#vforce360-issues", slackBody);
+        // Handle side effects (Notification)
+        for (var event : events) {
+            if (event instanceof DefectReportedEvent e) {
+                sendNotification(e);
+            }
         }
     }
 
-    private String formatSlackBody(String url, String severity) {
-        return String.format(
-            "Defect Reported (Severity: %s)\nGitHub Issue: %s",
-            severity != null ? severity : "LOW",
-            url
-        );
+    private void sendNotification(DefectReportedEvent event) {
+        // Format the message body according to specification
+        // "Slack body includes GitHub issue: <url>"
+        StringBuilder bodyBuilder = new StringBuilder();
+        bodyBuilder.append("Defect Reported: ").append(event.title()).append("\n");
+        bodyBuilder.append("Description: ").append(event.description().isBlank() ? "N/A" : event.description()).append("\n");
+        // S-FB-1 Fix: Ensure the GitHub URL is explicitly included
+        bodyBuilder.append("GitHub issue: ").append(event.githubUrl());
+
+        slackNotificationPort.postMessage(event.channel(), bodyBuilder.toString());
     }
 }

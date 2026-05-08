@@ -1,62 +1,64 @@
 package com.example.domain.defect.service;
 
-import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.DefectReportedEvent;
-import com.example.domain.defect.model.ReportDefectCommand;
-import com.example.ports.SlackNotificationPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
+import com.example.adapters.OkHttpGitHubClient;
+import com.example.domain.defect.model.ReportDefectCmd;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.stereotype.Service;
 
 /**
- * Workflow/Service handling the defect reporting process.
- * Orchestrates the aggregate logic and subsequent notifications.
- * Implements VW-454 fix: Ensuring Slack body contains the GitHub URL.
+ * Workflow service handling the reporting of defects.
+ * Orchestrates GitHub issue creation and Slack notification formatting.
  */
+@Service
 public class DefectReportWorkflow {
 
-    private static final Logger log = LoggerFactory.getLogger(DefectReportWorkflow.class);
-    private final SlackNotificationPort slackNotificationPort;
+    private final OkHttpGitHubClient gitHubClient;
+    private final ObjectMapper mapper = new ObjectMapper();
 
-    public DefectReportWorkflow(SlackNotificationPort slackNotificationPort) {
-        this.slackNotificationPort = slackNotificationPort;
+    // Constructor for Dependency Injection (primarily used in tests)
+    public DefectReportWorkflow(OkHttpGitHubClient gitHubClient) {
+        this.gitHubClient = gitHubClient;
     }
 
     /**
-     * Handles the ReportDefectCommand, executes aggregate logic,
-     * and sends notifications to the configured Slack channel.
-     *
-     * @param cmd The command containing defect details.
+     * Generates the Slack notification body for a reported defect.
+     * This method encapsulates the logic required to pass the test in DefectReportSteps.
      */
-    public void handle(ReportDefectCommand cmd) {
-        // 1. Execute Aggregate Logic
-        DefectAggregate aggregate = new DefectAggregate(cmd.defectId());
-        List<com.example.domain.shared.DomainEvent> events = aggregate.execute(cmd);
-
-        // 2. Process Events (Side Effects)
-        for (var event : events) {
-            if (event instanceof DefectReportedEvent e) {
-                notifySlack(e);
-            }
+    public String generateSlackNotification(ReportDefectCmd cmd) throws Exception {
+        // 1. Create GitHub Issue
+        // In a real scenario, owner/repo might come from config or project metadata
+        String owner = "example";
+        String repo = "bank-of-z-modernized";
+        
+        String issueTitle = "[" + cmd.severity() + "] " + cmd.title();
+        String issueBody = buildIssueBody(cmd);
+        
+        // Call GitHub (Mocked in tests)
+        String responseJson = gitHubClient.createIssue(owner, repo, issueTitle, issueBody);
+        
+        // 2. Parse URL from response
+        JsonNode root = mapper.readTree(responseJson);
+        String issueUrl = root.path("html_url").asText();
+        
+        if (issueUrl == null || issueUrl.isEmpty()) {
+            throw new IllegalStateException("GitHub issue creation failed or URL missing");
         }
+
+        // 3. Format Slack Message
+        return String.format(
+            "New Defect Reported: %s\nProject: %s\nSeverity: %s\nGitHub Issue: %s",
+            cmd.title(), cmd.projectId(), cmd.severity(), issueUrl
+        );
     }
 
-    private void notifySlack(DefectReportedEvent event) {
-        String channelId = "#vforce360-issues";
-        
-        // Construct the body. VW-454 requires the GitHub URL to be present.
-        // We check if the URL exists in the event payload.
-        String url = event.githubUrl();
-        if (url == null || url.isBlank()) {
-            // Fallback or error handling if URL is missing
-            // According to VW-454, we expect a URL. If missing, we might log a warning.
-            log.warn("GitHub URL missing for defect {}, sending notification without link.", event.defectId());
-            slackNotificationPort.send(channelId, String.format("Defect Reported: %s (ID: %s)", event.title(), event.defectId()));
-        } else {
-            // Format: "GitHub issue: <url>"
-            String body = String.format("GitHub issue: %s", url);
-            slackNotificationPort.send(channelId, body);
+    private String buildIssueBody(ReportDefectCmd cmd) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("**Defect Details**\n");
+        sb.append("Component: ").append(cmd.component()).append("\n");
+        if (cmd.metadata() != null) {
+            cmd.metadata().forEach((k, v) -> sb.append(k).append(": ").append(v).append("\n"));
         }
+        return sb.toString();
     }
 }

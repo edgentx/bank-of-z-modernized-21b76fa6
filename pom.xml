@@ -28,26 +28,12 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
         
-        <!-- Temporal (Removed explicit version to rely on Spring Boot BOM if available, otherwise added explicit tag below) -->
-        <!-- NOTE: Fixing previous build failure by ensuring version is defined or valid. -->
-        <!-- We will use a known stable version for 1.23.x which might not be in standard BOMs -->
-        <!-- Actually, io.temporal:temporal-spring-boot-starter-autoconfigure is the modern artifact -->
-        <!-- For the sake of this build, we assume standard Temporal dependencies without Spring Boot Starter BOM issues -->
+        <!-- Temporal SDK -->
+        <!-- io.temporal:temporal-spring-boot-starter is often a snapshot or separate module not in standard BOM -->
+        <!-- We use the stable temporal-sdk artifact with explicit version as per BOM rules -->
         <dependency>
             <groupId>io.temporal</groupId>
-            <artifactId>temporal-spring-boot-starter</artifactId>
-            <!-- The previous error indicated 1.23.1 was not found in the specific snapshot repository. -->
-            <!-- We remove the version tag here to allow the parent POM or an explicit property to manage it, -->
-            <!-- but since the error is about resolution, we ensure the artifact exists. -->
-            <!-- For the purpose of this fix, we will use the standard SDK. -->
             <artifactId>temporal-sdk</artifactId>
-            <version>1.23.1</version>
-        </dependency>
-        <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-spring-boot-starter</artifactId>
-            <!-- Attempting to use the Spring Boot Starter if available, or fallback to SDK -->
-            <!-- To ensure the build passes, I will use the plain SDK which is stable -->
             <version>1.23.1</version>
         </dependency>
 
@@ -62,12 +48,27 @@
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+             <groupId>io.cucumber</groupId>
+             <artifactId>cucumber-java</artifactId>
+             <version>7.14.0</version>
+             <scope>test</scope>
+        </dependency>
+        <dependency>
+             <groupId>io.cucumber</groupId>
+             <artifactId>cucumber-junit-platform-engine</artifactId>
+             <version>7.14.0</version>
+             <scope>test</scope>
+        </dependency>
+        <dependency>
+             <groupId>org.junit.platform</groupId>
+             <artifactId>junit-platform-suite</artifactId>
+             <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <repositories>
-        <repository>
-            <id>temporal-snapshots</id>
-            <url>https://github.com/temporalio/sdk-java/raw/main</url>
-        </repository>
+        <!-- Temporal snapshots repository removed to avoid resolution failure on 1.23.1. -->
+        <!-- Version 1.23.1 is released and available in Maven Central. -->
     </repositories>
 </project>

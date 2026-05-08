@@ -3,36 +3,16 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Objects;
 
-/**
- * Event emitted when a teller successfully navigates to a new menu/screen.
- * Used for audit trails and UI state synchronization.
- */
-public record MenuNavigatedEvent(
-    String eventId,
-    String aggregateId,
-    String menuId,
-    String action,
-    Instant occurredAt
-) implements DomainEvent {
-
-    public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), aggregateId, menuId, action, occurredAt);
+public record MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) implements DomainEvent {
+    public MenuNavigatedEvent {
+        Objects.requireNonNull(aggregateId, "aggregateId must not be null");
+        Objects.requireNonNull(occurredAt, "occurredAt must not be null");
     }
 
     @Override
     public String type() {
         return "menu.navigated";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

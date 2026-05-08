@@ -1,31 +1,29 @@
 package com.example.mocks;
 
-import com.example.ports.SlackNotifierPort;
-import java.util.ArrayList;
-import java.util.List;
+import com.example.infrastructure.slack.SlackNotifier;
 
 /**
- * Mock implementation of SlackNotifierPort.
- * Captures messages for verification in tests.
+ * Mock implementation of SlackNotifier for testing.
+ * Records messages instead of sending real HTTP requests.
  */
-public class MockSlackNotifier implements SlackNotifierPort {
+public class MockSlackNotifier implements SlackNotifier {
 
-    private final List<String> postedMessages = new ArrayList<>();
+    private String lastMessage;
+    private boolean failNextCall = false;
 
     @Override
-    public void postMessage(String messageBody) {
-        // Simulate latency or logic if necessary
-        if (messageBody == null) {
-            throw new IllegalArgumentException("Message body cannot be null");
+    public void send(String message) {
+        if (failNextCall) {
+            throw new RuntimeException("Simulated Slack failure");
         }
-        this.postedMessages.add(messageBody);
+        this.lastMessage = message;
     }
 
-    public List<String> getPostedMessages() {
-        return new ArrayList<>(postedMessages);
+    public String getLastMessage() {
+        return lastMessage;
     }
 
-    public void reset() {
-        postedMessages.clear();
+    public void setFailNextCall(boolean fail) {
+        this.failNextCall = fail;
     }
 }

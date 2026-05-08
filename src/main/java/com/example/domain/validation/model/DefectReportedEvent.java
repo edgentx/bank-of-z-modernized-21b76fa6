@@ -23,6 +23,6 @@ public record DefectReportedEvent(
 
     @Override
     public Instant occurredAt() {
-        return occurredAt();
+        return occurredAt;
     }
 }

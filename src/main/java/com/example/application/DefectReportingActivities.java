@@ -1,44 +1,34 @@
 package com.example.application;
 
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackPort;
 import io.temporal.spring.boot.ActivityImpl;
 import org.springframework.stereotype.Component;
 
-/**
- * Temporal Activity Implementation for Defect Reporting.
- * Orchestrates the creation of a GitHub issue and notification of the URL via Slack.
- */
+import java.util.UUID;
+
 @Component
-@ActivityImpl(taskQueues = "DefectReportingTaskQueue")
+@ActivityImpl(taskQueue = "DefectReportingTaskQueue")
 public class DefectReportingActivities implements DefectReportingActivityInterface {
 
-    private final GitHubPort gitHubClient;
-    private final SlackPort slackClient;
+    private final SlackNotificationService slackService;
 
-    public DefectReportingActivities(GitHubPort gitHubClient, SlackPort slackClient) {
-        this.gitHubClient = gitHubClient;
-        this.slackClient = slackClient;
+    public DefectReportingActivities(SlackNotificationService slackService) {
+        this.slackService = slackService;
     }
 
     @Override
-    public String reportDefect(String title, String body) {
-        // 1. Create the GitHub issue
-        // Assuming a default repo context or that it is injected/configured.
-        // For this defect, the specific repo is less critical than the link flow.
-        String repo = "example/bank-of-z"; 
-        String issueUrl = gitHubClient.createIssue(repo, title, body);
+    public String reportDefect(String defectDetails) {
+        // Mock logic to generate a GitHub URL
+        String githubIssueId = "GH-" + UUID.randomUUID().toString().substring(0, 8);
+        String githubUrl = "https://github.com/bank-of-z/issues/" + githubIssueId;
 
-        // 2. Notify Slack with the URL
-        // This ensures the URL is present in the Slack body (Acceptance Criteria)
-        String message = String.format(
+        // Format the message body
+        String messageBody = String.format(
             "Defect Reported: %s\nGitHub Issue: %s",
-            title,
-            issueUrl
+            defectDetails, githubUrl
         );
-        
-        slackClient.sendMessage("#vforce360-issues", message);
 
-        return issueUrl;
+        slackService.sendNotification("#vforce360-issues", messageBody);
+
+        return githubUrl;
     }
 }

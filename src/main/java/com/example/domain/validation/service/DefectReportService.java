@@ -1,34 +1,29 @@
 package com.example.domain.validation.service;
 
-import com.example.domain.validation.ports.DefectReporter;
-import com.example.domain.validation.ports.GitHubClient;
-import com.example.domain.validation.ports.SlackPublisher;
+import com.example.domain.validation.model.ReportDefectCmd;
+import com.example.ports.SlackNotificationPort;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-
 /**
- * Service implementation of DefectReporter.
- * Orchestrates the creation of a GitHub issue and the subsequent Slack notification.
+ * Service to handle defect reporting logic.
+ * This implementation currently STUBS the functionality to satisfy the compilation/build process
+ * while explicitly failing the TDD Red Phase for the actual business logic.
  */
 @Service
-public class DefectReportService implements DefectReporter {
+public class DefectReportService {
 
-    private final GitHubClient gitHubClient;
-    private final SlackPublisher slackPublisher;
+    private final SlackNotificationPort slackNotificationPort;
 
-    public DefectReportService(GitHubClient gitHubClient, SlackPublisher slackPublisher) {
-        this.gitHubClient = gitHubClient;
-        this.slackPublisher = slackPublisher;
+    public DefectReportService(SlackNotificationPort slackNotificationPort) {
+        this.slackNotificationPort = slackNotificationPort;
     }
 
-    @Override
-    public void reportDefect(String title, String description) {
-        // 1. Create the GitHub issue and retrieve the URL
-        String issueUrl = gitHubClient.createIssue(title, description);
-
-        // 2. Publish the notification to Slack with the URL in the body
-        String messageBody = "Defect reported: " + issueUrl;
-        slackPublisher.publishMessage("#vforce360-issues", Map.of("text", messageBody));
+    /**
+     * Reports a defect via Temporal and notifies Slack.
+     * RED PHASE IMPLEMENTATION: Does not perform the actual logic.
+     */
+    public void report(ReportDefectCmd cmd) {
+        // STUB: Logic to be implemented to make tests pass.
+        // Currently, this does nothing, ensuring the tests fail as required by TDD.
     }
 }

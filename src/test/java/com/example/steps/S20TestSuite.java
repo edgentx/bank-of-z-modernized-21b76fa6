@@ -1,15 +1,15 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.ConfigurationParameter;
 import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
-import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
-
+/**
+ * JUnit 5 Suite wrapper for Cucumber S-20 tests.
+ * Run this to execute the feature file.
+ */
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features")
-@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
+@SelectClasspathResource("features/S-20.feature")
 public class S20TestSuite {
 }

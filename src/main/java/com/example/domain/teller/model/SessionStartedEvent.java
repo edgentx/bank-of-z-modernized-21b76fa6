@@ -12,27 +12,12 @@ public record SessionStartedEvent(
     Instant occurredAt
 ) implements DomainEvent {
     public SessionStartedEvent {
-        if (aggregateId == null || aggregateId.isBlank()) {
-            throw new IllegalArgumentException("aggregateId cannot be null");
-        }
-    }
-
-    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId) {
-        this(aggregateId, tellerId, terminalId, Instant.now());
+        // Ensure defaults if null, though constructor should provide valid data
+        if (occurredAt == null) occurredAt = Instant.now();
     }
 
     @Override
     public String type() {
         return "session.started";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

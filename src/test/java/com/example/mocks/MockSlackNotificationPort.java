@@ -1,33 +1,38 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-import java.util.ArrayList;
-import java.util.List;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to verify the Slack body content.
+ * Captures the last sent message body for assertions.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
-
-    private final List<String> sentMessages = new ArrayList<>();
-    private boolean shouldSucceed = true;
+    private String lastChannelId;
+    private Map<String, Object> lastMessageBody;
 
     @Override
-    public boolean sendMessage(String message) {
-        sentMessages.add(message);
-        return shouldSucceed;
+    public void sendMessage(String channelId, Map<String, Object> messageBody) {
+        this.lastChannelId = channelId;
+        this.lastMessageBody = new HashMap<>(messageBody); // Defensive copy
     }
 
-    public List<String> getSentMessages() {
-        return sentMessages;
+    public String getLastChannelId() {
+        return lastChannelId;
     }
 
-    public void setShouldSucceed(boolean shouldSucceed) {
-        this.shouldSucceed = shouldSucceed;
+    public Map<String, Object> getLastMessageBody() {
+        return lastMessageBody;
     }
 
-    public void clear() {
-        sentMessages.clear();
+    public String getLastMessageText() {
+        return lastMessageBody != null ? (String) lastMessageBody.get("text") : null;
+    }
+
+    public void reset() {
+        lastChannelId = null;
+        lastMessageBody = null;
     }
 }

@@ -1,24 +1,22 @@
 package com.example.mocks;
 
 import com.example.domain.vforce360.model.VForce360Aggregate;
-import com.example.ports.VForce360Repository;
-import org.springframework.stereotype.Component;
-
+import com.example.domain.vforce360.repository.VForce360Repository;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
-/**
- * Mock implementation of VForce360Repository for testing.
- */
-@Component
 public class MockVForce360Repository implements VForce360Repository {
+    private final Map<String, VForce360Aggregate> store = new HashMap<>();
 
     @Override
-    public void save(VForce360Aggregate aggregate) {
-        System.out.println("[MockRepo] Saving aggregate: " + aggregate.id());
+    public VForce360Aggregate save(VForce360Aggregate aggregate) {
+        store.put(aggregate.id(), aggregate);
+        return aggregate;
     }
 
     @Override
     public Optional<VForce360Aggregate> findById(String id) {
-        return Optional.empty();
+        return Optional.ofNullable(store.get(id));
     }
 }

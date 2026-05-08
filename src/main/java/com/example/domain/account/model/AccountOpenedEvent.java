@@ -8,12 +8,18 @@ import java.util.UUID;
 public record AccountOpenedEvent(
     String aggregateId,
     String customerId,
-    AccountAggregate.AccountType accountType,
-    BigDecimal initialDeposit,
+    String accountType,
     String sortCode,
-    String accountNumber,
+    BigDecimal initialDeposit,
     Instant occurredAt
 ) implements DomainEvent {
+
+    public AccountOpenedEvent {
+        if (aggregateId == null || aggregateId.isBlank()) {
+            throw new IllegalArgumentException("aggregateId cannot be null");
+        }
+    }
+
     @Override
     public String type() {
         return "account.opened";

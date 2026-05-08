@@ -1,12 +1,28 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasses;
-import org.junit.platform.suite.api.Suite;
+import com.example.mocks.MockGitHubPort;
+import com.example.mocks.MockSlackNotificationPort;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackNotificationPort;
+import io.cucumber.spring.CucumberContextConfiguration;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 
-@Suite
-@IncludeEngines("cucumber")
-@SelectClasses(VW454Steps.class)
+/**
+ * Spring Test Configuration for VW-454 Regression Tests.
+ * This wires up the Mock Adapters to the Ports.
+ */
+@TestConfiguration
+@CucumberContextConfiguration
 public class VW454TestSuite {
-    // This class is required by JUnit 5 to run the Cucumber test
+
+    @Bean
+    public SlackNotificationPort slackNotificationPort() {
+        return new MockSlackNotificationPort();
+    }
+
+    @Bean
+    public GitHubPort gitHubPort() {
+        return new MockGitHubPort();
+    }
 }

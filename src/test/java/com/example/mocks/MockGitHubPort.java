@@ -1,28 +1,26 @@
 package com.example.mocks;
 
-import com.example.domain.defect.GitHubPort;
+import com.example.ports.GitHubPort;
+import java.util.UUID;
 
 /**
  * Mock implementation of GitHubPort for testing.
+ * Returns a deterministic URL based on the title, or a random UUID.
  */
 public class MockGitHubPort implements GitHubPort {
 
-    private boolean shouldFail = false;
-    private String mockUrl = "https://github.com/mock/issues/1";
+    private String lastCreatedUrl;
 
     @Override
-    public String createIssue(String title, String body) {
-        if (shouldFail) {
-            throw new RuntimeException("Mock GitHub API Failure");
-        }
-        return mockUrl;
+    public String createIssue(String title, String description) {
+        // Simulate GitHub API returning a valid URL
+        // Using a deterministic format helps debugging
+        String fakeUrl = "https://github.com/egdcrypto/issues/" + UUID.randomUUID();
+        this.lastCreatedUrl = fakeUrl;
+        return fakeUrl;
     }
 
-    public void setMockUrl(String url) {
-        this.mockUrl = url;
-    }
-
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
+    public String getLastCreatedUrl() {
+        return lastCreatedUrl;
     }
 }

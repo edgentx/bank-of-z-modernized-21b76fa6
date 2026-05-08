@@ -14,4 +14,9 @@ public record AccountClosedEvent(String accountNumber, Instant occurredAt) imple
     public String aggregateId() {
         return accountNumber;
     }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
 }

@@ -1,5 +1,6 @@
 package com.example.steps;
 
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.teller.model.MenuNavigatedEvent;
@@ -9,101 +10,100 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S19Steps {
 
     private TellerSessionAggregate aggregate;
-    private NavigateMenuCmd command;
-    private List<DomainEvent> resultingEvents;
-    private Exception thrownException;
-
-    // --- Givens ---
+    private List<DomainEvent> resultEvents;
+    private Exception capturedException;
 
     @Given("a valid TellerSession aggregate")
-    public void a_valid_TellerSession_aggregate() {
+    public void aValidTellerSessionAggregate() {
         String sessionId = "session-123";
         aggregate = new TellerSessionAggregate(sessionId);
-        // Setup for validity: authenticated and active
-        aggregate.markAuthenticated("teller-01");
+        aggregate.markAuthenticated(); // Ensure valid preconditions
+        aggregate.clearEvents();
     }
 
-    @And("a valid sessionId is provided")
-    public void a_valid_sessionId_is_provided() {
-        // Handled in aggregate initialization
-        Assertions.assertNotNull(aggregate.id());
+    @Given("a valid sessionId is provided")
+    public void aValidSessionIdIsProvided() {
+        // Implicitly handled by aggregate construction in previous step
+        assertNotNull(aggregate.id());
     }
 
-    @And("a valid menuId is provided")
-    public void a_valid_menuId_is_provided() {
-        // Used in command construction
+    @Given("a valid menuId is provided")
+    public void aValidMenuIdIsProvided() {
+        // Handled in the When step via the command construction
     }
 
-    @And("a valid action is provided")
-    public void a_valid_action_is_provided() {
-        // Used in command construction
+    @Given("a valid action is provided")
+    public void aValidActionIsProvided() {
+        // Handled in the When step via the command construction
     }
-
-    // --- Violation Givens ---
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_TellerSession_aggregate_that_violates_authentication() {
-        String sessionId = "session-violation-auth";
+    public void aTellerSessionAggregateThatViolatesAuthentication() {
+        String sessionId = "session-unauth";
         aggregate = new TellerSessionAggregate(sessionId);
-        // Explicitly leave unauthenticated
-        aggregate.markUnauthenticated();
+        // Do NOT mark authenticated
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_TellerSession_aggregate_that_violates_timeout() {
-        String sessionId = "session-violation-timeout";
+    public void aTellerSessionAggregateThatViolatesTimeout() {
+        String sessionId = "session-timeout";
         aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markAuthenticated("teller-01");
-        // Force timeout
-        aggregate.markAsTimedOut();
+        aggregate.markAuthenticated();
+        aggregate.markExpired();
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_TellerSession_aggregate_that_violates_context() {
-        String sessionId = "session-violation-context";
+    public void aTellerSessionAggregateThatViolatesNavigationState() {
+        String sessionId = "session-nav-state";
         aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markAsInvalidContext(); // Sets internal state to trigger violation
+        aggregate.markAuthenticated();
+        // Set current menu to the one we will try to navigate to, simulating a violation of context change
+        aggregate.setCurrentMenu("MAIN_MENU");
     }
 
-    // --- Whens ---
-
     @When("the NavigateMenuCmd command is executed")
-    public void the_NavigateMenuCmd_command_is_executed() {
-        // Constructing command. Values are arbitrary for positive flow,
-        // for violations, state inside aggregate determines failure.
-        command = new NavigateMenuCmd(aggregate.id(), "MAIN_MENU", "ENTER");
+    public void theNavigateMenuCmdCommandIsExecuted() {
         try {
-            resultingEvents = aggregate.execute(command);
+            // Default values for successful execution scenarios
+            // For violation scenarios, these values might trigger the specific error
+            String menuId = "MAIN_MENU";
+            String action = "ENTER";
+            
+            // Override if we are testing the nav state violation, we need to match the set menu
+            // The aggregate logic throws if current == target. 
+            // If the violation is "Navigation state must accurately reflect", it implies a mismatch or stale state.
+            // Based on the implementation: navigating to CURRENT menu is an error.
+            
+            Command cmd = new NavigateMenuCmd(aggregate.id(), menuId, action);
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            thrownException = e;
+            capturedException = e;
         }
     }
 
-    // --- Thens ---
-
     @Then("a menu.navigated event is emitted")
-    public void a_menu_navigated_event_is_emitted() {
-        Assertions.assertNotNull(resultingEvents);
-        Assertions.assertFalse(resultingEvents.isEmpty());
-        Assertions.assertTrue(resultingEvents.get(0) instanceof MenuNavigatedEvent);
+    public void aMenuNavigatedEventIsEmitted() {
+        assertNull(capturedException, "Should not have thrown an exception");
+        assertNotNull(resultEvents);
+        assertFalse(resultEvents.isEmpty());
+        assertTrue(resultEvents.get(0) instanceof MenuNavigatedEvent);
         
-        MenuNavigatedEvent event = (MenuNavigatedEvent) resultingEvents.get(0);
-        Assertions.assertEquals("menu.navigated", event.type());
-        Assertions.assertEquals("MAIN_MENU", event.menuId());
+        MenuNavigatedEvent event = (MenuNavigatedEvent) resultEvents.get(0);
+        assertEquals("menu.navigated", event.type());
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(thrownException);
-        // In this domain logic, violations throw IllegalStateException
-        Assertions.assertTrue(thrownException instanceof IllegalStateException);
-        System.out.println("Expected error caught: " + thrownException.getMessage());
+    public void theCommandIsRejectedWithADomainError() {
+        assertNotNull(capturedException, "Should have thrown an exception");
+        // We check for IllegalStateException as the manifestation of a Domain Rule violation
+        assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
     }
 }

@@ -4,30 +4,30 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.2.0</version>
+    <version>3.3.4</version>
     <relativePath/>
   </parent>
   <groupId>com.example</groupId>
-  <artifactId>teller-system</artifactId>
+  <artifactId>teller-session</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>teller-system</name>
-  <description>Bank of Z Modernization</description>
+  <name>teller-session</name>
+  <description>Teller Session Domain Project</description>
   <properties>
-    <java.version>17</java.version>
-    <cucumber.version>7.14.0</cucumber.version>
+    <java.version>21</java.version>
+    <cucumber.version>7.18.1</cucumber.version>
   </properties>
   <dependencies>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
+      <groupId>com.ibm.db2</groupId>
+      <artifactId>jcc</artifactId>
       <scope>runtime</scope>
     </dependency>
     <dependency>
@@ -35,7 +35,6 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
-    <!-- Cucumber Dependencies -->
     <dependency>
       <groupId>io.cucumber</groupId>
       <artifactId>cucumber-java</artifactId>

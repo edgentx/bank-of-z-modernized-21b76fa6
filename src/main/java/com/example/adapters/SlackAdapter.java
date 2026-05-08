@@ -1,19 +1,38 @@
 package com.example.adapters;
 
 import com.example.ports.SlackNotificationPort;
-import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 /**
- * Real adapter implementation for SlackNotificationPort.
- * Simulates posting to Slack.
+ * Real implementation of SlackNotificationPort using Spring RestClient.
  */
-@Component
 public class SlackAdapter implements SlackNotificationPort {
 
+    private final RestClient restClient;
+    private final String webhookUrl;
+
+    public SlackAdapter(RestClient.Builder restClientBuilder, String webhookUrl) {
+        this.webhookUrl = webhookUrl;
+        this.restClient = restClientBuilder
+            .baseUrl(webhookUrl)
+            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .build();
+    }
+
     @Override
-    public void postMessage(String text) {
-        // In a real scenario, this would use Slack WebApiClient
-        // For Green phase, we just log or no-op effectively (unless connected to a real sink)
-        System.out.println("[Slack Adapter] Posting message: " + text);
+    public void send(String messageBody) {
+        // Request DTO for Slack Incoming Webhook
+        record SlackRequest(String text) {}
+
+        try {
+            restClient.post()
+                .body(new SlackRequest(messageBody))
+                .retrieve()
+                .toBodilessEntity();
+        } catch (Exception e) {
+            throw new SlackNotificationException("Failed to send Slack notification", e);
+        }
     }
 }

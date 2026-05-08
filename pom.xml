@@ -100,6 +100,12 @@
     </dependencies>
 
     <repositories>
+        <!-- Adding IBM Maven Public Repository to resolve com.ibm.mq dependencies -->
+        <repository>
+            <id>ibm-maven</id>
+            <name>IBM Maven Repository</name>
+            <url>https://public.dhe.ibm.com/ibmdl/export/pub/software/websphere/repo/</url>
+        </repository>
         <repository>
             <id>central</id>
             <url>https://repo.maven.apache.org/maven2</url>

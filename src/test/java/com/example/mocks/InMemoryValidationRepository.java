@@ -7,10 +7,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * In-memory implementation of ValidationRepository for testing.
- * adheres to the rule: Tests use mock implementations from mocks/.
- */
 public class InMemoryValidationRepository implements ValidationRepository {
 
     private final Map<String, ValidationAggregate> store = new HashMap<>();

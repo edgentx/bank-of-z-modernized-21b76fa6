@@ -6,23 +6,34 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to Slack to verify content without real I/O.
+ * Captures messages in memory to verify content without external I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> capturedMessages = new ArrayList<>();
+    private final List<String> sentMessages = new ArrayList<>();
 
     @Override
-    public void sendNotification(String messageBody) {
-        // In a real test, we might simulate failures here, but for now we just capture.
-        this.capturedMessages.add(messageBody);
+    public void sendMessage(String messageBody) {
+        System.out.println("[MockSlack] Captured Message: " + messageBody);
+        this.sentMessages.add(messageBody);
     }
 
-    public List<String> getCapturedMessages() {
-        return new ArrayList<>(capturedMessages);
+    @Override
+    public String getLastSentMessageBody() {
+        if (sentMessages.isEmpty()) {
+            return "";
+        }
+        return sentMessages.get(sentMessages.size() - 1);
     }
 
+    /**
+     * Clears the message history. Useful for test isolation.
+     */
     public void clear() {
-        capturedMessages.clear();
+        sentMessages.clear();
+    }
+
+    public List<String> getAllMessages() {
+        return new ArrayList<>(sentMessages);
     }
 }

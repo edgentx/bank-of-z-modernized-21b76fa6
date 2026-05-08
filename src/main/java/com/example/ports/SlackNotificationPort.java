@@ -1,9 +1,17 @@
 package com.example.ports;
 
+import java.util.Set;
+
 /**
- * Port for Slack notification interactions.
- * This interface allows us to mock the external Slack API in tests.
+ * Port for sending Slack notifications.
  */
 public interface SlackNotificationPort {
-    void postMessage(String channel, String messageBody);
+
+    /**
+     * Sends a message to a specific channel.
+     * @param channel The target channel (e.g. "#vforce360-issues").
+     * @param message The message body.
+     * @param mentions Set of user IDs to mention (optional).
+     */
+    void sendMessage(String channel, String message, Set<String> mentions);
 }

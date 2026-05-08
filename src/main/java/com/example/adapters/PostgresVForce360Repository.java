@@ -2,18 +2,26 @@ package com.example.adapters;
 
 import com.example.domain.vforce360.model.VForce360Aggregate;
 import com.example.ports.VForce360RepositoryPort;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
+
+import java.util.Optional;
 
 /**
- * Repository Stub for VForce360 Aggregate.
- * Implementing interface to resolve compilation errors.
+ * Adapter for VForce360 Repository.
+ * Currently a placeholder to satisfy dependency injection requirements.
  */
-@Repository
+@Component
 public class PostgresVForce360Repository implements VForce360RepositoryPort {
+
     @Override
-    public VForce360Aggregate load(String id) {
-        return new VForce360Aggregate(id);
+    public VForce360Aggregate save(VForce360Aggregate aggregate) {
+        // Placeholder implementation
+        return aggregate;
     }
+
     @Override
-    public void save(VForce360Aggregate aggregate) {}
+    public Optional<VForce360Aggregate> findById(String id) {
+        // Placeholder implementation
+        return Optional.empty();
+    }
 }

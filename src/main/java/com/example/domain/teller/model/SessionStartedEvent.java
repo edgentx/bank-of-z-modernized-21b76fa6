@@ -3,13 +3,23 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public record SessionStartedEvent(
-        String sessionId,
-        String tellerId,
-        String terminalId,
-        Instant startedAt
+    String eventId,
+    String aggregateId,
+    String tellerId,
+    String terminalId,
+    Instant occurredAt
 ) implements DomainEvent {
+    public SessionStartedEvent {
+        if (eventId == null) eventId = UUID.randomUUID().toString();
+    }
+
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, tellerId, terminalId, occurredAt);
+    }
+
     @Override
     public String type() {
         return "session.started";
@@ -17,11 +27,11 @@ public record SessionStartedEvent(
 
     @Override
     public String aggregateId() {
-        return sessionId;
+        return aggregateId;
     }
 
     @Override
     public Instant occurredAt() {
-        return startedAt;
+        return occurredAt;
     }
 }

@@ -7,7 +7,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * In-memory implementation of ValidationRepository for testing.
+ */
 public class InMemoryValidationRepository implements ValidationRepository {
+
     private final Map<String, ValidationAggregate> store = new HashMap<>();
 
     @Override

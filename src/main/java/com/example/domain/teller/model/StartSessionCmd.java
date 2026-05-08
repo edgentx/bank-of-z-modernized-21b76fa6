@@ -2,16 +2,28 @@ package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.Objects;
-
 /**
- * Command to initiate a teller session.
- * Usage: {@code new StartSessionCmd(tellerId, terminalId, isAuthenticated)}
+ * Command to initiate a Teller Session.
+ * Context: S-18 Implement StartSessionCmd on TellerSession.
  */
-public record StartSessionCmd(String sessionId, String tellerId, String terminalId, boolean isAuthenticated) implements Command {
+public record StartSessionCmd(
+        String sessionId,
+        String tellerId,
+        String terminalId,
+        boolean isAuthenticated,
+        long timeoutInSeconds,
+        TellerSessionState navigationContext
+) implements Command {
+
     public StartSessionCmd {
-        Objects.requireNonNull(sessionId, "sessionId cannot be null");
-        Objects.requireNonNull(tellerId, "tellerId cannot be null");
-        Objects.requireNonNull(terminalId, "terminalId cannot be null");
+        if (sessionId == null || sessionId.isBlank()) throw new IllegalArgumentException("sessionId required");
+        if (tellerId == null || tellerId.isBlank()) throw new IllegalArgumentException("tellerId required");
+        if (terminalId == null || terminalId.isBlank()) throw new IllegalArgumentException("terminalId required");
     }
+
+    // Convenience constructor for happy path defaults
+    public StartSessionCmd(String sessionId, String tellerId, String terminalId, boolean authenticated) {
+        this(sessionId, tellerId, terminalId, authenticated, 1800, new TellerSessionState("HOME", "DEFAULT"));
+    }
+
 }

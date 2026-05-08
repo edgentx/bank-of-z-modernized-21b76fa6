@@ -1,7 +1,8 @@
 package com.example.ports;
 
-import com.example.domain.validation.model.ValidationAggregate;
-
+/**
+ * Port for interacting with GitHub issues.
+ */
 public interface GitHubPort {
-    String createIssue(ValidationAggregate aggregate);
+    String createIssue(String title, String description);
 }

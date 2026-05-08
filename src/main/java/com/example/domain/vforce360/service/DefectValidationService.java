@@ -1,49 +1,58 @@
 package com.example.domain.vforce360.service;
 
-import com.example.domain.shared.ValidationException;
-import com.example.domain.vforce360.model.ValidationResult;
-import com.example.ports.VForce360IntegrationPort;
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.domain.validation.model.ValidationAggregate;
+import com.example.domain.validation.repository.ValidationRepository;
+import com.example.ports.SlackNotificationPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * Domain Service responsible for validating defect reports.
- * This implements the logic required to satisfy the acceptance criteria for VW-454.
+ * Service handling the logic for reporting defects and notifying via Slack.
+ * Coordinates the Domain Aggregates and Adapters.
  */
 @Service
 public class DefectValidationService {
 
-    private final VForce360IntegrationPort integrationPort;
+    private static final Logger log = LoggerFactory.getLogger(DefectValidationService.class);
+    private final ValidationRepository validationRepository;
+    private final SlackNotificationPort slackNotificationPort;
 
-    public DefectValidationService(VForce360IntegrationPort integrationPort) {
-        this.integrationPort = integrationPort;
+    public DefectValidationService(ValidationRepository validationRepository,
+                                   SlackNotificationPort slackNotificationPort) {
+        this.validationRepository = validationRepository;
+        this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Validates that the Slack body for a specific defect contains the GitHub URL.
-     *
-     * @param defectId     The ID of the defect (e.g., "VW-454").
-     * @param channelName  The Slack channel name to check.
-     * @return ValidationResult indicating pass or fail.
+     * Handles the defect reporting workflow.
+     * 1. Creates/Updates the DefectAggregate.
+     * 2. Generates the message with GitHub URL.
+     * 3. Sends notification via Slack Port.
      */
-    public ValidationResult validateGitHubUrlPresence(String defectId, String channelName) {
-        // 1. Verify the defect report execution was triggered (Temporal workflow check)
-        if (!integrationPort.wasDefectReportExecuted(defectId)) {
-            throw new ValidationException("Defect report " + defectId + " was not executed via temporal-worker.");
+    public void reportDefect(ReportDefectCmd cmd) {
+        // 1. Process Defect
+        DefectAggregate defect = new DefectAggregate(cmd.defectId());
+        var events = defect.execute(cmd);
+        
+        // In a real app, we would persist events here
+        if (!events.isEmpty()) {
+            var event = events.get(0);
+            log.info("Defect processed: {}", event.aggregateId());
+            
+            // 2. Prepare Slack Message
+            // This is the fix for VW-454: Ensure the URL is included in the body
+            String slackBody = String.format(
+                "Defect %s reported: %s. GitHub Issue: %s",
+                cmd.defectId(), 
+                cmd.description(), 
+                defect.getGithubIssueUrl()
+            );
+
+            // 3. Send Notification
+            slackNotificationPort.notify(slackBody);
         }
-
-        // 2. Retrieve the message body from the integration port
-        String slackBody = integrationPort.getLastSlackMessageBody(channelName);
-
-        // 3. Perform the core validation check: Does the body contain a GitHub link?
-        if (slackBody == null || slackBody.isBlank()) {
-            return ValidationResult.invalid("Slack message body is empty or null.");
-        }
-
-        boolean hasLink = slackBody.contains("https://github.com/");
-        if (!hasLink) {
-            return ValidationResult.invalid("Slack body is missing the GitHub issue URL.");
-        }
-
-        return ValidationResult.valid();
     }
 }

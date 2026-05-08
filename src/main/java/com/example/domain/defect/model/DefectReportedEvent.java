@@ -3,7 +3,6 @@ package com.example.domain.defect.model;
 import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.Map;
-import java.util.UUID;
 
 public record DefectReportedEvent(
     String aggregateId,

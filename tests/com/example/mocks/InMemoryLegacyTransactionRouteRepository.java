@@ -1,22 +1,26 @@
 package com.example.mocks;
 
 import com.example.domain.legacybridge.model.LegacyTransactionRoute;
-import com.example.domain.legacybridge.repository.LegacyTransactionRouteRepository;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class InMemoryLegacyTransactionRouteRepository implements LegacyTransactionRouteRepository {
+/**
+ * In-memory repository for LegacyTransactionRoute.
+ * Located in tests/ directory as per DDD/hexagonal layout.
+ */
+public class InMemoryLegacyTransactionRouteRepository {
     private final Map<String, LegacyTransactionRoute> store = new HashMap<>();
 
-    @Override
-    public Optional<LegacyTransactionRoute> findById(String id) {
-        return Optional.ofNullable(store.get(id));
-    }
-
-    @Override
     public void save(LegacyTransactionRoute aggregate) {
         store.put(aggregate.id(), aggregate);
+    }
+
+    public LegacyTransactionRoute findById(String id) {
+        return store.get(id);
+    }
+
+    public void delete(String id) {
+        store.remove(id);
     }
 }

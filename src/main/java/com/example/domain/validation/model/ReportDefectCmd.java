@@ -4,7 +4,8 @@ import com.example.domain.shared.Command;
 
 public record ReportDefectCmd(
     String defectId,
-    String description,
+    String title,
     String severity,
-    String component
-) implements Command {}
+    String url
+) implements Command {
+}

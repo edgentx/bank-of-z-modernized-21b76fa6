@@ -36,7 +36,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Temporal Dependencies (Fixed groupId/artifactId) -->
+        <!-- Temporal Dependencies (Explicit Version) -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
@@ -47,6 +47,11 @@
             <artifactId>temporal-test-server</artifactId>
             <version>${temporal.version}</version>
             <scope>test</scope>
+        </dependency>
+        <!-- Added spring-boot-starter must be explicit to ensure autocreation of Workers -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
         </dependency>
     </dependencies>
 

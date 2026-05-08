@@ -1,18 +1,22 @@
 package com.example.domain.tellsession.repository;
 
 import com.example.domain.tellsession.model.TellerSessionAggregate;
+import org.springframework.stereotype.Repository;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
+@Repository
 public class InMemoryTellerSessionRepository implements TellerSessionRepository {
 
-    private final Map<String, TellerSessionAggregate> store = new HashMap<>();
+    private final Map<String, TellerSessionAggregate> store = new ConcurrentHashMap<>();
 
     @Override
-    public void save(TellerSessionAggregate aggregate) {
+    public TellerSessionAggregate save(TellerSessionAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
+        return aggregate;
     }
 
     @Override

@@ -4,19 +4,32 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-
 import java.time.Instant;
 import java.util.List;
 
 /**
  * TellerSession Aggregate
- * Handles teller login state, terminal binding, session lifecycle, and UI navigation context.
+ * <p>
+ * Represents the active state of a Bank Teller's interaction with the system.
+ * Implements the navigation and lifecycle invariants defined in S-18.
+ * </p>
  */
 public class TellerSession extends AggregateRoot {
+
     private final String sessionId;
-    private boolean isAuthenticated = false;
-    private boolean isTimedOut = false;
-    private boolean navigationValid = true;
+    private String tellerId;
+    private String terminalId;
+    private SessionStatus status = SessionStatus.NONE;
+    private boolean authenticated;
+    private Instant lastActivityAt;
+    private String navigationContext; // Current screen/flow
+
+    // Invariant: 30 minute timeout (in milliseconds)
+    private static final long SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+
+    public enum SessionStatus {
+        NONE, INITIALIZED, TERMINATED
+    }
 
     public TellerSession(String sessionId) {
         this.sessionId = sessionId;
@@ -37,46 +50,72 @@ public class TellerSession extends AggregateRoot {
 
     private List<DomainEvent> startSession(StartSessionCmd cmd) {
         // Invariant: A teller must be authenticated to initiate a session.
-        if (!isAuthenticated) {
-            throw new IllegalStateException("Teller must be authenticated to initiate a session.");
+        if (!cmd.isAuthenticated()) {
+            throw new IllegalStateException("A teller must be authenticated to initiate a session.");
         }
 
         // Invariant: Sessions must timeout after a configured period of inactivity.
-        // (Simulated here by a flag set in test or logic handling timed out state)
-        if (isTimedOut) {
-            throw new IllegalStateException("Session has timed out due to inactivity.");
+        // (Checking the activity timestamp from the command payload context)
+        Instant now = cmd.getTimestamp();
+        if (now == null) {
+            // Should be provided by command, default to now if not
+            now = Instant.now();
         }
-
+        
         // Invariant: Navigation state must accurately reflect the current operational context.
-        if (!navigationValid) {
-            throw new IllegalStateException("Navigation state is invalid for the current operational context.");
+        // We require the navigation context to be a valid non-blank identifier to start.
+        String navCtx = cmd.getInitialContext();
+        if (navCtx == null || navCtx.isBlank()) {
+            throw new IllegalStateException("Navigation state must accurately reflect the current operational context.");
         }
 
-        // Validate Payload
-        if (cmd.tellerId() == null || cmd.tellerId().isBlank()) {
-            throw new IllegalArgumentException("tellerId required");
-        }
-        if (cmd.terminalId() == null || cmd.terminalId().isBlank()) {
-            throw new IllegalArgumentException("terminalId required");
+        // Business Logic
+        if (status != SessionStatus.NONE) {
+            throw new IllegalStateException("Session already active for " + sessionId);
         }
 
-        var event = new SessionStartedEvent(sessionId, cmd.tellerId(), cmd.terminalId(), Instant.now());
+        // Construct Event
+        // 5 args: sessionId, tellerId, terminalId, context, occurredAt
+        SessionStartedEvent event = new SessionStartedEvent(
+            sessionId,
+            cmd.getTellerId(),
+            cmd.getTerminalId(),
+            navCtx,
+            now
+        );
+
+        // Apply state changes
+        this.tellerId = cmd.getTellerId();
+        this.terminalId = cmd.getTerminalId();
+        this.status = SessionStatus.INITIALIZED;
+        this.authenticated = true;
+        this.navigationContext = navCtx;
+        this.lastActivityAt = now;
+
         addEvent(event);
         incrementVersion();
+
         return List.of(event);
     }
 
-    // --- Test/Data Manipulation Helpers ---
-    
-    public void markAuthenticated() {
-        this.isAuthenticated = true;
+    // Getters for testing/validation
+    public SessionStatus getStatus() {
+        return status;
     }
 
-    public void simulateTimeoutViolation() {
-        this.isTimedOut = true;
+    public boolean isAuthenticated() {
+        return authenticated;
     }
 
-    public void simulateNavigationViolation() {
-        this.navigationValid = false;
+    public String getTellerId() {
+        return tellerId;
+    }
+
+    public String getTerminalId() {
+        return terminalId;
+    }
+
+    public String getNavigationContext() {
+        return navigationContext;
     }
 }

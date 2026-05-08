@@ -2,17 +2,15 @@ package com.example.domain.defect.model;
 
 import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
-import java.util.Map;
 
 /**
- * Event representing the successful reporting of a defect.
- * Should contain the GitHub URL link to the created issue.
+ * Event published when a defect is successfully reported and validated.
  */
 public record DefectReportedEvent(
     String defectId,
     String title,
-    String githubUrl,
-    Map<String, String> metadata,
+    String severity,
+    String issueUrl, // The GitHub URL generated
     Instant occurredAt
 ) implements DomainEvent {
     @Override

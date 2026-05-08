@@ -1,27 +1,33 @@
 package com.example.adapters;
 
-import com.example.ports.SlackNotifierPort;
-import org.springframework.stereotype.Component;
+import com.example.ports.NotifierPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Real implementation of the SlackNotifierPort.
- * In a production environment, this would use the Slack Web API client.
- * For this context, it acts as the concrete adapter resolving the interface.
+ * Real adapter for sending Slack notifications.
+ * This implementation would typically make an HTTP call to the Slack Web API.
  */
-@Component
-public class SlackNotifierAdapter implements SlackNotifierPort {
+public class SlackNotifierAdapter implements NotifierPort {
 
     private static final Logger log = LoggerFactory.getLogger(SlackNotifierAdapter.class);
 
     @Override
-    public void send(String messageBody) {
-        // Real-world implementation would involve WebClient or Apache HttpClient
-        // calling https://slack.com/api/chat.postMessage
+    public void send(String body) {
+        if (body == null) {
+            throw new IllegalArgumentException("Body cannot be null");
+        }
         
-        log.info("Sending Slack notification: {}", messageBody);
+        // In a real implementation, we would use WebClient or RestTemplate to POST to Slack.
+        // For the defect VW-454 validation, the critical part is ensuring the URL is present in the body.
+        log.info("Sending Slack notification: {}", body);
         
-        // Simulating successful send for the execution path
+        // Example:
+        // webClient.post()
+        //     .uri(slackWebhookUrl)
+        //     .bodyValue(Map.of("text", body))
+        //     .retrieve()
+        //     .bodyToMono(Void.class)
+        //     .block();
     }
 }

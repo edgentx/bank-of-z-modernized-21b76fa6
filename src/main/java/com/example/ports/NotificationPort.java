@@ -1,17 +1,14 @@
 package com.example.ports;
 
-import com.example.application.SlackMessage;
-
 /**
- * Port interface for sending notifications (e.g., to Slack).
- * Used to decouple the workflow implementation from the specific transport mechanism.
+ * Port interface for external notification systems (e.g., Slack).
+ * This is part of the Adapter pattern required by the build system.
  */
 public interface NotificationPort {
-
     /**
-     * Sends a message to the configured Slack channel.
-     *
-     * @param message The message payload to send.
+     * Sends a notification about the defect report.
+     * @param defectId The internal ID of the defect.
+     * @param ticketUrl The URL of the ticket in the external system (GitHub).
      */
-    void send(SlackMessage message);
+    void sendNotification(String defectId, String ticketUrl);
 }

@@ -1,39 +1,51 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock implementation of SlackNotificationPort.
- * Stores messages in memory for assertion verification. No real HTTP calls.
+ * In-memory mock for Slack notifications.
+ * Used in testing to capture messages without external I/O.
  */
 public class InMemorySlackNotificationPort implements SlackNotificationPort {
 
-    // Map Channel -> Message Body
-    private final Map<String, String> messages = new HashMap<>();
+    public static class PostedMessage {
+        public final String channel;
+        public final String body;
+
+        public PostedMessage(String channel, String body) {
+            this.channel = channel;
+            this.body = body;
+        }
+    }
+
+    private final List<PostedMessage> messages = new ArrayList<>();
 
     @Override
-    public boolean sendMessage(String channel, String messageBody) {
-        messages.put(channel, messageBody);
-        return true;
+    public void postMessage(String channel, String messageBody) {
+        // Simulate basic validation
+        if (channel == null || channel.isBlank()) {
+            throw new IllegalArgumentException("Channel cannot be blank");
+        }
+        if (messageBody == null) {
+            throw new IllegalArgumentException("Body cannot be null");
+        }
+        this.messages.add(new PostedMessage(channel, messageBody));
     }
 
-    /**
-     * Checks if a message was sent to a specific channel.
-     */
-    public boolean wasMessageSent(String channel) {
-        return messages.containsKey(channel);
-    }
-
-    /**
-     * Retrieves the last message body sent to a specific channel.
-     */
-    public String getLastMessageBody(String channel) {
-        return messages.get(channel);
+    public List<PostedMessage> getMessages() {
+        return new ArrayList<>(messages);
     }
 
     public void clear() {
         messages.clear();
+    }
+
+    public PostedMessage findFirstByChannel(String channel) {
+        return messages.stream()
+                .filter(m -> m.channel.equals(channel))
+                .findFirst()
+                .orElse(null);
     }
 }

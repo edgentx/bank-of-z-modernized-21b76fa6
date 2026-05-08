@@ -9,12 +9,12 @@ import java.util.Map;
 
 /**
  * Workflow implementation for reporting a defect.
- * This is a stub to satisfy compilation in the Red phase.
- * The logic to bridge GitHub and Slack is missing, causing the test to fail.
+ * Orchestrates creating a GitHub issue and notifying Slack.
  */
 public class ReportDefectWorkflowImpl implements ReportDefectWorkflow {
 
-    // In a real Spring Boot app, these would be @Autowired
+    // In a real Spring Boot app, these would be @Autowired.
+    // Using setters for test injection (as seen in the Test setup).
     private SlackNotifier slackNotifier;
     private GitHubClient githubClient;
 
@@ -28,21 +28,20 @@ public class ReportDefectWorkflowImpl implements ReportDefectWorkflow {
 
     @Override
     public String reportDefect(String projectId, String title, String description) {
-        // Workflow Stub Implementation:
-        // 1. Ideally: Create GitHub Issue
-        // 2. Ideally: Send Slack Notification with the URL
-        // Current State: Does nothing or partial implementation, causing test failure.
-
+        // 1. Create GitHub Issue
         String issueUrl = "";
         if (githubClient != null) {
-             issueUrl = githubClient.createIssue("bank-of-z/legacy-issues", title, description);
+            issueUrl = githubClient.createIssue("bank-of-z/legacy-issues", title, description);
         }
 
-        // Bug location (Red Phase): We send notification, but we DON'T include the URL in the body.
+        // 2. Send Slack Notification
+        // FIX for S-FB-1: Include the issueUrl in the Slack body text.
         if (slackNotifier != null) {
-             Map<String, Object> attachment = new HashMap<>();
-             // Intentionally omitting issueUrl from the text body to reproduce the defect
-             slackNotifier.sendNotification("https://hooks.slack.com/test", "Defect Reported: " + title, attachment);
+            Map<String, Object> attachment = new HashMap<>();
+            // We construct the text body to explicitly include the link.
+            String slackBody = "Defect Reported: " + title + "\nGitHub Issue: " + issueUrl;
+            
+            slackNotifier.sendNotification("https://hooks.slack.com/test", slackBody, attachment);
         }
 
         return "DEFECT-" + System.currentTimeMillis();

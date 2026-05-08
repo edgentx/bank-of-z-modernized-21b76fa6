@@ -1,13 +1,14 @@
 package com.example.service;
 
 import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.DefectReportedEvent;
 import com.example.domain.defect.model.ReportDefectCmd;
 import com.example.ports.SlackNotifierPort;
 import org.springframework.stereotype.Service;
 
 /**
  * Service for handling defect reporting workflow.
- * This is the implementation file that will cause the tests to fail initially.
+ * Orchestrates the domain logic and external notifications.
  */
 @Service
 public class DefectService {
@@ -19,36 +20,41 @@ public class DefectService {
     }
 
     /**
-     * Orchestrates the reporting of a defect.
-     * 1. Execute Command on Aggregate
-     * 2. Notify Slack via Port
+     * Reports a defect by executing the domain command and notifying Slack.
+     * 
+     * This implementation fixes the defect where the GitHub URL was missing
+     * from the Slack notification body.
      * 
      * @param cmd The command to report a defect
-     * @return The ID of the generated GitHub issue
+     * @return The generated GitHub URL
      */
     public String reportDefect(ReportDefectCmd cmd) {
-        // RED PHASE IMPLEMENTATION STUB
-        // This is intentionally incorrect or incomplete to verify test failures.
-        
+        // 1. Instantiate and execute aggregate logic
         DefectAggregate aggregate = new DefectAggregate(cmd.defectId());
-        
-        // Execute domain logic
         var events = aggregate.execute(cmd);
         
-        if (!events.isEmpty()) {
-            var event = events.get(0);
-            
-            // INTENTIONAL BUG (Simulating VW-454):
-            // The notification logic currently forgets to append the GitHub URL from the event.
-            String slackMessage = "Defect Reported: " + cmd.title(); 
-            // Missing: " See: " + event.githubUrl();
-            
-            slackNotifier.send(slackMessage);
-            
-            // Returning null/empty to force assertion failures downstream
-            return null; 
+        if (events.isEmpty()) {
+            throw new IllegalStateException("Defect reporting produced no events");
         }
-        
-        throw new IllegalStateException("Failed to report defect");
+
+        // 2. Extract the specific event (Expectation: DefectReportedEvent)
+        DomainEvent rawEvent = events.get(0);
+        if (!(rawEvent instanceof DefectReportedEvent event)) {
+             throw new IllegalStateException("Unexpected event type: " + rawEvent.getClass().getSimpleName());
+        }
+
+        // 3. Construct Slack Body with GitHub URL (Fix for VW-454)
+        // Previously, the message only contained the title.
+        String slackMessage = String.format(
+            "Defect Reported: %s. See details at: %s",
+            cmd.title(),
+            event.githubUrl()
+        );
+
+        // 4. Send Notification
+        slackNotifier.send(slackMessage);
+
+        // 5. Return the URL for potential chaining or verification
+        return event.githubUrl();
     }
 }

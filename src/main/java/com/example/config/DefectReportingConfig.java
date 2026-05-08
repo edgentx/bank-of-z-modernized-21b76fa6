@@ -1,54 +1,35 @@
 package com.example.config;
 
-import com.example.adapters.NotificationPortImpl;
-import com.example.adapters.GitHubPortImpl;
-import com.example.adapters.ValidationRepositoryImpl;
-import com.example.domain.validation.repository.ValidationRepository;
+import com.example.adapters.GitHubAdapter;
+import com.example.adapters.SlackNotificationAdapter;
+import com.example.domain.defect.DefectReportingService;
 import com.example.ports.GitHubPort;
-import com.example.ports.NotificationPort;
-import org.springframework.beans.factory.annotation.Value;
+import com.example.ports.SlackNotificationPort;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.client.RestTemplate;
-
-import java.time.Clock;
 
 /**
- * Spring Configuration for Defect Reporting components.
- * Wires the adapters to the ports.
+ * Configuration for Defect Reporting components.
+ * Wires the real adapters to the service layer.
  */
 @Configuration
 public class DefectReportingConfig {
 
     @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
+    @ConditionalOnMissingBean
+    public GitHubPort gitHubPort() {
+        return new GitHubAdapter();
     }
 
     @Bean
-    public NotificationPort notificationPort(
-            @Value("${defects.slack.webhook.url}") String webhookUrl,
-            RestTemplate restTemplate) {
-        return new NotificationPortImpl(webhookUrl, restTemplate);
+    @ConditionalOnMissingBean
+    public SlackNotificationPort slackNotificationPort() {
+        return new SlackNotificationAdapter();
     }
 
     @Bean
-    public GitHubPort gitHubPort(
-            @Value("${defects.github.api.url}") String apiUrl,
-            @Value("${defects.github.token}") String token,
-            RestTemplate restTemplate) {
-        return new GitHubPortImpl(apiUrl, token, restTemplate);
-    }
-
-    @Bean
-    public ValidationRepository validationRepository() {
-        // In a real scenario, this would be a JPA/Repository implementation.
-        // For this feature, we satisfy the interface with the adapter.
-        return new ValidationRepositoryImpl();
-    }
-
-    @Bean
-    public Clock clock() {
-        return Clock.systemUTC();
+    public DefectReportingService defectReportingService(GitHubPort gitHubPort, SlackNotificationPort slackNotificationPort) {
+        return new DefectReportingService(gitHubPort, slackNotificationPort);
     }
 }

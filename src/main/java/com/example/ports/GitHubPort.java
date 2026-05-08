@@ -1,16 +1,18 @@
 package com.example.ports;
 
+import java.util.Optional;
+
 /**
  * Port for interacting with GitHub issues.
- * Used to create links and validate issue IDs.
  */
 public interface GitHubPort {
 
     /**
-     * Constructs the full URL for a GitHub issue.
+     * Creates a new issue in the repository.
      *
-     * @param issueId The ID of the issue.
-     * @return The fully qualified URL.
+     * @param title       The issue title.
+     * @param description The issue body/description.
+     * @return The URL of the created issue, or empty if creation failed.
      */
-    String constructIssueUrl(String issueId);
+    Optional<String> createIssue(String title, String description);
 }

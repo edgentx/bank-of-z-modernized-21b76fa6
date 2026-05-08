@@ -1,4 +1,4 @@
-Feature: CloseAccountCmd
+Feature: Implement CloseAccountCmd on Account (account-management)
 
   Scenario: Successfully execute CloseAccountCmd
     Given a valid Account aggregate

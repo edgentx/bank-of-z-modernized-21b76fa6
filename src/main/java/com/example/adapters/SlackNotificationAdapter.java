@@ -1,15 +1,13 @@
 package com.example.adapters;
 
-import com.example.ports.SlackNotificationPort;
-import org.springframework.stereotype.Component;
+import com.example.ports.SackNotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 /**
  * Real implementation for Slack notifications.
- * In a production environment, this would use the Slack WebApi to post messages.
- * For S-FB-1, this adapter performs the critical validation logic: ensuring
- * the body contains the GitHub link before posting.
+ * This implementation is a stub that logs, but in a real environment would use a WebClient.
  */
 @Component
 public class SlackNotificationAdapter implements SlackNotificationPort {
@@ -17,19 +15,10 @@ public class SlackNotificationAdapter implements SlackNotificationPort {
     private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
 
     @Override
-    public void postMessage(String channel, String body) {
-        // Simulated external call to Slack API
-        log.info("[SlackOutbound] Posting to channel {}: {}", channel, body);
-    }
-
-    @Override
-    public void validateAndPost(String channel, String body) {
-        // S-FB-1 Validation: Ensure body contains a GitHub URL.
-        // This enforces the "Expected Behavior" described in the defect report.
-        if (body == null || !body.contains("https://github.com/")) {
-            throw new IllegalStateException("Validation Failed: Slack body must contain a GitHub URL.");
-        }
-
-        postMessage(channel, body);
+    public boolean postMessage(String channel, String body) {
+        // In a real scenario, this would use Spring's WebClient to call Slack API.
+        // e.g., webClient.post().uri("https://slack.com/api/chat.postMessage")...
+        log.info("SLACK [{}]: {}", channel, body);
+        return true;
     }
 }

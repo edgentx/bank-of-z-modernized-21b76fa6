@@ -1,21 +1,16 @@
 package com.example.ports;
 
 /**
- * Port interface for sending notifications to Slack.
- * Used by the temporal worker workflow or domain handlers to alert the team.
+ * Port interface for sending Slack notifications.
+ * Used to decouple the Temporal workflow logic from the actual Slack implementation.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Formats and sends a defect notification to Slack.
+     * Sends a notification payload to Slack.
      *
-     * @param defectId The ID of the defect (e.g., "VW-454").
-     * @return The formatted message body that was sent (useful for testing/verification).
+     * @param payload The formatted message to be sent.
+     * @throws RuntimeException if the notification fails to send.
      */
-    String formatDefectNotification(String defectId);
-
-    /**
-     * Sends the notification.
-     */
-    void sendNotification(String messageBody);
+    void sendNotification(String payload);
 }

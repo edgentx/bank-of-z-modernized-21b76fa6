@@ -2,11 +2,4 @@ package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.Objects;
-
-public record EndSessionCmd(String sessionId) implements Command {
-    public EndSessionCmd {
-        Objects.requireNonNull(sessionId, "sessionId cannot be null");
-        if (sessionId.isBlank()) throw new IllegalArgumentException("sessionId cannot be blank");
-    }
-}
+public record EndSessionCmd(String sessionId, String tellerId) implements Command {}

@@ -1,31 +1,47 @@
 package com.example.mocks;
 
 import com.example.ports.GithubIssuePort;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Mock implementation of GithubIssuePort for testing.
- * Returns deterministic URLs for issue creation.
+ * Allows verification that issue creation was requested.
  */
 public class MockGithubIssuePort implements GithubIssuePort {
 
-    private int issueCount = 0;
+    private final Map<String, String> createdIssues = new HashMap<>();
+    private String forcedUrl = "https://github.com/bank-of-z/vforce360/issues/MOCK-123";
     private boolean shouldFail = false;
 
     @Override
-    public String createIssue(String title, String body) {
+    public String createIssue(String title, String description) {
         if (shouldFail) {
-            throw new RuntimeException("GitHub API unavailable (simulated)");
+            throw new RuntimeException("Mock GitHub API Failure");
         }
-        issueCount++;
-        // Return a deterministic URL matching the defect expectations
-        return "https://github.com/example/bank-z/issues/" + issueCount;
+        
+        // Store request for verification
+        createdIssues.put(title, description);
+        return forcedUrl;
+    }
+
+    public boolean wasIssueCreatedWithTitle(String title) {
+        return createdIssues.containsKey(title);
+    }
+
+    public String getDescriptionForTitle(String title) {
+        return createdIssues.get(title);
+    }
+
+    public void setForcedUrl(String url) {
+        this.forcedUrl = url;
     }
 
     public void setShouldFail(boolean fail) {
         this.shouldFail = fail;
     }
-
-    public int getIssueCount() {
-        return issueCount;
+    
+    public void reset() {
+        createdIssues.clear();
     }
 }

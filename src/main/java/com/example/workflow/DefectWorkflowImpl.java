@@ -6,7 +6,7 @@ import com.example.ports.SlackPort;
 
 /**
  * Implementation of the Defect Workflow.
- * Currently a stub to allow compilation of tests.
+ * Orchestrates the creation of a GitHub issue and subsequent Slack notification.
  */
 public class DefectWorkflowImpl implements DefectWorkflow {
 
@@ -20,6 +20,19 @@ public class DefectWorkflowImpl implements DefectWorkflow {
 
     @Override
     public void reportDefect(ReportDefectCmd cmd) {
-        // TODO: Implement orchestration logic
+        // 1. Create GitHub Issue
+        String issueUrl = gitHubPort.createIssue(cmd.summary(), cmd.description(), "bug");
+
+        // 2. Construct and Send Slack Notification
+        // The Acceptance Criteria requires the body to contain "GitHub issue: <url>"
+        String slackMessage = String.format(
+            "Defect Reported: %s\nComponent: %s\nSeverity: %s\nGitHub issue: %s",
+            cmd.summary(),
+            cmd.component(),
+            cmd.severity(),
+            issueUrl
+        );
+
+        slackPort.sendNotification(slackMessage);
     }
 }

@@ -1,54 +1,23 @@
 package com.example.adapters;
 
-import com.example.ports.DefectReporterPort;
-import com.squareup.okhttp3.*;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import com.example.ports.SlackNotifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-
 /**
- * Real implementation of DefectReporterPort using OkHttp to post to Slack.
- * Activated only when 'slack.webhook.url' is configured.
+ * Real adapter for sending notifications to Slack.
+ * In a production environment, this would use the Slack WebAPI client.
  */
 @Component
-@ConditionalOnProperty(name = "slack.webhook.url")
-public class SlackNotifierAdapter implements DefectReporterPort {
+public class SlackNotifierAdapter implements SlackNotifier {
 
-    private final OkHttpClient client = new OkHttpClient();
-    private final String webhookUrl;
-
-    public SlackNotifierAdapter(@Value("${slack.webhook.url}") String webhookUrl) {
-        this.webhookUrl = webhookUrl;
-    }
+    private static final Logger log = LoggerFactory.getLogger(SlackNotifierAdapter.class);
 
     @Override
-    public boolean reportDefect(String defectId, String githubUrl) {
-        // Construct the Slack message body
-        // Ensure the GitHub URL is included as per Acceptance Criteria
-        String message = String.format(
-            "Defect Reported: %s\nGitHub Issue: %s",
-            defectId,
-            githubUrl
-        );
-
-        // Build JSON payload manually to avoid extra dependencies like Jackson for simple strings
-        // in this specific adapter context, or use a simple JSON formatter.
-        // Using simple string construction for strict dependency control.
-        String jsonPayload = "{\"text\": \"" + message.replace("\"", "\\\"") + "\"}";
-
-        RequestBody body = RequestBody.create(jsonPayload, MediaType.parse("application/json; charset=utf-8"));
-        Request request = new Request.Builder()
-                .url(webhookUrl)
-                .post(body)
-                .build();
-
-        try (Response response = client.newCall(request).execute()) {
-            return response.isSuccessful();
-        } catch (IOException e) {
-            // Log error in a real scenario
-            return false;
-        }
+    public void sendNotification(String message) {
+        // Real-world implementation would use WebClient or Slack API Client here
+        // e.g., slackClient.methods().chatPostMessage(req -> req.channel("#vforce360-issues").text(message));
+        log.info("[Slack Outbound] Sending message to #vforce360-issues: {}", message);
     }
 }

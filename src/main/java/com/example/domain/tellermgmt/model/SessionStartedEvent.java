@@ -3,13 +3,16 @@ package com.example.domain.tellermgmt.model;
 import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 
+/**
+ * Event emitted when a teller session is successfully started.
+ */
 public record SessionStartedEvent(
   String aggregateId,
   String tellerId,
   String terminalId,
   Instant occurredAt
 ) implements DomainEvent {
-  @Override public String type() { return "tellermgmt.session.started"; }
-  @Override public String aggregateId() { return aggregateId; }
-  @Override public Instant occurredAt() { return occurredAt; }
+  @Override public String type() { return "session.started"; }
+  @Override public String aggregateId() { return aggregateId(); }
+  @Override public Instant occurredAt() { return occurredAt(); }
 }

@@ -1,18 +1,19 @@
 package com.example.ports;
 
-import java.util.List;
+import java.util.Map;
 
 /**
- * Port interface for Slack notifications.
+ * Port interface for sending Slack notifications.
+ * Used by the domain logic to decouple from the specific Slack SDK implementation.
  */
 public interface SlackPort {
 
     /**
-     * Sends a notification message to a Slack channel.
+     * Sends a notification to a configured Slack channel.
      *
-     * @param channelId The target channel ID
-     * @param messageBlocks The formatted message blocks (Slack Kit format)
-     * @return true if sending was acknowledged, false otherwise
+     * @param channel The target channel (e.g. "#vforce360-issues")
+     * @param body The text body of the message.
+     * @param contextMap Additional metadata (thread_id, user_id, etc.)
      */
-    boolean sendMessage(String channelId, List<String> messageBlocks);
+    void sendNotification(String channel, String body, Map<String, String> contextMap);
 }

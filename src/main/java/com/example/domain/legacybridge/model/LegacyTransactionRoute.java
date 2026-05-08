@@ -12,8 +12,6 @@ import java.util.List;
  * Aggregate Root for Legacy Transaction Routing.
  * Determines the target system (Modern vs Legacy) based on feature flags and rules.
  * Enforces invariants: Single Target and Versioning.
- * 
- * Updated to handle UpdateRoutingRuleCmd.
  */
 public class LegacyTransactionRoute extends AggregateRoot {
 
@@ -22,18 +20,15 @@ public class LegacyTransactionRoute extends AggregateRoot {
     private boolean versioningViolation;
     private boolean evaluated;
     private String targetSystem;
-    private int currentRulesVersion;
 
-    // S-24: State for UpdateRoutingRuleCmd
-    private String currentRuleId;
-    private Instant effectiveSince;
+    // For UpdateRoutingRuleCmd invariants (Versioning check needs a state)
+    private int rulesVersion = 1;
 
     public LegacyTransactionRoute(String routeId) {
         this.routeId = routeId;
         this.dualProcessingViolation = false;
         this.versioningViolation = false;
         this.evaluated = false;
-        this.currentRulesVersion = 1; // Start with valid version
     }
 
     @Override
@@ -57,7 +52,6 @@ public class LegacyTransactionRoute extends AggregateRoot {
         if (cmd instanceof EvaluateRoutingCmd c) {
             return evaluateRouting(c);
         }
-        // S-24: Handle UpdateRoutingRuleCmd
         if (cmd instanceof UpdateRoutingRuleCmd c) {
             return updateRoutingRule(c);
         }
@@ -105,50 +99,37 @@ public class LegacyTransactionRoute extends AggregateRoot {
         return List.of(event);
     }
 
-    /**
-     * S-24: Logic for updating routing rules.
-     */
     private List<DomainEvent> updateRoutingRule(UpdateRoutingRuleCmd cmd) {
-        // Invariant 1: Prevent dual-processing
-        // Checks if the command attempts to set a target that would cause ambiguity or if aggregate is in invalid state
+        // Invariant: A transaction must route to exactly one backend system
         if (this.dualProcessingViolation) {
             throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
         }
 
-        // Invariant 2: Routing rules must be versioned
-        // Check explicit version validity and aggregate state
-        if (cmd.newVersion() <= 0) {
-            throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
-        }
+        // Invariant: Routing rules must be versioned
         if (this.versioningViolation) {
             throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
         }
 
-        // Basic validation
-        if (cmd.ruleId() == null || cmd.ruleId().isBlank()) {
-            throw new IllegalArgumentException("ruleId cannot be blank");
-        }
+        // Validate Inputs
         if (cmd.newTarget() == null || cmd.newTarget().isBlank()) {
             throw new IllegalArgumentException("newTarget cannot be blank");
         }
 
-        // Apply State Changes
+        // Apply State Change
         this.targetSystem = cmd.newTarget();
-        this.currentRulesVersion = cmd.newVersion();
-        this.currentRuleId = cmd.ruleId();
-        this.effectiveSince = cmd.effectiveDate();
-        this.evaluated = true; // Updating the rule implies we are now routed/evaluated
+        this.rulesVersion++; // Increment version on update
 
         var event = new RoutingUpdatedEvent(
-                cmd.routeId(),
+                this.routeId,
                 cmd.ruleId(),
                 cmd.newTarget(),
-                cmd.newVersion(),
-                cmd.effectiveDate()
+                cmd.effectiveDate(),
+                Instant.now()
         );
 
         addEvent(event);
         incrementVersion();
+
         return List.of(event);
     }
 
@@ -160,11 +141,7 @@ public class LegacyTransactionRoute extends AggregateRoot {
         return targetSystem;
     }
 
-    public int getCurrentRulesVersion() {
-        return currentRulesVersion;
-    }
-
-    public String getCurrentRuleId() {
-        return currentRuleId;
+    public int getRulesVersion() {
+        return rulesVersion;
     }
 }

@@ -8,7 +8,8 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * In-memory implementation of TellerSessionRepository for testing.
+ * In-memory implementation of TellerSessionRepository for BDD testing.
+ * S-19 Support.
  */
 public class InMemoryTellerSessionRepository implements TellerSessionRepository {
 
@@ -22,9 +23,5 @@ public class InMemoryTellerSessionRepository implements TellerSessionRepository 
     @Override
     public Optional<TellerSessionAggregate> findById(String id) {
         return Optional.ofNullable(store.get(id));
-    }
-
-    public void clear() {
-        store.clear();
     }
 }

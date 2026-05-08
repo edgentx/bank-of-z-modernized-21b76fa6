@@ -19,7 +19,6 @@
 
     <properties>
         <java.version>17</java.version>
-        <flyway.version>9.22.3</flyway.version>
     </properties>
 
     <dependencies>
@@ -41,16 +40,17 @@
         </dependency>
 
         <!-- Flyway for DB2 -->
-        <!-- The build failure indicated a resolution error with flyway-db2 via a temporal mirror. -->
-        <!-- We add the dependency here explicitly with version to ensure it is resolved correctly from Maven Central. -->
+        <!-- We rely on the Spring Boot BOM for flyway-core. -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
+        <!-- flyway-db2 is NOT in the Spring Boot BOM. Explicit version required. -->
+        <!-- We also align it with the Core version used by Spring Boot 3.2.0 (9.22.3) for safety. -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-db2</artifactId>
-            <version>${flyway.version}</version>
+            <version>9.22.3</version>
         </dependency>
 
         <!-- Testing -->
@@ -67,7 +67,7 @@
     </dependencies>
 
     <repositories>
-        <!-- Ensuring we can resolve artifacts even if the custom temporal repo defined in settings fails -->
+        <!-- Ensuring we can resolve artifacts from Maven Central even if other repos fail -->
         <repository>
             <id>central</id>
             <url>https://repo.maven.apache.org/maven2</url>

@@ -1,33 +1,41 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock Adapter for Slack Notification Port.
- * Stores messages in memory to allow test assertions without real I/O.
+ * Mock adapter for SlackNotificationPort.
+ * Stores messages in memory for test assertions.
  */
 public class InMemorySlackNotificationPort implements SlackNotificationPort {
 
-    private final Map<String, String> messages = new HashMap<>();
+    private final List<Message> messages = new ArrayList<>();
+
+    public record Message(String channel, String body) {}
 
     @Override
-    public void sendMessage(String channelId, String messageBody) {
-        this.messages.put(channelId, messageBody);
+    public void sendMessage(String channel, String body) {
+        if (channel == null || channel.isBlank()) {
+            throw new IllegalArgumentException("Slack channel cannot be null or empty");
+        }
+        if (body == null || body.isBlank()) {
+            throw new IllegalArgumentException("Slack body cannot be null or empty");
+        }
+        this.messages.add(new Message(channel, body));
     }
 
-    /**
-     * Helper for test assertions to verify the message content.
-     *
-     * @param channelId The channel to check.
-     * @return The last message body sent to that channel.
-     */
-    public String getLastMessageBody(String channelId) {
-        if (!messages.containsKey(channelId)) {
-            throw new IllegalStateException("No message sent to channel: " + channelId);
-        }
-        return messages.get(channelId);
+    public String getLastChannel() {
+        if (messages.isEmpty()) return null;
+        return messages.get(messages.size() - 1).channel();
+    }
+
+    public String getLastBody() {
+        if (messages.isEmpty()) return null;
+        return messages.get(messages.size() - 1).body();
+    }
+
+    public void clear() {
+        messages.clear();
     }
 }

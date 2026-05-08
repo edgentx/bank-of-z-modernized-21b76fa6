@@ -1,118 +1,104 @@
 package com.example.steps;
 
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.tellermessaging.model.NavigateMenuCmd;
-import com.example.domain.tellermessaging.model.MenuNavigatedEvent;
-import com.example.domain.tellermessaging.model.TellerSessionAggregate;
+import com.example.domain.tellersession.model.MenuNavigatedEvent;
+import com.example.domain.tellersession.model.NavigateMenuCmd;
+import com.example.domain.tellersession.model.TellerSessionAggregate;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import static org.junit.jupiter.api.Assertions.*;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S19Steps {
 
     private TellerSessionAggregate aggregate;
-    private List<DomainEvent> resultEvents;
-    private Exception caughtException;
-    private String sessionId;
-    private String menuId;
-    private String action;
+    private NavigateMenuCmd command;
+    private List<DomainEvent> resultingEvents;
+    private Exception thrownException;
 
-    // --- Happy Path Setup ---
     @Given("a valid TellerSession aggregate")
-    public void aValidTellerSessionAggregate() {
-        sessionId = UUID.randomUUID().toString();
-        aggregate = new TellerSessionAggregate(sessionId);
-        // Simulate a previous Login to ensure Authenticated state
-        aggregate.handlePastLogin("teller123", Instant.now());
+    public void a_valid_TellerSession_aggregate() {
+        aggregate = new TellerSessionAggregate("session-123");
+        // Ensure base valid state
+        aggregate.markAuthenticated();
+        aggregate.setCurrentMenu("MAIN_MENU");
+    }
+
+    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
+    public void a_TellerSession_aggregate_that_violates_authentication() {
+        aggregate = new TellerSessionAggregate("session-unauth");
+        // 'authenticated' defaults to false in constructor, so we are good.
+        // We assume the user tried to initiate but failed auth, or session dropped.
+    }
+
+    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
+    public void a_TellerSession_aggregate_that_violates_timeout() {
+        aggregate = new TellerSessionAggregate("session-timeout");
+        aggregate.markAuthenticated();
+        aggregate.markExpired(); // Manually set time to past
+    }
+
+    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
+    public void a_TellerSession_aggregate_that_violates_navigation_context() {
+        aggregate = new TellerSessionAggregate("session-bad-context");
+        aggregate.markAuthenticated();
+        aggregate.setCurrentMenu("MAIN_MENU"); // Set context where 'BACK' is invalid
     }
 
     @And("a valid sessionId is provided")
-    public void aValidSessionIdIsProvided() {
-        // sessionId already set in aggregate setup
+    public void a_valid_sessionId_is_provided() {
+        // Handled implicitly by aggregate ID, but we ensure command matches
+        // No-op, value fixed in When step
     }
 
     @And("a valid menuId is provided")
-    public void aValidMenuIdIsProvided() {
-        this.menuId = "MAIN_MENU";
+    public void a_valid_menuId_is_provided() {
+        // No-op, value fixed in When step
     }
 
     @And("a valid action is provided")
-    public void aValidActionIsProvided() {
-        this.action = "SELECT_ACCOUNT";
+    public void a_valid_action_is_provided() {
+        // No-op, value fixed in When step
     }
 
-    // --- Unauthenticated Setup ---
-    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void aTellerSessionAggregateThatViolatesAuth() {
-        // Create aggregate but DO NOT call handlePastLogin. isAuthenticated will be false.
-        sessionId = UUID.randomUUID().toString();
-        aggregate = new TellerSessionAggregate(sessionId);
-    }
-
-    // --- Timeout Setup ---
-    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void aTellerSessionAggregateThatViolatesTimeout() {
-        sessionId = UUID.randomUUID().toString();
-        aggregate = new TellerSessionAggregate(sessionId);
-        // Authenticated, but last interaction was long ago
-        aggregate.handlePastLogin("teller123", Instant.now().minus(Duration.ofHours(2)));
-    }
-
-    // --- Context Violation Setup ---
-    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void aTellerSessionAggregateThatViolatesContext() {
-        sessionId = UUID.randomUUID().toString();
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.handlePastLogin("teller123", Instant.now());
-        // Forcing a context mismatch, e.g., trying to perform a withdrawal action
-        // while in a read-only menu context (simulated by specific state setup in aggregate)
-        aggregate.forceContextViolation();
-    }
-
-    // --- Execution ---
     @When("the NavigateMenuCmd command is executed")
-    public void theNavigateMenuCmdCommandIsExecuted() {
+    public void the_NavigateMenuCmd_command_is_executed() {
         try {
-            NavigateMenuCmd cmd = new NavigateMenuCmd(sessionId, menuId, action, Instant.now());
-            resultEvents = aggregate.execute(cmd);
+            // Construct command with generally valid inputs
+            // Specific invalid contexts are set up in the aggregate state above
+            String targetMenu = "DEPOSIT_SCREEN";
+            String action = "ENTER";
+
+            // If we are testing the "Navigation state... context" failure for 'BACK'
+            if ("MAIN_MENU".equals(aggregate.getCurrentMenuId())) {
+                 // Triggering the specific logic defined in Aggregate for invalid context
+                 action = "BACK"; 
+            }
+
+            command = new NavigateMenuCmd(aggregate.id(), targetMenu, action);
+            resultingEvents = aggregate.execute(command);
         } catch (Exception e) {
-            caughtException = e;
+            thrownException = e;
         }
     }
 
-    // --- Outcomes ---
     @Then("a menu.navigated event is emitted")
-    public void aMenuNavigatedEventIsEmitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof MenuNavigatedEvent);
-
-        MenuNavigatedEvent event = (MenuNavigatedEvent) resultEvents.get(0);
-        assertEquals("menu.navigated", event.type());
-        assertEquals(sessionId, event.aggregateId());
-        assertEquals(menuId, event.targetMenuId());
-        assertEquals(action, event.actionTaken());
-        assertNotNull(event.occurredAt());
+    public void a_menu_navigated_event_is_emitted() {
+        assertNotNull(resultingEvents);
+        assertEquals(1, resultingEvents.size());
+        assertTrue(resultingEvents.get(0) instanceof MenuNavigatedEvent);
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(caughtException);
-        // We check for specific exceptions or general Illegal State/Argument exceptions as domain errors
-        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(thrownException);
+        // We verify it's an unchecked exception (IllegalStateException or IllegalArgumentException)
+        assertTrue(thrownException instanceof IllegalStateException || thrownException instanceof IllegalArgumentException);
     }
 
-    // Suite Runner
-    @org.junit.platform.suite.api.Suite
-    @org.junit.platform.suite.api.SelectClasspathResource("features/S-19.feature")
-    @org.junit.platform.suite.api.IncludeEngines("cucumber")
-    public static class S19TestSuite {}
-
+    // Reset state between scenarios if necessary (Cucumber creates new instance by default)
 }

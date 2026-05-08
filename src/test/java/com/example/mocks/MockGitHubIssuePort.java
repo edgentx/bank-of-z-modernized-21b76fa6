@@ -4,16 +4,17 @@ import com.example.ports.GitHubIssuePort;
 
 /**
  * Mock implementation of GitHubIssuePort for testing.
- * Returns predictable URLs.
+ * Returns deterministic URLs based on input IDs.
  */
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
+    private static final String FAKE_BASE_URL = "https://github.com/bank-of-z/issues/issues/";
+
     @Override
     public String getIssueUrl(String issueId) {
-        // Simulating real logic: return a formatted URL based on input
         if (issueId == null || issueId.isBlank()) {
-            throw new IllegalArgumentException("issueId cannot be blank");
+            throw new IllegalArgumentException("issueId must not be blank");
         }
-        return "https://github.com/example-org/repo/issues/" + issueId;
+        return FAKE_BASE_URL + issueId;
     }
 }

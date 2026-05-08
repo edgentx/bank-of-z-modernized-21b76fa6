@@ -2,18 +2,14 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
 
-import java.time.Instant;
-import java.util.Objects;
-
 /**
- * Command to initiate a new teller session.
- * Validated by the TellerSession aggregate.
+ * Command to initiate a new Teller session.
+ * Maps to Story S-18.
  */
-public record StartSessionCmd(String sessionId, String tellerId, String terminalId, Instant authenticatedAt) implements Command {
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {
     public StartSessionCmd {
-        Objects.requireNonNull(sessionId, "sessionId cannot be null");
-        Objects.requireNonNull(tellerId, "tellerId cannot be null");
-        Objects.requireNonNull(terminalId, "terminalId cannot be null");
-        Objects.requireNonNull(authenticatedAt, "authenticatedAt cannot be null");
+        if (sessionId == null || sessionId.isBlank()) throw new IllegalArgumentException("sessionId required");
+        if (tellerId == null || tellerId.isBlank()) throw new IllegalArgumentException("tellerId required");
+        if (terminalId == null || terminalId.isBlank()) throw new IllegalArgumentException("terminalId required");
     }
 }

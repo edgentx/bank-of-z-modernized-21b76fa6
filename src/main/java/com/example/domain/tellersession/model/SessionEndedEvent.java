@@ -3,25 +3,14 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
-/**
- * Domain event published when a teller session is successfully terminated.
- * Sensitive state should be cleared upon handling this event.
- */
-public record SessionEndedEvent(
-        String aggregateId,
-        Instant occurredAt
-) implements DomainEvent {
-    public SessionEndedEvent {
-        // Defensive validation in record constructor
-        if (aggregateId == null || aggregateId.isBlank()) {
-            throw new IllegalArgumentException("aggregateId cannot be blank");
-        }
-    }
+public class SessionEndedEvent implements DomainEvent {
+    private final String aggregateId;
+    private final Instant occurredAt;
 
-    public static SessionEndedEvent create(String aggregateId) {
-        return new SessionEndedEvent(aggregateId, Instant.now());
+    public SessionEndedEvent(String aggregateId, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.occurredAt = occurredAt;
     }
 
     @Override
@@ -30,12 +19,12 @@ public record SessionEndedEvent(
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

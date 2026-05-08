@@ -1,7 +1,7 @@
 package com.example.mocks;
 
 import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.repository.DefectRepository;
+import com.example.domain.defect.port.DefectRepository;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,7 +17,7 @@ public class InMemoryDefectRepository implements DefectRepository {
     }
 
     @Override
-    public Optional<DefectAggregate> findById(String defectId) {
-        return Optional.ofNullable(store.get(defectId));
+    public Optional<DefectAggregate> findById(String id) {
+        return Optional.ofNullable(store.get(id));
     }
 }

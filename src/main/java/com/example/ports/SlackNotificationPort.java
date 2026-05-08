@@ -1,15 +1,11 @@
 package com.example.ports;
 
+import com.example.domain.shared.Command;
+
 /**
- * Port for sending Slack notifications.
- * Abstracted to allow mocking during the testing of defect reporting workflows.
+ * Port for sending notifications to Slack.
+ * Used by Temporal workflows to report defects.
  */
 public interface SlackNotificationPort {
-
-    /**
-     * Posts a message to a configured Slack channel.
-     *
-     * @param messageBody The content of the message to be sent.
-     */
-    void postMessage(String messageBody);
+    void sendDefectReport(String messageBody);
 }

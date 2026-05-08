@@ -1,8 +1,7 @@
 package com.example.mocks;
 
-import com.example.domain.userinterface.model.ScreenMapAggregate;
-import com.example.domain.userinterface.repository.ScreenMapRepository;
-
+import com.example.domain.screenmap.model.ScreenMapAggregate;
+import com.example.domain.screenmap.repository.ScreenMapRepository;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -17,8 +16,6 @@ public class InMemoryScreenMapRepository implements ScreenMapRepository {
 
     @Override
     public void save(ScreenMapAggregate aggregate) {
-        // In memory, we just overwrite or put.
-        // In a real repo, this would append events.
         store.put(aggregate.id(), aggregate);
     }
 }

@@ -1,4 +1,4 @@
-package com.example.domain.tellersession.repository;
+package com.example.domain.uimodel.repository;
 
 import com.example.domain.tellersession.model.TellerSessionAggregate;
 import java.util.Optional;

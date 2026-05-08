@@ -8,5 +8,5 @@ public record StartSessionCmd(
     String terminalId,
     boolean isAuthenticated,
     boolean isTimedOut,
-    boolean isNavigationStateValid
+    boolean isNavStateValid
 ) implements Command {}

@@ -11,22 +11,18 @@ public record SessionStartedEvent(
     String terminalId,
     Instant occurredAt
 ) implements DomainEvent {
-    public SessionStartedEvent {
-        // Basic validation if necessary
-    }
-    
     @Override
     public String type() {
         return "session.started";
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 }

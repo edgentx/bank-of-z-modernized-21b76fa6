@@ -5,6 +5,6 @@ import com.example.domain.shared.Aggregate;
 import java.util.Optional;
 
 public interface AccountRepository {
-    Optional<AccountAggregate> findById(String accountNumber);
     void save(AccountAggregate aggregate);
+    Optional<AccountAggregate> findById(String id);
 }

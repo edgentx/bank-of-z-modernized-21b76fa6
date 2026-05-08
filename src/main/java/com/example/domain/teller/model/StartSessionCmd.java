@@ -3,14 +3,15 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to initiate a new teller session.
- * Context: S-18 TellerSession.
+ * Command to initiate a teller session.
+ * Contains flags to simulate domain state violations for testing invariants.
  */
 public record StartSessionCmd(
-    String sessionId,
-    String tellerId,
-    String terminalId,
-    boolean isAuthenticated,
-    boolean isTimedOut,
-    String navState
-) implements Command {}
+        String sessionId,
+        String tellerId,
+        String terminalId,
+        boolean isAuthenticated,
+        boolean isTimedOut,
+        String navigationState
+) implements Command {
+}

@@ -1,58 +1,60 @@
 package com.example.adapters;
 
-import com.example.domain.validation.model.IssueUrl;
+import com.example.domain.notification.model.NotificationAggregate;
+import com.example.domain.notification.model.SendNotificationCmd;
+import com.example.domain.notification.repository.NotificationRepository;
+import com.example.domain.validation.model.ReportDefectCmd;
 import com.example.domain.validation.model.ValidationAggregate;
 import com.example.domain.validation.repository.ValidationRepository;
-import com.example.ports.IssueTrackerPort;
+import com.example.ports.GitHubPort;
 import com.example.ports.NotificationPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-/**
- * Application Service orchestrating the defect reporting flow.
- * Corresponds to the temporal-worker exec trigger.
- */
 @Service
 public class ValidationService {
-    private static final Logger logger = LoggerFactory.getLogger(ValidationService.class);
-    private final ValidationRepository repository;
-    private final IssueTrackerPort issueTracker;
+
+    private final ValidationRepository validationRepository;
+    private final NotificationRepository notificationRepository;
+    private final GitHubPort gitHubPort;
     private final NotificationPort notificationPort;
 
-    public ValidationService(ValidationRepository repository,
-                             IssueTrackerPort issueTracker,
+    public ValidationService(ValidationRepository validationRepository,
+                             NotificationRepository notificationRepository,
+                             GitHubPort gitHubPort,
                              NotificationPort notificationPort) {
-        this.repository = repository;
-        this.issueTracker = issueTracker;
+        this.validationRepository = validationRepository;
+        this.notificationRepository = notificationRepository;
+        this.gitHubPort = gitHubPort;
         this.notificationPort = notificationPort;
     }
 
-    /**
-     * Handles the report_defect workflow.
-     * 1. Creates GitHub Issue
-     * 2. Updates Aggregate
-     * 3. Sends Slack Notification with the GitHub URL
-     */
-    public void reportDefect(String validationId) {
-        ValidationAggregate aggregate = repository.findById(validationId);
-        
-        // Step 1: Create GitHub Issue
-        // (In a real flow, description comes from the command/event, simplified here)
-        IssueUrl issueUrl = issueTracker.createIssue(
-            "VForce360 Defect: " + validationId, 
-            "Defect reported for validation: " + validationId
+    public void reportDefect(String validationId, String severity, String component, String description) {
+        // 1. Load or create Aggregate
+        ValidationAggregate aggregate = validationRepository.findById(validationId)
+                .orElse(new ValidationAggregate(validationId));
+
+        // 2. Execute Command
+        aggregate.execute(new ReportDefectCmd(validationId, severity, component, description));
+
+        // 3. Trigger External Workflow (GitHub)
+        String title = "[" + severity + "] " + component + " Issue";
+        String gitBody = "Defect ID: " + validationId + "\nDescription: " + description;
+        String issueUrl = gitHubPort.createIssue(title, gitBody);
+
+        // 4. Update Aggregate state
+        aggregate.markGitHubIssueCreated(issueUrl);
+        validationRepository.save(aggregate);
+
+        // 5. Notify Slack
+        String slackMessage = String.format(
+                "Defect Reported: %s%nSeverity: %s%nGitHub Issue: %s",
+                component, severity, issueUrl
         );
+        notificationPort.send("#vforce360-issues", slackMessage);
 
-        // Step 2: Update Aggregate State
-        aggregate.applyIssueCreated(issueUrl.url());
-        repository.save(aggregate);
-
-        // Step 3: Send Notification
-        // Fix for S-FB-1: Ensure the URL is actually in the message body
-        String message = "Defect validated. GitHub issue: " + issueUrl.url();
-        notificationPort.sendNotification(message);
-        
-        logger.info("Defect {} reported and notified", validationId);
+        // 6. Persist Notification Event
+        NotificationAggregate notification = new NotificationAggregate("notif-" + validationId);
+        notification.execute(new SendNotificationCmd("notif-" + validationId, "#vforce360-issues", slackMessage));
+        notificationRepository.save(notification);
     }
 }

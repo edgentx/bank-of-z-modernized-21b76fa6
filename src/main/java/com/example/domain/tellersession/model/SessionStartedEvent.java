@@ -2,7 +2,6 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
-import java.util.UUID;
 
 public record SessionStartedEvent(
     String aggregateId,
@@ -11,9 +10,6 @@ public record SessionStartedEvent(
     String initialContext,
     Instant occurredAt
 ) implements DomainEvent {
-    public SessionStartedEvent {
-        // Ensure null safety for critical fields if necessary, though record handles it.
-    }
 
     @Override
     public String type() {

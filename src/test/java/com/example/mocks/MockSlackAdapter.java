@@ -1,32 +1,41 @@
 package com.example.mocks;
 
 import com.example.ports.SlackPort;
-import java.util.HashMap;
-import java.util.Map;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Mock implementation of SlackPort for testing.
- * Stores messages in memory to allow verification without real I/O.
+ * Stores messages in memory to prevent external I/O.
  */
+@Component
 public class MockSlackAdapter implements SlackPort {
 
-    private final Map<String, String> messages = new HashMap<>();
+    private final List<String> messages = new ArrayList<>();
+    private String mockBody;
 
     @Override
-    public void sendMessage(String channel, String body) {
-        // Store the message so tests can verify the content
-        messages.put(channel, body);
+    public String getLastMessageBody() {
+        if (messages.isEmpty()) return mockBody != null ? mockBody : "";
+        return messages.get(messages.size() - 1);
     }
 
     @Override
-    public String getLastMessageBody(String channel) {
-        return messages.get(channel);
+    public void postMessage(String text) {
+        messages.add(text);
     }
 
     /**
-     * Clears the message history. Useful for setup/teardown.
+     * Helper to set a specific body for testing lookups
      */
+    public void setMockBody(String body) {
+        this.mockBody = body;
+    }
+
     public void clear() {
         messages.clear();
+        mockBody = null;
     }
 }

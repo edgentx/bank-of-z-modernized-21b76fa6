@@ -6,18 +6,15 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record MenuNavigatedEvent(
-        String aggregateId,
-        String menuId,
-        String action,
-        Instant occurredAt
+    String eventId,
+    String aggregateId,
+    String targetMenuId,
+    String action,
+    String previousContext,
+    Instant occurredAt
 ) implements DomainEvent {
-    public MenuNavigatedEvent {
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId cannot be null");
-        if (menuId == null) throw new IllegalArgumentException("menuId cannot be null");
-    }
-
-    public MenuNavigatedEvent(String sessionId, String menuId, String action, Instant occurredAt) {
-        this(sessionId, menuId, action, occurredAt);
+    public MenuNavigatedEvent(String aggregateId, String targetMenuId, String action, String previousContext, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, targetMenuId, action, previousContext, occurredAt);
     }
 
     @Override

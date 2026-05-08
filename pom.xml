@@ -13,7 +13,6 @@
     
     <properties>
         <java.version>17</java.version>
-        <okhttp.version>4.12.0</okhttp.version>
     </properties>
 
     <dependencies>
@@ -35,7 +34,8 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>${okhttp.version}</version>
+            <!-- Explicit version required as okhttp3 is outside Spring Boot BOM closed set -->
+            <version>4.12.0</version>
         </dependency>
 
         <!-- Testing Dependencies -->

@@ -6,21 +6,12 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record AccountStatusUpdatedEvent(
-    String eventId,
-    String aggregateId,
-    AccountStatus oldStatus,
-    AccountStatus newStatus,
-    Instant occurredAt
+        String aggregateId,
+        String accountNumber,
+        AccountAggregate.AccountStatus oldStatus,
+        AccountAggregate.AccountStatus newStatus,
+        Instant occurredAt
 ) implements DomainEvent {
-
-    public AccountStatusUpdatedEvent {
-        if (eventId == null) eventId = UUID.randomUUID().toString();
-        if (occurredAt == null) occurredAt = Instant.now();
-    }
-
-    public AccountStatusUpdatedEvent(String aggregateId, AccountStatus oldStatus, AccountStatus newStatus) {
-        this(null, aggregateId, oldStatus, newStatus, Instant.now());
-    }
 
     @Override
     public String type() {

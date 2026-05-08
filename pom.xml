@@ -1,72 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" 
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
-    <groupId>com.example</groupId>
-    <artifactId>bank-of-z-modernization</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <packaging>jar</packaging>
-
-    <name>bank-of-z-modernization</name>
-    <description>Bank of Z Modernization</description>
-
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.0</version>
-        <relativePath/>
+        <version>3.3.1</version>
+        <relativePath/> 
     </parent>
-
+    <groupId>com.example</groupId>
+    <artifactId>fb-1-vw454-fix</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>VForce360 S-FB-1 Fix</name>
+    <description>Validating VW-454 GitHub URL in Slack body</description>
+    
     <properties>
-        <java.version>17</java.version>
-        <spring-cloud.version>2023.0.0</spring-cloud.version>
-        <temporal.version>1.22.1</temporal.version>
+        <java.version>21</java.version>
     </properties>
-
+    
     <dependencies>
         <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+            <artifactId>spring-boot-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-
-        <!-- Temporal (Requires explicit version as per Rules 9 & 9a) -->
-        <!-- NOTE: temporal-spring-boot-starter is not in central. 
-             Assuming standard Temporal SDK dependency for Spring Boot integration or SDK usage. 
-             If temporal-spring-boot-starter is required, it must be in a local repo or explicit URL.
-             Using standard temporal-sdk which contains the worker logic. -->
-        <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-sdk</artifactId>
-            <version>${temporal.version}</version>
-        </dependency>
-        <!-- Using standard spring boot starter compatibility if available, otherwise SDK -->
-        <!-- To fix the specific error, we remove the non-existent starter and use the SDK -->
-        <!-- Adding opentelmetry tracing as per stack requirements -->
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <version>1.34.1</version>
-        </dependency>
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-otel</artifactId>
-            <version>1.2.1</version>
-        </dependency>
         
-        <!-- MinIO -->
-        <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-            <version>8.5.7</version>
-        </dependency>
-
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -74,32 +37,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-testing</artifactId>
-            <version>${temporal.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-suite</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-java</artifactId>
-            <version>7.14.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-spring</artifactId>
-            <version>7.14.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>7.14.0</version>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -109,14 +48,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>17</source>
-                    <target>17</target>
-                </configuration>
             </plugin>
         </plugins>
     </build>

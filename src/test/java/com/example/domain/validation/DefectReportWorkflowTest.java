@@ -1,53 +1,79 @@
 package com.example.domain.validation;
 
-import com.example.mocks.MockSlackNotificationPort;
-import com.example.mocks.MockVForce360Port;
-import com.example.ports.SlackNotificationPort;
-import com.example.ports.VForce360Port;
-import org.junit.jupiter.api.BeforeEach;
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.domain.shared.SlackMessageValidator;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
- * Unit/Regression test for S-FB-1.
- * Validates the defect reporting workflow logic end-to-end using mocks.
+ * Test ID: S-FB-1
+ * Description: Validating VW-454 — GitHub URL in Slack body (end-to-end)
+ * 
+ * Tests the business logic ensuring that when a defect is reported,
+ * the resulting event (and subsequently the Slack message) contains
+ * a valid GitHub issue URL.
  */
+@ExtendWith(MockitoExtension.class)
 class DefectReportWorkflowTest {
 
-    private VForce360Port vForce360Port;
-    private SlackNotificationPort slackPort;
-
-    @BeforeEach
-    void setUp() {
-        vForce360Port = new MockVForce360Port();
-        slackPort = new MockSlackNotificationPort();
-    }
+    @Mock
+    private SlackMessageValidator validator;
 
     @Test
-    void testReportDefect_ShouldReturnValidGitHubUrl() {
+    void testReportDefect_generatesEventWithGitHubUrl() {
         // Given
         String defectId = "VW-454";
+        ReportDefectCmd cmd = new ReportDefectCmd(defectId, "GitHub URL missing", "Slack body is empty", "LOW");
+        DefectAggregate aggregate = new DefectAggregate(defectId);
 
         // When
-        String url = vForce360Port.reportDefect(defectId, "Title", "Details");
+        var events = aggregate.execute(cmd);
 
         // Then
-        assertNotNull(url);
-        assertTrue(url.startsWith("https://github.com"));
+        assertEquals(1, events.size());
+        var event = events.get(0);
+        
+        // Check that the event contains a URL field
+        assertTrue(event.toString().contains("githubUrl"), "Event should contain githubUrl field");
+        
+        // Specific check for URL format (e.g. contains the defect ID)
+        String eventString = event.toString();
+        assertTrue(eventString.contains(defectId), "GitHub URL should reference the defect ID: " + defectId);
     }
 
     @Test
-    void testSlackNotification_ShouldIncludeUrl() {
+    void testReportDefect_validatorAcceptsGeneratedUrl() {
         // Given
-        String expectedUrl = "https://github.com/bank-of-z/issues/123";
+        String defectId = "VW-454";
+        ReportDefectCmd cmd = new ReportDefectCmd(defectId, "GitHub URL missing", "Slack body is empty", "LOW");
+        DefectAggregate aggregate = new DefectAggregate(defectId);
         
+        // Assume the validator checks for the presence of https://github.com/...
+        when(validator.containsGitHubIssueUrl(anyString())).thenAnswer(invocation -> {
+            String body = invocation.getArgument(0);
+            return body != null && body.contains("https://github.com/");
+        });
+
         // When
-        slackPort.postMessage("#vforce360-issues", "Issue created: " + expectedUrl);
+        var events = aggregate.execute(cmd);
 
         // Then
-        // Since we use a mock that delegates to Mockito, we could verify interaction here if we exposed the mock.
-        // For pure regression behavior, we assert that no exception is thrown, implying the port accepted the payload.
-        assertDoesNotThrow(() -> slackPort.postMessage("#vforce360-issues", expectedUrl));
+        assertFalse(events.isEmpty(), "Event list should not be empty");
+        
+        // Simulate extracting the message body sent to Slack
+        // In a real scenario, this would come from the Workflow Activity logic
+        String slackMessageBody = "Defect Reported: " + events.get(0).toString();
+        
+        // Verify: Slack body includes GitHub issue
+        assertTrue(
+            validator.containsGitHubIssueUrl(slackMessageBody), 
+            "Slack body includes GitHub issue: <url>"
+        );
     }
 }

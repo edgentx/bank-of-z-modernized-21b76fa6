@@ -24,11 +24,22 @@ public class ReconciliationService {
      * @param cmd The command containing defect details.
      */
     public void reportDefect(ReportDefectCmd cmd) {
-        // Placeholder for TDD Red Phase implementation.
-        // The test verifies that slackNotificationPort.sendNotification is called
-        // with a body containing cmd.githubIssueUrl().
+        if (cmd == null) {
+            throw new IllegalArgumentException("ReportDefectCmd cannot be null");
+        }
+        if (cmd.githubIssueUrl() == null || cmd.githubIssueUrl().isBlank()) {
+            throw new IllegalArgumentException("GitHub Issue URL is required");
+        }
+
+        String channel = "#vforce360-issues";
         
-        // Implementation will be added in the Green phase.
-        throw new UnsupportedOperationException("Implementation missing");
+        // Construct the message body
+        StringBuilder bodyBuilder = new StringBuilder();
+        bodyBuilder.append("Defect Reported:\n");
+        bodyBuilder.append("Batch ID: ").append(cmd.batchId()).append("\n");
+        bodyBuilder.append("Reason: ").append(cmd.reason()).append("\n");
+        bodyBuilder.append("GitHub Issue: ").append(cmd.githubIssueUrl()).append("\n");
+
+        slackNotificationPort.sendNotification(channel, bodyBuilder.toString());
     }
 }

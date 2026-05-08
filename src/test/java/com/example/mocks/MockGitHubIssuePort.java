@@ -1,40 +1,35 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
-
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Mock implementation of GitHubIssuePort for testing.
- * Simulates API responses without network calls.
+ * Allows configuring specific URLs for issue IDs.
  */
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private final Map<String, String> issues = new HashMap<>();
-    private boolean shouldFail = false;
-    private String nextIssueUrl = "https://github.com/mock/repo/issues/1";
+    private final Map<String, String> urlMap = new HashMap<>();
+    private String defaultUrl = null;
+
+    public void mockUrl(String issueId, String url) {
+        urlMap.put(issueId, url);
+    }
+
+    public void setDefaultUrl(String url) {
+        this.defaultUrl = url;
+    }
 
     @Override
-    public String createIssue(String title, String description) {
-        if (shouldFail) {
-            throw new RuntimeException("Simulated GitHub API failure");
+    public String getIssueUrl(String issueId) {
+        if (urlMap.containsKey(issueId)) {
+            return urlMap.get(issueId);
         }
-        String url = nextIssueUrl;
-        // Simulate auto-incrementing issue ID
-        String[] parts = url.split("/");
-        int id = Integer.parseInt(parts[parts.length - 1]);
-        nextIssueUrl = "https://github.com/mock/repo/issues/" + (id + 1);
-        
-        issues.put(title, url);
-        return url;
-    }
-
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
-    }
-
-    public String getIssueUrl(String title) {
-        return issues.get(title);
+        if (defaultUrl != null) {
+            return defaultUrl;
+        }
+        // Default throw to ensure tests fail if not configured correctly
+        throw new RuntimeException("MockGitHubIssuePort: No URL configured for issue " + issueId);
     }
 }

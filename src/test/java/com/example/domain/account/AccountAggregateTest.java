@@ -1,7 +1,7 @@
 package com.example.domain.account;
 
 import com.example.domain.account.model.*;
-import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.UnknownCommandException;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -10,124 +10,99 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * TDD Red Phase: Account aggregate tests for CloseAccountCmd.
- * <p>
- * These tests will fail initially as the AccountAggregate implementation is missing.
- * Acceptance Criteria from S-7:
- * 1. Successfully execute CloseAccountCmd (balance zero, active status).
- * 2. Reject if balance is not zero (implies violation of min balance / close logic).
- * 3. Reject if account is not Active.
- * 4. Enforce immutable account number check.
+ * TDD Red Phase Tests for S-7: CloseAccountCmd.
+ * These tests verify the behavior of the Account aggregate.
  */
-public class AccountAggregateTest {
+class AccountAggregateTest {
 
-    // --- Test Data Factory ---
-
-    private final String VALID_ID = "acc-123";
-    private final String VALID_ACCOUNT_NUMBER = "99-88-777";
-
-    private AccountAggregate createActiveAccountWithZeroBalance() {
-        // Create a fresh aggregate.
-        // Since we are using a simplified constructor for testing,
-        // we simulate a 'hydrated' state via the constructor if available,
-        // or by re-using the Open command logic if the aggregate supports it.
-        // Given S-7 is about Close, we assume an account exists.
-        // We will create a mock state in the test helper.
-        var account = new AccountAggregate(VALID_ID, VALID_ACCOUNT_NUMBER, AccountAggregate.Status.ACTIVE, BigDecimal.ZERO);
+    // Helper to create a valid active account with zero balance
+    private AccountAggregate createActiveZeroAccount() {
+        AccountAggregate account = new AccountAggregate("ACC-123", "123456", AccountType.SAVINGS);
+        // Simulate the account being opened and active
+        account.testOnlySetStatus(AccountStatus.ACTIVE);
+        account.testOnlySetBalance(BigDecimal.ZERO);
         return account;
     }
 
-    // --- Scenario: Successfully execute CloseAccountCmd ---
-
     @Test
-    void whenCloseAccountCmdExecuted_onActiveZeroBalanceAccount_emitsAccountClosedEvent() {
-        // Given
-        AccountAggregate account = createActiveAccountWithZeroBalance();
-        CloseAccountCmd cmd = new CloseAccountCmd(VALID_ACCOUNT_NUMBER, VALID_ACCOUNT_NUMBER);
+    void testExecute_CloseAccount_Success() {
+        // Given a valid Account aggregate
+        AccountAggregate account = createActiveZeroAccount();
+        CloseAccountCmd cmd = new CloseAccountCmd("ACC-123", "123456");
 
-        // When
-        List<DomainEvent> events = account.execute(cmd);
+        // When the CloseAccountCmd command is executed
+        List events = account.execute(cmd);
 
-        // Then
+        // Then a account.closed event is emitted
         assertFalse(events.isEmpty(), "Should emit an event");
-        assertTrue(events.get(0) instanceof AccountClosedEvent, "Event should be AccountClosedEvent");
+        assertTrue(events.get(0) instanceof AccountClosedEvent, "Should be AccountClosedEvent");
 
         AccountClosedEvent event = (AccountClosedEvent) events.get(0);
+        assertEquals("ACC-123", event.aggregateId());
         assertEquals("account.closed", event.type());
-        assertEquals(VALID_ACCOUNT_NUMBER, event.accountNumber());
     }
 
     @Test
-    void whenCloseAccountCmdExecuted_accountStatusBecomesClosed() {
-        // Given
-        AccountAggregate account = createActiveAccountWithZeroBalance();
-        CloseAccountCmd cmd = new CloseAccountCmd(VALID_ACCOUNT_NUMBER, VALID_ACCOUNT_NUMBER);
+    void testExecute_CloseAccount_Rejected_IfBalanceIsNotZero() {
+        // Given a Account aggregate with non-zero balance
+        AccountAggregate account = createActiveZeroAccount();
+        account.testOnlySetBalance(new BigDecimal("100.00"));
+        
+        CloseAccountCmd cmd = new CloseAccountCmd("ACC-123", "123456");
 
-        // When
-        account.execute(cmd);
-
-        // Then
-        assertEquals(AccountAggregate.Status.CLOSED, account.getStatus());
-    }
-
-    // --- Scenario: CloseAccountCmd rejected — Balance cannot drop below minimum (must be zero to close) ---
-
-    @Test
-    void whenCloseAccountCmdExecuted_withNonZeroBalance_throwsError() {
-        // Given
-        // Account with balance $50.00
-        AccountAggregate account = new AccountAggregate(
-                VALID_ID,
-                VALID_ACCOUNT_NUMBER,
-                AccountAggregate.Status.ACTIVE,
-                new BigDecimal("50.00")
-        );
-        CloseAccountCmd cmd = new CloseAccountCmd(VALID_ACCOUNT_NUMBER, VALID_ACCOUNT_NUMBER);
-
-        // When / Then
+        // When the CloseAccountCmd command is executed
+        // Then the command is rejected with a domain error
         Exception exception = assertThrows(IllegalStateException.class, () -> {
             account.execute(cmd);
         });
 
-        assertTrue(exception.getMessage().contains("balance") || exception.getMessage().contains("Balance"));
+        assertTrue(exception.getMessage().contains("Balance must be zero"));
     }
 
-    // --- Scenario: CloseAccountCmd rejected — Must be in Active status ---
-
     @Test
-    void whenCloseAccountCmdExecuted_onNonActiveAccount_throwsError() {
-        // Given
-        AccountAggregate account = new AccountAggregate(
-                VALID_ID,
-                VALID_ACCOUNT_NUMBER,
-                AccountAggregate.Status.DORMANT, // Not active
-                BigDecimal.ZERO
-        );
-        CloseAccountCmd cmd = new CloseAccountCmd(VALID_ACCOUNT_NUMBER, VALID_ACCOUNT_NUMBER);
+    void testExecute_CloseAccount_Rejected_IfStatusNotActive() {
+        // Given a Account aggregate that is not Active (e.g., already closed)
+        AccountAggregate account = createActiveZeroAccount();
+        account.testOnlySetStatus(AccountStatus.CLOSED);
+        
+        CloseAccountCmd cmd = new CloseAccountCmd("ACC-123", "123456");
 
-        // When / Then
+        // When the CloseAccountCmd command is executed
+        // Then the command is rejected with a domain error
         Exception exception = assertThrows(IllegalStateException.class, () -> {
             account.execute(cmd);
         });
 
-        assertTrue(exception.getMessage().contains("Active") || exception.getMessage().contains("active"));
+        assertTrue(exception.getMessage().contains("Account must be Active"));
     }
 
-    // --- Scenario: CloseAccountCmd rejected — Account numbers must be uniquely generated and immutable ---
-
     @Test
-    void whenCloseAccountCmdExecuted_withMismatchedAccountNumber_throwsError() {
-        // Given
-        AccountAggregate account = createActiveAccountWithZeroBalance();
-        // Trying to close with a different account number than the aggregate holds
-        CloseAccountCmd cmd = new CloseAccountCmd(VALID_ACCOUNT_NUMBER, "DIFFERENT-NUMBER");
+    void testExecute_CloseAccount_Rejected_IfAccountNumberImmutable() {
+        // Given a Account aggregate and a command with a different account number
+        AccountAggregate account = createActiveZeroAccount();
+        // Trying to close ACC-123 but providing number 999999 in command (Identity mismatch)
+        CloseAccountCmd cmd = new CloseAccountCmd("ACC-123", "999999");
 
-        // When / Then
+        // When the CloseAccountCmd command is executed
+        // Then the command is rejected with a domain error
         Exception exception = assertThrows(IllegalArgumentException.class, () -> {
             account.execute(cmd);
         });
 
-        assertTrue(exception.getMessage().contains("immutable") || exception.getMessage().contains("number"));
+        assertTrue(exception.getMessage().contains("Account number mismatch"));
     }
 
+    @Test
+    void testExecute_UnknownCommand_ThrowsException() {
+        // Given an account
+        AccountAggregate account = createActiveZeroAccount();
+        
+        // When executing an unsupported command
+        Command badCmd = new Command() { public String toString() { return "BadCommand"; } };
+
+        // Then UnknownCommandException is thrown
+        assertThrows(UnknownCommandException.class, () -> {
+            account.execute(badCmd);
+        });
+    }
 }

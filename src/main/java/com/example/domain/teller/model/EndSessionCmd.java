@@ -2,6 +2,7 @@ package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
 
-import java.time.Instant;
-
-public record EndSessionCmd(String sessionId, Instant occurredAt) implements Command {}
+/**
+ * Command to terminate an existing Teller Session.
+ */
+public record EndSessionCmd(String sessionId) implements Command {}

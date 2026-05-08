@@ -1,11 +1,10 @@
 package com.example.ports;
 
-import com.example.domain.shared.Command;
+import com.example.domain.defect.model.DefectAggregate;
 
-/**
- * Port for persisting defect reports.
- * Mocked in tests to prevent real DB connections.
- */
+import java.util.Optional;
+
 public interface DefectRepository {
-    void save(Command command);
+    void save(DefectAggregate aggregate);
+    Optional<DefectAggregate> findById(String id);
 }

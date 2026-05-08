@@ -5,18 +5,16 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Event emitted when a Statement is successfully exported.
- */
-public record StatementExportedEvent(
-    String aggregateId,
-    String format,
-    String artifactLocation,
-    Instant occurredAt
-) implements DomainEvent {
+public class StatementExportedEvent implements DomainEvent {
+    private final String eventId = UUID.randomUUID().toString();
+    private final String aggregateId;
+    private final String format;
+    private final Instant occurredAt;
 
-    public StatementExportedEvent(String aggregateId, String format, String artifactLocation) {
-        this(aggregateId, format, artifactLocation, Instant.now());
+    public StatementExportedEvent(String aggregateId, String format, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.format = format;
+        this.occurredAt = occurredAt;
     }
 
     @Override
@@ -32,5 +30,9 @@ public record StatementExportedEvent(
     @Override
     public Instant occurredAt() {
         return occurredAt;
+    }
+
+    public String format() {
+        return format;
     }
 }

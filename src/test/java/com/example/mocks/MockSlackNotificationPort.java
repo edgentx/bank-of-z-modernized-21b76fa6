@@ -2,32 +2,34 @@ package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Stores the last payload locally for assertions without real I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private String lastPayload;
+    private final List<String> sentBodies = new ArrayList<>();
 
     @Override
-    public void send(String payload) {
-        this.lastPayload = payload;
+    public void send(String body) {
+        sentBodies.add(body);
     }
 
-    @Override
-    public String getLastPayload() {
-        return this.lastPayload;
+    public List<String> getSentBodies() {
+        return new ArrayList<>(sentBodies);
     }
 
-    /**
-     * Utility method for tests to verify if the payload contains a specific substring.
-     */
-    public boolean lastPayloadContains(String substring) {
-        return lastPayload != null && lastPayload.contains(substring);
+    public boolean wasCalledWith(String body) {
+        return sentBodies.contains(body);
     }
 
-    public void reset() {
-        this.lastPayload = null;
+    public boolean containsMessage(String substring) {
+        return sentBodies.stream().anyMatch(body -> body.contains(substring));
+    }
+
+    public int getCallCount() {
+        return sentBodies.size();
     }
 }

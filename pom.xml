@@ -1,4 +1,3 @@
-<!-- xmlns and modelVersion omitted for brevity, assuming existing structure -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -16,6 +15,7 @@
     <properties>
         <java.version>17</java.version>
         <cucumber.version>7.14.0</cucumber.version>
+        <flyway.version>9.22.3</flyway.version>
     </properties>
 
     <dependencies>
@@ -28,7 +28,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
-        
+
         <!-- Cucumber Dependencies (Explicit Version Required) -->
         <dependency>
             <groupId>io.cucumber</groupId>
@@ -53,9 +53,9 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-db2</artifactId>
-            <version>9.22.3</version>
+            <version>${flyway.version}</version>
         </dependency>
-        
+
         <!-- Temporal SDK -->
         <dependency>
             <groupId>io.temporal</groupId>

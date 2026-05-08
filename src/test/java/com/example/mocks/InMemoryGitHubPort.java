@@ -1,23 +1,25 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Mock adapter for GitHubPort.
- * Simulates GitHub issue creation and generates valid URLs.
+ * Mock adapter for GitHub API.
+ * Returns predictable data for testing without calling the actual GitHub API.
  */
 public class InMemoryGitHubPort implements GitHubPort {
 
-    private final AtomicInteger issueCounter = new AtomicInteger(1);
+    private final String mockUrl;
+
+    public InMemoryGitHubPort(String mockUrl) {
+        this.mockUrl = mockUrl;
+    }
 
     @Override
-    public String createIssue(String title, String body) {
-        if (title == null || title.isBlank()) {
-            throw new IllegalArgumentException("GitHub issue title cannot be null or empty");
+    public String createIssue(String title, String description, String projectKey) {
+        // Simulate successful creation returning a URL, or failure returning null
+        if (mockUrl != null) {
+            return mockUrl;
         }
-        // Simulate returning a real URL from GitHub.com
-        int id = issueCounter.getAndIncrement();
-        return "https://github.com/fake-repo/project/issues/" + id;
+        return null;
     }
 }

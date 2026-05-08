@@ -1,20 +1,15 @@
 package com.example.domain.screenmap.model;
 
 import com.example.domain.shared.Command;
-
 import java.util.Map;
 
 /**
  * Command to validate user input against a specific screen map definition.
+ * Used to enforce UI rules before backend processing.
  */
-public record ValidateScreenInputCmd(String screenId, Map<String, String> inputFields) implements Command {
-    public ValidateScreenInputCmd {
-        if (screenId == null || screenId.isBlank()) {
-            throw new IllegalArgumentException("screenId cannot be null or blank");
-        }
-        // inputFields can be empty (e.g. function keys), but not null for safety
-        if (inputFields == null) {
-            throw new IllegalArgumentException("inputFields map cannot be null");
-        }
-    }
+public record ValidateScreenInputCmd(
+        String screenMapId,
+        String screenId,
+        Map<String, String> inputFields
+) implements Command {
 }

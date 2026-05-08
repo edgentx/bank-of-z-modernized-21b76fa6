@@ -6,7 +6,6 @@ import org.junit.platform.suite.api.Suite;
 
 /**
  * Test Suite to run Cucumber features for S-18.
- * Annotated with @Suite for JUnit 5 integration.
  */
 @Suite
 @IncludeEngines("cucumber")

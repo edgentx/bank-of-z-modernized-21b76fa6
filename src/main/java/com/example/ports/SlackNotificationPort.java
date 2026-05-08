@@ -1,15 +1,16 @@
 package com.example.ports;
 
 /**
- * Port interface for sending notifications to Slack.
- * Used by the Workflow/Activity layer to decouple from the actual Slack client.
+ * Port for sending Slack notifications.
+ * Used to ensure the workflow properly formats the body with the GitHub URL.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends a message to a configured Slack channel.
+     * Posts a message to a Slack channel.
      *
-     * @param message The formatted message body.
+     * @param channelId The target channel ID (e.g., "#vforce360-issues").
+     * @param body The formatted message body.
      */
-    void sendMessage(String message);
+    void postMessage(String channelId, String body);
 }

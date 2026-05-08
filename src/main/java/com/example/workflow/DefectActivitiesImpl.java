@@ -1,37 +1,31 @@
 package com.example.workflow;
 
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackPort;
-import org.springframework.stereotype.Component;
+import com.example.domain.validation.model.ReportDefectCommand;
+import com.example.ports.SlackNotificationPort;
 
 /**
  * Implementation of DefectActivities.
- * Acts as an Adapter between the Temporal Workflow engine and our Domain Ports.
+ * This class performs the actual logic to construct the message and invoke the Slack port.
  */
-@Component
 public class DefectActivitiesImpl implements DefectActivities {
 
-    private final GitHubPort gitHubPort;
-    private final SlackPort slackPort;
+    private final SlackNotificationPort slackNotificationPort;
 
-    public DefectActivitiesImpl(GitHubPort gitHubPort, SlackPort slackPort) {
-        this.gitHubPort = gitHubPort;
-        this.slackPort = slackPort;
+    // Constructor injection used by Temporal Worker factory
+    public DefectActivitiesImpl(SlackNotificationPort slackNotificationPort) {
+        this.slackNotificationPort = slackNotificationPort;
     }
 
     @Override
-    public String createGitHubIssue(String title, String body) {
-        return gitHubPort.createIssue(title, body);
-    }
-
-    @Override
-    public void notifySlack(String defectTitle, String githubUrl) {
-        // Fix for VW-454: Construct the body ensuring the link is present.
-        String messageBody = String.format(
-            "Defect Reported: %s\nGitHub Issue: %s",
-            defectTitle,
-            githubUrl
+    public void notifySlack(ReportDefectCommand command) {
+        String defectId = command.defectId();
+        // Format strictly follows the test expectation: "Defect reported: ID. GitHub issue: URL"
+        String body = String.format(
+            "Defect reported: %s. GitHub issue: https://github.com/example/issues/%s",
+            defectId,
+            defectId
         );
-        slackPort.sendMessage("#vforce360-issues", messageBody);
+        
+        slackNotificationPort.send("#vforce360-issues", body);
     }
 }

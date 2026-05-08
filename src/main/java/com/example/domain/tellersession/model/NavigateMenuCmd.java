@@ -1,9 +1,10 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
+import java.util.Objects;
 
-/**
- * Command to navigate the teller UI to a specific menu context.
- * Encapsulates the legacy 'screen' or 'menu' routing logic.
- */
-public record NavigateMenuCmd(String sessionId, String menuId, String action) implements Command {}
+public record NavigateMenuCmd(String sessionId, String menuId, String action) implements Command {
+    public NavigateMenuCmd {
+        Objects.requireNonNull(sessionId, "sessionId must not be null");
+    }
+}

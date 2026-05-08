@@ -1,96 +1,100 @@
 package com.example.steps;
 
-import com.example.domain.navigation.model.ScreenMapAggregate;
-import com.example.domain.navigation.model.ScreenInputValidatedEvent;
-import com.example.domain.navigation.model.ValidateScreenInputCmd;
-import com.example.domain.navigation.repository.InMemoryScreenMapRepository;
-import com.example.domain.navigation.repository.ScreenMapRepository;
+import com.example.domain.screenmap.model.ScreenInputValidatedEvent;
+import com.example.domain.screenmap.model.ScreenMapAggregate;
+import com.example.domain.screenmap.model.ValidateScreenInputCmd;
+import com.example.domain.screenmap.repository.InMemoryScreenMapRepository;
+import com.example.domain.screenmap.repository.ScreenMapRepository;
+import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 public class S22Steps {
 
-    private ScreenMapRepository repository = new InMemoryScreenMapRepository();
     private ScreenMapAggregate aggregate;
-    private String screenId;
-    private Map<String, String> inputFields = new HashMap<>();
-    private List<com.example.domain.shared.DomainEvent> resultEvents;
-    private Exception thrownException;
+    private final ScreenMapRepository repository = new InMemoryScreenMapRepository();
+    private List<DomainEvent> resultEvents;
+    private Exception caughtException;
+    private Map<String, String> inputFields;
 
     @Given("a valid ScreenMap aggregate")
     public void aValidScreenMapAggregate() {
-        this.screenId = "LOGIN_SCREEN";
-        this.aggregate = new ScreenMapAggregate(screenId);
+        aggregate = new ScreenMapAggregate("LOGIN_SCREEN");
+        // Setup default valid configuration
+        aggregate.defineField("USER_ID", 10);
+        aggregate.defineField("PASSWORD", 20);
         repository.save(aggregate);
     }
 
     @And("a valid screenId is provided")
     public void aValidScreenIdIsProvided() {
-        // screenId initialized in previous step
-        Assertions.assertNotNull(screenId);
+        // Implicit in the aggregate setup, but we ensure the input map aligns with the aggregate ID
+        if (inputFields == null) inputFields = new HashMap<>();
     }
 
     @And("a valid inputFields is provided")
     public void aValidInputFieldsIsProvided() {
-        inputFields.put("USER_ID", "ALICE");
-        inputFields.put("PASSWORD", "SECRET");
+        inputFields = new HashMap<>();
+        inputFields.put("USER_ID", "validuser");
+        inputFields.put("PASSWORD", "password123");
     }
 
     @When("the ValidateScreenInputCmd command is executed")
     public void theValidateScreenInputCmdCommandIsExecuted() {
         try {
-            // Reload aggregate to simulate persistence fetch
-            var agg = repository.findById(screenId).orElseThrow();
-            ValidateScreenInputCmd cmd = new ValidateScreenInputCmd(screenId, inputFields);
+            // Reload from repo to simulate persistence flow
+            var agg = repository.findById("LOGIN_SCREEN").orElseThrow();
+            
+            // If the scenario setup modified the aggregate rules (mandatory fields), they should be persisted. 
+            // For this test, we assume the 'aggregate' variable holds the state we want to test against 
+            // if we modified it directly in 'Given'.
+            // In a real scenario, we would persist the changes made in the 'Given' steps.
+            // Here we just use the instance we have.
+            
+            var cmd = new ValidateScreenInputCmd("LOGIN_SCREEN", inputFields);
             resultEvents = agg.execute(cmd);
-            repository.save(agg);
         } catch (Exception e) {
-            thrownException = e;
+            caughtException = e;
         }
     }
 
     @Then("a input.validated event is emitted")
     public void aInputValidatedEventIsEmitted() {
-        Assertions.assertNull(thrownException, "Should not have thrown exception");
-        Assertions.assertNotNull(resultEvents);
-        Assertions.assertEquals(1, resultEvents.size());
-        Assertions.assertTrue(resultEvents.get(0) instanceof ScreenInputValidatedEvent);
-    }
-
-    // ---------- Rejection Scenarios ----------
-
-    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void aScreenMapAggregateThatViolatesMandatoryFields() {
-        this.screenId = "TRANSFER_SCREEN";
-        this.aggregate = new ScreenMapAggregate(screenId);
-        repository.save(aggregate);
-        // Intentionally leave inputFields empty or missing mandatory keys
-    }
-
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void aScreenMapAggregateThatViolatesBMSLength() {
-        this.screenId = "LONG_INPUT_SCREEN";
-        this.aggregate = new ScreenMapAggregate(screenId);
-        repository.save(aggregate);
-        
-        // Create a massive string to violate BMS length check (max 32000 defined in aggregate)
-        StringBuilder sb = new StringBuilder();
-        for(int i=0; i<33000; i++) {
-            sb.append("X");
-        }
-        inputFields.put("LONG_FIELD", sb.toString());
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof ScreenInputValidatedEvent);
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(thrownException, "Expected exception but none was thrown");
-        Assertions.assertTrue(thrownException instanceof IllegalArgumentException);
+        assertNotNull(caughtException);
+        assertTrue(caughtException instanceof IllegalStateException);
+    }
+
+    // Scenario 2 Specifics
+    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
+    public void aScreenMapAggregateThatViolatesMandatoryFields() {
+        aggregate = new ScreenMapAggregate("LOGIN_SCREEN");
+        aggregate.defineField("USER_ID", 10);
+        aggregate.defineMandatoryField("USER_ID"); // USER_ID is mandatory
+        inputFields = new HashMap<>(); // Empty input
+        inputFields.put("PASSWORD", "password123"); // Missing USER_ID
+    }
+
+    // Scenario 3 Specifics
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void aScreenMapAggregateThatViolatesFieldLengths() {
+        aggregate = new ScreenMapAggregate("LOGIN_SCREEN");
+        aggregate.defineField("USER_ID", 5); // Max length 5
+        inputFields = new HashMap<>();
+        inputFields.put("USER_ID", "toolonguser"); // Length 11
     }
 }

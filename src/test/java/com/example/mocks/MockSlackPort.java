@@ -1,29 +1,30 @@
 package com.example.mocks;
 
-import com.example.adapters.slack.SlackPort;
-
+import com.example.ports.SlackPort;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Mock implementation of SlackPort for testing.
- * Records messages to memory instead of making HTTP calls.
+ * Captures messages to verify content in assertions.
  */
 public class MockSlackPort implements SlackPort {
 
-    private final List<String> sentMessages = new ArrayList<>();
+    private final List<String> messages = new ArrayList<>();
 
     @Override
     public void sendMessage(String messageBody) {
-        // Simulate network latency logic if needed, but for now just record
-        this.sentMessages.add(messageBody);
+        // In a real mock, we might just store this. 
+        // This simulates the external API call without network I/O.
+        this.messages.add(messageBody);
     }
 
-    public List<String> getSentMessages() {
-        return sentMessages;
+    public String getLastMessage() {
+        if (messages.isEmpty()) return null;
+        return messages.get(messages.size() - 1);
     }
 
     public void clear() {
-        sentMessages.clear();
+        messages.clear();
     }
 }

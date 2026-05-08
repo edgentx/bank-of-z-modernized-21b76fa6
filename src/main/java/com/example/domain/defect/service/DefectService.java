@@ -2,14 +2,12 @@ package com.example.domain.defect.service;
 
 import com.example.domain.defect.model.DefectAggregate;
 import com.example.domain.defect.model.ReportDefectCommand;
-import com.example.defect.repository.DefectRepository;
+import com.example.ports.DefectRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
-
 /**
- * Application Service for Defect Reporting.
- * Orchestrates the execution of commands on the Defect Aggregate and persistence.
+ * Domain Service for handling Defect related commands.
+ * This acts as the primary entry point for the Defect aggregate logic.
  */
 @Service
 public class DefectService {
@@ -21,24 +19,19 @@ public class DefectService {
     }
 
     /**
-     * Reports a new defect.
-     * Creates the aggregate, executes the command, and persists the result.
+     * Handles the reporting of a new defect.
+     * Creates or loads the aggregate, executes the command, and persists the result.
      *
-     * @param cmd The command containing defect details.
-     * @return The ID of the created defect.
+     * @param cmd The command to report a defect.
+     * @return The updated DefectAggregate containing the GitHub URL.
      */
-    public String reportDefect(ReportDefectCommand cmd) {
-        // Ensure we have an ID if not provided
-        String defectId = cmd.defectId() != null ? cmd.defectId() : "DEFECT-" + UUID.randomUUID().toString().substring(0, 8);
-        
-        // Finalize command ID for consistency if it was null
-        ReportDefectCommand finalCmd = new ReportDefectCommand(defectId, cmd.title(), cmd.description(), cmd.githubIssueUrl());
+    public DefectAggregate reportDefect(ReportDefectCommand cmd) {
+        DefectAggregate aggregate = defectRepository.findById(cmd.defectId())
+                .orElse(new DefectAggregate(cmd.defectId()));
 
-        DefectAggregate aggregate = new DefectAggregate(defectId);
-        aggregate.execute(finalCmd);
+        aggregate.execute(cmd);
 
         defectRepository.save(aggregate);
-
-        return defectId;
+        return aggregate;
     }
 }

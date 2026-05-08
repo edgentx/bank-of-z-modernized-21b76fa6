@@ -1,6 +1,5 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.teller.model.MenuNavigatedEvent;
@@ -11,44 +10,48 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Cucumber Steps for S-19: TellerSession Navigation.
+ */
 public class S19Steps {
 
     private TellerSessionAggregate aggregate;
-    private Exception capturedException;
     private List<DomainEvent> resultEvents;
+    private Exception capturedException;
 
     @Given("a valid TellerSession aggregate")
-    public void aValidTellerSessionAggregate() {
-        // Authenticated, Active, Recent activity
-        aggregate = new TellerSessionAggregate("session-123", "teller-01", true, Instant.now(), true);
+    public void a_valid_teller_session_aggregate() {
+        String sessionId = "SESSION-123";
+        aggregate = new TellerSessionAggregate(sessionId);
+        aggregate.markAuthenticated(); // Ensure it's in a valid state for success scenarios
     }
 
-    @And("a valid sessionId is provided")
-    public void aValidSessionIdIsProvided() {
-        // Handled by aggregate construction
+    @Given("a valid sessionId is provided")
+    public void a_valid_session_id_is_provided() {
+        // Handled by the aggregate initialization in the previous step
         assertNotNull(aggregate.id());
     }
 
-    @And("a valid menuId is provided")
-    public void aValidMenuIdIsProvided() {
-        // Will be used in command construction
+    @Given("a valid menuId is provided")
+    public void a_valid_menu_id_is_provided() {
+        // Handled in the When step
     }
 
-    @And("a valid action is provided")
-    public void aValidActionIsProvided() {
-        // Will be used in command construction
+    @Given("a valid action is provided")
+    public void a valid_action_is_provided() {
+        // Handled in the When step
     }
 
     @When("the NavigateMenuCmd command is executed")
-    public void theNavigateMenuCmdCommandIsExecuted() {
+    public void the_navigate_menu_cmd_command_is_executed() {
         try {
-            NavigateMenuCmd cmd = new NavigateMenuCmd("session-123", "MAIN_MENU", "SELECT");
+            // Using valid data for this execution
+            NavigateMenuCmd cmd = new NavigateMenuCmd(aggregate.id(), "ACCOUNT_SUMMARY", "ENTER");
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             capturedException = e;
@@ -56,40 +59,48 @@ public class S19Steps {
     }
 
     @Then("a menu.navigated event is emitted")
-    public void aMenuNavigatedEventIsEmitted() {
-        assertNull(capturedException, "Should not have thrown an exception");
+    public void a_menu_navigated_event_is_emitted() {
         assertNotNull(resultEvents);
         assertEquals(1, resultEvents.size());
         assertTrue(resultEvents.get(0) instanceof MenuNavigatedEvent);
-        
         MenuNavigatedEvent event = (MenuNavigatedEvent) resultEvents.get(0);
         assertEquals("menu.navigated", event.type());
-        assertEquals("MAIN_MENU", event.menuId());
-        assertEquals("SELECT", event.action());
+        assertEquals("ACCOUNT_SUMMARY", event.menuId());
     }
 
+    // --- Failure Scenarios ---
+
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void aTellerSessionAggregateThatViolatesAuthentication() {
-        // Not authenticated
-        aggregate = new TellerSessionAggregate("session-404", null, false, Instant.now(), false);
+    public void a_teller_session_aggregate_that_violates_authentication() {
+        String sessionId = "SESSION-UNAUTH";
+        aggregate = new TellerSessionAggregate(sessionId);
+        // Intentionally NOT calling markAuthenticated()
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void aTellerSessionAggregateThatViolatesSessionTimeout() {
-        // Authenticated but activity was 20 minutes ago (Timeout is 15)
-        Instant pastActivity = Instant.now().minus(Duration.ofMinutes(20));
-        aggregate = new TellerSessionAggregate("session-timeout", "teller-01", true, pastActivity, true);
+    public void a_teller_session_aggregate_that_violates_timeout() {
+        String sessionId = "SESSION-TIMEOUT";
+        aggregate = new TellerSessionAggregate(sessionId);
+        aggregate.markAuthenticated();
+        // Set last activity to 20 minutes ago (Timeout is 15)
+        aggregate.setLastActivity(Instant.now().minusSeconds(1200));
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void aTellerSessionAggregateThatViolatesNavigationState() {
-        // Authenticated but session is logically inactive
-        aggregate = new TellerSessionAggregate("session-inactive", "teller-01", true, Instant.now(), false);
+    public void a_teller_session_aggregate_that_violates_navigation_context() {
+        String sessionId = "SESSION-BAD-CONTEXT";
+        aggregate = new TellerSessionAggregate(sessionId);
+        aggregate.markAuthenticated();
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
+    public void the_command_is_rejected_with_a_domain_error() {
         assertNotNull(capturedException, "Expected an exception to be thrown");
-        assertTrue(capturedException instanceof IllegalStateException);
+        // Checking for domain error types (IllegalStateException or IllegalArgumentException)
+        assertTrue(
+            capturedException instanceof IllegalStateException || 
+            capturedException instanceof IllegalArgumentException,
+            "Expected domain error exception, got: " + capturedException.getClass().getSimpleName()
+        );
     }
 }

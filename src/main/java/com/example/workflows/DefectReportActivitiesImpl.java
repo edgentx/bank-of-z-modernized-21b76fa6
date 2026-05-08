@@ -1,44 +1,27 @@
 package com.example.workflows;
 
-import com.example.domain.notification.model.SendNotificationCmd;
-import com.example.domain.notification.repository.NotificationRepository;
 import com.example.domain.notification.model.NotificationAggregate;
-import com.example.domain.validation.model.ValidateUrlInclusionCmd;
-import com.example.domain.validation.service.ValidationService;
+import com.example.ports.NotificationPort;
 import io.temporal.activity.Activity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+/**
+ * Implementation of Defect Report Activities.
+ */
+@Component
 public class DefectReportActivitiesImpl implements DefectReportActivities {
 
-    private static final Logger log = LoggerFactory.getLogger(DefectReportActivitiesImpl.class);
-    private final ValidationService validationService;
-    private final NotificationRepository notificationRepository;
+    private final NotificationPort notificationPort;
 
-    public DefectReportActivitiesImpl(ValidationService validationService, NotificationRepository notificationRepository) {
-        this.validationService = validationService;
-        this.notificationRepository = notificationRepository;
+    @Autowired
+    public DefectReportActivitiesImpl(NotificationPort notificationPort) {
+        this.notificationPort = notificationPort;
     }
 
     @Override
-    public String generateGitHubIssueLink(String defectId) {
-        return "https://github.com/egdcrypto/bank-of-z/issues/" + defectId;
-    }
-
-    @Override
-    public void sendSlackNotification(SendNotificationCmd cmd) {
-        log.info("Sending Slack notification to {}: {}", cmd.target(), cmd.formattedBody());
-    }
-
-    @Override
-    public void validateBodyContent(ValidateUrlInclusionCmd cmd) {
-        boolean isValid = validationService.validateUrlPresence(cmd.textToValidate(), cmd.requiredUrl());
-        if (!isValid) {
-             Activity.wrap(new IllegalStateException(
-                 "Validation Failed: Slack body does not contain the required GitHub URL.\n" +
-                 "Expected URL: " + cmd.requiredUrl() + "\n" +
-                 "Body Content: " + cmd.textToValidate()
-             ));
-        }
+    public void notifySlack(String defectId) {
+        NotificationAggregate notification = new NotificationAggregate(defectId);
+        notificationPort.send(notification);
     }
 }

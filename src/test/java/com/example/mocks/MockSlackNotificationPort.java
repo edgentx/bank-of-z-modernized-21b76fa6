@@ -1,47 +1,38 @@
 package com.example.mocks;
 
-import com.example.ports.SlackNotificationPort;
+import com.example.domain.vforce360.ports.VForce360NotificationPort;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Captures messages posted to Slack to verify content without external I/O.
+ * Mock adapter for VForce360 Slack notifications.
+ * Captures messages for verification in tests.
  */
-public class MockSlackNotificationPort implements SlackNotificationPort {
+public class MockSlackNotificationPort implements VForce360NotificationPort {
 
-    public static class PostedMessage {
-        public final String channel;
-        public final String body;
-
-        public PostedMessage(String channel, String body) {
-            this.channel = channel;
-            this.body = body;
-        }
-    }
-
-    private final List<PostedMessage> postedMessages = new ArrayList<>();
+    private final List<String> postedMessages = new ArrayList<>();
 
     @Override
-    public void postMessage(String channel, String messageBody) {
-        if (channel == null || messageBody == null) {
-            throw new IllegalArgumentException("Channel and body must not be null");
+    public void postMessage(String messageBody) {
+        // Validate input as the real implementation might
+        if (messageBody == null) {
+            throw new IllegalArgumentException("Message body cannot be null");
         }
-        this.postedMessages.add(new PostedMessage(channel, messageBody));
+        this.postedMessages.add(messageBody);
     }
 
-    public List<PostedMessage> getPostedMessages() {
-        return postedMessages;
+    public List<String> getPostedMessages() {
+        return new ArrayList<>(postedMessages);
     }
 
     public void reset() {
         postedMessages.clear();
     }
 
-    public PostedMessage getSingleMessage() {
-        if (postedMessages.size() != 1) {
-            throw new IllegalStateException("Expected exactly one message, but found " + postedMessages.size());
-        }
-        return postedMessages.get(0);
+    /**
+     * Helper to verify if any message contains the GitHub URL.
+     */
+    public boolean wasUrlPosted(String url) {
+        return postedMessages.stream().anyMatch(msg -> msg.contains(url));
     }
 }

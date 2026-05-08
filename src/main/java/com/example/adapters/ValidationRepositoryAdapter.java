@@ -5,7 +5,8 @@ import com.example.ports.ValidationRepositoryPort;
 import org.springframework.stereotype.Repository;
 
 /**
- * Repository Stub.
+ * Repository Stub for Validation Aggregate.
+ * Implementing interface to resolve compilation errors.
  */
 @Repository
 public class ValidationRepositoryAdapter implements ValidationRepositoryPort {

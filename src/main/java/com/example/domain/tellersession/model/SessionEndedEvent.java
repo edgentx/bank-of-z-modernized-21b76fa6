@@ -5,9 +5,23 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-public record SessionEndedEvent(String aggregateId, Instant occurredAt) implements DomainEvent {
+public record SessionEndedEvent(
+        String eventId,
+        String aggregateId,
+        Instant occurredAt
+) implements DomainEvent {
+
     public SessionEndedEvent {
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
+        if (eventId == null || eventId.isBlank()) {
+            eventId = UUID.randomUUID().toString();
+        }
+        if (occurredAt == null) {
+            occurredAt = Instant.now();
+        }
+    }
+
+    public SessionEndedEvent(String aggregateId) {
+        this(UUID.randomUUID().toString(), aggregateId, Instant.now());
     }
 
     @Override
@@ -18,10 +32,5 @@ public record SessionEndedEvent(String aggregateId, Instant occurredAt) implemen
     @Override
     public String aggregateId() {
         return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

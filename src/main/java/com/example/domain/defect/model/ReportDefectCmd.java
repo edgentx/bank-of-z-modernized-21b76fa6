@@ -4,14 +4,12 @@ import com.example.domain.shared.Command;
 import java.util.Map;
 
 /**
- * Command to report a defect detected in the VForce360 PM diagnostic flow.
- * Corresponds to the temporal-worker exec trigger "_report_defect".
+ * Command to report a defect detected in VForce360.
+ * Used by temporal-worker exec to trigger Slack notifications.
  */
 public record ReportDefectCmd(
     String defectId,
     String title,
     String severity,
-    String component,
-    String projectId,
-    Map<String, String> context
+    Map<String, String> metadata // e.g., "story_id" -> "S-FB-1"
 ) implements Command {}

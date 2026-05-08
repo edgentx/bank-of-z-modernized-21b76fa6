@@ -1,24 +1,32 @@
 package com.example.mocks;
 
-import com.example.domain.legacybridge.model.LegacyTransactionRouteAggregate;
+import com.example.domain.legacybridge.model.LegacyTransactionRoute;
 import com.example.domain.legacybridge.repository.LegacyTransactionRouteRepository;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * In-memory implementation of the LegacyTransactionRouteRepository for testing.
+ */
 public class InMemoryLegacyTransactionRouteRepository implements LegacyTransactionRouteRepository {
 
-    private final Map<String, LegacyTransactionRouteAggregate> store = new ConcurrentHashMap<>();
+    private final Map<String, LegacyTransactionRoute> store = new HashMap<>();
 
     @Override
-    public void save(LegacyTransactionRouteAggregate aggregate) {
+    public void save(LegacyTransactionRoute aggregate) {
         store.put(aggregate.id(), aggregate);
     }
 
     @Override
-    public Optional<LegacyTransactionRouteAggregate> findById(String id) {
+    public LegacyTransactionRoute saveAndReturn(LegacyTransactionRoute aggregate) {
+        store.put(aggregate.id(), aggregate);
+        return aggregate;
+    }
+
+    @Override
+    public Optional<LegacyTransactionRoute> findById(String id) {
         return Optional.ofNullable(store.get(id));
     }
 }

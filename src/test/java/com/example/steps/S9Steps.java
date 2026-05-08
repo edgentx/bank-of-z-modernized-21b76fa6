@@ -1,80 +1,86 @@
 package com.example.steps;
 
-import com.example.domain.statement.model.*;
-import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.shared.DomainException;
+import com.example.domain.statement.model.ExportStatementCmd;
+import com.example.domain.statement.model.StatementAggregate;
+import com.example.domain.statement.model.StatementExportedEvent;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S9Steps {
 
-    private StatementAggregate statement;
-    private List<com.example.domain.shared.DomainEvent> results;
-    private Exception caughtException;
+    private StatementAggregate aggregate;
+    private Exception capturedException;
+    private List<com.example.domain.shared.DomainEvent> resultEvents;
 
     @Given("a valid Statement aggregate")
     public void a_valid_statement_aggregate() {
-        statement = new StatementAggregate("stmt-1", "acct-1", Instant.now().minusSeconds(86400), Instant.now());
-        statement.openingBalance = BigDecimal.ZERO;
-        statement.closingBalance = BigDecimal.TEN;
-        statement.closed = false;
-        statement.reconciled = true;
+        aggregate = new StatementAggregate("stmt-123");
+        // Configure valid state: generated, closed period, balances match
+        aggregate.configureForTest(true, true, BigDecimal.valueOf(100.00), BigDecimal.valueOf(100.00));
     }
 
     @Given("a Statement aggregate that violates: A statement must be generated for a closed period and cannot be altered retroactively.")
-    public void a_statement_aggregate_that_violates_closed_period_constraint() {
-        statement = new StatementAggregate("stmt-2", "acct-1", Instant.now().minusSeconds(86400*30), Instant.now().minusSeconds(86400*15));
-        statement.openingBalance = BigDecimal.ZERO;
-        statement.closingBalance = BigDecimal.TEN;
-        statement.closed = true; 
+    public void a_statement_aggregate_violates_closed_period() {
+        aggregate = new StatementAggregate("stmt-violate-period");
+        // Generated = true, Period Closed = false (Violation)
+        aggregate.configureForTest(true, false, BigDecimal.ZERO, BigDecimal.ZERO);
     }
 
     @Given("a Statement aggregate that violates: Statement opening balance must exactly match the closing balance of the previous statement.")
-    public void a_statement_aggregate_that_violates_balance_matching_constraint() {
-        statement = new StatementAggregate("stmt-3", "acct-1", Instant.now().minusSeconds(86400), Instant.now());
-        statement.openingBalance = BigDecimal.ONE; 
-        statement.previousClosingBalance = BigDecimal.ZERO; 
-        statement.closingBalance = BigDecimal.TEN;
+    public void a_statement_aggregate_violates_balance_match() {
+        aggregate = new StatementAggregate("stmt-violate-balance");
+        // Generated = true, Period Closed = true, but Opening != Previous Closing (Violation)
+        aggregate.configureForTest(true, true, BigDecimal.valueOf(50.00), BigDecimal.valueOf(100.00));
     }
 
-    @Given("a valid statementId is provided")
+    @And("a valid statementId is provided")
     public void a_valid_statement_id_is_provided() {
-        // Handled in aggregate initialization
+        // ID is implicitly set in the aggregate constructor for these tests
+        assertNotNull(aggregate.id());
     }
 
-    @Given("a valid format is provided")
+    @And("a valid format is provided")
     public void a_valid_format_is_provided() {
-        // Handled in command execution
+        // Format will be provided in the When step via Command
     }
 
     @When("the ExportStatementCmd command is executed")
     public void the_export_statement_cmd_command_is_executed() {
-        ExportStatementCmd cmd = new ExportStatementCmd(statement.id(), "PDF");
         try {
-            results = statement.execute(cmd);
+            ExportStatementCmd cmd = new ExportStatementCmd(aggregate.id(), "PDF");
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            caughtException = e;
+            capturedException = e;
         }
     }
 
     @Then("a statement.exported event is emitted")
     public void a_statement_exported_event_is_emitted() {
-        Assertions.assertNull(caughtException, "Expected no exception, but got: " + caughtException);
-        Assertions.assertNotNull(results, "Results should not be null");
-        Assertions.assertFalse(results.isEmpty(), "Results should contain at least one event");
-        Assertions.assertTrue(results.get(0) instanceof StatementExportedEvent, "First event should be StatementExportedEvent");
+        assertNull(capturedException, "Expected no exception, but got: " + capturedException);
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof StatementExportedEvent);
+        StatementExportedEvent event = (StatementExportedEvent) resultEvents.get(0);
+        assertEquals("statement.exported", event.type());
+        assertEquals(aggregate.id(), event.aggregateId());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(caughtException, "Expected an exception to be thrown");
-        // Depending on implementation, this could be IllegalStateException, IllegalArgumentException, etc.
-        // We check that it is a RuntimeException (domain logic error)
-        Assertions.assertTrue(caughtException instanceof RuntimeException, "Expected RuntimeException");
+        assertNotNull(capturedException, "Expected an exception, but command succeeded");
+        // Check for the specific invariant messages defined in the aggregate
+        String msg = capturedException.getMessage();
+        assertTrue(
+            msg.contains("closed period") || msg.contains("opening balance must exactly match"),
+            "Error message did not match expected invariants: " + msg
+        );
     }
 }

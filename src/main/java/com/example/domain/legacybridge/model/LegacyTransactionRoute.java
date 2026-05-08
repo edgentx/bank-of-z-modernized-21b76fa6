@@ -20,14 +20,15 @@ public class LegacyTransactionRoute extends AggregateRoot {
     private boolean versioningViolation;
     private boolean evaluated;
     private String targetSystem;
-    private int currentRuleVersion;
+
+    // State required for S-24 command handling
+    private int currentRulesVersion = 1;
 
     public LegacyTransactionRoute(String routeId) {
         this.routeId = routeId;
         this.dualProcessingViolation = false;
         this.versioningViolation = false;
         this.evaluated = false;
-        this.currentRuleVersion = 1;
     }
 
     @Override
@@ -50,7 +51,8 @@ public class LegacyTransactionRoute extends AggregateRoot {
     public List<DomainEvent> execute(Command cmd) {
         if (cmd instanceof EvaluateRoutingCmd c) {
             return evaluateRouting(c);
-        } else if (cmd instanceof UpdateRoutingRuleCmd c) {
+        }
+        if (cmd instanceof UpdateRoutingRuleCmd c) {
             return updateRoutingRule(c);
         }
         throw new UnknownCommandException(cmd);
@@ -98,23 +100,27 @@ public class LegacyTransactionRoute extends AggregateRoot {
     }
 
     private List<DomainEvent> updateRoutingRule(UpdateRoutingRuleCmd cmd) {
-        // Invariant 1: Prevent dual-processing
-        if (this.dualProcessingViolation) {
-            throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
-        }
+        // S-24 Invariant Checks
 
-        // Invariant 2: Versioning check
-        if (this.versioningViolation) {
+        // 1. Versioning Invariant
+        // Ensure rules are versioned correctly to allow safe rollback.
+        // We assume the existence of a version check. If the aggregate is in an invalid state (e.g. version <= 0), fail.
+        if (currentRulesVersion <= 0 || versioningViolation) {
             throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
         }
 
-        // Validate inputs
-        if (cmd.effectiveDate().isBefore(Instant.now())) {
-            throw new IllegalArgumentException("Effective date cannot be in the past");
+        // 2. Single Target Invariant
+        // Ensure we aren't targeting both systems (simulated check via flag or state).
+        if (dualProcessingViolation) {
+            throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
         }
 
-        // Apply State Update
+        // Business Logic
+        // Update the internal state
+        // In a real system, this might involve complex rule lookups.
         this.targetSystem = cmd.newTarget();
+        // Increment version to track changes
+        this.currentRulesVersion++;
 
         var event = new RoutingUpdatedEvent(
                 cmd.routeId(),
@@ -126,7 +132,6 @@ public class LegacyTransactionRoute extends AggregateRoot {
 
         addEvent(event);
         incrementVersion();
-
         return List.of(event);
     }
 
@@ -138,7 +143,7 @@ public class LegacyTransactionRoute extends AggregateRoot {
         return targetSystem;
     }
 
-    public int getCurrentRuleVersion() {
-        return currentRuleVersion;
+    public int getCurrentRulesVersion() {
+        return currentRulesVersion;
     }
 }

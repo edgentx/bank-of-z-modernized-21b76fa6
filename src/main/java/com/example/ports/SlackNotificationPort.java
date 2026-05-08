@@ -1,16 +1,24 @@
 package com.example.ports;
 
 /**
- * Port interface for sending Slack notifications.
- * Used by the Temporal workflow logic to decouple from the specific implementation.
+ * Port for sending notifications to Slack.
+ * Used for defect reporting alerts.
  */
 public interface SlackNotificationPort {
-    
+
     /**
-     * Sends a notification to the configured Slack channel.
+     * Posts a message to a configured Slack channel.
      *
-     * @param messageBody The formatted message body to send.
-     * @return true if sending was acknowledged, false otherwise.
+     * @param messageBody The content of the message to send.
+     * @return true if the message was accepted by the client, false otherwise.
      */
-    boolean sendNotification(String messageBody);
+    boolean sendMessage(String messageBody);
+
+    /**
+     * Retrieves the last message body sent to the mock for verification in tests.
+     * (This method is primarily for the Mock/Memory adapter interface).
+     */
+    default String getLastMessageBody() {
+        throw new UnsupportedOperationException("Not implemented in production adapter");
+    }
 }

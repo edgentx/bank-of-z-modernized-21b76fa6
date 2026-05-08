@@ -1,29 +1,49 @@
 package com.example.adapters;
 
-import com.example.workflow.DefectActivities;
-import com.example.workflow.DefectWorkflow;
-import com.example.workflow.DefectWorkflowImpl;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
+import io.temporal.serviceclient.WorkflowServiceStubs;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
 
 /**
- * Stub configuration for Temporal Worker.
- * Ensures classes compile and wire the Activity implementation.
+ * Temporal Worker that listens for defect workflow tasks.
  */
+@Component
 public class TemporalNotificationWorker {
 
-    private final WorkerFactory workerFactory;
-    private final DefectActivities activitiesImplementation;
+    private final WorkflowServiceStubs serviceStubs;
+    private final WorkerFactory factory;
 
-    public TemporalNotificationWorker(WorkerFactory workerFactory, DefectActivities activitiesImplementation) {
-        this.workerFactory = workerFactory;
-        this.activitiesImplementation = activitiesImplementation;
+    @Autowired
+    public TemporalNotificationWorker(WorkflowServiceStubs serviceStubs) {
+        this.serviceStubs = serviceStubs;
+        // Create a WorkerFactory
+        this.factory = WorkerFactory.newInstance(serviceStubs);
+
+        // Create a Worker that listens to the task queue
+        Worker worker = factory.newWorker("DefectTaskQueue");
+
+        // Register the Workflow implementation
+        worker.registerWorkflowImplementationFactory(
+            TemporalDefectWorkflowAdapter.DefectWorkflow.class,
+            () -> new DefectWorkflowImpl()
+        );
     }
 
-    public void start() {
-        Worker worker = workerFactory.newWorker("DEFECT_TASK_QUEUE");
-        worker.registerActivitiesImplementation(DefectActivities.class, activitiesImplementation);
-        worker.registerWorkflowImplementationFactory(DefectWorkflow.class, DefectWorkflowImpl::new);
-        workerFactory.start();
+    @EventListener(ContextRefreshedEvent.class)
+    public void startWorker() {
+        factory.start();
+    }
+
+    // Implementation stub (Actual logic to call Slack would be here or in Activities)
+    public static class DefectWorkflowImpl implements TemporalDefectWorkflowAdapter.DefectWorkflow {
+        @Override
+        public void reportDefect(String severity, String title, String description) {
+            // Workflow logic goes here
+            // Should eventually call an Activity that posts to Slack
+        }
     }
 }

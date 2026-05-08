@@ -1,38 +1,37 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotifierPort;
+import org.springframework.stereotype.Component;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotifierPort for testing.
- * Captures messages sent during workflow execution.
+ * Mock adapter for SlackNotifierPort.
+ * Stores messages in memory for verification during tests.
  */
+@Component
 public class MockSlackNotifier implements SlackNotifierPort {
 
-    public static class SentMessage {
-        public final String channel;
-        public final String body;
-
-        public SentMessage(String channel, String body) {
-            this.channel = channel;
-            this.body = body;
-        }
-    }
-
-    private final List<SentMessage> messages = new ArrayList<>();
+    private final List<String> notifications = new ArrayList<>();
 
     @Override
-    public void sendMessage(String channel, String body) {
-        // In a real mock, we might just capture. Here we capture and can verify later.
-        this.messages.add(new SentMessage(channel, body));
+    public void notify(String body) {
+        // Simulate sending the message by storing it
+        this.notifications.add(body);
+        System.out.println("[MockSlack] Captured notification: " + body);
     }
 
-    public List<SentMessage> getMessages() {
-        return new ArrayList<>(messages);
+    public boolean wasNotifyCalled() {
+        return !notifications.isEmpty();
     }
 
-    public void clear() {
-        messages.clear();
+    public String getLastBody() {
+        if (notifications.isEmpty()) return null;
+        return notifications.get(notifications.size() - 1);
+    }
+
+    public void reset() {
+        notifications.clear();
     }
 }

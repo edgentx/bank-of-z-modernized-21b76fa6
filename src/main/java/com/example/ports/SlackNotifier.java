@@ -2,15 +2,13 @@ package com.example.ports;
 
 /**
  * Port interface for sending notifications to Slack.
- * Used by the Defect Reporting workflow.
+ * Used by the Validation Aggregate to externalize side effects.
  */
 public interface SlackNotifier {
-
+    
     /**
-     * Sends a notification payload to Slack.
-     *
-     * @param payload The formatted JSON payload intended for the Slack Incoming Webhook.
-     * @throws RuntimeException if the notification fails (e.g., network error, 4xx response).
+     * Sends a notification message to a configured Slack channel.
+     * @param messageBody The formatted message to send.
      */
-    void sendNotification(String payload);
+    void sendNotification(String messageBody);
 }

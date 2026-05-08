@@ -6,23 +6,21 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.3</version>
+        <version>3.2.0</version>
         <relativePath/>
     </parent>
-    
+
     <groupId>com.example</groupId>
-    <artifactId>teller-core</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>teller-core</name>
-    <description>Teller Core Domain</description>
-    
+    <artifactId>teller-system</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <name>Teller System Domain</name>
+    <description>Bank of Z Modernization - Teller Session Domain</description>
+
     <properties>
         <java.version>21</java.version>
-        <flyway.version>10.11.0</flyway.version>
-        <temporal.version>1.23.1</temporal.version>
-        <cucumber.version>7.18.0</cucumber.version>
+        <cucumber.version>7.14.0</cucumber.version>
     </properties>
-    
+
     <dependencies>
         <!-- Spring Boot Starters -->
         <dependency>
@@ -32,10 +30,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -49,51 +43,42 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-batch</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.session</groupId>
-            <artifactId>spring-session-data-redis</artifactId>
-        </dependency>
-        
-        <!-- Database Drivers -->
+        <!-- Temporal SDK not in Spring BOM, adding version placeholder if needed, usually handled separately. Assuming Spring Cloud Stream or similar for now. -->
+
+        <!-- Persistence -->
         <dependency>
             <groupId>com.ibm.db2</groupId>
             <artifactId>jcc</artifactId>
             <scope>runtime</scope>
         </dependency>
-        
-        <!-- Flyway (DB2) -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-db2-sqlserver</artifactId>
-            <version>${flyway.version}</version>
+            <artifactId>flyway-db2</artifactId>
         </dependency>
-        
-        <!-- Temporal -->
-        <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>${temporal.version}</version>
-        </dependency>
-        
-        <!-- IBM MQ -->
+
+        <!-- Messaging & Queue -->
         <dependency>
             <groupId>com.ibm.mq</groupId>
             <artifactId>mq-jms-spring-boot-starter</artifactId>
-            <version>3.2.3</version>
+            <version>3.0.4</version>
         </dependency>
-        
-        <!-- MinIO -->
+
+        <!-- Caching & Storage -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.minio</groupId>
             <artifactId>minio</artifactId>
-            <version>8.5.12</version>
+            <version>8.5.7</version>
         </dependency>
-        
-        <!-- OpenTelemetry -->
+
+        <!-- Observability -->
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-tracing-bridge-otel</artifactId>
@@ -101,13 +86,18 @@
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <version>1.38.0</version>
+            <version>1.32.0</version>
         </dependency>
-        
-        <!-- Testing (BDD/Cucumber) -->
+
+        <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -128,19 +118,35 @@
             <version>${cucumber.version}</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-suite</artifactId>
-            <scope>test</scope>
-        </dependency>
+
     </dependencies>
-    
+
     <build>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>21</source>
+                    <target>21</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <properties>
+                        <configurationParameters>
+                            cucumber.junit-platform.naming-strategy=long
+                        </configurationParameters>
+                    </properties>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
+
 </project>

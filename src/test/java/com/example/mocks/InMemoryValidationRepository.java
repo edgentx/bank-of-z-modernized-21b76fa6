@@ -5,6 +5,7 @@ import com.example.domain.validation.repository.ValidationRepository;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class InMemoryValidationRepository implements ValidationRepository {
     private final Map<String, ValidationAggregate> store = new HashMap<>();
@@ -16,7 +17,7 @@ public class InMemoryValidationRepository implements ValidationRepository {
     }
 
     @Override
-    public ValidationAggregate findById(String id) {
-        return store.get(id);
+    public Optional<ValidationAggregate> findById(String id) {
+        return Optional.ofNullable(store.get(id));
     }
 }

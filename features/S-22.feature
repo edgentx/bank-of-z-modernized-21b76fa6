@@ -1,4 +1,5 @@
 Feature: Implement ValidateScreenInputCmd on ScreenMap (user-interface-navigation)
+
   Feature: ValidateScreenInputCmd
 
     Scenario: Successfully execute ValidateScreenInputCmd

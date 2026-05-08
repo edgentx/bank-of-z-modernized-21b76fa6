@@ -6,20 +6,25 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event emitted when a teller session is successfully started.
+ * S-18: Event emitted when a Teller Session is successfully started.
  */
 public record SessionStartedEvent(
-    String aggregateId,
-    String tellerId,
-    String terminalId,
-    Instant occurredAt
+        String aggregateId,
+        String tellerId,
+        String terminalId,
+        Instant startedAt
 ) implements DomainEvent {
-    public SessionStartedEvent {
-        // Defensive copy/validation if necessary, though records handle nulls via component checks generally
-    }
-
     @Override
     public String type() {
         return "session.started";
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return startedAt;
+    }
+
+    public static SessionStartedEvent create(String aggregateId, String tellerId, String terminalId) {
+        return new SessionStartedEvent(aggregateId, tellerId, terminalId, Instant.now());
     }
 }

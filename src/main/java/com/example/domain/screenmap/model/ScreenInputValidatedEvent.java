@@ -3,9 +3,8 @@ package com.example.domain.screenmap.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Map;
 
-public record ScreenInputValidatedEvent(String screenId, Map<String, String> inputFields, Instant occurredAt) implements DomainEvent {
+public record ScreenInputValidatedEvent(String screenId, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
         return "input.validated";

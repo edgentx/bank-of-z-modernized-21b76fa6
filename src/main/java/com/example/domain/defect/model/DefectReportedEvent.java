@@ -1,23 +1,44 @@
 package com.example.domain.defect.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
-import java.util.Map;
+import java.util.UUID;
 
 /**
- * Event emitted when a defect is successfully reported.
- * Contains the generated GitHub URL which must be propagated to Slack.
+ * Event emitted when a defect is successfully reported and logged in external systems.
  */
 public record DefectReportedEvent(
-    String type,
-    String aggregateId,
-    Instant occurredAt,
-    String defectId,
-    String githubUrl,
-    Map<String, Object> payload
+        String aggregateId,
+        String defectId,
+        String githubIssueUrl,
+        String slackChannel,
+        Instant occurredAt
 ) implements DomainEvent {
 
-    public DefectReportedEvent(String defectId, String githubUrl, Map<String, Object> payload, Instant occurredAt) {
-        this("DefectReported", defectId, occurredAt, defectId, githubUrl, payload);
+    @Override
+    public String type() {
+        return "DefectReported";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
+
+    // Static factory for cleaner creation
+    public static DefectReportedEvent create(String defectId, String githubIssueUrl, String slackChannel) {
+        return new DefectReportedEvent(
+                UUID.randomUUID().toString(), // Aggregate ID
+                defectId,
+                githubIssueUrl,
+                slackChannel,
+                Instant.now()
+        );
     }
 }

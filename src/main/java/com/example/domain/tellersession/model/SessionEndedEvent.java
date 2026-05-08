@@ -10,25 +10,14 @@ import java.util.UUID;
  */
 public record SessionEndedEvent(
     String aggregateId,
-    String sessionId,
     Instant occurredAt
 ) implements DomainEvent {
-    public SessionEndedEvent(String sessionId, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), sessionId, occurredAt);
+    public SessionEndedEvent(String aggregateId) {
+        this(aggregateId, Instant.now());
     }
 
     @Override
     public String type() {
         return "session.ended";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId();
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

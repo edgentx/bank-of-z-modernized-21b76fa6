@@ -1,14 +1,16 @@
 package com.example.domain.reporting.model;
 
 import com.example.domain.shared.Command;
+import java.util.Map;
 
 /**
- * Command to report a defect discovered during reconciliation or manual checks.
- * Corresponds to the temporal-worker exec trigger.
+ * Command to report a defect to the VForce360 system.
+ * This will trigger a Temporal workflow which eventually posts to Slack.
  */
 public record ReportDefectCmd(
     String defectId,
+    String severity,
+    String component,
     String description,
-    String githubUrl,
-    String severity
+    Map<String, String> metadata
 ) implements Command {}

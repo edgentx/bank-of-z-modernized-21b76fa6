@@ -1,6 +1,8 @@
-Feature: Validate VW-454 — GitHub URL in Slack body
+Feature: Validating VW-454 — GitHub URL in Slack body (end-to-end)
 
-  Scenario: Verify GitHub URL is present in Slack body after defect reporting
-    Given the temporal worker is running
-    When _report_defect is triggered with details "Login fails intermittently"
-    Then the Slack body should contain GitHub issue link
+  Background:
+    Given a defect report request for VW-454 is triggered
+
+  Scenario: Verify defect reporting generates a valid GitHub URL
+    When the temporal worker executes the report_defect command
+    Then the Slack body contains the GitHub issue link

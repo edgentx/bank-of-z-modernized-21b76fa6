@@ -1,17 +1,18 @@
 package com.example.steps;
 
-import io.cucumber.spring.CucumberContextConfiguration;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import com.example.mocks.MockGitHubMetadataPort;
-import com.example.ports.SlackNotificationPort;
+import io.cucumber.junit.Cucumber;
+import io.cucumber.junit.CucumberOptions;
+import org.junit.runner.RunWith;
 
 /**
- * Test configuration for Cucumber tests.
+ * Test Suite for Story S-FB-1.
+ * Connects the VW454Steps to the Cucumber runner.
  */
-@CucumberContextConfiguration
-@SpringBootTest(classes = com.example.Application.class)
+@RunWith(Cucumber.class)
+@CucumberOptions(
+    features = "../../features/S-FB-1.feature",
+    glue = {"com.example.steps"},
+    plugin = {"pretty", "html:target/cucumber/S-FB-1"}
+)
 public class SFB1TestSuite {
-    // Mocks are managed in the Spring Context via S10TestSuite logic or similar configuration.
-    // For this isolated suite, we rely on the steps handling the mocks or a configuration class.
 }

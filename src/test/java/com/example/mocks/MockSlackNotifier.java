@@ -5,22 +5,34 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * In-memory mock adapter for Slack notifications.
- * Verifies that messages were sent and captures their content.
+ * Mock implementation of SlackNotifierPort for testing.
+ * Captures messages sent during workflow execution.
  */
 public class MockSlackNotifier implements SlackNotifierPort {
 
-    public final List<Message> messages = new ArrayList<>();
+    public static class SentMessage {
+        public final String channel;
+        public final String body;
 
-    public record Message(String channel, String body) {}
-
-    @Override
-    public void postMessage(String channel, String messageBody) {
-        // System.out.println("[MockSlack] Sending to " + channel + ": " + messageBody);
-        messages.add(new Message(channel, messageBody));
+        public SentMessage(String channel, String body) {
+            this.channel = channel;
+            this.body = body;
+        }
     }
 
-    public void reset() {
+    private final List<SentMessage> messages = new ArrayList<>();
+
+    @Override
+    public void sendMessage(String channel, String body) {
+        // In a real mock, we might just capture. Here we capture and can verify later.
+        this.messages.add(new SentMessage(channel, body));
+    }
+
+    public List<SentMessage> getMessages() {
+        return new ArrayList<>(messages);
+    }
+
+    public void clear() {
         messages.clear();
     }
 }

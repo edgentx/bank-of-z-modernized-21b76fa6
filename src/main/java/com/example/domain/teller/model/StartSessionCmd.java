@@ -3,13 +3,15 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to initiate a new Teller Session.
- * Encapsulates the necessary context for starting the interaction.
+ * Command to initiate a Teller Session.
+ * Encapsulates the teller identity, terminal, and environmental flags necessary
+ * to verify invariants before the session starts.
  */
 public record StartSessionCmd(
-    String sessionId,
-    String tellerId,
-    String terminalId,
-    boolean isAuthenticated,
-    String currentNavigationState
+        String sessionId,
+        String tellerId,
+        String terminalId,
+        boolean isAuthenticated,
+        boolean isContextValid,
+        boolean isTimedOut
 ) implements Command {}

@@ -1,29 +1,27 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
-import java.util.Optional;
 
 /**
  * Mock implementation of GitHubPort for testing.
- * Simulates GitHub API responses without network calls.
+ * Simulates GitHub issue creation without network calls.
  */
 public class MockGitHubPort implements GitHubPort {
 
-    private String nextIssueUrl = "https://github.com/example/repo/issues/1";
+    private String fakeUrlBase = "https://github.com/example/repo/issues/";
+    private int issueCounter = 1;
     private boolean shouldFail = false;
 
     @Override
-    public Optional<String> createIssue(String title, String body) {
+    public String createIssue(String title, String body) {
         if (shouldFail) {
-            return Optional.empty();
+            throw new RuntimeException("GitHub API simulated failure");
         }
-        // Simulate returning a valid URL string
-        return Optional.of(nextIssueUrl);
+        return fakeUrlBase + issueCounter++;
     }
 
-    // Configuration methods for the test
-    public void setNextIssueUrl(String url) {
-        this.nextIssueUrl = url;
+    public void setIssueCounter(int start) {
+        this.issueCounter = start;
     }
 
     public void setShouldFail(boolean fail) {

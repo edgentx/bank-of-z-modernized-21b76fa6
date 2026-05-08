@@ -6,75 +6,82 @@ import com.example.domain.teller.model.StartSessionCmd;
 import com.example.domain.teller.model.TellerSessionAggregate;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * TDD Red Phase Tests for S-18: StartSessionCmd
- * These tests are written expecting the initial implementation to fail or not exist.
+ * TDD Red Phase Tests for S-18: TellerSession StartSessionCmd
  */
 class TellerSessionAggregateTest {
 
+    private static final String SESSION_ID = "session-123";
+    private static final String TELLER_ID = "teller-01";
+    private static final String TERMINAL_ID = "term-42";
+
     @Test
-    void testExecute_StartSessionCmd_Success() {
+    void testSuccessfullyExecuteStartSessionCmd() {
         // Given
-        String sessionId = "session-123";
-        String tellerId = "teller-01";
-        String terminalId = "term-A";
-        TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markAuthenticated(); // Setup to bypass auth check for happy path
-        StartSessionCmd cmd = new StartSessionCmd(sessionId, tellerId, terminalId);
+        var aggregate = new TellerSessionAggregate(SESSION_ID);
+        var cmd = new StartSessionCmd(SESSION_ID, TELLER_ID, TERMINAL_ID, true);
 
         // When
-        List<com.example.domain.shared.DomainEvent> events = aggregate.execute(cmd);
+        var events = aggregate.execute(cmd);
 
         // Then
         assertNotNull(events);
-        assertFalse(events.isEmpty());
-        assertTrue(events.get(0) instanceof SessionStartedEvent);
+        assertEquals(1, events.size());
         
-        SessionStartedEvent event = (SessionStartedEvent) events.get(0);
-        assertEquals(sessionId, event.aggregateId());
-        assertEquals(tellerId, event.tellerId());
-        assertEquals("session.started", event.type());
+        var event = events.get(0);
+        assertInstanceOf(SessionStartedEvent.class, event);
+        
+        var startedEvent = (SessionStartedEvent) event;
+        assertEquals("teller.session.started", startedEvent.type());
+        assertEquals(SESSION_ID, startedEvent.aggregateId());
+        assertEquals(TELLER_ID, startedEvent.tellerId());
+        assertEquals(TERMINAL_ID, startedEvent.terminalId());
+        assertNotNull(startedEvent.occurredAt());
     }
 
     @Test
-    void testExecute_StartSessionCmd_Rejected_NotAuthenticated() {
+    void testStartSessionCmdRejected_TellerNotAuthenticated() {
         // Given
-        String sessionId = "session-456";
-        String tellerId = "teller-01";
-        String terminalId = "term-A";
-        TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
-        // Do NOT markAuthenticated
-        StartSessionCmd cmd = new StartSessionCmd(sessionId, tellerId, terminalId);
+        var aggregate = new TellerSessionAggregate(SESSION_ID);
+        var cmd = new StartSessionCmd(SESSION_ID, TELLER_ID, TERMINAL_ID, false); // Not authenticated
 
         // When & Then
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
             aggregate.execute(cmd);
         });
-        
-        assertTrue(ex.getMessage().contains("A teller must be authenticated"));
+
+        assertTrue(exception.getMessage().contains("authenticated"));
     }
 
     @Test
-    void testExecute_StartSessionCmd_Rejected_InvalidNavigationState() {
+    void testStartSessionCmdRejected_OperationalContextInvalid() {
         // Given
-        String sessionId = "session-789";
-        String tellerId = "teller-01";
-        String terminalId = ""; // Invalid terminal ID
-        TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markAuthenticated();
-        StartSessionCmd cmd = new StartSessionCmd(sessionId, tellerId, terminalId);
+        var aggregate = new TellerSessionAggregate(SESSION_ID);
+        // Invalid terminal ID (blank)
+        var cmd = new StartSessionCmd(SESSION_ID, TELLER_ID, "", true);
 
         // When & Then
-        // The specific error depends on how the aggregate validates terminalId inside the command vs state.
-        // Based on the stub implementation, it checks the passed command context.
-        Exception ex = assertThrows(Exception.class, () -> {
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
             aggregate.execute(cmd);
         });
-        
-        assertTrue(ex.getMessage().contains("Navigation state") || ex.getMessage().contains("terminal ID"));
+
+        assertTrue(exception.getMessage().contains("Terminal ID"));
+    }
+
+    @Test
+    void testStartSessionCmdRejected_InvalidCommand() {
+        // Given
+        var aggregate = new TellerSessionAggregate(SESSION_ID);
+        // Unknown command type
+        Object badCmd = new Object();
+
+        // When & Then
+        assertThrows(UnknownCommandException.class, () -> {
+            aggregate.execute((com.example.domain.shared.Command) badCmd);
+        });
     }
 }

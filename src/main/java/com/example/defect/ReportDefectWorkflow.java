@@ -1,43 +1,37 @@
 package com.example.defect;
 
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackNotificationPort;
+import io.temporal.spring.boot.WorkflowImpl;
+import io.temporal.workflow.Workflow;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-/**
- * Implementation of the defect reporting workflow.
- * Orchestrates the creation of a GitHub issue and subsequent Slack notification.
- */
-@Component
-public class ReportDefectWorkflow {
+@WorkflowImpl(taskQueue = "DEFECT_TASK_QUEUE")
+public class ReportDefectWorkflowImpl implements ReportDefectWorkflow {
 
-    private final GitHubPort gitHubPort;
-    private final SlackNotificationPort slackNotificationPort;
+    private final SlackNotificationService slackService;
 
-    public ReportDefectWorkflow(GitHubPort gitHubPort, SlackNotificationPort slackNotificationPort) {
-        this.gitHubPort = gitHubPort;
-        this.slackNotificationPort = slackNotificationPort;
+    @Autowired
+    public ReportDefectWorkflowImpl(SlackNotificationService slackService) {
+        this.slackService = slackService;
     }
 
-    /**
-     * Executes the defect reporting workflow.
-     * Corresponds to 'the temporal worker executes _report_defect workflow' step.
-     */
-    public void execute() {
-        String defectTitle = "Defect VW-454: Validation error";
-        String defectBody = "Detailed reproduction steps...";
+    @Override
+    public String reportDefect(String title, String severity, String githubIssueUrl) {
+        // 1. Validate Input
+        if (githubIssueUrl == null || !githubIssueUrl.startsWith("https://github.com/")) {
+             throw new IllegalArgumentException("Invalid GitHub URL provided");
+        }
 
-        // Step 1: Create GitHub Issue
-        String issueUrl = gitHubPort.createIssue(defectTitle, defectBody);
-
-        // Step 2: Construct Slack Message including the GitHub URL
-        String slackMessage = String.format(
-            "Defect Reported: %s\nGitHub Issue: %s",
-            defectTitle,
-            issueUrl
+        // 2. Construct Payload
+        String message = String.format(
+            "Defect Reported: %s\nSeverity: %s\nGitHub Issue: %s",
+            title, severity, githubIssueUrl
         );
 
-        // Step 3: Send Slack Notification
-        slackNotificationPort.sendMessage("#vforce360-issues", slackMessage);
+        // 3. Send Notification (Activity)
+        slackService.sendAlert(message);
+
+        // 4. Emit Event (Simulated for Aggregate)
+        return githubIssueUrl;
     }
 }

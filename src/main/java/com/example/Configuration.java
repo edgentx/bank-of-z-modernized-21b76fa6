@@ -1,19 +1,25 @@
 package com.example;
 
-import com.example.adapters.SlackNotificationAdapter;
+import com.example.application.DefectWorkflowService;
+import com.example.mocks.MockSlackNotificationPort;
 import com.example.ports.SlackNotificationPort;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
-@Configuration
+/**
+ * Test Configuration to wire the Mock implementation for the Port.
+ * In production, this would be replaced by a real adapter bean configuration.
+ */
+@TestConfiguration
 public class Configuration {
 
     @Bean
-    public SlackNotificationPort slackNotificationPort(
-            @Value("${slack.bot.token}") String slackToken) {
-        // In a real environment, we inject the real adapter.
-        // In a test environment, this configuration might be overridden by a TestConfiguration.
-        return new SlackNotificationAdapter(slackToken);
+    public SlackNotificationPort slackNotificationPort() {
+        return new MockSlackNotificationPort();
+    }
+
+    @Bean
+    public DefectWorkflowService defectWorkflowService(SlackNotificationPort slackNotificationPort) {
+        return new DefectWorkflowService(slackNotificationPort);
     }
 }

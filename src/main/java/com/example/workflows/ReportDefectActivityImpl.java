@@ -1,37 +1,33 @@
 package com.example.workflows;
 
-import com.example.vforce.github.model.GithubIssue;
-import com.example.vforce.slack.SlackNotificationService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.ports.SlackPort;
+import com.example.domain.validation.model.SlackNotificationMessage;
+import io.temporal.activity.Activity;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * Implementation of the Temporal Activity.
- * Bridges Temporal execution with Spring services.
+ * Activity implementation connecting to external services (GitHub, Slack).
  */
 @Component
 public class ReportDefectActivityImpl implements ReportDefectActivity {
 
-    private static final Logger log = LoggerFactory.getLogger(ReportDefectActivityImpl.class);
-    private final SlackNotificationService slackService;
+    private final SlackPort slackPort;
 
-    // Constructor injection (Implicit in Spring if single constructor, explicit for clarity)
-    public ReportDefectActivityImpl(SlackNotificationService slackService) {
-        this.slackService = slackService;
+    @Autowired
+    public ReportDefectActivityImpl(SlackPort slackPort) {
+        this.slackPort = slackPort;
     }
 
     @Override
-    public GithubIssue createGithubIssue(String description) {
-        // Simulate GitHub API call
-        String mockUrl = "https://github.com/egdcrypto/bank-of-z/issues/" + System.currentTimeMillis();
-        log.info("[GitHub API] Created issue: {}", mockUrl);
-        return new GithubIssue(mockUrl);
+    public String createGitHubIssue(String description, String severity) {
+        // Simulate API call
+        Activity.sleep(100); // Simulate network latency
+        return "https://github.com/example-bank/z/issues/1";
     }
 
     @Override
-    public void postSlackNotification(String message, GithubIssue issue) {
-        // Delegate to Slack Service
-        slackService.postDefectNotification(message, issue);
+    public void notifySlack(String text) {
+        slackPort.sendNotification(SlackNotificationMessage.of("#vforce360-issues", text));
     }
 }

@@ -1,33 +1,45 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Stores messages in memory instead of calling the real Slack API.
+ * Captures sent messages to verify content and channel in assertions.
  */
 public class MockSlackNotification implements SlackNotificationPort {
 
-    private final List<String> messages = new ArrayList<>();
+    public final List<SentMessage> messages = new ArrayList<>();
 
     @Override
-    public void send(String message) {
-        // Simulate successful send by storing the message
-        this.messages.add(message);
-    }
-
-    @Override
-    public String getLastMessage() {
-        if (messages.isEmpty()) {
-            return null;
+    public void sendMessage(String channel, String messageBody) {
+        // Simulate basic validation found in real clients
+        if (channel == null || channel.isBlank()) {
+            throw new IllegalArgumentException("Channel cannot be null or empty");
         }
-        return messages.get(messages.size() - 1);
+        if (messageBody == null) {
+            throw new IllegalArgumentException("Message body cannot be null");
+        }
+        
+        this.messages.add(new SentMessage(channel, messageBody));
     }
 
-    public void clear() {
+    public record SentMessage(String channel, String body) {}
+
+    public void reset() {
         messages.clear();
+    }
+
+    public boolean wasMessageSentTo(String channel) {
+        return messages.stream().anyMatch(m -> m.channel().equals(channel));
+    }
+
+    public String getLastBodyForChannel(String channel) {
+        return messages.stream()
+                .filter(m -> m.channel().equals(channel))
+                .reduce((a, b) -> b) // get last
+                .orElseThrow(() -> new IllegalStateException("No message sent to channel: " + channel))
+                .body();
     }
 }

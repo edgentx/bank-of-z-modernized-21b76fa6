@@ -4,16 +4,7 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
-/**
- * Event representing the start of a session.
- * (Required to support the "valid TellerSession aggregate" context in tests)
- */
-public record SessionStartedEvent(
-        String aggregateId,
-        String tellerId,
-        String tillId,
-        Instant occurredAt
-) implements DomainEvent {
+public record SessionStartedEvent(String sessionId, String tellerId, String terminalId, Instant startedAt) implements DomainEvent {
     @Override
     public String type() {
         return "session.started";
@@ -21,11 +12,11 @@ public record SessionStartedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return sessionId;
     }
 
     @Override
     public Instant occurredAt() {
-        return occurredAt;
+        return startedAt;
     }
 }

@@ -1,13 +1,15 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.ConfigurationParameter;
+import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
-import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
-
+/**
+ * Test Suite for S-20 BDD Scenarios.
+ * Run with: mvn test -Dtest=S20TestSuite
+ */
 @Suite
-@SelectClasspathResource("features")
-@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
+@IncludeEngines("cucumber")
+@SelectClasspathResource("features/S-20.feature")
 public class S20TestSuite {
 }

@@ -2,14 +2,13 @@ package com.example.domain.validation.model;
 
 import com.example.domain.shared.Command;
 
+import java.util.Map;
+
 /**
- * Command to report a defect identified in the VForce360 system.
- * Used as input to the ReportDefectAggregate.
+ * Command to report a defect (e.g., VW-454) to VForce360.
  */
 public record ReportDefectCmd(
-    String defectId,
-    String storyId,
-    String title,
-    String severity,
-    String component
+        String defectId,
+        String title,
+        Map<String, String> metadata
 ) implements Command {}

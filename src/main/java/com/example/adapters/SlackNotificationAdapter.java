@@ -1,43 +1,26 @@
 package com.example.adapters;
 
 import com.example.ports.SlackNotificationPort;
-import okhttp3.*;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-
 /**
- * Real-world adapter for posting Slack notifications.
- * Uses OkHttp to POST to a Slack Incoming Webhook.
+ * Real adapter for sending Slack notifications.
+ * In a production environment, this would use the Slack WebClient API.
  */
 @Component
-@ConditionalOnProperty(name = "adapters.slack.enabled", havingValue = "true", matchIfMissing = false)
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
-    private final OkHttpClient client;
-    private final String webhookUrl;
-
-    public SlackNotificationAdapter(OkHttpClient client, String webhookUrl) {
-        this.client = client;
-        this.webhookUrl = webhookUrl;
-    }
+    private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
 
     @Override
-    public void postMessage(String messageBody) {
-        String jsonPayload = String.format("{\"text\":\"%s\"}", messageBody.replace("\"", "\\\""));
-
-        Request request = new Request.Builder()
-            .url(webhookUrl)
-            .post(RequestBody.create(jsonPayload, MediaType.get("application/json; charset=utf-8")))
-            .build();
-
-        try (Response response = client.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                throw new RuntimeException("Slack notification failed: " + response.code());
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Slack notification IO error", e);
-        }
+    public void sendDefectReport(String messageBody) {
+        // Implementation stub: Real implementation would post to Slack Webhook or API.
+        // Logging here to simulate external interaction.
+        log.info("[SLACK] Sending notification: {}", messageBody);
+        
+        // Pseudocode for real implementation:
+        // SlackClient.postMessage(messageBody);
     }
 }

@@ -6,23 +6,18 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record MenuNavigatedEvent(
-    String aggregateId,
-    String targetMenuId,
-    String action,
-    Instant occurredAt
+        String aggregateId,
+        String menuId,
+        String action,
+        Instant occurredAt
 ) implements DomainEvent {
+    public MenuNavigatedEvent {
+        if (aggregateId == null) aggregateId = UUID.randomUUID().toString();
+        if (occurredAt == null) occurredAt = Instant.now();
+    }
+
     @Override
     public String type() {
         return "menu.navigated";
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
     }
 }

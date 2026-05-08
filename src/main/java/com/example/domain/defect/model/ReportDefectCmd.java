@@ -2,4 +2,12 @@ package com.example.domain.defect.model;
 
 import com.example.domain.shared.Command;
 
-public record ReportDefectCmd(String defectId, String title, String severity) implements Command {}
+/**
+ * Command to report a defect triggered via temporal-worker.
+ */
+public record ReportDefectCmd(
+    String defectId,
+    String title,
+    String description,
+    String severity
+) implements Command {}

@@ -1,13 +1,18 @@
 package com.example.ports;
 
 /**
- * Port interface for generating GitHub issue URLs.
+ * Port interface for GitHub Issue Tracker integration.
+ * Isolates the domain from the specific GitHub client library implementation.
  */
 public interface GitHubPort {
+
     /**
-     * Generates the full URL for a specific defect ID.
-     * @param defectId The ID (e.g., "VW-454")
-     * @return The full URL string.
+     * Creates an issue in the configured repository.
+     *
+     * @param defectId   The ID of the defect (e.g., VW-454).
+     * @param title      The title of the issue.
+     * @param description The body content of the issue.
+     * @return The HTML URL of the created issue.
      */
-    String getIssueUrl(String defectId);
+    String createIssue(String defectId, String title, String description);
 }

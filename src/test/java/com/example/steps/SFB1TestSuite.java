@@ -1,19 +1,12 @@
 package com.example.steps;
 
-import io.cucumber.junit.Cucumber;
-import io.cucumber.junit.CucumberOptions;
-import org.junit.runner.RunWith;
+import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectClasses;
+import org.junit.platform.suite.api.Suite;
 
-/**
- * Test Runner for S-FB-1.
- * Connects the Step Definitions to the Feature File.
- */
-@RunWith(Cucumber.class)
-@CucumberOptions(
-    features = "features/S-FB-1.feature",
-    glue = {"com.example.steps"},
-    plugin = {"pretty", "html:target/cucumber/S-FB-1.html"}
-)
+@Suite
+@IncludeEngines("cucumber")
+@SelectClasses({VForce360Steps.class})
 public class SFB1TestSuite {
-    // Test execution entry point
+    // Cucumber Suite configuration
 }

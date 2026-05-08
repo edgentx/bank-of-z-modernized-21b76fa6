@@ -2,10 +2,19 @@ package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
 
-public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {
+import java.time.Instant;
+import java.util.Objects;
+
+public record StartSessionCmd(
+        String sessionId,
+        String tellerId,
+        String terminalId,
+        Instant sessionTimeoutAt
+) implements Command {
     public StartSessionCmd {
-        if (sessionId == null || sessionId.isBlank()) throw new IllegalArgumentException("sessionId cannot be null/blank");
-        if (tellerId == null || tellerId.isBlank()) throw new IllegalArgumentException("tellerId cannot be null/blank");
-        if (terminalId == null || terminalId.isBlank()) throw new IllegalArgumentException("terminalId cannot be null/blank");
+        Objects.requireNonNull(sessionId);
+        Objects.requireNonNull(tellerId);
+        Objects.requireNonNull(terminalId);
+        Objects.requireNonNull(sessionTimeoutAt);
     }
 }

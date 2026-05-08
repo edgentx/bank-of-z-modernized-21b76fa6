@@ -1,28 +1,16 @@
 package com.example.steps;
 
-import com.example.mocks.MockGitHubPort;
-import com.example.mocks.MockSlackNotificationPort;
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackNotificationPort;
-import io.cucumber.spring.CucumberContextConfiguration;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
+import io.cucumber.junit.Cucumber;
+import io.cucumber.junit.CucumberOptions;
+import org.junit.runner.RunWith;
 
-/**
- * Spring Test Configuration for VW-454 Regression Tests.
- * This wires up the Mock Adapters to the Ports.
- */
-@TestConfiguration
-@CucumberContextConfiguration
+@RunWith(Cucumber.class)
+@CucumberOptions(
+    features = "features/VW454.feature", // We assume this feature file exists or will be added
+    plugin = {"pretty", "html:target/cucumber-report/VW454.html"},
+    glue = {"com.example.steps"},
+    monochrome = true
+)
 public class VW454TestSuite {
-
-    @Bean
-    public SlackNotificationPort slackNotificationPort() {
-        return new MockSlackNotificationPort();
-    }
-
-    @Bean
-    public GitHubPort gitHubPort() {
-        return new MockGitHubPort();
-    }
+    // This suite runs the specific scenario for VW-454
 }

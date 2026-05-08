@@ -3,18 +3,16 @@ package com.example.domain.navigation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.Objects;
 
 /**
- * Domain event emitted when a screen is successfully rendered.
- * Story: S-21
+ * Event emitted when a screen has been successfully rendered.
  */
 public record ScreenRenderedEvent(
-    String aggregateId,
-    String screenId,
-    String deviceType,
-    String layoutHtml,
-    Instant occurredAt
+        String aggregateId,
+        String deviceType,
+        String presentationLayout,
+        Instant occurredAt
 ) implements DomainEvent {
 
     @Override
@@ -23,12 +21,18 @@ public record ScreenRenderedEvent(
     }
 
     @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
     public Instant occurredAt() {
         return occurredAt;
     }
 
-    @Override
-    public String aggregateId() {
-        return aggregateId;
+    public ScreenRenderedEvent {
+        Objects.requireNonNull(aggregateId, "aggregateId cannot be null");
+        Objects.requireNonNull(deviceType, "deviceType cannot be null");
+        Objects.requireNonNull(occurredAt, "occurredAt cannot be null");
     }
 }

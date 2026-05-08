@@ -5,37 +5,38 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Stores messages in memory to allow verification of content and state.
+ * Mock adapter for Slack notifications.
+ * Stores messages in memory to verify behavior without external I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
     private final Map<String, String> messages = new HashMap<>();
-    private boolean simulateSuccess = true;
 
     @Override
-    public boolean sendMessage(String channel, String body) {
-        messages.put(channel, body);
-        return simulateSuccess;
+    public void sendMessage(String channel, String messageBody) {
+        if (channel == null || channel.isBlank()) {
+            throw new IllegalArgumentException("Channel cannot be null or empty");
+        }
+        if (messageBody == null) {
+            throw new IllegalArgumentException("Message body cannot be null");
+        }
+        // In a real mock, we might want to simulate errors, but for default behavior we just store.
+        this.messages.put(channel, messageBody);
     }
 
     @Override
-    public String getLastMessageBody(String channel) {
-        return messages.get(channel);
+    public String getLastMessage(String channel) {
+        return this.messages.get(channel);
     }
 
     /**
-     * Helper method for tests to inject failure scenarios if needed,
-     * though the current story focuses on content validation.
+     * Helper method for tests to check if a specific channel was ever called.
      */
-    public void setSimulateSuccess(boolean success) {
-        this.simulateSuccess = success;
+    public boolean hasReceivedMessageForChannel(String channel) {
+        return this.messages.containsKey(channel);
     }
 
-    /**
-     * Clears the message history. Useful for test isolation.
-     */
     public void clear() {
-        messages.clear();
+        this.messages.clear();
     }
 }

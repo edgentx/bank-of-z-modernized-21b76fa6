@@ -1,7 +1,8 @@
 package com.example.ports;
 
-import com.example.domain.shared.DomainEvent;
-
+/**
+ * Port interface for Slack Notifications.
+ */
 public interface SlackNotifierPort {
-    void notify(DomainEvent event, String messageBody);
+    void notify(String message);
 }

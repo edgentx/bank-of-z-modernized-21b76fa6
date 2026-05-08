@@ -1,12 +1,11 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.IncludeTags;
+import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
 @Suite
-@IncludeTags("unit")
-@SelectClasspathResource("features")
+@IncludeEngines("cucumber")
+@SelectClasspathResource("features/S-6.feature")
 public class S6TestSuite {
-    // JUnit 5 Suite to run Cucumber tests
 }

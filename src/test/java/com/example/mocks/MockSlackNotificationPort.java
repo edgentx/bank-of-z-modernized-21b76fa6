@@ -1,53 +1,32 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
+import org.springframework.stereotype.Component;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * In-memory mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to channels to allow verification in tests.
+ * In-memory mock for Slack notifications.
+ * Records payloads for assertion in tests.
  */
+@Component
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static final class PostedMessage {
-        public final String channel;
-        public final String body;
-
-        public PostedMessage(String channel, String body) {
-            this.channel = channel;
-            this.body = body;
-        }
-    }
-
-    private final List<PostedMessage> postedMessages = new ArrayList<>();
+    private final List<String> payloads = new ArrayList<>();
 
     @Override
-    public void postMessage(String channel, String messageBody) {
-        // Simulate validation logic
-        if (channel == null || channel.isBlank()) {
-            throw new IllegalArgumentException("Channel cannot be null or empty");
-        }
-        if (messageBody == null) {
-            throw new IllegalArgumentException("Message body cannot be null");
-        }
-        this.postedMessages.add(new PostedMessage(channel, messageBody));
+    public void send(String payload) {
+        this.payloads.add(payload);
     }
 
-    public List<PostedMessage> getPostedMessages() {
-        return new ArrayList<>(postedMessages);
+    @Override
+    public String getLastSentPayload() {
+        if (payloads.isEmpty()) return null;
+        return payloads.get(payloads.size() - 1);
     }
 
     public void clear() {
-        postedMessages.clear();
-    }
-
-    /**
-     * Helper method to check if any message posted to a specific channel contains a specific text.
-     */
-    public boolean channelContains(String channel, String text) {
-        return postedMessages.stream()
-                .filter(m -> m.channel.equals(channel))
-                .anyMatch(m -> m.body.contains(text));
+        payloads.clear();
     }
 }

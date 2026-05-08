@@ -1,29 +1,18 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
-import java.util.ArrayList;
-import java.util.List;
 
-/**
- * Mock implementation of GitHubPort for testing.
- * Allows verification of inputs and simulation of outputs.
- */
+import java.util.concurrent.CompletableFuture;
+
 public class MockGitHubPort implements GitHubPort {
-    private final List<String> createdTitles = new ArrayList<>();
-    private String mockReturnUrl;
-
-    public void setMockReturnUrl(String url) {
-        this.mockReturnUrl = url;
-    }
+    private String responseUrl = "https://github.com/mock/issues/1";
 
     @Override
-    public String createIssue(String title, String body) {
-        createdTitles.add(title);
-        // In a real failure scenario test, this could return null or throw error if configured
-        return mockReturnUrl;
+    public CompletableFuture<String> createIssue(String title, String body) {
+        return CompletableFuture.completedFuture(responseUrl);
     }
 
-    public boolean wasIssueCreatedWithTitle(String title) {
-        return createdTitles.contains(title);
+    public void setResponseUrl(String url) {
+        this.responseUrl = url;
     }
 }

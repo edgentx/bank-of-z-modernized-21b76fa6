@@ -1,18 +1,19 @@
 package com.example.ports;
 
+import java.util.Map;
+
 /**
- * Port interface for VForce360 interactions (e.g., Slack notifications).
- * This defines the contract for the report_defect workflow side effect.
+ * Port interface for the VForce360 diagnostic conversation / Slack integration.
+ * Abstracts the Temporal activity that posts to Slack.
  */
 public interface VForce360NotificationPort {
 
     /**
-     * Sends a defect report to the configured VForce360 channel (e.g., Slack).
+     * Sends the defect report to the VForce360 conversation.
      *
-     * @param title The title of the defect.
-     * @param description The body/description of the defect.
-     * @param githubUrl The URL to the GitHub issue.
-     * @throws IllegalArgumentException if githubUrl is null/blank.
+     * @param defectId The ID of the defect (e.g., "VW-454").
+     * @param metadata Map containing details (summary, severity, githubUrl).
+     * @return true if successfully posted, false otherwise.
      */
-    void publishDefect(String title, String description, String githubUrl);
+    boolean reportDefect(String defectId, Map<String, String> metadata);
 }

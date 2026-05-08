@@ -4,15 +4,24 @@ import java.util.Optional;
 
 /**
  * Port for interacting with GitHub issues.
+ * Used to create or retrieve links for defect tracking.
  */
 public interface GitHubIssuePort {
 
     /**
-     * Creates a new issue on GitHub.
+     * Creates a new issue on GitHub based on the defect details.
      *
-     * @param title The issue title
-     * @param body  The issue body/description
-     * @return The URL of the created issue, or empty if creation failed
+     * @param title The title of the issue
+     * @param body The body content of the issue
+     * @return The HTML URL of the created issue
      */
-    Optional<String> createIssue(String title, String body);
+    String createIssue(String title, String body);
+
+    /**
+     * Retrieves the URL for an existing issue, if it exists.
+     *
+     * @param issueId The identifier of the issue
+     * @return The URL if found, empty otherwise
+     */
+    Optional<String> getIssueUrl(String issueId);
 }

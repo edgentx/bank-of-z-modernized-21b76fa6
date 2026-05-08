@@ -3,18 +3,18 @@ package com.example.domain.validation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.UUID;
 
 /**
- * Event representing that a defect has been reported.
- * Must contain the GitHub Issue URL if applicable.
+ * Event emitted when a defect is successfully reported and validated.
+ * Expected to contain the GitHub URL and Slack notification details.
  */
 public record DefectReportedEvent(
-        String defectId,
-        String title,
-        String githubIssueUrl, // Expected payload
-        Map<String, String> metadata,
-        Instant occurredAt
+    String aggregateId,
+    String defectId,
+    String githubIssueUrl,
+    String slackMessageBody,
+    Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
@@ -22,12 +22,7 @@ public record DefectReportedEvent(
     }
 
     @Override
-    public String aggregateId() {
-        return defectId();
-    }
-
-    @Override
     public Instant occurredAt() {
-        return occurredAt();
+        return occurredAt;
     }
 }

@@ -1,21 +1,17 @@
 package com.example.steps;
 
-import com.example.ports.VForce360Port;
-import com.example.mocks.MockVForce360Adapter;
 import io.cucumber.spring.CucumberContextConfiguration;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import com.example.mocks.MockGitHubMetadataPort;
+import com.example.ports.SlackNotificationPort;
 
 /**
- * Test configuration for S-FB-1 specific dependencies.
- * Ensures the Mock Adapter is used instead of a real implementation.
+ * Test configuration for Cucumber tests.
  */
-@TestConfiguration
 @CucumberContextConfiguration
+@SpringBootTest(classes = com.example.Application.class)
 public class SFB1TestSuite {
-
-    @Bean
-    public VForce360Port vForce360Port() {
-        return new MockVForce360Adapter();
-    }
+    // Mocks are managed in the Spring Context via S10TestSuite logic or similar configuration.
+    // For this isolated suite, we rely on the steps handling the mocks or a configuration class.
 }

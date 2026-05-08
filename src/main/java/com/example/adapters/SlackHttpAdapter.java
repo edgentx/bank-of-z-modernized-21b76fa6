@@ -6,9 +6,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Real implementation of SlackPort.
- * In a real scenario, this would use WebClient or RestTemplate to call Slack Webhooks.
- * For the scope of this validation fix, we verify the contract logic.
+ * Real HTTP Adapter for Slack.
+ * In a production environment, this would use RestTemplate/WebClient to call the Slack API.
+ * For defect VW-454, we assume this connects to #vforce360-issues.
  */
 @Component
 public class SlackHttpAdapter implements SlackPort {
@@ -16,10 +16,10 @@ public class SlackHttpAdapter implements SlackPort {
     private static final Logger log = LoggerFactory.getLogger(SlackHttpAdapter.class);
 
     @Override
-    public void notifyDefectReported(String defectId, String githubIssueUrl) {
-        log.info("Notifying Slack channel for defect {}: GitHub Issue created at {}", defectId, githubIssueUrl);
-        // Actual implementation would post to:
-        // POST https://hooks.slack.com/services/...
-        // Body: { "text": String.format("Defect %s filed: %s", defectId, githubIssueUrl) }
+    public boolean sendMessage(String channelId, String message) {
+        // TODO: Implement actual Slack API call using RestTemplate or WebClient.
+        // e.g., slackClient.postMessage(channelId, message);
+        log.info("[MOCK] Sending message to Slack channel {}: {}", channelId, message);
+        return true;
     }
 }

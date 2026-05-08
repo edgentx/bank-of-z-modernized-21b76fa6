@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * In-memory implementation of ValidationRepository for testing.
+ * In-memory repository for ValidationAggregate testing.
  */
 public class InMemoryValidationRepository implements ValidationRepository {
 

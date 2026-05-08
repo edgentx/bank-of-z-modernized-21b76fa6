@@ -1,66 +1,82 @@
 package com.example.steps;
 
-import com.example.domain.notification.model.*;
+import com.example.application.DefectReportingActivities;
+import com.example.ports.SlackNotifierPort;
+import com.example.ports.GitHubPort;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
-import static org.junit.jupiter.api.Assertions.*;
+import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.Map;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
 /**
- * Cucumber Steps for S-FB-1.
- * Testing the defect reporting flow specifically validating the GitHub URL in the Slack body.
+ * Steps for Story S-FB-1: Validating VW-454 (GitHub URL in Slack body).
+ * Verifies that when a defect is reported, the Slack notification contains the GitHub issue URL.
  */
 public class SFB1Steps {
 
-    private NotificationAggregate aggregate;
-    private NotificationPostedEvent lastEvent;
-    private Exception caughtException;
+    @Autowired
+    private DefectReportingActivities defectReportingActivities;
 
-    @Given("a defect report command is issued for VW-454")
-    public void a_defect_report_command_is_issued() {
-        // Setup: Create the aggregate
-        this.aggregate = new NotificationAggregate("notif-123");
+    @Autowired
+    private SlackNotifierPort slackNotifierPort;
+
+    @Autowired
+    private GitHubPort gitHubPort;
+
+    private String reportedIssueUrl;
+    private Exception capturedException;
+
+    @Given("the system has connectivity to external services")
+    public void system_has_connectivity() {
+        // Pre-condition: Mocks are initialized via Spring config
+        assertNotNull("SlackNotifierPort should be initialized", slackNotifierPort);
+        assertNotNull("GitHubPort should be initialized", gitHubPort);
     }
 
-    @When("the report_defect command is executed with valid parameters")
-    public void the_report_defect_command_is_executed() {
-        ReportDefectCommand cmd = new ReportDefectCommand(
-            "VW-454 — GitHub URL in Slack body",
-            "User reported a defect regarding GitHub URL validation.",
-            "LOW",
-            "validation",
-            Map.of("githubIssueId", "454", "project", "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1")
-        );
+    @When("_report_defect is triggered via temporal-worker exec")
+    public void trigger_report_defect() {
+        // We want to verify the end-to-end flow logic, specifically the link generation.
+        // The defect report involves creating a GitHub issue and then notifying Slack.
+        
+        // 1. Mock GitHub to return a URL
+        String mockUrl = "https://github.com/mock-repo/issues/454";
+        when(gitHubPort.createIssue(anyString(), anyString())).thenReturn(mockUrl);
 
+        // 2. Trigger the Activity
         try {
-            var events = aggregate.execute(cmd);
-            if (!events.isEmpty()) {
-                this.lastEvent = (NotificationPostedEvent) events.get(0);
-            }
+            // The 'execute' method in the real app creates the issue, then notifies Slack.
+            // It should return the URL of the created issue.
+            reportedIssueUrl = defectReportingActivities.execute(
+                "VW-454 - Validation Failed",
+                "Defect detected during validation flow."
+            );
         } catch (Exception e) {
-            this.caughtException = e;
+            this.capturedException = e;
         }
     }
 
-    @Then("the resulting Slack body should contain the GitHub issue URL")
-    public void the_resulting_slack_body_should_contain_the_github_issue_url() {
-        assertNotNull(lastEvent, "Event should not be null");
-        String body = lastEvent.body();
-        
-        // The core validation: Does the body contain the formatted link?
-        // Expected format: <https://github.com/example-org/egdcrypto-bank-of-z/issues/454|Click here>
-        assertTrue(body.contains("<https://github.com/example-org/egdcrypto-bank-of-z/issues/454"), 
-            "Slack body should contain the GitHub Issue URL for VW-454");
-        assertTrue(body.contains("Click here>"), 
-            "Slack body should contain the link text");
-    }
+    @Then("Slack body contains GitHub issue link")
+    public void verify_slack_body_contains_link() {
+        // Verify no exceptions occurred during the flow
+        if (capturedException != null) {
+            throw new RuntimeException("Execution failed: " + capturedException.getMessage(), capturedException);
+        }
 
-    @Then("the notification event metadata should include the project ID")
-    public void the_notification_event_metadata_should_include_the_project_id() {
-        assertNotNull(lastEvent);
-        String projectId = lastEvent.metadata().get("project");
-        assertEquals("21b76fa6-afb6-4593-9e1b-b5d7548ac4d1", projectId);
+        // Verify that the GitHub service was called
+        verify(gitHubPort, times(1)).createIssue(anyString(), anyString());
+
+        // Verify that the returned URL is not null (expectation: Slack body includes GitHub issue: <url>)
+        assertNotNull("The GitHub URL should have been generated and returned", reportedIssueUrl);
+        assertTrue("URL should start with https", reportedIssueUrl.startsWith("https"));
+
+        // Verify that the Slack notification was called with the URL in the body
+        verify(slackNotifierPort, times(1)).notify(argThat(message -> 
+            message != null && message.contains(reportedIssueUrl)
+        ));
     }
 }

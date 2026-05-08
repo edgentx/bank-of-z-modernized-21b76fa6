@@ -1,8 +1,21 @@
 package com.example.domain.teller.repository;
 
-import com.example.domain.shared.Aggregate;
+import com.example.domain.teller.model.TellerSessionAggregate;
 
+import java.util.Optional;
+
+/**
+ * Repository interface for TellerSession aggregates.
+ */
 public interface TellerSessionRepository {
-    void save(Aggregate aggregate);
-    Aggregate load(String id);
+    void save(TellerSessionAggregate aggregate);
+    TellerSessionAggregate load(String id);
+    // Optional: existence check
+    default Optional<TellerSessionAggregate> findById(String id) {
+        try {
+            return Optional.of(load(id));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
 }

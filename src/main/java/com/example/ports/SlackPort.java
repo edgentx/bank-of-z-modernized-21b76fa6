@@ -1,9 +1,9 @@
 package com.example.ports;
 
 /**
- * Interface for Slack notifications.
- * Used by Temporal workers to send alerts.
+ * Port for sending Slack notifications.
+ * Used by tests to mock Slack interaction.
  */
 public interface SlackPort {
-    void sendMessage(String messageBody);
+    void sendMessage(String channel, String body);
 }

@@ -10,7 +10,7 @@ public interface SlackNotificationPort {
      * Posts a message to a Slack channel.
      *
      * @param channelId The target channel ID (e.g., "#vforce360-issues").
-     * @param body The formatted message body.
+     * @param body      The formatted message body.
      */
     void postMessage(String channelId, String body);
 }

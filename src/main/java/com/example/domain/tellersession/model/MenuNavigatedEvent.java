@@ -3,23 +3,18 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
-/**
- * Event emitted when the teller successfully navigates to a new menu.
- */
 public record MenuNavigatedEvent(
-        String aggregateId,
-        String menuId,
-        String action,
-        Instant occurredAt
+    String aggregateId,
+    String menuId,
+    String action,
+    Instant occurredAt
 ) implements DomainEvent {
-
+    
     public MenuNavigatedEvent {
-        Objects.requireNonNull(aggregateId, "aggregateId cannot be null");
-        Objects.requireNonNull(menuId, "menuId cannot be null");
-        Objects.requireNonNull(action, "action cannot be null");
-        Objects.requireNonNull(occurredAt, "occurredAt cannot be null");
+        // Ensure defaults if needed, though records enforce initialization
+        if (occurredAt == null) occurredAt = Instant.now();
     }
 
     @Override
@@ -30,5 +25,10 @@ public record MenuNavigatedEvent(
     @Override
     public String aggregateId() {
         return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

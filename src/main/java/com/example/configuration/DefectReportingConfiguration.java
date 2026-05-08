@@ -1,35 +1,26 @@
 package com.example.configuration;
 
-import com.example.adapters.GitHubAdapter;
-import com.example.adapters.SlackAdapter;
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackPort;
-import com.example.workflows.ReportDefectActivities;
-import com.example.workflows.ReportDefectActivitiesImpl;
-import com.example.workflows.ReportDefectWorkflow;
-import com.example.workflows.ReportDefectWorkflowImpl;
+import com.example.domain.shared.SlackMessageValidator;
+import com.example.ports.SlackNotificationPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import com.example.adapters.WebhookSlackNotificationAdapter;
 
 /**
- * Spring Configuration for Defect Reporting components.
- * Wires the real adapters to the Temporal Activities.
+ * Configuration for Defect Reporting components.
+ * Wires the ports and adapters together.
  */
 @Configuration
 public class DefectReportingConfiguration {
 
     @Bean
-    public GitHubPort gitHubPort() {
-        return new GitHubAdapter();
+    public SlackMessageValidator slackMessageValidator() {
+        // Basic validator ensuring non-empty and URL presence
+        return message -> message != null && !message.isBlank() && message.contains("http");
     }
 
     @Bean
-    public SlackPort slackPort() {
-        return new SlackAdapter();
-    }
-
-    @Bean
-    public ReportDefectActivities reportDefectActivities(GitHubPort gitHubPort, SlackPort slackPort) {
-        return new ReportDefectActivitiesImpl(gitHubPort, slackPort);
+    public SlackNotificationPort slackNotificationPort(SlackMessageValidator validator) {
+        return new WebhookSlackNotificationAdapter(validator);
     }
 }

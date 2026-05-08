@@ -1,14 +1,10 @@
 package com.example.workflow;
 
-import io.temporal.workflow.WorkflowInterface;
-import io.temporal.workflow.WorkflowMethod;
+import com.example.domain.defect.model.ReportDefectCmd;
 
 /**
- * Temporal Workflow definition.
+ * Workflow Interface for reporting defects.
  */
-@WorkflowInterface
 public interface DefectWorkflow {
-
-    @WorkflowMethod
-    String executeReportDefect(String projectId, String title, String description);
+    void reportDefect(ReportDefectCmd cmd);
 }

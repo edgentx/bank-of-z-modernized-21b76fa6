@@ -1,7 +1,7 @@
 package com.example.mocks;
 
-import com.example.domain.tellersession.model.TellerSessionAggregate;
-import com.example.domain.tellersession.repository.TellerSessionRepository;
+import com.example.domain.uimodel.TellerSessionAggregate;
+import com.example.domain.uimodel.repository.TellerSessionRepository;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,7 +16,7 @@ public class InMemoryTellerSessionRepository implements TellerSessionRepository 
     }
 
     @Override
-    public Optional<TellerSessionAggregate> findById(String id) {
-        return Optional.ofNullable(store.get(id));
+    public Optional<TellerSessionAggregate> findById(String sessionId) {
+        return Optional.ofNullable(store.get(sessionId));
     }
 }

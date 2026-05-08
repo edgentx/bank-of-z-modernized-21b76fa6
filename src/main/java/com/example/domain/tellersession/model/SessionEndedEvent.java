@@ -5,17 +5,16 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Event emitted when a teller session is terminated.
- * Clears sensitive state from the Teller terminal context.
- */
 public record SessionEndedEvent(
-        String aggregateId,
-        String tellerId,
-        Instant occurredAt
+    String aggregateId,
+    Instant occurredAt
 ) implements DomainEvent {
-    public SessionEndedEvent(String aggregateId, String tellerId) {
-        this(aggregateId, tellerId, Instant.now());
+    public SessionEndedEvent {
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId cannot be null");
+    }
+
+    public SessionEndedEvent(String aggregateId) {
+        this(aggregateId, Instant.now());
     }
 
     @Override

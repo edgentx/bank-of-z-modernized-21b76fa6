@@ -9,14 +9,4 @@ public record SessionStartedEvent(String aggregateId, String tellerId, String te
     public String type() {
         return "session.started";
     }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
 }

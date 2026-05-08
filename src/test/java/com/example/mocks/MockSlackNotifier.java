@@ -1,17 +1,26 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotifierPort;
-import com.example.domain.shared.DomainEvent;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * In-memory mock adapter for Slack notifications.
+ * Verifies that messages were sent and captures their content.
+ */
 public class MockSlackNotifier implements SlackNotifierPort {
-    public final List<CapturedNotification> notifications = new ArrayList<>();
+
+    public final List<Message> messages = new ArrayList<>();
+
+    public record Message(String channel, String body) {}
 
     @Override
-    public void notify(DomainEvent event, String messageBody) {
-        notifications.add(new CapturedNotification(event, messageBody));
+    public void postMessage(String channel, String messageBody) {
+        // System.out.println("[MockSlack] Sending to " + channel + ": " + messageBody);
+        messages.add(new Message(channel, messageBody));
     }
 
-    public record CapturedNotification(DomainEvent event, String messageBody) {}
+    public void reset() {
+        messages.clear();
+    }
 }

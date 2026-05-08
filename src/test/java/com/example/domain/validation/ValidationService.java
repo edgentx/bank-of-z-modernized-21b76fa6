@@ -1,6 +1,7 @@
 package com.example.domain.validation;
 
 import com.example.domain.shared.Command;
+import com.example.domain.validation.model.ReportDefectCmd;
 import com.example.ports.GitHubPort;
 import com.example.ports.SlackNotificationPort;
 
@@ -9,8 +10,7 @@ import java.util.Map;
 
 /**
  * Service to handle the E2E flow of reporting defects.
- * This is a placeholder/implementation stub required for the compilation and execution of the test.
- * In a real scenario, this would be handled by a Temporal Workflow or Application Service.
+ * Implements S-FB-1: Validating VW-454 GitHub URL in Slack body.
  */
 public class ValidationService {
 
@@ -23,21 +23,39 @@ public class ValidationService {
     }
 
     public void handleReportDefect(Command cmd) {
-        // 1. Create GitHub Issue
-        // In a real app, we'd inspect the Command properties.
-        // For this test harness, we assume the title is relevant.
-        // Since Command is a shared interface and we don't have the properties exposed generically,
-        // we will simulate the logic.
-        
-        // NOTE: The actual implementation logic would go here.
-        // For the test to pass in the Red phase, this implementation is currently INCOMPLETE/STUB.
-        
-        String url = gitHubPort.createIssue("Dummy Title", "Dummy Desc");
-        
-        Map<String, String> attachments = new HashMap<>();
-        attachments.put("github_url", url); // CRITICAL: This must exist for the test to pass (Green phase)
+        if (!(cmd instanceof ReportDefectCmd reportDefectCmd)) {
+            throw new IllegalArgumentException("Unknown command type: " + cmd.getClass().getSimpleName());
+        }
 
-        // 2. Send Slack Notification
-        slackPort.sendNotification("Defect Reported", attachments);
+        // 1. Create GitHub Issue
+        // Extracting title and constructing description from command data
+        String title = reportDefectCmd.title();
+        String description = buildDescription(reportDefectCmd);
+        
+        String url = gitHubPort.createIssue(title, description);
+        
+        if (url == null || url.isBlank()) {
+            throw new IllegalStateException("GitHub Port returned a blank URL");
+        }
+
+        // 2. Prepare Slack Payload
+        Map<String, String> attachments = new HashMap<>();
+        // CRITICAL for S-FB-1: Ensure the github_url is populated
+        attachments.put("github_url", url);
+        attachments.put("defect_id", reportDefectCmd.defectId());
+        
+        // 3. Send Slack Notification
+        // The body includes the Defect ID to satisfy E2E validation
+        String body = String.format("Defect Reported: %s", reportDefectCmd.defectId());
+        slackPort.sendNotification(body, attachments);
+    }
+
+    private String buildDescription(ReportDefectCmd cmd) {
+        StringBuilder sb = new StringBuilder(cmd.title());
+        if (cmd.metadata() != null && !cmd.metadata().isEmpty()) {
+            sb.append("\n\nMetadata:\n");
+            cmd.metadata().forEach((k, v) -> sb.append(k).append(": ").append(v).append("\n"));
+        }
+        return sb.toString();
     }
 }

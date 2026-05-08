@@ -1,35 +1,36 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
-import java.util.HashMap;
-import java.util.Map;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Mock implementation of GitHubIssuePort for testing.
- * Allows configuring specific URLs for issue IDs.
+ * Returns a predictable URL and captures inputs for verification.
  */
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private final Map<String, String> urlMap = new HashMap<>();
-    private String defaultUrl = null;
+    private final String mockedUrl;
+    private final List<IssueRequest> requests = new ArrayList<>();
 
-    public void mockUrl(String issueId, String url) {
-        urlMap.put(issueId, url);
-    }
+    public record IssueRequest(String title, String body) {}
 
-    public void setDefaultUrl(String url) {
-        this.defaultUrl = url;
+    public MockGitHubIssuePort(String mockedUrl) {
+        this.mockedUrl = mockedUrl;
     }
 
     @Override
-    public String getIssueUrl(String issueId) {
-        if (urlMap.containsKey(issueId)) {
-            return urlMap.get(issueId);
-        }
-        if (defaultUrl != null) {
-            return defaultUrl;
-        }
-        // Default throw to ensure tests fail if not configured correctly
-        throw new RuntimeException("MockGitHubIssuePort: No URL configured for issue " + issueId);
+    public String createIssue(String title, String body) {
+        requests.add(new IssueRequest(title, body));
+        return mockedUrl;
+    }
+
+    public List<IssueRequest> getRequests() {
+        return requests;
+    }
+
+    public boolean hasCreatedIssue() {
+        return !requests.isEmpty();
     }
 }

@@ -3,15 +3,17 @@ package com.example;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.scheduling.annotation.EnableAsync;
 
 /**
- * Main application entry point for Bank of Z Modernization.
+ * Bank of Z Modernization Application Entry Point.
+ * 
+ * Scans components including Adapters and Ports to facilitate Dependency Injection
+ * for the defect verification workflows.
  */
 @SpringBootApplication
-@EnableAsync
-@ComponentScan(basePackages = {"com.example.domain", "com.example.adapters", "com.example.config"})
+@ComponentScan(basePackages = {"com.example.domain", "com.example.adapters", "com.example.ports"})
 public class Application {
+
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }

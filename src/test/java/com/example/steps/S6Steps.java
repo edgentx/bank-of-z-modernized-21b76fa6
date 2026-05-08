@@ -3,7 +3,7 @@ package com.example.steps;
 import com.example.domain.account.model.AccountAggregate;
 import com.example.domain.account.model.AccountStatusUpdatedEvent;
 import com.example.domain.account.model.UpdateAccountStatusCmd;
-import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.DomainException;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -16,35 +16,32 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class S6Steps {
 
-    private AccountAggregate aggregate;
-    private List<DomainEvent> resultEvents;
+    private AccountAggregate account;
     private Exception caughtException;
+    private List<com.example.domain.shared.DomainEvent> result;
 
     @Given("a valid Account aggregate")
     public void aValidAccountAggregate() {
-        aggregate = new AccountAggregate(
-            "ACC-123", 
-            AccountAggregate.AccountType.SAVINGS, 
-            new BigDecimal("500.00")
-        );
+        account = new AccountAggregate("ACC-123");
+        // Hydrate to a valid state
+        account.hydrate(new BigDecimal("500.00"), UpdateAccountStatusCmd.AccountStatus.ACTIVE, "CHECKING");
     }
 
-    @And("a valid accountNumber is provided")
+    @Given("a valid accountNumber is provided")
     public void aValidAccountNumberIsProvided() {
-        // Account number is set in the aggregate creation above
-        // We assume the command uses this same number.
+        // Handled by aggregate construction
     }
 
-    @And("a valid newStatus is provided")
+    @Given("a valid newStatus is provided")
     public void aValidNewStatusIsProvided() {
-        // Status is provided in the command execution step below
+        // Handled in When step
     }
 
     @When("the UpdateAccountStatusCmd command is executed")
     public void theUpdateAccountStatusCmdCommandIsExecuted() {
         try {
-            var cmd = new UpdateAccountStatusCmd("ACC-123", AccountAggregate.AccountStatus.FROZEN);
-            resultEvents = aggregate.execute(cmd);
+            UpdateAccountStatusCmd cmd = new UpdateAccountStatusCmd("ACC-123", UpdateAccountStatusCmd.AccountStatus.FROZEN);
+            result = account.execute(cmd);
         } catch (Exception e) {
             caughtException = e;
         }
@@ -52,80 +49,48 @@ public class S6Steps {
 
     @Then("a account.status.updated event is emitted")
     public void aAccountStatusUpdatedEventIsEmitted() {
-        assertNull(caughtException, "Should not have thrown an exception");
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof AccountStatusUpdatedEvent);
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertTrue(result.get(0) instanceof AccountStatusUpdatedEvent);
+        AccountStatusUpdatedEvent event = (AccountStatusUpdatedEvent) result.get(0);
+        assertEquals(UpdateAccountStatusCmd.AccountStatus.ACTIVE, event.oldStatus());
+        assertEquals(UpdateAccountStatusCmd.AccountStatus.FROZEN, event.newStatus());
     }
 
-    // --- Error Scenarios ---
+    // --- Rejection Scenarios ---
 
     @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
-    public void aAccountAggregateThatViolatesBalance() {
-        // Minimum balance for SAVINGS is 100.00 in our mock logic.
-        // We create an account with 50.00.
-        aggregate = new AccountAggregate(
-            "ACC-LOW-BAL", 
-            AccountAggregate.AccountType.SAVINGS, 
-            new BigDecimal("50.00")
-        );
+    public void aAccountAggregateThatViolatesMinimumBalance() {
+        account = new AccountAggregate("ACC-LOW");
+        // Set balance low (e.g. 50) for Savings (min 100)
+        account.hydrate(new BigDecimal("50.00"), UpdateAccountStatusCmd.AccountStatus.ACTIVE, "SAVINGS");
     }
 
     @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
-    public void aAccountAggregateThatViolatesStatus() {
-        // Create a FROZEN account. The business rule in our aggregate 
-        // prevents re-activating a frozen account directly (mocked logic for the requirement).
-        aggregate = new AccountAggregate(
-            "ACC-FROZEN", 
-            AccountAggregate.AccountType.CHECKING, 
-            new BigDecimal("100.00")
-        );
-        // Force it to frozen to simulate the state violation
-        aggregate.execute(new UpdateAccountStatusCmd("ACC-FROZEN", AccountAggregate.AccountStatus.FROZEN));
-        aggregate.clearEvents(); // Clear setup events
+    public void aAccountAggregateThatViolatesActiveStatus() {
+        account = new AccountAggregate("ACC-FROZEN");
+        // Set status to FROZEN. The logic in execute checks if status != ACTIVE and throws.
+        account.hydrate(new BigDecimal("500.00"), UpdateAccountStatusCmd.AccountStatus.FROZEN, "CHECKING");
     }
 
     @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
-    public void aAccountAggregateThatViolatesImmutability() {
-        // We simulate this by trying to pass a DIFFERENT account number in the command 
-        // than what the aggregate holds.
-        aggregate = new AccountAggregate(
-            "ACC-ORIG", 
-            AccountAggregate.AccountType.CHECKING, 
-            new BigDecimal("0.00")
-        );
+    public void aAccountAggregateThatViolatesImmutableAccountNumber() {
+        account = new AccountAggregate("ACC-MUTABLE");
+        account.hydrate(new BigDecimal("100.00"), UpdateAccountStatusCmd.AccountStatus.ACTIVE, "CHECKING");
+        // Force the aggregate into a state where account number is considered mutable (a violation)
+        account.setAccountNumberMutable(true);
     }
-
-    // Re-use the same When step
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(caughtException, "Expected an exception to be thrown");
-        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
+        assertNotNull(caughtException);
+        // We expect an IllegalStateException or a custom DomainException
+        assertTrue(caughtException instanceof IllegalStateException);
     }
 
-    // Specific overrides for the different violation types to ensure test isolation
-    
-    @When("the UpdateAccountStatusCmd command is executed with mismatched ID")
-    public void theUpdateAccountStatusCmdCommandIsExecutedWithMismatchedId() {
-        try {
-            // Intentionally use wrong ID
-            var cmd = new UpdateAccountStatusCmd("ACC-WRONG", AccountAggregate.AccountStatus.FROZEN);
-            resultEvents = aggregate.execute(cmd);
-        } catch (Exception e) {
-            caughtException = e;
-        }
+    @When("the UpdateAccountStatusCmd command is executed for rejection")
+    public void theUpdateAccountStatusCmdCommandIsExecutedForRejection() {
+        // Reuse the same When logic, but the state of the aggregate determines the outcome
+        theUpdateAccountStatusCmdCommandIsExecuted();
     }
-
-    @When("the UpdateAccountStatusCmd command is executed to activate frozen")
-    public void theUpdateAccountStatusCmdCommandIsExecutedToActivateFrozen() {
-        try {
-             // Try to activate the frozen account created in the Given step
-            var cmd = new UpdateAccountStatusCmd("ACC-FROZEN", AccountAggregate.AccountStatus.ACTIVE);
-            resultEvents = aggregate.execute(cmd);
-        } catch (Exception e) {
-            caughtException = e;
-        }
-    }
-
 }

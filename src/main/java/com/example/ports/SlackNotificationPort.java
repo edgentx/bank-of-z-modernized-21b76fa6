@@ -1,17 +1,18 @@
 package com.example.ports;
 
-import com.example.domain.shared.Command;
-
 /**
- * Port interface for sending Slack notifications.
- * This decouples the domain logic from the concrete Slack API implementation.
+ * Port for sending Slack notifications.
+ * Abstraction used to allow mocking in tests and switching implementations.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends a notification payload to the configured Slack channel.
+     * Posts a message to a Slack channel.
      *
-     * @param payload The formatted message payload intended for Slack.
+     * @param channel The target channel (e.g. "#vforce360-issues")
+     * @param messageBody The formatted message body
+     * @throws IllegalArgumentException if channel or body is invalid
+     * @throws RuntimeException if the external API call fails
      */
-    void send(String payload);
+    void postMessage(String channel, String messageBody);
 }

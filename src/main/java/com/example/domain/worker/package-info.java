@@ -1,5 +1,5 @@
 /**
- * Worker and Workflow components.
- * Contains orchestrations for Temporal workflows and business logic that spans multiple domains (e.g., Defect Reporting).
+ * Ports (Interfaces) for external integrations.
+ * Following Hexagonal Architecture, these define the contracts for the outside world.
  */
-package com.example.domain.worker;
+package com.example.ports;

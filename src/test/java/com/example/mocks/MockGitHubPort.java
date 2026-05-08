@@ -1,22 +1,30 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Mock implementation of GitHubPort for testing.
- * Returns a predictable URL.
+ * Simulates GitHub API responses locally.
  */
 public class MockGitHubPort implements GitHubPort {
 
-    private final String mockUrlBase;
-
-    public MockGitHubPort(String mockUrlBase) {
-        this.mockUrlBase = mockUrlBase;
-    }
+    private final Map<String, String> issueUrls = new HashMap<>();
+    private boolean shouldFail = false;
 
     @Override
     public String createIssue(String title, String body) {
-        // Simulate GitHub returning a valid URL
-        return mockUrlBase + "/issue/" + System.currentTimeMillis();
+        if (shouldFail) {
+            throw new RuntimeException("GitHub API unavailable");
+        }
+        // Simulate GitHub returning a URL
+        String fakeUrl = "https://github.com/example/issues/" + System.currentTimeMillis();
+        issueUrls.put(title, fakeUrl);
+        return fakeUrl;
+    }
+
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
     }
 }

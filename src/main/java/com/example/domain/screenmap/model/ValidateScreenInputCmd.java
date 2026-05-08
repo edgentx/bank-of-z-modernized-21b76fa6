@@ -5,11 +5,7 @@ import com.example.domain.shared.Command;
 import java.util.Map;
 
 /**
- * Command to validate user input for a specific screen.
+ * Command to validate user input against a specific Screen Map.
  */
 public record ValidateScreenInputCmd(String screenId, Map<String, String> inputFields) implements Command {
-    public ValidateScreenInputCmd {
-        if (screenId == null || screenId.isBlank()) throw new IllegalArgumentException("screenId required");
-        if (inputFields == null) throw new IllegalArgumentException("inputFields required");
-    }
 }

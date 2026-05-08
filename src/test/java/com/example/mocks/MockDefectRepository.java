@@ -1,14 +1,21 @@
 package com.example.mocks;
 
-import com.example.domain.shared.Command;
-import com.example.ports.DefectRepository;
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.repository.DefectRepository;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
-/**
- * Mock implementation of DefectRepository for testing.
- */
 public class MockDefectRepository implements DefectRepository {
+    private final Map<String, DefectAggregate> store = new HashMap<>();
+
     @Override
-    public void save(Command command) {
-        // No-op in memory mock
+    public void save(DefectAggregate aggregate) {
+        store.put(aggregate.id(), aggregate);
+    }
+
+    @Override
+    public Optional<DefectAggregate> findById(String defectId) {
+        return Optional.ofNullable(store.get(defectId));
     }
 }

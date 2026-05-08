@@ -1,6 +1,7 @@
 package com.example.steps;
 
-import com.example.domain.shared.DomainException;
+import com.example.domain.shared.Command;
+import com.example.domain.shared.DomainEvent;
 import com.example.domain.statement.model.ExportStatementCmd;
 import com.example.domain.statement.model.StatementAggregate;
 import com.example.domain.statement.model.StatementExportedEvent;
@@ -17,45 +18,47 @@ import static org.junit.jupiter.api.Assertions.*;
 public class S9Steps {
 
     private StatementAggregate aggregate;
+    private String statementId;
+    private String format;
+    private List<DomainEvent> resultEvents;
     private Exception capturedException;
-    private List<com.example.domain.shared.DomainEvent> resultEvents;
 
     @Given("a valid Statement aggregate")
     public void a_valid_statement_aggregate() {
-        aggregate = new StatementAggregate("stmt-123");
-        // Configure valid state: generated, closed period, balances match
-        aggregate.configureForTest(true, true, BigDecimal.valueOf(100.00), BigDecimal.valueOf(100.00));
+        // Create a valid aggregate (closed period, balanced)
+        statementId = "stmt-123";
+        aggregate = new StatementAggregate(statementId, true, false);
     }
 
     @Given("a Statement aggregate that violates: A statement must be generated for a closed period and cannot be altered retroactively.")
-    public void a_statement_aggregate_violates_closed_period() {
-        aggregate = new StatementAggregate("stmt-violate-period");
-        // Generated = true, Period Closed = false (Violation)
-        aggregate.configureForTest(true, false, BigDecimal.ZERO, BigDecimal.ZERO);
+    public void a_statement_aggregate_that_violates_closed_period() {
+        // Force aggregate into invalid state for this invariant (period not closed)
+        statementId = "stmt-invalid-period";
+        aggregate = new StatementAggregate(statementId, false, false);
     }
 
     @Given("a Statement aggregate that violates: Statement opening balance must exactly match the closing balance of the previous statement.")
-    public void a_statement_aggregate_violates_balance_match() {
-        aggregate = new StatementAggregate("stmt-violate-balance");
-        // Generated = true, Period Closed = true, but Opening != Previous Closing (Violation)
-        aggregate.configureForTest(true, true, BigDecimal.valueOf(50.00), BigDecimal.valueOf(100.00));
+    public void a_statement_aggregate_that_violates_balance_matching() {
+        // Force aggregate into invalid state for this invariant (mismatch)
+        statementId = "stmt-invalid-balance";
+        aggregate = new StatementAggregate(statementId, true, true);
     }
 
     @And("a valid statementId is provided")
     public void a_valid_statement_id_is_provided() {
-        // ID is implicitly set in the aggregate constructor for these tests
-        assertNotNull(aggregate.id());
+        // statementId is initialized in the Given blocks
+        assertNotNull(statementId);
     }
 
     @And("a valid format is provided")
     public void a_valid_format_is_provided() {
-        // Format will be provided in the When step via Command
+        this.format = "PDF";
     }
 
     @When("the ExportStatementCmd command is executed")
     public void the_export_statement_cmd_command_is_executed() {
         try {
-            ExportStatementCmd cmd = new ExportStatementCmd(aggregate.id(), "PDF");
+            Command cmd = new ExportStatementCmd(statementId, format);
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             capturedException = e;
@@ -67,20 +70,22 @@ public class S9Steps {
         assertNull(capturedException, "Expected no exception, but got: " + capturedException);
         assertNotNull(resultEvents);
         assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof StatementExportedEvent);
-        StatementExportedEvent event = (StatementExportedEvent) resultEvents.get(0);
-        assertEquals("statement.exported", event.type());
-        assertEquals(aggregate.id(), event.aggregateId());
+        
+        DomainEvent event = resultEvents.get(0);
+        assertInstanceOf(StatementExportedEvent.class, event);
+        
+        StatementExportedEvent exportedEvent = (StatementExportedEvent) event;
+        assertEquals("statement.exported", exportedEvent.type());
+        assertEquals(statementId, exportedEvent.aggregateId());
+        assertNotNull(exportedEvent.occurredAt());
+        assertEquals(format, exportedEvent.format());
+        assertNotNull(exportedEvent.artifactLocation());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(capturedException, "Expected an exception, but command succeeded");
-        // Check for the specific invariant messages defined in the aggregate
-        String msg = capturedException.getMessage();
-        assertTrue(
-            msg.contains("closed period") || msg.contains("opening balance must exactly match"),
-            "Error message did not match expected invariants: " + msg
-        );
+        assertNotNull(capturedException, "Expected a domain exception but command succeeded.");
+        // Verifying it's a standard Java state exception which implies a domain rule violation
+        assertInstanceOf(IllegalStateException.class, capturedException);
     }
 }

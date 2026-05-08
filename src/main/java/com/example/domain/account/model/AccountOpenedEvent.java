@@ -1,12 +1,13 @@
 package com.example.domain.account.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
 public record AccountOpenedEvent(
-    String aggregateId,
+    String accountId,
     String customerId,
     String accountType,
     BigDecimal initialDeposit,
@@ -21,7 +22,7 @@ public record AccountOpenedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return accountId;
     }
 
     @Override

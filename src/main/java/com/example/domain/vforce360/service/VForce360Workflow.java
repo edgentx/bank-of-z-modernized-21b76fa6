@@ -1,45 +1,32 @@
 package com.example.domain.vforce360.service;
 
 import com.example.domain.vforce360.model.DefectAggregate;
-import com.example.ports.SlackNotifier;
-import com.example.ports.GitHubClient;
-import io.temporal.workflow.WorkflowInterface;
-import io.temporal.workflow.WorkflowMethod;
-import org.springframework.stereotype.Component;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackNotifierPort;
 
 /**
- * VForce360 Domain Workflow Service.
- * Fixed annotations and added dependencies.
+ * Workflow implementation for defect reporting.
+ * Orchestrates GitHub Issue creation and Slack notification.
  */
-@Component
-@WorkflowInterface
 public class VForce360Workflow {
 
-    private final SlackNotifier slackNotifier;
-    private final GitHubClient gitHubClient;
+    private final GitHubPort gitHubPort;
+    private final SlackNotifierPort slackNotifierPort;
 
-    // Temporal requires a no-arg constructor for the implementation class, 
-    // but we can use a setter or a factory for Spring deps in a real scenario. 
-    // For this snippet, we assume a mock-friendly constructor for tests or static access.
-    
-    public VForce360Workflow(SlackNotifier slackNotifier, GitHubClient gitHubClient) {
-        this.slackNotifier = slackNotifier;
-        this.gitHubClient = gitHubClient;
+    public VForce360Workflow(GitHubPort gitHubPort, SlackNotifierPort slackNotifierPort) {
+        this.gitHubPort = gitHubPort;
+        this.slackNotifierPort = slackNotifierPort;
     }
 
-    public VForce360Workflow() {
-        this.slackNotifier = null;
-        this.gitHubClient = null;
-    }
-
-    @WorkflowMethod
-    public void handleDefectReport(DefectAggregate defect) {
+    /**
+     * Initiates the defect report process.
+     * Red-Phase: Method body empty, tests will fail.
+     */
+    public String initiateDefectReport(String defectId, String description) {
+        // RED PHASE: Not implemented yet.
         // 1. Create GitHub Issue
-        String url = gitHubClient.createIssue(defect);
-        defect.setGithubUrl(url);
-
-        // 2. Notify Slack
-        String body = "Defect Reported: " + defect.id() + "\nGitHub Issue: " + url;
-        slackNotifier.sendNotification(body);
+        // 2. Compose Slack Body with URL
+        // 3. Send Slack Notification
+        return null; 
     }
 }

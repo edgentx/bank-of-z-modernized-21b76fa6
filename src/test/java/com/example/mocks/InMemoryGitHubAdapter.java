@@ -1,22 +1,25 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
-import java.util.UUID;
 
 /**
  * Mock implementation of GitHubPort for testing.
- * Returns deterministic URLs.
+ * Allows controlling the returned URL without making real HTTP calls.
  */
 public class InMemoryGitHubAdapter implements GitHubPort {
 
-    @Override
-    public String createIssue(String title, String description) {
-        // Generate a deterministic or random URL for the test
-        String issueId = UUID.randomUUID().toString().substring(0, 8);
-        return "https://github.com/egdcrypto/bank-of-z/issues/" + issueId;
+    private String nextIssueUrl = "https://github.com/example/bank-of-z/issues/1";
+
+    public void setNextIssueUrl(String url) {
+        this.nextIssueUrl = url;
     }
 
-    public void clear() {
-        // No internal state to clear currently, but interface for consistency
+    @Override
+    public String createIssue(String title, String body) {
+        if (this.nextIssueUrl == null) {
+            throw new IllegalStateException("Mock GitHub configured to return null");
+        }
+        // Simulate network latency or processing if needed
+        return this.nextIssueUrl;
     }
 }

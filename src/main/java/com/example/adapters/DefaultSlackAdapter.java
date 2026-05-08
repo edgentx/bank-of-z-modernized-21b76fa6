@@ -1,47 +1,53 @@
 package com.example.adapters;
 
-import com.example.ports.SlackPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.ports.SlackNotificationPort;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.IOException;
 
 /**
- * Real implementation for sending Slack notifications.
+ * Default implementation of the Slack Notification Port.
+ * Uses OkHttp to post messages to a Slack Webhook.
  */
 @Component
-public class DefaultSlackAdapter implements SlackPort {
+public class DefaultSlackAdapter implements SlackNotificationPort {
 
-    private static final Logger log = LoggerFactory.getLogger(DefaultSlackAdapter.class);
-
-    private final RestTemplate restTemplate;
+    private final OkHttpClient client;
     private final String webhookUrl;
 
-    public DefaultSlackAdapter(
-            RestTemplate restTemplate,
-            @Value("${slack.webhook.url}") String webhookUrl) {
-        this.restTemplate = restTemplate;
+    public DefaultSlackAdapter(@Value("${slack.webhook.url}") String webhookUrl) {
         this.webhookUrl = webhookUrl;
+        this.client = new OkHttpClient();
     }
 
     @Override
-    public void sendMessage(String channel, String message) {
-        log.info("Sending Slack message to {}: {}", channel, message);
+    public void sendNotification(String message) {
+        // Construct JSON payload for Slack
+        // Slack webhook expects { "text": "..." }
+        String jsonPayload = "{\"text\": \"" + message.replace("\"", "\\"") + "\"}";
 
-        // In a real implementation, POST to webhookUrl with JSON payload.
-        try {
-            // Simulate successful send
-            Map<String, String> payload = new HashMap<>();
-            payload.put("channel", channel);
-            payload.put("text", message);
-            // restTemplate.postForObject(webhookUrl, payload, String.class);
-        } catch (Exception e) {
-            log.error("Failed to send Slack message", e);
-            throw new RuntimeException("Failed to send Slack message", e);
+        RequestBody body = RequestBody.create(
+            jsonPayload, 
+            MediaType.get("application/json; charset=utf-8")
+        );
+
+        Request request = new Request.Builder()
+            .url(webhookUrl)
+            .post(body)
+            .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new RuntimeException("Failed to send Slack notification: " + response.code());
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("IOException sending Slack notification", e);
         }
     }
 }

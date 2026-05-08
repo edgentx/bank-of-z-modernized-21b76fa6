@@ -40,7 +40,9 @@ public class ReportDefectActivity {
         // For the purpose of the defect report, we generate the GitHub URL and send it.
         
         // Construct GitHub URL based on defect ID
-        String githubUrl = "https://github.com/egdcrypto/bank-of-z/issues/" + defectId.replace("VW-", "");
+        // Expected format: VW-454 -> 454
+        String issueNumber = defectId.replace("VW-", "");
+        String githubUrl = "https://github.com/egdcrypto/bank-of-z/issues/" + issueNumber;
         
         String slackMessage = String.format(
             "Defect Reported: %s\nDescription: %s\nGitHub Issue: %s", 

@@ -1,110 +1,105 @@
 package com.example.steps;
 
 import com.example.domain.shared.Command;
-import com.example.domain.shared.DomainException;
-import com.example.domain.teller.model.NavigateMenuCmd;
-import com.example.domain.teller.model.MenuNavigatedEvent;
-import com.example.domain.teller.model.TellerSessionAggregate;
-import io.cucumber.java.en.And;
+import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.teller.model.*;
+import com.example.domain.teller.repository.TellerSessionRepository;
+import com.example.mocks.InMemoryTellerSessionRepository;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 public class S19Steps {
 
+    private final TellerSessionRepository repository = new InMemoryTellerSessionRepository();
     private TellerSessionAggregate aggregate;
-    private String sessionId;
-    private String menuId;
-    private String action;
-    private List<DomainException> errors;
-    private List<com.example.domain.shared.DomainEvent> events;
+    private Exception caughtException;
+    private List<DomainEvent> resultEvents;
 
     @Given("a valid TellerSession aggregate")
-    public void aValidTellerSessionAggregate() {
-        this.sessionId = "session-123";
-        this.aggregate = new TellerSessionAggregate(sessionId);
-        // Simulate previous login to satisfy auth invariant
-        aggregate.authenticateSession("teller-001", Instant.now());
+    public void a_valid_teller_session_aggregate() {
+        aggregate = new TellerSessionAggregate("SESSION-1");
+        // Initiate session to make it valid/authenticated
+        aggregate.execute(new InitiateSessionCmd("SESSION-1", "TELLER-1", "TERMINAL-1"));
+        aggregate.clearEvents();
     }
 
-    @And("a valid sessionId is provided")
-    public void aValidSessionIdIsProvided() {
-        // Handled in aggregate construction
+    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
+    public void a_teller_session_aggregate_that_violates_authentication() {
+        aggregate = new TellerSessionAggregate("SESSION-UNAUTH");
+        // Aggregate created but not initiated, so isAuthenticated is false
     }
 
-    @And("a valid menuId is provided")
-    public void aValidMenuIdIsProvided() {
-        this.menuId = "MAIN_MENU";
+    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
+    public void a_teller_session_aggregate_that_violates_timeout() {
+        aggregate = new TellerSessionAggregate("SESSION-TIMEOUT");
+        // Initiate but force lastActionTime far in the past
+        aggregate.execute(new InitiateSessionCmd("SESSION-TIMEOUT", "TELLER-1", "TERMINAL-1"));
+        aggregate.forceTimeoutForTesting();
+        aggregate.clearEvents();
     }
 
-    @And("a valid action is provided")
-    public void aValidActionIsProvided() {
-        this.action = "ENTER";
+    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
+    public void a_teller_session_aggregate_that_violates_nav_state() {
+        aggregate = new TellerSessionAggregate("SESSION-BADSTATE");
+        aggregate.execute(new InitiateSessionCmd("SESSION-BADSTATE", "TELLER-1", "TERMINAL-1"));
+        aggregate.clearEvents();
+        // Force state out of sync
+        aggregate.forceBadContextForTesting("LOCKED");
+    }
+
+    @Given("a valid sessionId is provided")
+    public void a_valid_sessionId_is_provided() {
+        // Handled by 'a valid TellerSession aggregate'
+    }
+
+    @Given("a valid menuId is provided")
+    public void a_valid_menuId_is_provided() {
+        // Handled by command construction in When step
+    }
+
+    @Given("a valid action is provided")
+    public void a valid_action_is_provided() {
+        // Handled by command construction in When step
     }
 
     @When("the NavigateMenuCmd command is executed")
-    public void theNavigateMenuCmdCommandIsExecuted() {
+    public void the_navigate_menu_cmd_command_is_executed() {
         try {
-            NavigateMenuCmd cmd = new NavigateMenuCmd(sessionId, menuId, action, Instant.now());
-            this.events = aggregate.execute(cmd);
-        } catch (DomainException e) {
-            this.errors = List.of(e);
-        } catch (IllegalStateException | IllegalArgumentException e) {
-            // Wrap raw exceptions for BDD consistency
-            this.errors = List.of(new DomainException(e.getMessage()));
+            NavigateMenuCmd cmd = new NavigateMenuCmd(aggregate.id(), "MAIN_MENU", "ENTER");
+            resultEvents = aggregate.execute(cmd);
+        } catch (Exception e) {
+            caughtException = e;
         }
     }
 
     @Then("a menu.navigated event is emitted")
-    public void aMenuNavigatedEventIsEmitted() {
-        Assertions.assertNotNull(events);
-        Assertions.assertEquals(1, events.size());
-        Assertions.assertTrue(events.get(0) instanceof MenuNavigatedEvent);
-        MenuNavigatedEvent event = (MenuNavigatedEvent) events.get(0);
-        Assertions.assertEquals("menu.navigated", event.type());
-        Assertions.assertEquals(menuId, event.menuId());
-    }
-
-    // Negative Scenarios
-
-    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void aTellerSessionAggregateThatViolatesAuth() {
-        this.sessionId = "session-unauth";
-        this.aggregate = new TellerSessionAggregate(sessionId);
-        // Do NOT call authenticateSession -> violates auth invariant
-    }
-
-    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void aTellerSessionAggregateThatViolatesTimeout() {
-        this.sessionId = "session-timeout";
-        this.aggregate = new TellerSessionAggregate(sessionId);
-        // Authenticate but long ago
-        aggregate.authenticateSession("teller-001", Instant.now().minus(Duration.ofHours(2)));
-    }
-
-    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void aTellerSessionAggregateThatViolatesNavState() {
-        this.sessionId = "session-bad-nav";
-        this.aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.authenticateSession("teller-001", Instant.now());
-        // Force bad state via reflection or specific method if available
-        // Here we assume a lock or closed state prevents navigation
-        aggregate.lockSession(); // Hypothetical method to break invariant
+    public void a_menu_navigated_event_is_emitted() {
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof MenuNavigatedEvent);
+        MenuNavigatedEvent event = (MenuNavigatedEvent) resultEvents.get(0);
+        assertEquals("MAIN_MENU", event.menuId());
+        assertEquals("ENTER", event.action());
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(errors);
-        Assertions.assertFalse(errors.isEmpty());
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(caughtException);
+        // We accept IllegalStateException or IllegalArgumentException as domain errors
+        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
     }
 
-    // Dummy exception wrapper for BDD checks if needed
-    public static class DomainException extends RuntimeException {
-        public DomainException(String msg) { super(msg); }
-    }
+    // Test Runner for JUnit 5 + Cucumber
+    @RunWith(JUnitPlatform.class)
+    @SelectClasspathResource("features")
+    @Plugin(name = "pretty")
+    public static class S19TestSuite {}
 }

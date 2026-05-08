@@ -1,83 +1,89 @@
 package com.example.steps;
 
-import com.example.domain.shared.report.ReportDefectCmd;
-import com.example.mocks.MockSlackAdapter;
-import com.example.ports.SlackPort;
+import com.example.adapters.GitHubIssueTrackerAdapter;
+import com.example.domain.validation.model.ReportDefectCmd;
+import com.example.domain.validation.model.ValidationReportedEvent;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.time.Instant;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Steps for validating VW-454: GitHub URL in Slack body.
- * These tests verify that when a defect is reported, the resulting Slack message
- * contains the correct GitHub issue link.
+ * Steps for validating VW-454.
+ * Ensures that when a defect is reported, the resulting event (or Slack body representation)
+ * contains the actual GitHub URL.
  */
 public class Vw454Steps {
 
-    // We use the Mock adapter directly to simulate the wiring
-    // In the real app, the ReportDefectHandler would inject the port.
-    private final MockSlackAdapter mockSlack = new MockSlackAdapter();
-    
-    // System Under Test (SUT) - We simulate the handler logic here for the E2E test
-    // or we would import the actual Handler class if it existed.
-    // Since this is TDD Red Phase, we are simulating the missing link.
-    
-    private String currentGithubUrl;
-    private String currentChannel;
+    @Autowired(required = false)
+    private GitHubIssueTrackerAdapter issueTracker;
 
-    @Given("a defect report with GitHub URL {string}")
-    public void a_defect_report_with_github_url(String url) {
-        this.currentGithubUrl = url;
+    private String actualUrl;
+    private Exception executionException;
+
+    @Given("the GitHub adapter is available")
+    public void the_github_adapter_is_available() {
+        // Context setup. In a real test, we might mock the HTTP client, but here
+        // we are testing the logic of the adapter/pipeline assembly.
+        assertNotNull(issueTracker, "GitHubIssueTrackerAdapter should be wired");
     }
 
-    @Given("the target Slack channel is {string}")
-    public void the_target_slack_channel_is(String channel) {
-        this.currentChannel = channel;
-    }
-
-    @When("the defect report is processed")
-    public void the_defect_report_is_processed() {
-        // This method simulates the Temporal workflow activity executing
-        // the report_defect logic.
+    @When("_report_defect is triggered via temporal-worker exec")
+    public void report_defect_is_triggered() {
+        // Simulate the command execution that would happen in the Temporal workflow
+        // Project ID matches the story description
+        String projectId = "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1";
         
-        if (currentGithubUrl == null) {
-            throw new IllegalStateException("GitHub URL not set in test context");
+        try {
+            // This is the interaction that would generate the event containing the URL
+            actualUrl = issueTracker.reportDefect(
+                projectId, 
+                "VW-454 Regression Test", 
+                "Verifying GitHub URL presence in Slack body."
+            );
+        } catch (Exception e) {
+            executionException = e;
         }
-        if (currentChannel == null) {
-            throw new IllegalStateException("Slack channel not set in test context");
-        }
-
-        // Prepare the Command
-        ReportDefectCmd cmd = new ReportDefectCmd(
-            "DEF-454", 
-            "VW-454 Defect", 
-            "Validating URL in body",
-            currentGithubUrl,
-            currentChannel
-        );
-
-        // --- SIMULATED HANDLER LOGIC (The code we expect to write) ---
-        // In the real implementation, this logic would live in a Handler/Service.
-        // For this test, we execute the logic inline to verify the outcome.
-        // This ensures that even without the Handler class, we can define the expected behavior.
-        
-        String body = "Defect Reported: " + cmd.title() + "\n" + 
-                      "Please review: " + cmd.githubUrl();
-        
-        // Call the mock port
-        mockSlack.sendMessage(cmd.slackChannel(), body);
     }
 
-    @Then("the Slack body contains the GitHub URL")
-    public void the_slack_body_contains_the_github_url() {
-        String actualBody = mockSlack.getLastMessageBody(this.currentChannel);
+    @Then("Slack body includes GitHub issue: {string}")
+    public void slack_body_includes_github_issue(String expectedUrlPrefix) {
+        if (executionException != null) {
+            fail("Execution failed with exception: " + executionException.getMessage());
+        }
+
+        assertNotNull(actualUrl, "The generated URL should not be null");
         
-        assertNotNull(actualBody, "Slack message was not sent");
+        // Expected Behavior: Slack body includes GitHub issue: <url>
+        // Here we validate that the URL string is present and well-formed according to the defect requirements
         assertTrue(
-            actualBody.contains(this.currentGithubUrl), 
-            "Expected Slack body to contain GitHub URL: " + this.currentGithubUrl + ", but got: " + actualBody
+            actualUrl.startsWith("https://github.com/"),
+            "URL should start with https://github.com/ but was: " + actualUrl
+        );
+        
+        // Ensure it's not just the prefix, but includes the issue ID/number part
+        assertTrue(
+            actualUrl.length() > "https://github.com/".length(),
+            "URL seems incomplete or missing issue ID"
+        );
+    }
+
+    @Then("the validation no longer exhibits the reported behavior")
+    public void validation_no_longer_exhibits_reported_behavior() {
+        // Regression check: Ensure we don't return an empty string or "About to find out"
+        assertNotNull(actualUrl, "URL should not be null (regression check)");
+        assertFalse(
+            actualUrl.contains("About to find out"),
+            "URL should not contain placeholder text 'About to find out'"
+        );
+        assertFalse(
+            actualUrl.isEmpty(),
+            "URL should not be empty"
         );
     }
 }

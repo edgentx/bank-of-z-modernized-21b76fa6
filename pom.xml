@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -12,13 +13,13 @@
     <groupId>com.example</groupId>
     <artifactId>bank-of-z-modernization</artifactId>
     <version>1.0.0-SNAPSHOT</version>
-    <name>Bank of Z Modernization</name>
-    <description>Domain-Driven Design implementation for Bank of Z core ledger</description>
-
+    <name>bank-of-z-modernization</name>
+    <description>Bank of Z Modernization</description>
+    
     <properties>
         <java.version>17</java.version>
         <flyway.version>9.22.3</flyway.version>
-        <cucumber.version>7.14.0</cucumber.version>
+        <micrometer-otlp.version>1.2.0</micrometer-otlp.version>
     </properties>
 
     <dependencies>
@@ -47,15 +48,28 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-batch</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-activemq</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        
         <!-- Database Drivers -->
+        <dependency>
+            <groupId>com.ibm.db2</groupId>
+            <artifactId>jcc</artifactId>
+            <scope>runtime</scope>
+        </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>runtime</scope>
+            <scope>test</scope>
         </dependency>
-        
-        <!-- Flyway for DB2 Migration -->
+
+        <!-- Flyway -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -66,36 +80,40 @@
             <version>${flyway.version}</version>
         </dependency>
 
-        <!-- IBM MQ & z/OS Connect -->
-        <dependency>
-            <groupId>com.ibm.mq</groupId>
-            <artifactId>mq-jms-spring-boot-starter</artifactId>
-            <version>3.0.3</version>
-        </dependency>
-
-        <!-- Observability -->
+        <!-- Micrometer & OpenTelemetry -->
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-otlp</artifactId>
+            <version>${micrometer-otlp.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
             <version>1.2.0</version>
         </dependency>
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <version>1.32.0</version>
+            <version>1.34.0</version>
         </dependency>
 
-        <!-- Testing (Cucumber) -->
+        <!-- Cucumber -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
-            <version>${cucumber.version}</version>
+            <version>7.14.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>${cucumber.version}</version>
+            <version>7.14.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-spring</artifactId>
+            <version>7.14.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

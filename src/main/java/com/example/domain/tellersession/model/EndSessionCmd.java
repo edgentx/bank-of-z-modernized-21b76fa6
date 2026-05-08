@@ -3,7 +3,7 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to terminate a Teller Session.
- * S-20: user-interface-navigation.
+ * Command to terminate a teller session.
+ * S-20: EndSessionCmd on TellerSession.
  */
 public record EndSessionCmd(String sessionId) implements Command {}

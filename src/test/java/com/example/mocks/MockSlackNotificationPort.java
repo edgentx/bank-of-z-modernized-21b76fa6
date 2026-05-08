@@ -1,33 +1,34 @@
 package com.example.mocks;
 
-import com.example.ports.SlackNotificationPort;
+import com.example.domain.validation.model.SlackMessageBody;
+import com.example.domain.validation.port.SlackNotificationPort;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Captures the last sent body to verify content.
+ * Mock Adapter for Slack Notification Port.
+ * Captures messages sent during the workflow for assertions.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private String lastChannel;
-    private String lastBody;
-    private boolean shouldFail = false;
+    private final List<SlackMessageBody> sentMessages = new ArrayList<>();
 
     @Override
-    public boolean postMessage(String channel, String body) {
-        this.lastChannel = channel;
-        this.lastBody = body;
-        return !shouldFail;
+    public void send(SlackMessageBody body) {
+        System.out.println("[MockSlack] Sending: " + body.value());
+        sentMessages.add(body);
     }
 
-    public String getLastChannel() {
-        return lastChannel;
+    public SlackMessageBody getLastMessage() {
+        if (sentMessages.isEmpty()) return null;
+        return sentMessages.get(sentMessages.size() - 1);
     }
 
-    public String getLastBody() {
-        return lastBody;
+    public List<SlackMessageBody> getAllMessages() {
+        return new ArrayList<>(sentMessages);
     }
 
-    public void setShouldFail(boolean shouldFail) {
-        this.shouldFail = shouldFail;
+    public void reset() {
+        sentMessages.clear();
     }
 }

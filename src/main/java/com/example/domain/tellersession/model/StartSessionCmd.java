@@ -1,10 +1,10 @@
-package com.example.domain.telllersession.model;
+package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
 
 /**
- * Command to initiate a new teller session.
- * Validation of authentication and terminal state is enforced by the aggregate.
+ * Command to initiate a Teller Session.
+ * Validates that the user is authenticated and the terminal is valid.
  */
-public record StartSessionCmd(String aggregateId, String tellerId, String terminalId) implements Command {
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId, boolean isAuthenticated) implements Command {
 }

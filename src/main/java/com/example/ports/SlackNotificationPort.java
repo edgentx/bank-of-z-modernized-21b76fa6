@@ -1,24 +1,17 @@
 package com.example.ports;
 
 /**
- * Port interface for sending notifications to Slack.
+ * Port interface for sending Slack notifications.
+ * Used by the Workflow logic to communicate with the outside world.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends a message body to a specific Slack channel.
+     * Posts a message to a Slack channel.
      *
-     * @param channel The target channel.
-     * @param body    The content of the message.
+     * @param channelId The target channel (e.g. "#vforce360-issues")
+     * @param messageBody The formatted message body to send.
+     * @return true if the API call was accepted, false otherwise.
      */
-    void sendMessage(String channel, String body);
-
-    /**
-     * Helper to retrieve the last message sent to a specific channel for verification.
-     * Note: This is typically implemented by mocks, but kept in the interface
-     * to allow stateful in-memory verification if needed without casting.
-     */
-    default String getLastMessageBody(String channel) {
-        throw new UnsupportedOperationException("Not implemented in production adapter.");
-    }
+    boolean sendMessage(String channelId, String messageBody);
 }

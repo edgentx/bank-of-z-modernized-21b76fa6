@@ -1,137 +1,91 @@
 package com.example.steps;
 
-import com.example.adapters.SlackNotificationPort;
-import com.example.domain.shared.Command;
-import com.example.domain.vforce360.model.ReportDefectCmd;
-import com.example.domain.vforce360.model.VForce360Aggregate;
-import com.example.mocks.InMemoryVForce360Repository;
-import com.example.ports.GitHubPort;
-import org.junit.jupiter.api.Test;
-
-import java.time.Instant;
-import java.util.List;
-
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.domain.shared.SlackMessageValidator;
+import com.example.infrastructure.TemporalActivities;
+import com.example.infrastructure.TemporalActivitiesImpl;
+import com.example.mocks.InMemoryDefectRepository;
+import com.example.ports.SlackNotifier;
+import com.example.services.DefectReportingService;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.When;
+import io.cucumber.java.en.Then;
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * S-FB-1: Regression Test for Defect Reporting (VW-454)
- * Validates that triggering _report_defect via temporal-worker exec results in a Slack body
- * containing the GitHub issue link.
- */
 public class SFB1DefectReportingSteps {
 
-    /**
-     * Reproduction Step 1: Trigger _report_defect via temporal-worker exec
-     * Reproduction Step 2: Verify Slack body contains GitHub issue link
-     * Expected Behavior: Slack body includes GitHub issue: <url>
-     */
-    @Test
-    public void testReportDefect_GeneratesSlackNotificationWithGitHubLink() {
-        // GIVEN: A defect report command for a VForce360 diagnostic conversation
-        String defectId = "VW-454";
-        String description = "Validating VW-454 — GitHub URL in Slack body (end-to-end)";
-        String projectId = "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1";
-        String severity = "LOW";
-        
-        ReportDefectCmd cmd = new ReportDefectCmd(
-            "defect-123", 
-            defectId, 
-            description, 
-            projectId, 
-            severity, 
-            Instant.now()
-        );
+    private InMemoryDefectRepository repository;
+    private MockSlackNotifier slackNotifier;
+    private DefectReportingService service;
+    private TemporalActivities temporalActivities;
+    private Exception capturedException;
+    private String result;
 
-        // Mocks: In-Memory Repository and Adapter Ports
-        InMemoryVForce360Repository repository = new InMemoryVForce360Repository();
-        MockGitHubPort gitHubPort = new MockGitHubPort();
-        MockSlackNotificationPort slackPort = new MockSlackNotificationPort();
-
-        // WHEN: The command is executed (Temporal Workflow Activity Simulation)
-        VForce360Aggregate aggregate = new VForce360Aggregate("defect-123");
-        List<com.example.domain.shared.DomainEvent> events = aggregate.execute(cmd);
-        
-        // AND: The side effects are processed (creating GitHub issue, sending Slack notification)
-        // This logic simulates the Temporal Activity chain
-        String expectedGitHubUrl = "https://github.com/example/bank-of-z/issues/123";
-        gitHubPort.simulateIssueCreation(defectId, description, expectedGitHubUrl);
-        
-        slackPort.sendNotification(projectId, defectId, expectedGitHubUrl);
-
-        // THEN: The Slack body should include the GitHub issue URL
-        // Validation criteria: "Slack body includes GitHub issue: <url>"
-        String actualSlackMessage = slackPort.getLastSentBody();
-        
-        assertNotNull(actualSlackMessage, "Slack message body should not be null");
-        assertTrue(
-            actualSlackMessage.contains(expectedGitHubUrl), 
-            "Slack body should contain the GitHub issue URL: " + expectedGitHubUrl + ". Found: " + actualSlackMessage
-        );
-        
-        // Additional verification: Ensure the format aligns with expectations
-        assertTrue(
-            actualSlackMessage.contains("GitHub issue:"),
-            "Slack body should contain a label indicating the GitHub issue link."
-        );
-    }
-
-    @Test
-    public void testReportDefect_GitHubUrlIsPresentInSharedInstance() {
-        // Edge Case: Ensure the specific 'VForce360 shared instance' contract is met
-        // This simulates the distributed tracing aspect mentioned in the stack (OpenTelemetry context)
-        MockGitHubPort gitHubPort = new MockGitHubPort();
-        MockSlackNotificationPort slackPort = new MockSlackNotificationPort();
-        
-        String traceId = "vforce360-trace-123";
-        String issueUrl = gitHubPort.simulateIssueCreation("VW-454", "Defect", "https://github.com/example/bank-of-z/issues/454");
-        
-        slackPort.sendNotification("21b76fa6-afb6-4593-9e1b-b5d7548ac4d1", "VW-454", issueUrl);
-        
-        // Verify the mock received the URL
-        assertEquals(issueUrl, slackPort.getLastSentUrl());
-    }
-
-    // --- Mock Adapters defined locally for encapsulation, mapping to interfaces in src/ports ---
-
-    public static class MockGitHubPort implements GitHubPort {
-        private String lastCreatedUrl;
+    static class MockSlackNotifier implements SlackNotifier {
+        String lastChannel;
+        String lastMessage;
+        boolean called = false;
 
         @Override
-        public String createIssue(String title, String body) {
-            this.lastCreatedUrl = "https://github.com/example/bank-of-z/issues/" + title.hashCode();
-            return this.lastCreatedUrl;
-        }
-
-        public String simulateIssueCreation(String id, String desc, String url) {
-            this.lastCreatedUrl = url;
-            return url;
+        public void send(String channel, String message) {
+            this.lastChannel = channel;
+            this.lastMessage = message;
+            this.called = true;
         }
     }
 
-    public static class MockSlackNotificationPort implements SlackNotificationPort {
-        private String lastBody;
-        private String lastUrl;
+    @Given("the defect reporting system is initialized")
+    public void the_defect_reporting_system_is_initialized() {
+        repository = new InMemoryDefectRepository();
+        slackNotifier = new MockSlackNotifier();
+        service = new DefectReportingService(repository, slackNotifier);
+        temporalActivities = new TemporalActivitiesImpl(slackNotifier, repository);
+    }
 
-        @Override
-        public void postMessage(String text) {
-            this.lastBody = text;
-        }
+    @Given("a valid defect command exists for VW-454")
+    public void a_valid_defect_command_exists_for_vw_454() {
+        // Setup step, command creation happens in 'When'
+    }
 
-        public void sendNotification(String projectId, String defectId, String url) {
-            String message = String.format(
-                "Project: %s | Defect Reported: %s | GitHub issue: %s", 
-                projectId, defectId, url
+    @When("the defect report_defect command is triggered via temporal-worker exec")
+    public void the_defect_report_defect_command_is_triggered_via_temporal_worker_exec() {
+        try {
+            // Simulating the processing of a defect report
+            DefectAggregate aggregate = new DefectAggregate("DEF-454");
+            ReportDefectCmd cmd = new ReportDefectCmd(
+                "DEF-454",
+                "Fix: Validating VW-454 — GitHub URL in Slack body",
+                "End-to-end validation failure",
+                "LOW",
+                "validation",
+                "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1",
+                "https://github.com/example/bank-of-z/issues/454"
             );
-            postMessage(message);
-            this.lastUrl = url;
+            
+            // Execute command on aggregate
+            aggregate.execute(cmd);
+            
+            // Service orchestration
+            service.reportDefect(aggregate);
+            
+            // Activity execution simulation
+            result = temporalActivities.reportDefectActivity("dummy-json");
+        } catch (Exception e) {
+            capturedException = e;
         }
+    }
 
-        public String getLastSentBody() {
-            return lastBody;
-        }
-
-        public String getLastSentUrl() {
-            return lastUrl;
-        }
+    @Then("the Slack body contains GitHub issue link")
+    public void the_slack_body_contains_github_issue_link() {
+        // Assert Service Level
+        assertTrue(slackNotifier.called, "Slack notifier should have been called");
+        assertEquals("#vforce360-issues", slackNotifier.lastChannel);
+        assertTrue(SlackMessageValidator.containsGitHubLink(slackNotifier.lastMessage), 
+            "Slack body must contain GitHub URL. Got: " + slackNotifier.lastMessage);
+        
+        // Assert Activity Level
+        assertNotNull(result);
+        assertNull(capturedException, "No exception should have occurred: " + (capturedException != null ? capturedException.getMessage() : ""));
     }
 }

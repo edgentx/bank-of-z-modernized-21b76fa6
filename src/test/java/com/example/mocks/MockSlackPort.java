@@ -5,36 +5,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackPort for testing.
- * Captures messages sent to Slack to verify content without calling the real API.
+ * Mock adapter for SlackPort.
+ * Captures messages to verify the content (specifically the GitHub URL) without I/O.
  */
 public class MockSlackPort implements SlackPort {
-    public static class Message {
-        public final String channel;
-        public final String text;
 
-        public Message(String channel, String text) {
-            this.channel = channel;
-            this.text = text;
-        }
-    }
-
-    private final List<Message> messages = new ArrayList<>();
+    private final List<String> sentMessages = new ArrayList<>();
 
     @Override
-    public void postMessage(String channel, String text) {
-        this.messages.add(new Message(channel, text));
+    public void sendNotification(String messageBody) {
+        // Capture the message for assertion
+        if (messageBody == null) {
+            throw new IllegalArgumentException("Message body cannot be null");
+        }
+        sentMessages.add(messageBody);
     }
 
-    public List<Message> getMessages() {
-        return messages;
+    public List<String> getSentMessages() {
+        return new ArrayList<>(sentMessages);
     }
 
     public void clear() {
-        messages.clear();
-    }
-
-    public boolean containsText(String substring) {
-        return messages.stream().anyMatch(m -> m.text.contains(substring));
+        sentMessages.clear();
     }
 }

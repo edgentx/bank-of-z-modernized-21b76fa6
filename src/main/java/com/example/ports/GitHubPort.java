@@ -1,9 +1,11 @@
 package com.example.ports;
 
+import com.example.domain.shared.Command;
+
 /**
- * Port interface for GitHub Issue tracking integration.
- * Decouples the domain from the GitHub API client implementation.
+ * Port for creating GitHub issues.
+ * Used to verify VW-454 integration.
  */
 public interface GitHubPort {
-    String createIssue(String title, String description, String severity);
+    String createIssue(Command cmd);
 }

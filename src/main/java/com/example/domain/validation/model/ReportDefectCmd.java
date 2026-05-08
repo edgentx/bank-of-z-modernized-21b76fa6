@@ -1,14 +1,15 @@
 package com.example.domain.validation.model;
 
 import com.example.domain.shared.Command;
+import java.util.Map;
 
 /**
- * Command to report a defect identified in the VForce360 system.
- * This includes the logic to format the message for Slack integration.
+ * Command to report a defect to Slack.
+ * Context: VW-454 Fix - GitHub URL validation.
  */
 public record ReportDefectCmd(
     String defectId,
     String title,
     String severity,
-    String githubIssueUrl
+    Map<String, String> metadata // Contains GitHub URL if present
 ) implements Command {}

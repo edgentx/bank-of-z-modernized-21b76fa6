@@ -4,13 +4,14 @@ import com.example.domain.shared.DomainEvent;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
 
 public record StatementGeneratedEvent(
     String statementId,
     String accountNumber,
-    LocalDate periodEnd,
+    Instant periodStart,
+    Instant periodEnd,
     BigDecimal openingBalance,
+    BigDecimal closingBalance,
     Instant occurredAt
 ) implements DomainEvent {
     @Override

@@ -4,36 +4,38 @@ import com.example.ports.GitHubIssuePort;
 import com.example.ports.SlackNotificationPort;
 
 /**
- * Placeholder class representing the Workflow/Activity implementation 
- * that would be invoked by the Temporal worker.
- * 
- * In the Red Phase, this class is intentionally stubbed or missing the logic,
- * causing the tests to fail until implementation is provided.
+ * Workflow implementation for reporting defects (VW-454).
+ * Orchestrates creating a GitHub issue and notifying Slack.
  */
 public class DefectReportWorkflow {
 
     private final GitHubIssuePort githubPort;
     private final SlackNotificationPort slackPort;
+    private static final String SLACK_CHANNEL = "#vforce360-issues";
 
     public DefectReportWorkflow(GitHubIssuePort githubPort, SlackNotificationPort slackPort) {
         this.githubPort = githubPort;
         this.slackPort = slackPort;
     }
 
+    /**
+     * Executes the defect reporting workflow.
+     * 1. Creates an issue on GitHub.
+     * 2. Posts a notification to the configured Slack channel containing the issue URL.
+     *
+     * @param title The title of the defect.
+     * @param description The description of the defect.
+     */
     public void reportDefect(String title, String description) {
-        // RED PHASE: 
-        // Current implementation is intentionally incomplete or broken 
-        // to satisfy the TDD Red Phase requirement.
-        // 
-        // Missing logic:
-        // 1. Create GitHub issue via githubPort
-        // 2. Append URL to message body
-        // 3. Send via slackPort
-        
-        // Example of broken behavior for Red Phase:
-        // slackPort.postMessage("#vforce360-issues", "Defect reported: " + title); 
-        // (The URL is missing, causing the test to fail)
-        
-        throw new UnsupportedOperationException("Implement reportDefect logic to satisfy VW-454");
+        // 1. Create GitHub Issue
+        String issueUrl = githubPort.createIssue(title, description);
+
+        // 2. Construct Slack Body including the URL
+        // Per VW-454: Slack body must include GitHub issue: <url>
+        String slackBody = "Defect reported: " + title + "\n" +
+                           "GitHub Issue: " + issueUrl;
+
+        // 3. Post to Slack
+        slackPort.postMessage(SLACK_CHANNEL, slackBody);
     }
 }

@@ -1,52 +1,47 @@
 package com.example.application;
 
-import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.DefectReportedEvent;
-import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.domain.validation.DefectReportedEvent;
 import com.example.ports.SlackNotificationPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * Application Service handling the workflow of reporting a defect.
- * Orchestrates the Aggregate logic and triggers the notification via the port.
+ * Application service responsible for processing defect reports
+ * and coordinating notifications (e.g., via Slack).
  */
 @Service
 public class DefectReportingService {
 
+    private static final Logger logger = LoggerFactory.getLogger(DefectReportingService.class);
     private final SlackNotificationPort slackNotificationPort;
 
+    // Constructor injection (Adapter pattern)
     public DefectReportingService(SlackNotificationPort slackNotificationPort) {
         this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Entry point for the Temporal Activity or REST controller.
-     * Executes the command to report the defect and notifies Slack if successful.
+     * Handles the DefectReportedEvent and formats/pushes the notification to Slack.
+     * Corresponds to the temporal-worker execution context.
      */
-    public void reportDefect(String defectId, String title, String description, String githubUrl, String channel) {
-        var aggregate = new DefectAggregate(defectId);
-        var cmd = new ReportDefectCmd(defectId, title, description, githubUrl, channel);
+    public void reportDefect(DefectReportedEvent event) {
+        logger.info("Processing defect report: {}", event.defectId());
 
-        // Execute domain logic
-        var events = aggregate.execute(cmd);
-
-        // Handle side effects (Notification)
-        for (var event : events) {
-            if (event instanceof DefectReportedEvent e) {
-                sendNotification(e);
-            }
-        }
+        String slackBody = formatSlackBody(event);
+        slackNotificationPort.postMessage("#vforce360-issues", slackBody);
     }
 
-    private void sendNotification(DefectReportedEvent event) {
-        // Format the message body according to specification
-        // "Slack body includes GitHub issue: <url>"
-        StringBuilder bodyBuilder = new StringBuilder();
-        bodyBuilder.append("Defect Reported: ").append(event.title()).append("\n");
-        bodyBuilder.append("Description: ").append(event.description().isBlank() ? "N/A" : event.description()).append("\n");
-        // S-FB-1 Fix: Ensure the GitHub URL is explicitly included
-        bodyBuilder.append("GitHub issue: ").append(event.githubUrl());
-
-        slackNotificationPort.postMessage(event.channel(), bodyBuilder.toString());
+    /**
+     * Formats the Slack message body ensuring the GitHub URL is included.
+     * This logic is critical for VW-454 compliance.
+     */
+    private String formatSlackBody(DefectReportedEvent e) {
+        return String.format(
+                "Defect Reported: %s\nDescription: %s\nGitHub Issue: %s",
+                e.defectId(),
+                e.description(),
+                e.githubIssueUrl()
+        );
     }
 }

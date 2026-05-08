@@ -8,5 +8,4 @@ import org.junit.platform.suite.api.Suite;
 @IncludeEngines("cucumber")
 @SelectClasspathResource("features")
 public class S18TestSuite {
-    // JUnit 5 Suite to run Cucumber features
 }

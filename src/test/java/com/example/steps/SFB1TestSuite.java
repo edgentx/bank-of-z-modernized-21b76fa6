@@ -1,15 +1,16 @@
 package com.example.steps;
 
+import org.junit.platform.suite.api.ConfigurationParameter;
 import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
-/**
- * Test Suite for S-FB-1.
- * Runs the specific feature file for GitHub URL validation.
- */
+import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
+
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("com/example/steps/S-FB-1.feature")
+@SelectClasspathResource("features")
+@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
 public class SFB1TestSuite {
+    // This suite runs the specific feature file for S-FB-1
 }

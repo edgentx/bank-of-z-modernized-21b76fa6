@@ -1,17 +1,13 @@
 package com.example.domain.defect.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Event emitted when a defect is successfully reported.
- */
 public record DefectReportedEvent(
     String aggregateId,
-    String defectId,
-    String githubIssueUrl,
+    String title,
+    String githubUrl,
     Instant occurredAt
 ) implements DomainEvent {
     @Override

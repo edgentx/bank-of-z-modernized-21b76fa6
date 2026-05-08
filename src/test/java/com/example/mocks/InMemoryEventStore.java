@@ -1,26 +1,26 @@
 package com.example.mocks;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
- * Mock implementation of an Event Store for testing side effects without real DB I/O.
+ * A simple thread-safe in-memory store for verification in tests.
  */
 public class InMemoryEventStore {
+    private final List<String> events = new ArrayList<>();
 
-    private final List<RecordedEvent> events = new ArrayList<>();
-
-    public void recordEvent(String channel, String message) {
-        events.add(new RecordedEvent(channel, message));
+    public void add(String event) {
+        synchronized (events) {
+            events.add(event);
+        }
     }
 
-    public List<RecordedEvent> getEvents() {
-        return events;
+    public List<String> getEvents() {
+        return Collections.unmodifiableList(events);
     }
 
-    public boolean containsMessage(String substring) {
-        return events.stream().anyMatch(e -> e.message().contains(substring));
+    public void clear() {
+        events.clear();
     }
-
-    public record RecordedEvent(String channel, String message) {}
 }

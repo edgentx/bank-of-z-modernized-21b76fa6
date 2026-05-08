@@ -1,32 +1,37 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * In-memory mock for Slack notifications.
- * Records payloads for assertion in tests.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Records messages sent to verify behavior.
  */
-@Component
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> payloads = new ArrayList<>();
+    public static class Message {
+        public final String channel;
+        public final String message;
 
-    @Override
-    public void send(String payload) {
-        this.payloads.add(payload);
+        public Message(String channel, String message) {
+            this.channel = channel;
+            this.message = message;
+        }
     }
 
+    private final List<Message> sentMessages = new ArrayList<>();
+
     @Override
-    public String getLastSentPayload() {
-        if (payloads.isEmpty()) return null;
-        return payloads.get(payloads.size() - 1);
+    public void sendNotification(String channel, String message) {
+        this.sentMessages.add(new Message(channel, message));
+    }
+
+    public List<Message> getSentMessages() {
+        return sentMessages;
     }
 
     public void clear() {
-        payloads.clear();
+        sentMessages.clear();
     }
 }

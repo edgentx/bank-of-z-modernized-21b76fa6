@@ -1,27 +1,34 @@
 package com.example.config;
 
-import com.example.adapters.GitHubAdapter;
-import com.example.adapters.SlackNotifierAdapter;
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackNotifierPort;
+import com.example.adapters.SlackNotificationAdapter;
+import com.example.ports.SlackNotificationPort;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Configuration class to wire Ports and Adapters.
- * This allows the application to use real adapters or mocks via profile switching if necessary,
- * though standard Spring injection is sufficient for this pattern.
+ * Configuration for wiring Ports and Adapters.
+ * Allows switching between Mock and Real implementations via profile.
  */
 @Configuration
 public class PortConfiguration {
 
+    /**
+     * Real implementation. Active by default or when 'adapter.mode=real'.
+     */
     @Bean
-    public GitHubPort gitHubPort(GitHubAdapter adapter) {
-        return adapter;
+    @ConditionalOnProperty(name = "adapter.mode", havingValue = "real", matchIfMissing = true)
+    public SlackNotificationPort realSlackNotificationPort() {
+        return new SlackNotificationAdapter();
     }
 
+    /**
+     * Mock implementation. Active when 'adapter.mode=mock'.
+     * Useful for local development or specific testing profiles without test containers.
+     */
     @Bean
-    public SlackNotifierPort slackNotifierPort(SlackNotifierAdapter adapter) {
-        return adapter;
+    @ConditionalOnProperty(name = "adapter.mode", havingValue = "mock")
+    public SlackNotificationPort mockSlackNotificationPort() {
+        return new com.example.mocks.MockSlackNotificationPort();
     }
 }

@@ -1,73 +1,65 @@
 package com.example.adapters;
 
+import com.example.domain.shared.Command;
+import com.example.domain.validation.ReportDefectCommand;
+import com.example.domain.validation.ValidationAggregate;
+import com.example.domain.validation.repository.ValidationRepository;
 import com.example.ports.SlackNotificationPort;
-import io.temporal.activity.ActivityInterface;
-import io.temporal.activity.ActivityMethod;
-import io.temporal.spring.boot.ActivityImpl;
-import io.temporal.workflow.WorkflowInterface;
-import io.temporal.workflow.WorkflowMethod;
-import org.springframework.stereotype.Component;
+import com.example.ports.TemporalWorkerPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Set;
 
 /**
- * Adapter for Temporal Worker logic.
- * This class bridges the Temporal workflow engine with the domain logic
- * and external ports (like Slack).
- * 
- * In this defect fix, the critical change is ensuring that the GitHub URL
- * is passed correctly to the Slack port.
+ * Real adapter for TemporalWorkerPort.
+ * Orchestrates the domain logic to report defects.
+ * This simulates the Temporal Activity/Workflow logic entry point.
  */
-public class TemporalWorkerAdapter {
+public class TemporalWorkerAdapter implements TemporalWorkerPort {
 
+    private static final Logger logger = LoggerFactory.getLogger(TemporalWorkerAdapter.class);
+    private static final String GITHUB_BASE_URL = "https://github.com/example-org/repo/issues/";
+    private static final String SLACK_CHANNEL = "#vforce360-issues";
+
+    private final ValidationRepository validationRepository;
     private final SlackNotificationPort slackNotificationPort;
 
-    public TemporalWorkerAdapter(SlackNotificationPort slackNotificationPort) {
+    public TemporalWorkerAdapter(ValidationRepository validationRepository,
+                                 SlackNotificationPort slackNotificationPort) {
+        this.validationRepository = validationRepository;
         this.slackNotificationPort = slackNotificationPort;
     }
 
-    /**
-     * Public method exposed to simulate the trigger of the "_report_defect" workflow/activity.
-     * This is what the test harness will invoke to verify the fix.
-     * 
-     * @param issueId The ID of the issue (e.g., "VW-454").
-     * @param url The GitHub URL to the issue.
-     * @param description Description of the defect.
-     */
-    public void reportDefect(String issueId, String url, String description) {
-        // The defect (VW-454) implies the URL might have been missing previously.
-        // The fix ensures the URL is included in the body.
-        
-        String body = String.format(
-            "Defect Reported: %s. %s. View: %s",
-            issueId,
-            description,
-            url // CRITICAL FIX: Ensure URL is appended to the message body
-        );
+    @Override
+    public void reportDefect(String defectId) {
+        logger.info("Workflow triggered: report_defect for ID {}", defectId);
 
-        slackNotificationPort.send(body);
-    }
+        // 1. Load or Create Aggregate
+        ValidationAggregate aggregate = validationRepository.findById(defectId)
+                .orElse(new ValidationAggregate(defectId));
 
-    // Below are standard Temporal annotations that would be used in the actual worker implementation.
-    // They are included here to satisfy the tech stack requirements, though the unit test
-    // invokes the plain Java method above directly.
+        // 2. Prepare Domain Command
+        // We construct the expected GitHub URL as part of the command data
+        String expectedUrl = GITHUB_BASE_URL + defectId;
+        Command command = new ReportDefectCommand(defectId, expectedUrl, SLACK_CHANNEL);
 
-    @ActivityInterface
-    public interface SlackActivities {
-        @ActivityMethod
-        void notifySlack(String body);
-    }
+        // 3. Execute Domain Logic
+        var events = aggregate.execute(command);
 
-    @Component
-    @ActivityImpl(taskQueue = "SLACK_TASK_QUEUE")
-    public static class SlackActivitiesImpl implements SlackActivities {
-        private final SlackNotificationPort slackNotificationPort;
-
-        public SlackActivitiesImpl(SlackNotificationPort slackNotificationPort) {
-            this.slackNotificationPort = slackNotificationPort;
+        // 4. Handle Side Effects (Events)
+        for (var event : events) {
+            if (event.type().equals("DefectReportedEvent")) {
+                handleNotification((DefectReportedEvent) event);
+            }
         }
 
-        @Override
-        public void notifySlack(String body) {
-            slackNotificationPort.send(body);
-        }
+        // 5. Save Aggregate State
+        validationRepository.save(aggregate);
+    }
+
+    private void handleNotification(DefectReportedEvent event) {
+        logger.info("Sending notification to Slack channel {}: {}", event.channel(), event.messageBody());
+        slackNotificationPort.sendMessage(event.channel(), event.messageBody());
     }
 }

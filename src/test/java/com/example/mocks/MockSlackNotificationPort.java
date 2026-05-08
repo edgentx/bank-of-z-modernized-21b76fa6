@@ -2,46 +2,38 @@ package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
-/**
- * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to Slack to verify their content without
- * making actual network calls.
- */
 public class MockSlackNotificationPort implements SlackNotificationPort {
-
-    private final List<String> sentMessages = new ArrayList<>();
+    public String lastBody;
+    public Map<String, String> lastAttachments;
+    public int invocationCount = 0;
 
     @Override
-    public void sendMessage(String messageBody) {
-        // In a real mock, we might track specific calls, but capturing the body
-        // is sufficient for verifying defect reports.
-        this.sentMessages.add(messageBody);
+    public void sendNotification(String body, Map<String, String> attachments) {
+        this.lastBody = body;
+        this.lastAttachments = new HashMap<>(attachments); // Defensive copy
+        this.invocationCount++;
     }
 
-    @Override
-    public String getLastMessageBody() {
-        if (sentMessages.isEmpty()) {
-            return null;
-        }
-        return sentMessages.get(sentMessages.size() - 1);
+    public void reset() {
+        this.lastBody = null;
+        this.lastAttachments = null;
+        this.invocationCount = 0;
     }
 
     /**
-     * Helper method for tests to verify if the Slack body contains the GitHub URL.
-     * Directly implements the AC: "Slack body includes GitHub issue: <url>"
-     *
-     * @param url The expected GitHub URL.
-     * @return true if the URL is found in the last message body.
+     * Helper assertion for testing.
+     * Verifies that the 'github_url' key exists and is not blank in the attachments map.
      */
-    public boolean doesLastMessageContainUrl(String url) {
-        String body = getLastMessageBody();
-        return body != null && body.contains(url);
-    }
-
-    public void clear() {
-        sentMessages.clear();
+    public void assertGithubUrlPresent() {
+        if (this.lastAttachments == null) {
+            throw new AssertionError("Slack was not invoked");
+        }
+        String url = this.lastAttachments.get("github_url");
+        if (url == null || url.isBlank()) {
+            throw new AssertionError("Slack attachments missing 'github_url' or it is blank. Received: " + this.lastAttachments);
+        }
     }
 }

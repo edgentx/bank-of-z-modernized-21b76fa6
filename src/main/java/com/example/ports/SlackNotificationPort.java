@@ -1,16 +1,16 @@
 package com.example.ports;
 
 /**
- * Port for sending Slack notifications.
- * Used to ensure the workflow properly formats the body with the GitHub URL.
+ * Port for sending notifications to Slack.
+ * Used in the defect reporting workflow to notify the channel.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Posts a message to a Slack channel.
+     * Sends a message to a specific Slack channel.
      *
-     * @param channelId The target channel ID (e.g., "#vforce360-issues").
-     * @param body      The formatted message body.
+     * @param channelId The target channel ID.
+     * @param messageBody The formatted message body.
      */
-    void postMessage(String channelId, String body);
+    void sendMessage(String channelId, String messageBody);
 }

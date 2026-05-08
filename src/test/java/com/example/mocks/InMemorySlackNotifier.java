@@ -1,32 +1,36 @@
 package com.example.mocks;
 
-import com.example.ports.SlackNotificationPort;
+import com.example.ports.SlackNotifierPort;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Mock adapter for SlackNotificationPort.
- * Stores messages in memory instead of sending them to the real Slack API.
+ * Mock implementation of SlackNotifierPort for testing.
+ * Stores payloads in memory for assertion.
  */
-public class InMemorySlackNotifier implements SlackNotificationPort {
+public class InMemorySlackNotifier implements SlackNotifierPort {
 
-    private final Map<String, String> channelMessages = new HashMap<>();
+    private Map<String, String> lastPayload = new HashMap<>();
 
     @Override
-    public String sendMessage(String channel, String messageBody) {
-        // Store the message so we can verify it later in tests
-        channelMessages.put(channel, messageBody);
-        // Return a fake timestamp
-        return "1234567890.123456";
+    public void sendNotification(String message, String githubIssueUrl) {
+        // Simulate the construction of the Slack body message
+        StringBuilder bodyBuilder = new StringBuilder();
+        bodyBuilder.append("Message: ").append(message != null ? message : "");
+        
+        if (githubIssueUrl != null) {
+            bodyBuilder.append("\nIssue: ").append(githubIssueUrl);
+        }
+
+        this.lastPayload.put("body", bodyBuilder.toString());
+        this.lastPayload.put("raw_url", githubIssueUrl);
     }
 
     /**
-     * Helper method for assertions to retrieve the last message sent to a specific channel.
-     *
-     * @param channel The channel to check
-     * @return The last message body sent to that channel, or null if none exists.
+     * Retrieves the last payload sent through this mock.
+     * Used by tests to verify assertions.
      */
-    public String getLastMessageBody(String channel) {
-        return channelMessages.get(channel);
+    public Map<String, String> getLastPayload() {
+        return this.lastPayload;
     }
 }

@@ -3,7 +3,6 @@ package com.example.domain.validation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * Event emitted when a defect is successfully reported in the system.

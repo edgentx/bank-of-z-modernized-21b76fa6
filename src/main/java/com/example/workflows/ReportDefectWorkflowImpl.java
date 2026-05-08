@@ -11,9 +11,7 @@ public class ReportDefectWorkflowImpl implements ReportDefectWorkflow {
 
     @Override
     public String reportDefect(String defectDescription) {
-        // Workflow logic will go here
-        // For now, returning a stub to satisfy compilation if needed,
-        // though tests will mock the activity.
+        // Workflow logic stub to satisfy compilation
         return "Done";
     }
 }

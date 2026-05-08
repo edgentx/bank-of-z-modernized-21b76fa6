@@ -3,12 +3,13 @@ package com.example;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import com.example.ports.SlackPort;
-import com.example.ports.GitHubPort;
-import com.example.adapters.SlackAdapter;
-import com.example.adapters.GitHubAdapter;
+import org.springframework.context.annotation.ComponentScan;
+
+import com.example.ports.SlackNotificationPort;
+import com.example.adapters.SlackNotificationAdapter;
 
 @SpringBootApplication
+@ComponentScan(basePackages = "com.example")
 public class Application {
 
     public static void main(String[] args) {
@@ -16,12 +17,9 @@ public class Application {
     }
 
     @Bean
-    public SlackPort slackPort() {
-        return new SlackAdapter();
-    }
-
-    @Bean
-    public GitHubPort githubPort() {
-        return new GitHubAdapter();
+    public SlackNotificationPort slackNotificationPort() {
+        // Returning the real adapter.
+        // In a test context, this bean would be overridden by the MockSlackNotificationPort.
+        return new SlackNotificationAdapter();
     }
 }

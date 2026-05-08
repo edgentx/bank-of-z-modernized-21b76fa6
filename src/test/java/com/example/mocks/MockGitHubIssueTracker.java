@@ -1,29 +1,19 @@
 package com.example.mocks;
 
-import com.example.ports.GitHubIssueTrackerPort;
+import com.example.domain.vforce360.ports.GitHubIssueTrackerPort;
 
 /**
- * Mock implementation of GitHubIssueTrackerPort for testing.
- * Returns predictable URLs.
+ * Mock implementation of the GitHub Port for testing.
  */
 public class MockGitHubIssueTracker implements GitHubIssueTrackerPort {
+    private final String mockUrl;
 
-    private boolean shouldFail = false;
-    private String simulatedUrl = "https://github.com/mock-repo/issues/1";
+    public MockGitHubIssueTracker(String mockUrl) {
+        this.mockUrl = mockUrl;
+    }
 
     @Override
-    public String createIssue(String title, String body) {
-        if (shouldFail) {
-            throw new RuntimeException("Simulated GitHub API failure");
-        }
-        return simulatedUrl;
-    }
-
-    public void setSimulatedUrl(String url) {
-        this.simulatedUrl = url;
-    }
-
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
+    public String createIssue(String title, String description) {
+        return mockUrl;
     }
 }

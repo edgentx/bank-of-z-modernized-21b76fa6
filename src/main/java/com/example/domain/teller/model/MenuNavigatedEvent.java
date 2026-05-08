@@ -1,20 +1,23 @@
 package com.example.domain.teller.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
-public class MenuNavigatedEvent implements DomainEvent {
-    private final String aggregateId;
-    private final String menuId;
-    private final String action;
-    private final Instant occurredAt;
+public record MenuNavigatedEvent(
+        String aggregateId,
+        String menuId,
+        String action,
+        Instant occurredAt
+) implements DomainEvent {
+    public MenuNavigatedEvent {
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId cannot be null");
+        if (menuId == null) throw new IllegalArgumentException("menuId cannot be null");
+    }
 
-    public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
-        this.aggregateId = Objects.requireNonNull(aggregateId);
-        this.menuId = Objects.requireNonNull(menuId);
-        this.action = Objects.requireNonNull(action);
-        this.occurredAt = Objects.requireNonNull(occurredAt);
+    public MenuNavigatedEvent(String sessionId, String menuId, String action, Instant occurredAt) {
+        this(sessionId, menuId, action, occurredAt);
     }
 
     @Override
@@ -31,7 +34,4 @@ public class MenuNavigatedEvent implements DomainEvent {
     public Instant occurredAt() {
         return occurredAt;
     }
-
-    public String menuId() { return menuId; }
-    public String action() { return action; }
 }

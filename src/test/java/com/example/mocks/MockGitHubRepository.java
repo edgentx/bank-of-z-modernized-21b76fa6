@@ -1,27 +1,29 @@
 package com.example.mocks;
 
-import com.example.ports.GitHubRepository;
+import com.example.ports.GitHubRepositoryPort;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Mock implementation of GitHubRepository for testing.
- * Returns a deterministic fake URL.
+ * Mock implementation of GitHubRepositoryPort.
+ * Returns predictable URLs for testing without calling GitHub API.
  */
-public class MockGitHubRepository implements GitHubRepository {
+public class MockGitHubRepository implements GitHubRepositoryPort {
 
-    private static final String FAKE_BASE_URL = "http://github.com/fake-repo/issues/";
-    private int issueCount = 0;
+    private final Map<String, String> responses = new HashMap<>();
 
-    @Override
-    public String createIssue(String title, String body) {
-        if (title == null || title.isBlank()) {
-            throw new IllegalArgumentException("Title cannot be empty");
-        }
-        issueCount++;
-        // Return a deterministic URL based on the counter
-        return FAKE_BASE_URL + issueCount;
+    public void mockIssueUrl(String projectId, String defectId, String url) {
+        String key = projectId + ":" + defectId;
+        responses.put(key, url);
     }
 
-    public int getIssueCount() {
-        return issueCount;
+    @Override
+    public String createIssue(String projectId, String defectId, String title, String body) {
+        String key = projectId + ":" + defectId;
+        if (responses.containsKey(key)) {
+            return responses.get(key);
+        }
+        // Default fallback if not explicitly mocked
+        return "https://github.com/fake-repo/issues/" + defectId;
     }
 }

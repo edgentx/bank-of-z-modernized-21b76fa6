@@ -6,41 +6,34 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages to verify the content and presence of the GitHub URL.
+ * Captures messages sent to Slack in memory to verify content.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class PostedMessage {
-        public final String channelId;
-        public final String body;
+    private final List<PostedMessage> postedMessages = new ArrayList<>();
 
-        public PostedMessage(String channelId, String body) {
-            this.channelId = channelId;
-            this.body = body;
-        }
-    }
-
-    private final List<PostedMessage> messages = new ArrayList<>();
+    public record PostedMessage(String channel, String messageBody) {}
 
     @Override
-    public void postMessage(String channelId, String body) {
-        System.out.println("[MockSlack] Captured message for channel " + channelId + ": " + body);
-        this.messages.add(new PostedMessage(channelId, body));
+    public void postMessage(String channel, String messageBody) {
+        this.postedMessages.add(new PostedMessage(channel, messageBody));
     }
 
-    public List<PostedMessage> getMessages() {
-        return messages;
+    public List<PostedMessage> getPostedMessages() {
+        return new ArrayList<>(postedMessages);
     }
 
     public void clear() {
-        messages.clear();
+        postedMessages.clear();
     }
 
     /**
-     * Helper to verify if the GitHub URL was included in the last message body.
+     * Finds the first message posted to the specific channel.
      */
-    public boolean lastMessageContainsUrl(String expectedUrl) {
-        if (messages.isEmpty()) return false;
-        return messages.get(messages.size() - 1).body.contains(expectedUrl);
+    public PostedMessage findMessageByChannel(String targetChannel) {
+        return postedMessages.stream()
+            .filter(m -> m.channel().equals(targetChannel))
+            .findFirst()
+            .orElse(null);
     }
 }

@@ -9,18 +9,17 @@ import java.time.Instant;
 import java.util.List;
 
 public class DataSyncCheckpoint extends AggregateRoot {
+    private final String checkpointId;
+    private long currentOffset;
+    private boolean initialized = false;
 
-    private final String id;
-    private long lastSyncOffset = -1;
-    private boolean hashValidated = false;
-
-    public DataSyncCheckpoint(String id) {
-        this.id = id;
+    public DataSyncCheckpoint(String checkpointId) {
+        this.checkpointId = checkpointId;
     }
 
     @Override
     public String id() {
-        return id;
+        return checkpointId;
     }
 
     @Override
@@ -32,36 +31,26 @@ public class DataSyncCheckpoint extends AggregateRoot {
     }
 
     private List<DomainEvent> recordCheckpoint(RecordSyncCheckpointCmd cmd) {
-        // Invariant: Checkpoint offsets must strictly increase
-        if (cmd.syncOffset() <= lastSyncOffset) {
-            throw new IllegalStateException(
-                String.format("Checkpoint offset %d must be strictly greater than current %d",
-                    cmd.syncOffset(), lastSyncOffset)
-            );
-        }
-
-        // Invariant: Data validation must pass before a checkpoint is committed
+        // Invariant: Data validation must pass
         if (cmd.validationHash() == null || cmd.validationHash().isBlank()) {
-            throw new IllegalArgumentException("Validation hash must be provided to commit checkpoint");
+            throw new IllegalArgumentException("validationHash required");
         }
 
-        var event = new SyncCheckpointRecordedEvent(cmd.aggregateId(), cmd.syncOffset(), cmd.validationHash(), Instant.now());
+        // Invariant: Checkpoint offsets must strictly increase and cannot be skipped.
+        // We also enforce that the first offset starts at 0 or higher, and subsequent ones are > current.
+        if (initialized && cmd.syncOffset() <= currentOffset) {
+            throw new IllegalStateException("Checkpoint offsets must strictly increase. Current: " + currentOffset + ", Provided: " + cmd.syncOffset());
+        }
 
-        // Apply state changes
-        this.lastSyncOffset = cmd.syncOffset();
-        this.hashValidated = true;
-
+        var event = new CheckpointRecordedEvent(cmd.checkpointId(), cmd.syncOffset(), cmd.validationHash(), Instant.now());
+        this.currentOffset = cmd.syncOffset();
+        this.initialized = true;
         addEvent(event);
         incrementVersion();
-
         return List.of(event);
     }
 
-    public long getLastSyncOffset() {
-        return lastSyncOffset;
-    }
-
-    public boolean isHashValidated() {
-        return hashValidated;
+    public long getCurrentOffset() {
+        return currentOffset;
     }
 }

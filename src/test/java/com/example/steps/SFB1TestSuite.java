@@ -8,9 +8,8 @@ import org.junit.runner.RunWith;
 @CucumberOptions(
     features = {"features/S-FB-1.feature"},
     glue = {"com.example.steps"},
-    plugin = {"pretty", "html:target/cucumber/S-FB-1.html"},
-    monochrome = true
+    plugin = {"pretty", "html:target/cucumber-report/S-FB-1.html"}
 )
 public class SFB1TestSuite {
-    // Cucumber test suite runner for S-FB-1
+    // This class runs the feature file for the FB-1 Defect
 }

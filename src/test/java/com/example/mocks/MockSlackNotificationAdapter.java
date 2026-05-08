@@ -1,39 +1,51 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-import java.util.ArrayList;
-import java.util.List;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Stores messages in memory instead of sending real HTTP requests.
+ * Mock adapter for Slack Notifications.
+ * Used in testing to capture outbound messages without real I/O.
  */
 public class MockSlackNotificationAdapter implements SlackNotificationPort {
+    private String lastChannel;
+    private String lastBody;
+    private boolean shouldFail = false;
 
-    private final List<String> postedMessages = new ArrayList<>();
-
-    @Override
-    public void sendNotification(String messageBody) {
-        // In a real implementation, this might use WebClient.post()...
-        // Here we just capture the output for verification.
-        if (messageBody == null) {
-            throw new IllegalArgumentException("messageBody cannot be null");
-        }
-        this.postedMessages.add(messageBody);
+    public String getLastChannel() {
+        return lastChannel;
     }
 
-    /**
-     * Helper method for tests to retrieve the last sent message.
-     * @return The body of the most recent notification, or null if none sent.
-     */
-    public String getLatestPostedBody() {
-        if (postedMessages.isEmpty()) {
-            return null;
+    public String getLastBody() {
+        return lastBody;
+    }
+
+    public void setShouldFail(boolean shouldFail) {
+        this.shouldFail = shouldFail;
+    }
+
+    @Override
+    public boolean sendMessage(String channel, String body) {
+        this.lastChannel = channel;
+        this.lastBody = body;
+        return !shouldFail;
+    }
+
+    @Override
+    public boolean sendRichMessage(String channel, String text, Map<String, Object> metadata) {
+        // Simple mock implementation that concatenates text and metadata URL
+        StringBuilder sb = new StringBuilder();
+        sb.append(text).append("\n");
+        if (metadata.containsKey("url")) {
+            sb.append("GitHub issue: ").append(metadata.get("url"));
         }
-        return postedMessages.get(postedMessages.size() - 1);
+        return sendMessage(channel, sb.toString());
     }
 
     public void clear() {
-        postedMessages.clear();
+        this.lastChannel = null;
+        this.lastBody = null;
     }
 }

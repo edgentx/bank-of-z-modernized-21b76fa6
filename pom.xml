@@ -37,7 +37,7 @@
             <artifactId>jcc</artifactId>
             <scope>runtime</scope>
         </dependency>
-        
+
         <!-- External Adapters -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>

@@ -1,31 +1,30 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
+
 import java.util.Optional;
 
 /**
- * Mock implementation of GitHubIssuePort for testing.
- * Allows pre-configuring responses for issue creation.
+ * Mock implementation of the GitHub port for testing.
+ * Returns predictable URLs without calling the external GitHub API.
  */
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private String mockUrl = "https://github.com/mock-repo/issues/1";
-    private boolean shouldSucceed = true;
+    private String simulatedBaseUrl = "https://github.com/test/repo/issues/";
+    private int issueCount = 0;
 
     @Override
-    public Optional<String> createIssue(String title, String body) {
-        if (shouldSucceed) {
-            return Optional.of(mockUrl);
-        } else {
-            return Optional.empty();
-        }
+    public String createIssue(String title, String body) {
+        issueCount++;
+        return simulatedBaseUrl + issueCount;
     }
 
-    public void setMockUrl(String mockUrl) {
-        this.mockUrl = mockUrl;
+    @Override
+    public Optional<String> getIssueUrl(String issueId) {
+        return Optional.of(simulatedBaseUrl + issueId);
     }
 
-    public void setShouldSucceed(boolean shouldSucceed) {
-        this.shouldSucceed = shouldSucceed;
+    public void setSimulatedBaseUrl(String url) {
+        this.simulatedBaseUrl = url;
     }
 }

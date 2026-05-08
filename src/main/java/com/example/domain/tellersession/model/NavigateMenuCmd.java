@@ -1,13 +1,14 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
+import java.time.Instant;
 
 /**
- * Command to route the teller to a different menu or screen.
- * S-19: TellerSession User Interface Navigation.
+ * Command to navigate the Teller UI to a specific menu or screen.
  */
 public record NavigateMenuCmd(
     String sessionId,
-    String menuId,
-    String action
+    String targetMenuId,
+    String action,
+    Instant occurredAt
 ) implements Command {}

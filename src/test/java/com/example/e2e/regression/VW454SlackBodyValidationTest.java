@@ -1,83 +1,102 @@
 package com.example.e2e.regression;
 
-import com.example.ports.SlackNotificationPort;
-import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.mocks.MockSlackNotificationAdapter;
+import com.example.application.DefectReportingService;
+import com.example.domain.reporting.model.ReportDefectCmd;
+import com.example.mocks.MockDefectRepositoryPort;
+import com.example.mocks.MockSlackNotificationPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.net.URI;
-import java.time.Instant;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * E2E Regression Test for VW-454.
- * Verifies that when a defect is reported, the resulting Slack message body
- * contains the valid GitHub issue URL.
+ * Regression Test for VW-454.
+ * Validates that triggering a defect report results in a Slack message
+ * containing the GitHub issue URL.
  *
- * Corresponds to S-FB-1.
+ * Context: VForce360 PM diagnostic conversation.
+ * Runner: JUnit 5 (Spring Boot standard)
  */
 class VW454SlackBodyValidationTest {
 
-    @Test
-    void shouldContainGitHubIssueUrlInSlackBody() {
-        // Arrange
-        MockSlackNotificationAdapter mockSlack = new MockSlackNotificationAdapter();
-        String expectedProjectId = "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1";
-        String expectedTitle = "VW-454: Validation Failure";
-        String expectedUrl = "https://github.com/bank-of-z/issues/454";
+    private MockSlackNotificationPort slackMock;
+    private MockDefectRepositoryPort repoMock;
+    private DefectReportingService service;
 
-        ReportDefectCmd command = new ReportDefectCmd(
-            expectedProjectId,
-            expectedTitle,
-            "Severity: LOW\nComponent: validation",
-            Instant.now()
+    @BeforeEach
+    void setUp() {
+        slackMock = new MockSlackNotificationPort();
+        repoMock = new MockDefectRepositoryPort();
+        service = new DefectReportingService(repoMock, slackMock);
+    }
+
+    @Test
+    void shouldContainGitHubUrlInSlackBody_WhenDefectIsReported() {
+        // Arrange
+        String expectedGitHubUrl = "https://github.com/bank-of-z/vforce360/issues/454";
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            "VW-454",
+            "Validating GitHub URL in Slack body",
+            expectedGitHubUrl,
+            "LOW"
         );
 
-        // Act (Simulating the workflow execution that triggers the notification)
-        try {
-            mockSlack.sendDefectNotification(command, URI.create(expectedUrl));
-        } catch (Exception e) {
-            fail("Workflow execution failed during test: " + e.getMessage());
-        }
+        // Act
+        // Simulating the temporal-worker exec trigger
+        service.reportDefect(cmd);
 
         // Assert
-        assertTrue(mockSlack.wasCalled(), "Slack notification should have been triggered");
+        assertEquals(1, slackMock.messages.size(), "Slack should have received one message");
 
-        Map<String, Object> capturedPayload = mockSlack.getCapturedPayload();
-        assertNotNull(capturedPayload, "Payload should not be null");
+        MockSlackNotificationPort.CapturedMessage msg = slackMock.messages.get(0);
+        assertEquals("#vforce360-issues", msg.channel(), "Message should be sent to the correct channel");
 
-        // Verify "body" exists and contains the URL
-        Object bodyObj = capturedPayload.get("body");
-        assertNotNull(bodyObj, "Slack payload must contain a 'body' field");
-        assertTrue(bodyObj instanceof String, "Slack 'body' must be a String");
-
-        String body = (String) bodyObj;
+        // Critical Assertion: Body must contain the URL
         assertTrue(
-            body.contains(expectedUrl),
-            "Slack body must contain the GitHub issue URL. Expected [" + expectedUrl + "] but got: " + body
+            msg.body().contains(expectedGitHubUrl),
+            "Slack body must contain the GitHub issue URL. Found: " + msg.body()
         );
     }
 
     @Test
-    void shouldFailIfUrlMissingFromBody() {
+    void shouldContainFormattedUrlLineInSlackBody() {
         // Arrange
-        MockSlackNotificationAdapter mockSlack = new MockSlackNotificationAdapter();
-        String missingUrl = "";
-
-        ReportDefectCmd command = new ReportDefectCmd(
-            "pid",
-            "Title",
-            "Desc",
-            Instant.now()
-        );
+        String url = "https://github.com/bank-of-z/vforce360/issues/1";
+        ReportDefectCmd cmd = new ReportDefectCmd("S-FB-1", "Fix defect", url, "MEDIUM");
 
         // Act
-        mockSlack.sendDefectNotification(command, URI.create(missingUrl));
+        service.reportDefect(cmd);
 
         // Assert
-        String body = (String) mockSlack.getCapturedPayload().get("body");
-        assertFalse(body.contains("http"), "Test setup failure: URL should be missing to validate failure case");
+        MockSlackNotificationPort.CapturedMessage msg = slackMock.messages.get(0);
+        // Verify the specific format expectation if necessary, e.g. "GitHub Issue: <url>"
+        assertTrue(
+            msg.body().contains("GitHub Issue:"),
+            "Slack body should clearly identify the GitHub link."
+        );
+        assertTrue(
+            msg.body().contains(url),
+            "Slack body should append the actual URL after the label."
+        );
+    }
+
+    @Test
+    void shouldRejectDefectReport_WhenGitHubUrlIsMissing() {
+        // Arrange
+        ReportDefectCmd invalidCmd = new ReportDefectCmd(
+            "VW-999",
+            "Missing URL",
+            "", // Empty URL
+            "HIGH"
+        );
+
+        // Act & Assert
+        // The aggregate should throw an exception before Slack is called
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            service.reportDefect(invalidCmd);
+        });
+
+        assertTrue(exception.getMessage().contains("GitHub URL is required"));
+        assertEquals(0, slackMock.messages.size(), "No Slack message should be sent if validation fails");
     }
 }

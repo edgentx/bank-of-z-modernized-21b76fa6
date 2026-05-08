@@ -12,12 +12,12 @@ public record SessionStartedEvent(
         Instant occurredAt
 ) implements DomainEvent {
     public SessionStartedEvent {
-        // Validation if necessary, though record constructor handles it
+        // Validation handled by aggregate, event is a fact
     }
 
     @Override
     public String type() {
-        return "SessionStartedEvent";
+        return "session.started";
     }
 
     @Override

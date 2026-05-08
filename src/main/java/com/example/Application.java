@@ -1,42 +1,41 @@
 package com.example;
 
-import com.example.adapters.GitHubAdapter;
-import com.example.adapters.SlackAdapter;
-import com.example.domain.validation.ReportDefectWorkflow;
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackNotificationPort;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.web.client.RestClient;
+import org.springframework.context.annotation.ComponentScan;
+import com.example.ports.GitHubIssuePort;
+import com.example.ports.SlackNotificationPort;
+import com.example.adapters.RestGitHubIssueAdapter;
+import com.example.adapters.RestSlackNotificationAdapter;
 
+/**
+ * Main Application Entry Point.
+ * Configures the Spring Boot context and binds Ports to Adapters.
+ */
 @SpringBootApplication
+@ComponentScan(basePackages = {"com.example.domain", "com.example.application", "com.example.adapters", "com.example.ports"})
 public class Application {
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
 
+    /**
+     * Production configuration for GitHub Port.
+     * Injected by Spring Boot properties via RestGitHubIssueAdapter.
+     */
     @Bean
-    public RestClient.Builder restClientBuilder() {
-        return RestClient.builder();
+    public GitHubIssuePort gitHubIssuePort(RestGitHubIssueAdapter adapter) {
+        return adapter;
     }
 
-    // Port definitions
+    /**
+     * Production configuration for Slack Notification Port.
+     * Injected by Spring Boot properties via RestSlackNotificationAdapter.
+     */
     @Bean
-    public GitHubPort gitHubPort(RestClient.Builder builder) {
-        return new GitHubAdapter(builder);
-    }
-
-    @Bean
-    public SlackNotificationPort slackNotificationPort(RestClient.Builder builder) {
-        String webhookUrl = System.getenv().getOrDefault("SLACK_WEBHOOK_URL", "https://hooks.slack.com/mock");
-        return new SlackAdapter(builder, webhookUrl);
-    }
-
-    // Workflow Bean
-    @Bean
-    public ReportDefectWorkflow reportDefectWorkflow(GitHubPort gitHubPort, SlackNotificationPort slackPort) {
-        return new ReportDefectWorkflow(gitHubPort, slackPort);
+    public SlackNotificationPort slackNotificationPort(RestSlackNotificationAdapter adapter) {
+        return adapter;
     }
 }

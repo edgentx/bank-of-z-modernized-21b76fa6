@@ -1,27 +1,33 @@
 package com.example.mocks;
 
+import com.example.ports.SlackMessage;
 import com.example.ports.SlackNotificationPort;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.springframework.stereotype.Component;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent during workflow execution to verify content without real I/O.
+ * Mock implementation of the Slack Port.
+ * Captures the last message sent to allow for assertions in tests.
  */
+@Component
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public final List<SlackMessage> sentMessages = new ArrayList<>();
-
-    public record SlackMessage(String channel, String body) {}
+    private String lastBody;
 
     @Override
-    public void sendMessage(String channel, String messageBody) {
-        // Simulate network latency or processing if necessary
-        this.sentMessages.add(new SlackMessage(channel, messageBody));
+    public void sendNotification(SlackMessage message) {
+        // Capture the body to verify it in the test.
+        this.lastBody = message.getBody();
+        // System.out.println("[MOCK] Slack sent: " + message.getBody());
     }
 
-    public void reset() {
-        sentMessages.clear();
+    /**
+     * Helper method for tests to retrieve what was sent.
+     */
+    public String getLastMessageBody() {
+        return lastBody;
+    }
+
+    public void clear() {
+        this.lastBody = null;
     }
 }

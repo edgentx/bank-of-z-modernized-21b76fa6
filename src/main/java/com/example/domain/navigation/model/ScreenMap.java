@@ -4,40 +4,32 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * ScreenMap Aggregate.
- * Handles the logic of rendering screens for different device types, enforcing legacy constraints.
+ * ScreenMap Aggregate
+ * Handles the logic for rendering screen layouts based on device constraints and user inputs.
+ * Enforces legacy BMS (Basic Mapping Support) field length constraints.
  */
 public class ScreenMap extends AggregateRoot {
 
-    private String screenId;
+    private final String screenMapId;
     private String currentLayoutId;
-    private boolean initialized;
+    private DeviceType lastDeviceType;
 
-    // BMS Constraints (Legacy 3270 field limits)
-    private static final int MAX_FIELD_LENGTH_BMS = 40;
+    // Legacy BMS Constraints
+    private static final int MAX_FIELD_LENGTH = 80; // Typical 3270 screen width constraint
 
-    public ScreenMap(String screenId) {
-        this.screenId = screenId;
-    }
-
-    /**
-     * Helper to set up a valid aggregate state for testing.
-     */
-    public void initialize() {
-        this.initialized = true;
-        this.currentLayoutId = "default-layout";
+    public ScreenMap(String screenMapId) {
+        this.screenMapId = screenMapId;
     }
 
     @Override
     public String id() {
-        return screenId;
+        return screenMapId;
     }
 
     @Override
@@ -49,58 +41,73 @@ public class ScreenMap extends AggregateRoot {
     }
 
     private List<DomainEvent> renderScreen(RenderScreenCmd cmd) {
-        // Invariant: ScreenMap must be valid/initialized
-        if (!initialized) {
-            throw new IllegalStateException("ScreenMap is not initialized: " + screenId);
-        }
-
-        // Validation: Mandatory input fields
-        // Scenario: "All mandatory input fields must be validated before screen submission"
+        // Scenario: Successfully execute RenderScreenCmd & Invariants
+        // 1. Validate mandatory input fields
         if (cmd.screenId() == null || cmd.screenId().isBlank()) {
-            throw new IllegalArgumentException("screenId is mandatory");
+            throw new IllegalArgumentException("ScreenId cannot be null or blank");
         }
         if (cmd.layoutId() == null || cmd.layoutId().isBlank()) {
-             // Assuming layoutId is mandatory based on legacy requirements, though not explicitly in Gherkin,
-             // usually needed for rendering. However, strict adherence to Gherkin:
-             // Gherkin mentions 'valid screenId' and 'valid deviceType'. 
-             // I will validate those strictly.
+            throw new IllegalArgumentException("LayoutId cannot be null or blank");
         }
-        if (cmd.deviceType() == null) {
-            throw new IllegalArgumentException("deviceType is mandatory");
+        if (cmd.inputFields() == null) {
+            throw new IllegalArgumentException("InputFields map cannot be null");
         }
 
-        // Validation: Legacy BMS Constraints
-        // Scenario: "Field lengths must strictly adhere to legacy BMS constraints during the transition period"
-        if (cmd.deviceType() == DeviceType.TERMINAL_3270) {
-            // Logic: For 3270, the LayoutId or Fields must be short. 
-            // For this aggregate, we check the ID length as a proxy for field/screen ID compliance.
-            if (cmd.layoutId() != null && cmd.layoutId().length() > MAX_FIELD_LENGTH_BMS) {
-                throw new IllegalArgumentException("Field length exceeds BMS constraints (max " + MAX_FIELD_LENGTH_BMS + ")");
+        // 2. Validate Field Lengths (BMS Constraints)
+        // Also checks that input fields are not empty (Mandatory validation)
+        if (cmd.inputFields().isEmpty()) {
+            throw new IllegalArgumentException("All mandatory input fields must be validated before screen submission: Map cannot be empty");
+        }
+
+        for (Map.Entry<String, String> entry : cmd.inputFields().entrySet()) {
+            String value = entry.getValue();
+            if (value != null && value.length() > MAX_FIELD_LENGTH) {
+                throw new IllegalArgumentException(
+                    "Field lengths must strictly adhere to legacy BMS constraints during the transition period: " +
+                    "field '" + entry.getKey() + "' exceeds " + MAX_FIELD_LENGTH + " characters."
+                );
             }
         }
 
-        // Generate Layout
-        Map<String, Object> layout = generateLayout(cmd);
+        // Create Event
+        // We widen the Map<String, String> to Map<String, Object> for the event state
+        Map<String, Object> presentationState = new HashMap<>(cmd.inputFields());
+        // Add metadata to the state
+        presentationState.put("screenId", cmd.screenId());
+        presentationState.put("layoutId", cmd.layoutId());
+        
+        // Note: The error log showed String vs DeviceType comparison. 
+        // We ensure cmd.deviceType() is used as the Enum.
+        if (cmd.deviceType() == DeviceType.TERMINAL_3270) {
+             presentationState.put("renderMode", "BMS_COMPATIBLE");
+        } else {
+             presentationState.put("renderMode", "HTML5_RESPONSIVE");
+        }
 
-        var event = new ScreenRenderedEvent(
-            this.screenId,
+        ScreenRenderedEvent event = new ScreenRenderedEvent(
+            this.id(),
             cmd.screenId(),
-            cmd.layoutId(),
             cmd.deviceType(),
-            layout,
+            cmd.layoutId(),
+            presentationState,
             Instant.now()
         );
 
+        this.currentLayoutId = cmd.layoutId();
+        this.lastDeviceType = cmd.deviceType();
+        
         addEvent(event);
         incrementVersion();
+        
         return List.of(event);
     }
 
-    private Map<String, Object> generateLayout(RenderScreenCmd cmd) {
-        Map<String, Object> layout = new HashMap<>();
-        layout.put("screenId", cmd.screenId());
-        layout.put("type", cmd.deviceType().toString());
-        layout.put("content", "Sample layout content for " + cmd.layoutId());
-        return layout;
+    // Getters for testing/projections
+    public String getCurrentLayoutId() {
+        return currentLayoutId;
+    }
+
+    public DeviceType getLastDeviceType() {
+        return lastDeviceType;
     }
 }

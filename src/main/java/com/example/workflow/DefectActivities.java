@@ -1,17 +1,16 @@
 package com.example.workflow;
 
-import io.temporal.activity.ActivityInterface;
+import com.example.domain.defect.model.ReportDefectCommand;
 
 /**
- * Temporal Activity interface for defect reporting side-effects.
+ * Temporal Activity Interface for defect reporting.
  */
-@ActivityInterface
 public interface DefectActivities {
 
     /**
-     * Formats and sends a Slack message for the reported defect.
-     *
-     * @param command The defect details.
+     * Reports the defect to GitHub and sends a Slack notification.
+     * @param cmd The command details.
+     * @return The GitHub URL generated.
      */
-    void notifySlack(ReportDefectCommand command);
+    String reportDefect(ReportDefectCommand cmd);
 }

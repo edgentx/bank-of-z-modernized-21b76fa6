@@ -2,20 +2,40 @@ package com.example.mocks;
 
 import com.example.ports.VForce360Port;
 
-import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock adapter for VForce360.
- * Simulates the behavior of the external diagnostic system.
+ * Mock implementation of VForce360Port for testing.
  */
 public class MockVForce360Port implements VForce360Port {
 
+    private final List<String> reportedTitles = new ArrayList<>();
+    private String mockReturnUrl = "https://github.com/mock-repo/issues/1";
+    private boolean shouldFail = false;
+
     @Override
-    public String reportDefect(String defectId, String title, String details) {
-        // Simulate a successful API call returning a GitHub/VForce360 URL
-        if (defectId == null || defectId.isBlank()) {
-            throw new IllegalArgumentException("Defect ID cannot be null");
+    public String reportDefect(String defectTitle) {
+        reportedTitles.add(defectTitle);
+        if (shouldFail) {
+            return null; // Simulate failure
         }
-        return "https://github.com/bank-of-z/issues/" + UUID.randomUUID();
+        return mockReturnUrl;
+    }
+
+    public boolean wasCalledWith(String title) {
+        return reportedTitles.contains(title);
+    }
+
+    public void setMockReturnUrl(String url) {
+        this.mockReturnUrl = url;
+    }
+
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
+    }
+
+    public int getCallCount() {
+        return reportedTitles.size();
     }
 }

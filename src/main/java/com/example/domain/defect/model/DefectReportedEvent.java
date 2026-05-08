@@ -1,12 +1,15 @@
 package com.example.domain.defect.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
 
-/**
- * Event emitted when a defect is successfully reported and notified.
- */
-public record DefectReportedEvent(String aggregateId, String issueUrl, Instant occurredAt) implements DomainEvent {
+public record DefectReportedEvent(
+    String defectId,
+    String title,
+    String description,
+    Instant occurredAt
+) implements DomainEvent {
     @Override
     public String type() {
         return "DefectReported";
@@ -14,7 +17,7 @@ public record DefectReportedEvent(String aggregateId, String issueUrl, Instant o
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return defectId;
     }
 
     @Override

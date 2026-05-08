@@ -2,29 +2,28 @@ package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
 
+import java.net.URI;
+import java.util.Optional;
+
 /**
- * Mock adapter for GitHub Issues.
- * Used in testing to simulate URL generation.
+ * Mock adapter for GitHub interactions.
+ * Implements the Port interface to simulate creating issues and generating URLs
+ * without hitting the real GitHub API.
  */
 public class MockGitHubIssueAdapter implements GitHubIssuePort {
-    private String createdTitle;
-    private String createdDescription;
-    private String fakeUrlPrefix = "https://github.com/example/repo/issues/";
-    private int issueCount = 0;
+
+    private static final String FAKE_BASE_URL = "http://github.example.com/mock/";
 
     @Override
-    public String createIssue(String title, String description) {
-        this.createdTitle = title;
-        this.createdDescription = description;
-        this.issueCount++;
-        return fakeUrlPrefix + issueCount;
+    public URI createIssue(String title, String body) {
+        // Simulate a successful creation returning a deterministic mock URL
+        return URI.create(FAKE_BASE_URL + "issue/" + System.currentTimeMillis());
     }
 
-    public String getCreatedTitle() {
-        return createdTitle;
-    }
-
-    public String getCreatedDescription() {
-        return createdDescription;
+    @Override
+    public Optional<URI> getIssueUrl(String issueId) {
+        // For testing purposes, return a mock URL based on the ID
+        if (issueId == null) return Optional.empty();
+        return Optional.of(URI.create(FAKE_BASE_URL + "issue/" + issueId));
     }
 }

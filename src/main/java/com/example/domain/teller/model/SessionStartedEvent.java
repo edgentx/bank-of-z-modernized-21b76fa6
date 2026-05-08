@@ -4,19 +4,13 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
-public record SessionStartedEvent(String sessionId, String tellerId, String terminalId, Instant startedAt) implements DomainEvent {
+public record SessionStartedEvent(String aggregateId, String tellerId, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
         return "session.started";
     }
-
     @Override
-    public String aggregateId() {
-        return sessionId;
-    }
-
+    public String aggregateId() { return aggregateId; }
     @Override
-    public Instant occurredAt() {
-        return startedAt;
-    }
+    public Instant occurredAt() { return occurredAt; }
 }

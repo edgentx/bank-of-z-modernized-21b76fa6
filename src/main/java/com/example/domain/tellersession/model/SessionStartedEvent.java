@@ -1,28 +1,22 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Objects;
 
 /**
- * Event emitted when a teller session has successfully started.
+ * Domain event emitted when a teller successfully starts a session.
  */
 public record SessionStartedEvent(
         String aggregateId,
         String tellerId,
         String terminalId,
-        String navigationState,
         Instant occurredAt
 ) implements DomainEvent {
-
     public SessionStartedEvent {
-        if (aggregateId == null || aggregateId.isBlank()) {
-            aggregateId = UUID.randomUUID().toString();
-        }
-        if (occurredAt == null) {
-            occurredAt = Instant.now();
-        }
+        Objects.requireNonNull(aggregateId, "aggregateId cannot be null");
+        Objects.requireNonNull(tellerId, "tellerId cannot be null");
+        Objects.requireNonNull(terminalId, "terminalId cannot be null");
     }
 
     @Override

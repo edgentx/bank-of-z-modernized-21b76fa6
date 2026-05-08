@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.1</version> <!-- Aligning Temporal SDK compatibility -->
+        <version>3.3.1</version> 
         <relativePath/>
     </parent>
     
@@ -29,12 +29,7 @@
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
 
-        <!-- Temporal (BOM pinned) -->
-        <!--
-           NOTE: Temporal SDK 1.22.x is not in the Spring Boot 3.x BOM.
-           We must define the version explicitly or import the Temporal BOM.
-           Explicit version used here for stability as per requirement 9.
-        -->
+        <!-- Temporal (Not in Spring Boot BOM - Explicit Version Required) -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>

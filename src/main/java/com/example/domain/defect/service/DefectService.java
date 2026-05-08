@@ -1,12 +1,16 @@
 package com.example.domain.defect.service;
 
 import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.domain.defect.repository.DefectRepository;
+import com.example.domain.defect.model.ReportDefectCommand;
+import com.example.defect.repository.DefectRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
+/**
+ * Application Service for Defect Reporting.
+ * Orchestrates the execution of commands on the Defect Aggregate and persistence.
+ */
 @Service
 public class DefectService {
 
@@ -17,17 +21,24 @@ public class DefectService {
     }
 
     /**
-     * Handles the logic to report a defect.
-     * Corresponds to Triggering _report_defect via temporal-worker exec.
+     * Reports a new defect.
+     * Creates the aggregate, executes the command, and persists the result.
+     *
+     * @param cmd The command containing defect details.
+     * @return The ID of the created defect.
      */
-    public DefectAggregate reportDefect(String title, String description, String githubUrl) {
-        String defectId = UUID.randomUUID().toString();
+    public String reportDefect(ReportDefectCommand cmd) {
+        // Ensure we have an ID if not provided
+        String defectId = cmd.defectId() != null ? cmd.defectId() : "DEFECT-" + UUID.randomUUID().toString().substring(0, 8);
+        
+        // Finalize command ID for consistency if it was null
+        ReportDefectCommand finalCmd = new ReportDefectCommand(defectId, cmd.title(), cmd.description(), cmd.githubIssueUrl());
+
         DefectAggregate aggregate = new DefectAggregate(defectId);
-        ReportDefectCmd cmd = new ReportDefectCmd(defectId, title, description, githubUrl, null);
-        
-        aggregate.execute(cmd);
+        aggregate.execute(finalCmd);
+
         defectRepository.save(aggregate);
-        
-        return aggregate;
+
+        return defectId;
     }
 }

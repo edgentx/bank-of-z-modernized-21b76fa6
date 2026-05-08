@@ -1,4 +1,3 @@
-<!-- Adjusted pom.xml to fix dependency resolution error -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -31,7 +30,7 @@
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
             <!-- 1.22.1 is not in central/starter, using stable release 1.22.0 or 1.24.1 -->
-            <version>1.24.1</version> 
+            <version>1.24.1</version>
         </dependency>
 
         <!-- Standard Spring Boot Dependencies (Managed by BOM) -->

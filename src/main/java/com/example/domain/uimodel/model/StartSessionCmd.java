@@ -1,9 +1,11 @@
 package com.example.domain.uimodel.model;
 
 import com.example.domain.shared.Command;
+import java.util.Set;
 
-/**
- * Command to initiate a teller session on a specific terminal.
- * Implies successful authentication has already occurred upstream.
- */
-public record StartSessionCmd(String aggregateId, String tellerId, String terminalId) implements Command {}
+public record StartSessionCmd(
+    String sessionId,
+    String tellerId,
+    String terminalId,
+    Set<String> permissions
+) implements Command {}

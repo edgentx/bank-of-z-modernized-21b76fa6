@@ -1,18 +1,21 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.ConfigurationParameter;
+import org.junit.platform.suite.api.Configuration;
 import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
-import static io.cucumber.junit.platform.engine.CucumberJUnitPlatformRunnerOptions.GLUE_PROPERTY_NAME;
-
 /**
- * Test Runner for VW-454 Validation.
+ * Test runner for S-FB-1 regression suite.
  */
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features")
-@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
+@SelectClasspathResource("features/S-FB-1.feature")
+@Configuration(
+    classes = {
+        com.example.Application.class, // Main Spring Boot app config
+        SFB1TestSuite.class            // Test-specific mocks config
+    }
+)
 public class SFB1RunCucumberTest {
 }

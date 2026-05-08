@@ -6,13 +6,11 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record SessionEndedEvent(
-        String aggregateId,
-        Instant occurredAt
+    String aggregateId,
+    Instant occurredAt
 ) implements DomainEvent {
-    public SessionEndedEvent {
-        // Ensure non-null for safety
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
-        if (occurredAt == null) occurredAt = Instant.now();
+    public SessionEndedEvent(String aggregateId) {
+        this(aggregateId, Instant.now());
     }
 
     @Override

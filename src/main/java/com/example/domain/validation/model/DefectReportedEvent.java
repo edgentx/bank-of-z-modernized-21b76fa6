@@ -5,16 +5,27 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event emitted when a defect is reported.
- * CRITICAL: Must contain the GitHub URL for the Slack adapter.
+ * Event published when a defect is successfully reported to Slack/GitHub.
  */
 public record DefectReportedEvent(
         String aggregateId,
         String defectId,
-        String githubIssueUrl,
+        String githubUrl,
+        String channelId,
         Instant occurredAt
 ) implements DomainEvent {
-    @Override public String type() { return "DefectReported"; }
-    @Override public String aggregateId() { return aggregateId; }
-    @Override public Instant occurredAt() { return occurredAt; }
+    @Override
+    public String type() {
+        return "DefectReported";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
 }

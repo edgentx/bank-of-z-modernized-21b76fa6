@@ -1,9 +1,9 @@
 package com.example.domain.validation.port;
 
 /**
- * Port interface for sending notifications to Slack.
- * Used by the Validation Aggregate to confirm defect reporting.
+ * Port interface for Slack notifications.
+ * Used by the domain logic to send alerts without depending on concrete implementations.
  */
 public interface SlackNotificationPort {
-    void sendNotification(String messageBody);
+    void send(String body);
 }

@@ -2,43 +2,26 @@ package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
 
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
-
 /**
- * Mock implementation of GitHubIssuePort.
- * Configurable to return success or failure states to test workflow logic.
+ * In-memory mock for GitHub Issue creation.
+ * Used in testing to generate URLs without hitting the GitHub API.
  */
 public class InMemoryGitHubIssuePort implements GitHubIssuePort {
 
-    private String nextIssueUrl;
-    private final AtomicInteger createIssueCallCount = new AtomicInteger(0);
+    private final String mockBaseUrl;
+    private int issueCount = 0;
 
-    public InMemoryGitHubIssuePort() {
-        // Default to a success state
-        this.nextIssueUrl = "https://github.com/fake/repo/issues/1";
-    }
-
-    /**
-     * Sets what URL should be returned by the next call.
-     * Set to null to simulate a failure (Empty Optional).
-     */
-    public void setNextIssueUrl(String url) {
-        this.nextIssueUrl = url;
-    }
-
-    public int getCreateIssueCallCount() {
-        return createIssueCallCount.get();
+    public InMemoryGitHubIssuePort(String mockBaseUrl) {
+        this.mockBaseUrl = mockBaseUrl;
     }
 
     @Override
-    public Optional<String> createIssue(String repo, String title) {
-        createIssueCallCount.incrementAndGet();
-        
-        if (nextIssueUrl == null) {
-            return Optional.empty();
+    public String createIssue(String title, String body) {
+        if (title == null || title.isBlank()) {
+            throw new IllegalArgumentException("Title cannot be blank");
         }
-        
-        return Optional.of(nextIssueUrl);
+        issueCount++;
+        // Returns a deterministic URL based on the mock count
+        return String.format("%s/mock-repo/issues/%d", mockBaseUrl, issueCount);
     }
 }

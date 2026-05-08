@@ -1,15 +1,12 @@
 package com.example.domain.userinterfacenavigation.repository;
 
-import com.example.domain.userinterfacenavigation.model.ScreenMapAggregate;
-
+import com.example.domain.navigation.model.ScreenMap;
 import java.util.Optional;
 
 /**
- * Repository interface for ScreenMap aggregates.
- * This fixes the compilation errors by referencing the correctly located Aggregate.
+ * Repository interface for the ScreenMap aggregate.
  */
 public interface ScreenMapRepository {
-    ScreenMapAggregate save(ScreenMapAggregate aggregate);
-    Optional<ScreenMapAggregate> findById(String id);
-    ScreenMapAggregate load(String id); // Convenience method often used in tests/command handlers
+    ScreenMap save(ScreenMap aggregate);
+    Optional<ScreenMap> findById(String id);
 }

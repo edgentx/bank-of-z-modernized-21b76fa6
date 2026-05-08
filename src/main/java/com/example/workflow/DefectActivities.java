@@ -3,19 +3,15 @@ package com.example.workflow;
 import io.temporal.activity.ActivityInterface;
 
 /**
- * Temporal Activity interface for side-effects.
- * Wraps the Ports (GitHubPort, SlackPort) for use within the Workflow.
+ * Temporal Activity interface for defect reporting side-effects.
  */
 @ActivityInterface
 public interface DefectActivities {
 
     /**
-     * Creates an issue via GitHubPort.
+     * Formats and sends a Slack message for the reported defect.
+     *
+     * @param command The defect details.
      */
-    String createGitHubIssue(String title, String body);
-
-    /**
-     * Sends a message via SlackPort.
-     */
-    void notifySlack(String defectTitle, String githubUrl);
+    void notifySlack(ReportDefectCommand command);
 }

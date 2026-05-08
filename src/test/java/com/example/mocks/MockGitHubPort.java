@@ -2,25 +2,29 @@ package com.example.mocks;
 
 import com.example.ports.GitHubPort;
 
-import java.util.concurrent.CompletableFuture;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MockGitHubPort implements GitHubPort {
-    private String responseUrl = "https://github.com/test/issues/42";
-    private boolean shouldFail = false;
-
-    public void setResponseUrl(String url) {
-        this.responseUrl = url;
-    }
-
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
-    }
+    private final List<String> createdIssues = new ArrayList<>();
+    private String nextUrl = "https://github.com/example-repo/issues/1";
 
     @Override
-    public CompletableFuture<String> createIssue(String title, String body) {
-        if (shouldFail) {
-            return CompletableFuture.failedFuture(new RuntimeException("GitHub API Error"));
-        }
-        return CompletableFuture.completedFuture(responseUrl);
+    public String createIssue(String title, String body) {
+        createdIssues.add(title);
+        return nextUrl;
+    }
+
+    public void setNextUrl(String url) {
+        this.nextUrl = url;
+    }
+
+    public boolean wasIssueCreated(String title) {
+        return createdIssues.contains(title);
+    }
+
+    public void reset() {
+        createdIssues.clear();
+        nextUrl = "https://github.com/example-repo/issues/1";
     }
 }

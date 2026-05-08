@@ -1,57 +1,52 @@
 package com.example.services;
 
-import com.example.domain.validation.model.DefectReportedEvent;
-import com.example.domain.validation.model.ReportDefectCommand;
-import com.example.domain.validation.model.ValidationAggregate;
 import com.example.domain.validation.repository.ValidationRepository;
-import com.example.ports.SlackNotificationPort;
+import com.example.ports.GitHubPort;
+import com.example.ports.NotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 /**
- * Service/Workflow handler for reporting defects.
- * Orchestrates the Aggregate and the Slack Adapter.
+ * Service implementation of the Defect Reporting Workflow.
+ * Orchestrates the creation of a GitHub issue and the subsequent Slack notification.
  */
 @Service
 public class DefectReportingWorkflow {
 
     private static final Logger log = LoggerFactory.getLogger(DefectReportingWorkflow.class);
-    private final ValidationRepository repository;
-    private final SlackNotificationPort slackNotificationPort;
 
-    public DefectReportingWorkflow(ValidationRepository repository,
-                                   SlackNotificationPort slackNotificationPort) {
-        this.repository = repository;
-        this.slackNotificationPort = slackNotificationPort;
+    private final ValidationRepository validationRepository;
+    private final NotificationPort notificationPort;
+    private final GitHubPort gitHubPort;
+
+    public DefectReportingWorkflow(ValidationRepository validationRepository,
+                                   NotificationPort notificationPort,
+                                   GitHubPort gitHubPort) {
+        this.validationRepository = validationRepository;
+        this.notificationPort = notificationPort;
+        this.gitHubPort = gitHubPort;
     }
 
     /**
-     * Entry point for the Temporal workflow _report_defect.
+     * Reports a defect.
+     * 1. Creates a GitHub Issue.
+     * 2. Sends a Slack notification containing the GitHub URL.
+     *
+     * @param title The defect title.
+     * @param description The defect description.
      */
-    public void executeReportDefect(ReportDefectCommand cmd) {
-        log.info("Executing defect report for ID: {}", cmd.defectId());
+    public void reportDefect(String title, String description) {
+        log.info("Reporting defect: {}", title);
 
-        // Load or create aggregate
-        ValidationAggregate aggregate = repository.findById(cmd.defectId())
-            .orElseGet(() -> new ValidationAggregate(cmd.defectId()));
+        // 1. Create GitHub Issue
+        String url = gitHubPort.createIssue(title, description);
+        log.debug("GitHub issue created at: {}", url);
 
-        // Execute command
-        List<DefectReportedEvent> events = aggregate.execute(cmd);
+        // 2. Send Notification with URL in body (Fix for VW-454)
+        String notificationBody = "Defect Reported: " + title + "\nGitHub Issue: " + url;
+        notificationPort.sendNotification("New Defect Reported", notificationBody);
 
-        // Persist and handle side effects
-        repository.save(aggregate);
-
-        for (DefectReportedEvent event : events) {
-            handleEvent(event);
-        }
-    }
-
-    private void handleEvent(DefectReportedEvent event) {
-        // Per VW-454, send a Slack notification containing the GitHub URL
-        String messageBody = "Defect Reported: " + event.defectId() + " " + event.githubUrl();
-        slackNotificationPort.sendMessage("#vforce360-issues", messageBody);
+        log.info("Defect report processed.");
     }
 }

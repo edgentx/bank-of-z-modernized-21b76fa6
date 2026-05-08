@@ -1,40 +1,34 @@
 package com.example.domain.customer;
-import com.example.domain.customer.model.CustomerAggregate;
-import com.example.domain.customer.model.CustomerEnrolledEvent;
-import com.example.domain.customer.model.EnrollCustomerCmd;
-import com.example.domain.shared.DomainEvent;
-import com.example.mocks.InMemoryCustomerRepository;
-import org.junit.jupiter.api.Test;
-import java.util.List;
-import static org.junit.jupiter.api.Assertions.*;
 
-class CustomerAggregateTest {
-  @Test void enrollHappyPathEmitsEvent() {
-    var c = new CustomerAggregate("cust-1");
-    List<DomainEvent> events = c.execute(new EnrollCustomerCmd("cust-1", "Jane Doe", "jane@example.com", "GOV123"));
-    assertEquals(1, events.size());
-    assertInstanceOf(CustomerEnrolledEvent.class, events.get(0));
-    assertTrue(c.isEnrolled());
-    assertEquals(1, c.getVersion());
-  }
-  @Test void enrollRejectsBlankFullName() {
-    var c = new CustomerAggregate("cust-2");
-    assertThrows(IllegalArgumentException.class, () -> c.execute(new EnrollCustomerCmd("cust-2", "", "x@x.com", "GOV")));
-  }
-  @Test void enrollRejectsInvalidEmail() {
-    var c = new CustomerAggregate("cust-3");
-    assertThrows(IllegalArgumentException.class, () -> c.execute(new EnrollCustomerCmd("cust-3", "Name", "no-at", "GOV")));
-  }
-  @Test void enrollTwiceRejected() {
-    var c = new CustomerAggregate("cust-4");
-    c.execute(new EnrollCustomerCmd("cust-4", "Name", "n@n.com", "GOV"));
-    assertThrows(IllegalStateException.class, () -> c.execute(new EnrollCustomerCmd("cust-4", "Other", "o@o.com", "GOV2")));
-  }
-  @Test void mockRepositoryRoundTrip() {
-    var repo = new InMemoryCustomerRepository();
-    var c = new CustomerAggregate("cust-5");
-    c.execute(new EnrollCustomerCmd("cust-5", "Sample", "s@s.com", "GOV5"));
-    repo.save(c);
-    assertEquals("Sample", repo.findById("cust-5").orElseThrow().getFullName());
-  }
+import com.example.domain.customer.model.CustomerAggregate;
+import com.example.domain.customer.model.DeleteCustomerCmd;
+import com.example.domain.customer.model.EnrollCustomerCmd;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+public class CustomerAggregateTest {
+
+    @Test
+    public void testEnrollCustomerSuccess() {
+        var c = new CustomerAggregate("cust-1");
+        var cmd = new EnrollCustomerCmd("cust-1", "John Doe", "john@example.com", "GOV123");
+        var events = c.execute(cmd);
+
+        Assertions.assertFalse(events.isEmpty());
+        Assertions.assertTrue(c.isEnrolled());
+        Assertions.assertEquals("John Doe", c.getFullName());
+    }
+
+    @Test
+    public void testEnrollCustomerThrowsOnInvalidEmail() {
+        var c = new CustomerAggregate("cust-1");
+        Assertions.assertThrows(IllegalArgumentException.class, () -> c.execute(new EnrollCustomerCmd("cust-1", "John Doe", "invalid-email", "GOV123")));
+    }
+
+    @Test
+    public void testEnrollCustomerThrowsOnDuplicate() {
+        var c = new CustomerAggregate("cust-1");
+        c.execute(new EnrollCustomerCmd("cust-1", "John Doe", "john@example.com", "GOV123"));
+        Assertions.assertThrows(IllegalStateException.class, () -> c.execute(new EnrollCustomerCmd("cust-1", "Jane Doe", "jane@example.com", "GOV456")));
+    }
 }

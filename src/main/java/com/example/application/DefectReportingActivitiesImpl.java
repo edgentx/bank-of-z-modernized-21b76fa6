@@ -1,42 +1,35 @@
 package com.example.application;
 
 import com.example.ports.GitHubPort;
-import com.example.ports.NotificationPort;
-import com.example.vforce.github.IssueLink;
-import com.example.vforce.shared.ReportDefectCommand;
-import io.temporal.spring.boot.ActivityImpl;
+import com.example.ports.SlackPort;
+import org.springframework.stereotype.Component;
 
-/**
- * Implementation of the Defect Reporting Activity.
- * This fixes the build error by providing a concrete class.
- */
-@ActivityImpl(taskQueue = "DefectReportingTaskQueue")
+@Component
 public class DefectReportingActivitiesImpl implements DefectReportingActivities {
 
     private final GitHubPort gitHubPort;
-    private final NotificationPort notificationPort;
+    private final SlackPort slackPort;
 
-    public DefectReportingActivitiesImpl(GitHubPort gitHubPort, NotificationPort notificationPort) {
+    public DefectReportingActivitiesImpl(GitHubPort gitHubPort, SlackPort slackPort) {
         this.gitHubPort = gitHubPort;
-        this.notificationPort = notificationPort;
+        this.slackPort = slackPort;
     }
 
     @Override
-    public void reportDefect(ReportDefectCommand command) {
-        // Step 1: Create GitHub Issue
-        var issueLink = gitHubPort.createIssue(command);
+    public String createGitHubIssue(String title, String body) {
+        try {
+            return gitHubPort.createIssue(title, body).get();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create GitHub issue", e);
+        }
+    }
 
-        // Step 2: Enrich command/payload with the link for Slack
-        // We construct a new command or update the description to include the URL
-        String updatedDescription = command.description() + "\n\nGitHub Issue: " + issueLink.url();
-        
-        ReportDefectCommand enrichedCommand = new ReportDefectCommand(
-            command.title(),
-            updatedDescription,
-            command.violations()
-        );
-
-        // Step 3: Send Notification
-        notificationPort.notifyChannel(enrichedCommand);
+    @Override
+    public void notifySlack(String channel, String message) {
+        try {
+            slackPort.sendMessage(channel, message).get();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to send Slack message", e);
+        }
     }
 }

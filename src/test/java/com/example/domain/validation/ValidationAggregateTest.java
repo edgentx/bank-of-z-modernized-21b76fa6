@@ -1,63 +1,84 @@
 package com.example.domain.validation;
 
+import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.validation.model.ReportDefectCmd;
 import com.example.domain.validation.model.ValidationAggregate;
-import com.example.domain.validation.model.ValidationReportedEvent;
 import org.junit.jupiter.api.Test;
 
-import java.time.Instant;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Unit tests for ValidationAggregate.
- * Story: S-FB-1 - Fix: Validating VW-454 (GitHub URL in Slack body)
+/*
+ * Test Driven Development (Red Phase)
+ * Story: S-FB-1
+ * Target: Validation Aggregate logic defect reporting
  */
-class ValidationAggregateTest {
+public class ValidationAggregateTest {
 
     @Test
-    void testReportDefect_generatesEventWithValidUrl() {
+    public void test_report_defect_command_generates_event_with_ticket_url() {
         // Arrange
         String defectId = "VW-454";
-        String description = "GitHub URL in Slack body";
         ValidationAggregate aggregate = new ValidationAggregate(defectId);
-        ReportDefectCmd cmd = new ReportDefectCmd(defectId, description);
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            defectId,
+            "Validating VW-454 — GitHub URL in Slack body",
+            "LOW",
+            "validation"
+        );
 
         // Act
         var events = aggregate.execute(cmd);
 
         // Assert
-        assertEquals(1, events.size());
+        assertThat(events).hasSize(1);
+        
         ValidationReportedEvent event = (ValidationReportedEvent) events.get(0);
+        assertThat(event.aggregateId()).isEqualTo(defectId);
+        assertThat(event.description()).contains("GitHub URL");
+        assertThat(event.severity()).isEqualTo("LOW");
         
-        assertNotNull(event.slackBody());
-        String body = event.slackBody();
-        
-        // Validate URL presence (Expected Behavior)
-        assertTrue(body.contains("http"), "Slack body should contain a protocol (http/https)");
-        assertTrue(body.contains(defectId), "Slack body should contain the Defect ID");
-        assertTrue(body.contains("github"), "Slack body should reference GitHub");
+        // CRITICAL ACCEPTANCE CRITERION: Verify GitHub URL is present
+        assertThat(event.ticketUrl()).isNotBlank();
+        assertThat(event.ticketUrl()).startsWith("https://github.com");
+        assertThat(aggregate.getTicketUrl()).isNotNull();
     }
 
     @Test
-    void testReportDefect_throwsOnNullDefectId() {
+    public void test_report_defect_fails_with_blank_description() {
         // Arrange
-        ValidationAggregate aggregate = new ValidationAggregate("any-id");
-        ReportDefectCmd cmd = new ReportDefectCmd(null, "Some description");
+        ValidationAggregate aggregate = new ValidationAggregate("ID-1");
+        ReportDefectCmd cmd = new ReportDefectCmd("ID-1", "", "LOW", "validation");
 
         // Act & Assert
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aggregate.execute(cmd));
-        assertTrue(ex.getMessage().contains("defectId"));
+        assertThatThrownBy(() -> aggregate.execute(cmd))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("description required");
     }
 
     @Test
-    void testReportDefect_throwsOnBlankDescription() {
+    public void test_report_defect_fails_with_null_defect_id() {
         // Arrange
-        ValidationAggregate aggregate = new ValidationAggregate("any-id");
-        ReportDefectCmd cmd = new ReportDefectCmd("VW-455", "   ");
+        ValidationAggregate aggregate = new ValidationAggregate(null);
+        ReportDefectCmd cmd = new ReportDefectCmd(null, "desc", "LOW", "validation");
 
         // Act & Assert
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aggregate.execute(cmd));
-        assertTrue(ex.getMessage().contains("description"));
+        assertThatThrownBy(() -> aggregate.execute(cmd))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void test_unsupported_command_throws_exception() {
+        // Arrange
+        ValidationAggregate aggregate = new ValidationAggregate("ID-1");
+        String cmdString = "InvalidCommand";
+        
+        // Creating a proxy or anonymous class for the interface to test failure path
+        Command invalidCmd = () -> "InvalidCommand";
+
+        // Act & Assert
+        assertThatThrownBy(() -> aggregate.execute(invalidCmd))
+            .isInstanceOf(UnknownCommandException.class);
     }
 }

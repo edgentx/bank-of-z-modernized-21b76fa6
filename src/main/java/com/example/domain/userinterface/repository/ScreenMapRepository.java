@@ -1,10 +1,8 @@
 package com.example.domain.userinterface.repository;
 
-import com.example.domain.userinterface.model.ScreenMapAggregate;
-
-import java.util.Optional;
+import com.example.domain.userinterface.model.ScreenMap;
 
 public interface ScreenMapRepository {
-    void save(ScreenMapAggregate aggregate);
-    Optional<ScreenMapAggregate> findById(String screenId);
+    ScreenMap save(ScreenMap aggregate);
+    ScreenMap findById(String id);
 }

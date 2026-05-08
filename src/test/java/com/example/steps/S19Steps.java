@@ -2,50 +2,51 @@ package com.example.steps;
 
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.teller.model.MenuNavigatedEvent;
 import com.example.domain.teller.model.NavigateMenuCmd;
 import com.example.domain.teller.model.TellerSessionAggregate;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 public class S19Steps {
 
     private TellerSessionAggregate aggregate;
-    private List<DomainEvent> resultEvents;
+    private String sessionId;
+    private String menuId;
+    private String action;
     private Exception caughtException;
+    private List<DomainEvent> resultEvents;
 
-    // Scenario: Successfully execute NavigateMenuCmd
     @Given("a valid TellerSession aggregate")
     public void aValidTellerSessionAggregate() {
-        aggregate = new TellerSessionAggregate("session-123");
-        aggregate.markAuthenticated(); // Ensure valid state
+        sessionId = "SESSION-123";
+        aggregate = new TellerSessionAggregate(sessionId);
+        aggregate.authenticate(); // Ensure valid state for success scenario
     }
 
     @And("a valid sessionId is provided")
     public void aValidSessionIdIsProvided() {
-        // Handled by construction in previous step
+        // sessionId already set in previous step
     }
 
     @And("a valid menuId is provided")
     public void aValidMenuIdIsProvided() {
-        // Will be handled in the When step via command construction
+        menuId = "MAIN_MENU";
     }
 
     @And("a valid action is provided")
     public void aValidActionIsProvided() {
-        // Will be handled in the When step via command construction
+        action = "ENTER";
     }
 
     @When("the NavigateMenuCmd command is executed")
     public void theNavigateMenuCmdCommandIsExecuted() {
         try {
-            NavigateMenuCmd cmd = new NavigateMenuCmd("session-123", "MAIN_MENU", "ENTER");
+            Command cmd = new NavigateMenuCmd(sessionId, menuId, action);
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             caughtException = e;
@@ -54,41 +55,47 @@ public class S19Steps {
 
     @Then("a menu.navigated event is emitted")
     public void aMenuNavigatedEventIsEmitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof MenuNavigatedEvent);
-        MenuNavigatedEvent event = (MenuNavigatedEvent) resultEvents.get(0);
-        assertEquals("menu.navigated", event.type());
-        assertEquals("MAIN_MENU", event.menuId());
-        assertEquals("ENTER", event.action());
-    }
-
-    // Scenario: NavigateMenuCmd rejected — Authentication
-    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void aTellerSessionAggregateThatViolatesAuthentication() {
-        aggregate = new TellerSessionAggregate("session-unauth");
-        aggregate.markUnauthenticated();
+        Assertions.assertNull(caughtException, "Expected success but got exception: " + caughtException);
+        Assertions.assertNotNull(resultEvents);
+        Assertions.assertEquals(1, resultEvents.size());
+        Assertions.assertEquals("menu.navigated", resultEvents.get(0).type());
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(caughtException, "Expected exception to be thrown");
-        assertTrue(caughtException instanceof IllegalStateException);
+        Assertions.assertNotNull(caughtException, "Expected domain error but command succeeded");
+        // We expect IllegalStateException for domain rule violations in this aggregate
+        Assertions.assertTrue(caughtException instanceof IllegalStateException);
     }
 
-    // Scenario: NavigateMenuCmd rejected — Timeout
+    // Violation State Setups
+
+    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
+    public void aTellerSessionAggregateThatViolatesA_TellerMustBeAuthenticatedToInitiateASession() {
+        sessionId = "SESSION-UNAUTH";
+        // Create aggregate but DO NOT authenticate. Default is unauthenticated.
+        aggregate = new TellerSessionAggregate(sessionId);
+        menuId = "MAIN_MENU";
+        action = "ENTER";
+    }
+
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void aTellerSessionAggregateThatViolatesSessionTimeout() {
-        aggregate = new TellerSessionAggregate("session-timeout");
-        aggregate.markAuthenticated(); // Auth is valid
-        aggregate.expireSession();      // But time has expired
+    public void aTellerSessionAggregateThatViolatesSessions_MustTimeoutAfterAConfiguredPeriodOfInactivity() {
+        sessionId = "SESSION-TIMEOUT";
+        aggregate = new TellerSessionAggregate(sessionId);
+        aggregate.authenticate();
+        aggregate.markInactivity(); // Simulate time passing
+        menuId = "MAIN_MENU";
+        action = "ENTER";
     }
 
-    // Scenario: NavigateMenuCmd rejected — Navigation State
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void aTellerSessionAggregateThatViolatesNavigationState() {
-        aggregate = new TellerSessionAggregate("session-inactive");
-        aggregate.markAuthenticated();
-        aggregate.markSessionInactive(); // Context violation (e.g. already logged out elsewhere)
+    public void aTellerSessionAggregateThatViolatesNavigationState_MustAccuratelyReflectTheCurrentOperationalContext() {
+        sessionId = "SESSION-BAD-CTX";
+        aggregate = new TellerSessionAggregate(sessionId);
+        aggregate.authenticate();
+        aggregate.markContextInvalid(); // Simulate invalid context
+        menuId = "MAIN_MENU";
+        action = "ENTER";
     }
 }

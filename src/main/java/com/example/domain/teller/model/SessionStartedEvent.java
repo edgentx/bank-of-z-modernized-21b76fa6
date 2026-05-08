@@ -6,14 +6,20 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event emitted when a Teller Session is successfully started.
+ * Event emitted when a teller session is successfully started.
  */
 public record SessionStartedEvent(
-    String aggregateId,
-    String tellerId,
-    String terminalId,
-    Instant occurredAt
+        String aggregateId,
+        String tellerId,
+        String terminalId,
+        Instant occurredAt
 ) implements DomainEvent {
+    public SessionStartedEvent {
+        // Validate basic constraints
+        if (aggregateId == null || aggregateId.isBlank()) {
+            throw new IllegalArgumentException("Aggregate ID cannot be blank");
+        }
+    }
 
     @Override
     public String type() {
@@ -21,12 +27,12 @@ public record SessionStartedEvent(
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 }

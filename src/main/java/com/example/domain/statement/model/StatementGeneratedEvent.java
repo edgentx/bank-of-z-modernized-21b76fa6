@@ -6,7 +6,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Domain event emitted when a statement is successfully generated.
+ * Event emitted when a statement is successfully generated.
  */
 public record StatementGeneratedEvent(
     String eventId,
@@ -18,7 +18,6 @@ public record StatementGeneratedEvent(
     BigDecimal closingBalance,
     Instant occurredAt
 ) implements DomainEvent {
-
     public StatementGeneratedEvent(
         String statementId,
         String accountNumber,
@@ -28,16 +27,7 @@ public record StatementGeneratedEvent(
         BigDecimal closingBalance,
         Instant occurredAt
     ) {
-        this(
-            UUID.randomUUID().toString(),
-            statementId,
-            accountNumber,
-            periodStart,
-            periodEnd,
-            openingBalance,
-            closingBalance,
-            occurredAt
-        );
+        this(UUID.randomUUID().toString(), statementId, accountNumber, periodStart, periodEnd, openingBalance, closingBalance, occurredAt);
     }
 
     @Override

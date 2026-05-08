@@ -1,27 +1,21 @@
 package com.example.mocks;
 
 import com.example.ports.NotificationPort;
-
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Mock implementation of NotificationPort for testing.
- * Captures messages to verify content (e.g., GitHub URLs).
- */
 public class MockNotificationPort implements NotificationPort {
-
-    public final List<Message> messages = new ArrayList<>();
-
-    public record Message(String subject, String body) {}
+    public List<String> messages = new ArrayList<>();
+    public String lastChannel;
 
     @Override
-    public void sendNotification(String subject, String body) {
-        messages.add(new Message(subject, body));
+    public void send(String channel, String message) {
+        System.out.println("[MOCK] Sending to " + channel + ": " + message);
+        this.lastChannel = channel;
+        this.messages.add(message);
     }
 
-    public boolean wasCalledWithGitHubUrl(String urlFragment) {
-        return messages.stream()
-                .anyMatch(msg -> msg.body().contains(urlFragment) && msg.body().startsWith("http"));
+    public String getLastMessage() {
+        return messages.isEmpty() ? null : messages.get(messages.size() - 1);
     }
 }

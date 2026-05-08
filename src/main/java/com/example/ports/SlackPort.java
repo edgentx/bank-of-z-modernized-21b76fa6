@@ -1,6 +1,15 @@
 package com.example.ports;
 
-/** Interface for Slack integration */
+/**
+ * Port interface for Slack notification operations.
+ * Adheres to the Adapter/Port pattern required by the repo.
+ */
 public interface SlackPort {
-    void sendMessage(String messageBody);
+    
+    /**
+     * Sends a notification to Slack.
+     * @param message The formatted message body.
+     * @return The confirmation string or message ID.
+     */
+    String sendNotification(String message);
 }

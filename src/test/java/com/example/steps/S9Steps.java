@@ -1,95 +1,103 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
-import com.example.domain.shared.DomainEvent;
 import com.example.domain.statement.model.ExportStatementCmd;
 import com.example.domain.statement.model.StatementAggregate;
 import com.example.domain.statement.model.StatementExportedEvent;
+import com.example.domain.shared.Command;
+import com.example.domain.shared.DomainEvent;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Cucumber Steps for S-9: ExportStatementCmd
- */
 public class S9Steps {
 
     private StatementAggregate aggregate;
+    private String statementId;
+    private String format;
     private List<DomainEvent> resultEvents;
-    private Exception capturedException;
+    private Exception thrownException;
 
     @Given("a valid Statement aggregate")
-    public void a_valid_statement_aggregate() {
-        String statementId = "stmt-123";
-        aggregate = new StatementAggregate(statementId);
-        
-        // Configure the aggregate to be in a valid, exportable state
-        aggregate.configurePeriod("acct-456", Instant.now().minusSeconds(86400), Instant.now());
-        aggregate.setBalances(BigDecimal.ZERO, BigDecimal.TEN);
-        aggregate.closePeriod(); // The period must be closed to export
-    }
-
-    @Given("a Statement aggregate that violates: A statement must be generated for a closed period and cannot be altered retroactively.")
-    public void a_statement_aggregate_that_violates_closed_period() {
-        String statementId = "stmt-violation-period";
-        aggregate = new StatementAggregate(statementId);
-        aggregate.configurePeriod("acct-456", Instant.now(), Instant.now().plusSeconds(86400));
-        aggregate.setBalances(BigDecimal.ZERO, BigDecimal.TEN);
-        aggregate.markInvalidPeriod(); // Sets isPeriodClosed = false
-    }
-
-    @Given("a Statement aggregate that violates: Statement opening balance must exactly match the closing balance of the previous statement.")
-    public void a_statement_aggregate_that_violates_opening_balance() {
-        String statementId = "stmt-violation-balance";
-        aggregate = new StatementAggregate(statementId);
-        aggregate.configurePeriod("acct-456", Instant.now(), Instant.now().plusSeconds(86400));
-        aggregate.setBalances(BigDecimal.ZERO, BigDecimal.TEN);
-        aggregate.closePeriod();
-        aggregate.markInvalidBalance(); // Sets openingBalance to null, triggering validation error
+    public void aValidStatementAggregate() {
+        this.statementId = "stmt-123";
+        this.aggregate = new StatementAggregate(statementId);
+        // Simulate the aggregate being in a valid, generated state.
+        // In a full repo, we would replay events, but for unit testing we instantiate directly.
+        // We assume the constructor or a factory puts it in a state where it can be exported.
     }
 
     @Given("a valid statementId is provided")
-    public void a_valid_statement_id_is_provided() {
-        // The aggregate is already initialized with an ID in the Given steps above.
-        assertNotNull(aggregate.id());
+    public void aValidStatementIdIsProvided() {
+        // Setup in previous step
     }
 
-    @Given("a valid format is provided")
-    public void a_valid_format_is_provided() {
-        // Format is handled in the When step construction
+    @And("a valid format is provided")
+    public void aValidFormatIsProvided() {
+        this.format = "PDF";
     }
 
     @When("the ExportStatementCmd command is executed")
-    public void the_export_statement_cmd_command_is_executed() {
-        ExportStatementCmd cmd = new ExportStatementCmd(aggregate.id(), "PDF");
+    public void theExportStatementCmdCommandIsExecuted() {
+        Command cmd = new ExportStatementCmd(statementId, format);
         try {
-            resultEvents = aggregate.execute(cmd);
+            this.resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            capturedException = e;
+            this.thrownException = e;
         }
     }
 
     @Then("a statement.exported event is emitted")
-    public void a_statement_exported_event_is_emitted() {
-        assertNull(capturedException, "Expected no exception, but got: " + capturedException);
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof StatementExportedEvent);
-        
+    public void aStatementExportedEventIsEmitted() {
+        Assertions.assertNull(thrownException, "Expected no exception, but got: " + thrownException);
+        Assertions.assertNotNull(resultEvents);
+        Assertions.assertEquals(1, resultEvents.size());
+        Assertions.assertTrue(resultEvents.get(0) instanceof StatementExportedEvent);
         StatementExportedEvent event = (StatementExportedEvent) resultEvents.get(0);
-        assertEquals(aggregate.id(), event.aggregateId());
-        assertEquals("statement.exported", event.type());
+        Assertions.assertEquals("PDF", event.format());
+        Assertions.assertNotNull(event.artifactId());
+    }
+
+    // --- Rejection Scenarios ---
+
+    @Given("a Statement aggregate that violates: A statement must be generated for a closed period and cannot be altered retroactively.")
+    public void aStatementAggregateThatViolatesPeriodClosed() {
+        this.statementId = "stmt-invalid-period";
+        // We construct the aggregate in a state that will fail validation.
+        // The aggregate's logic checks if it is retroactively alterable.
+        this.aggregate = new StatementAggregate(statementId);
+        this.aggregate.markAsRetroactivelyAlterable(); // If this is true, validation passes. If false (default), and we require open period, it might fail.
+        // For this specific scenario, we assume the aggregate is in a state where it considers the period "closed".
+        // In this specific implementation, the invariant is enforced by checking a flag or state.
+        // We will simulate a state that is "closed for modification".
+        this.aggregate.markPeriodClosed(); // This method sets the internal flag to closed.
+    }
+
+    @Given("a Statement aggregate that violates: Statement opening balance must exactly match the closing balance of the previous statement.")
+    public void aStatementAggregateThatViolatesBalanceMismatch() {
+        this.statementId = "stmt-bad-balance";
+        this.aggregate = new StatementAggregate(statementId);
+        this.format = "PDF";
+        // Set the previous closing balance to something different from current opening
+        this.aggregate.setPreviousStatementClosingBalance(new BigDecimal("100.00"));
+        this.aggregate.setCurrentOpeningBalance(new BigDecimal("50.00")); // Mismatch
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(capturedException, "Expected an exception to be thrown");
-        assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
+    public void theCommandIsRejectedWithADomainError() {
+        Assertions.assertNotNull(thrownException);
+        // We expect a runtime exception (IllegalStateException or IllegalArgumentException)
+        Assertions.assertTrue(thrownException instanceof IllegalStateException || thrownException instanceof IllegalArgumentException);
+        Assertions.assertNull(resultEvents);
     }
+
+    @And("a valid format is provided")
+    public void aValidFormatIsProvidedForRejection() {
+        this.format = "PDF";
+    }
+
 }

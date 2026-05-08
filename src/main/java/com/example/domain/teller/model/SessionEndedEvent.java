@@ -5,6 +5,9 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Domain event emitted when a Teller Session is ended.
+ */
 public class SessionEndedEvent implements DomainEvent {
     private final String eventId;
     private final String aggregateId;

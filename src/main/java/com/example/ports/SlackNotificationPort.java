@@ -1,24 +1,17 @@
 package com.example.ports;
 
 /**
- * Port interface for sending Slack notifications.
- * Used to decouple the domain logic from the actual Slack implementation.
+ * Port for sending notifications to Slack.
+ * Used to verify GitHub issue links are included in defect reports.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends a notification to a specific channel.
+     * Sends a message payload to a configured Slack channel.
      *
-     * @param channel The name of the channel (e.g., #vforce360-issues)
-     * @param body    The message body content
-     * @throws IllegalArgumentException if the channel is invalid
-     * @throws NotificationFailedException if the API call fails
+     * @param messageBody The JSON string payload to be sent.
+     * @throws IllegalArgumentException if the messageBody is invalid.
+     * @throws RuntimeException if the external API call fails.
      */
-    void sendNotification(String channel, String body);
-
-    class NotificationFailedException extends RuntimeException {
-        public NotificationFailedException(String message) {
-            super(message);
-        }
-    }
+    void sendMessage(String messageBody);
 }

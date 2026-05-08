@@ -4,44 +4,28 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
+
+import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 public class TellerSession extends AggregateRoot {
 
-    private final String sessionId;
-    private String tellerId;
-    private boolean isAuthenticated;
-    private Instant lastActivityAt;
-    private boolean isActive;
-    private boolean isNavigable;
+    public enum TellerSessionState {
+        AUTHENTICATED,
+        UNAUTHENTICATED
+    }
 
-    // Configuration for timeout (e.g., 15 minutes)
-    private static final long SESSION_TIMEOUT_MINUTES = 15;
+    private final String sessionId;
+    private boolean isActive = false;
+    private boolean isAuthenticated = false;
+    private Instant lastActivityAt;
+    private boolean navigationContextValid = true;
+    private static final Duration SESSION_TIMEOUT = Duration.ofMinutes(30);
 
     public TellerSession(String sessionId) {
         this.sessionId = sessionId;
         this.lastActivityAt = Instant.now();
-        this.isActive = true;
-        this.isNavigable = true;
-    }
-
-    public void markAuthenticated(String tellerId) {
-        this.tellerId = tellerId;
-        this.isAuthenticated = true;
-    }
-
-    public void markUnauthenticated() {
-        this.isAuthenticated = false;
-    }
-
-    public void markStale() {
-        this.lastActivityAt = Instant.now().minus(SESSION_TIMEOUT_MINUTES + 1, ChronoUnit.MINUTES);
-    }
-
-    public void markNavigationalInvalid() {
-        this.isNavigable = false;
     }
 
     @Override
@@ -51,41 +35,61 @@ public class TellerSession extends AggregateRoot {
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof EndSessionCmd) {
-            return handle((EndSessionCmd) cmd);
+        if (cmd instanceof EndSessionCmd c) {
+            return handleEndSession(c);
         }
         throw new UnknownCommandException(cmd);
     }
 
-    private List<DomainEvent> handle(EndSessionCmd cmd) {
-        // Invariant: Teller must be authenticated
+    private List<DomainEvent> handleEndSession(EndSessionCmd cmd) {
+        // Invariant: Authenticated check
+        // Note: In real world, this might be checked differently, but adhering to story:
         if (!isAuthenticated) {
-            throw new IllegalStateException("A teller must be authenticated to initiate a session.");
+            throw new IllegalStateException("Teller must be authenticated to initiate a session.");
         }
 
-        // Invariant: Session must not have timed out
-        if (hasTimedOut()) {
+        // Invariant: Timeout check
+        if (Duration.between(lastActivityAt, Instant.now()).compareTo(SESSION_TIMEOUT) > 0) {
             throw new IllegalStateException("Sessions must timeout after a configured period of inactivity.");
         }
 
-        // Invariant: Navigation state must be valid
-        if (!isNavigable) {
+        // Invariant: Navigation state
+        if (!navigationContextValid) {
             throw new IllegalStateException("Navigation state must accurately reflect the current operational context.");
         }
 
-        SessionEndedEvent event = new SessionEndedEvent(this.sessionId, Instant.now());
-        this.isActive = false;
-        // Clear sensitive state implicitly by marking inactive
-        this.tellerId = null; 
-        
+        // Apply Event
+        var event = new SessionEndedEvent(sessionId, Instant.now());
         addEvent(event);
         incrementVersion();
+
+        // Update internal state
+        this.isActive = false;
+        this.isAuthenticated = false;
+
         return List.of(event);
     }
 
-    private boolean hasTimedOut() {
-        Instant now = Instant.now();
-        long minutesSinceActivity = ChronoUnit.MINUTES.between(lastActivityAt, now);
-        return minutesSinceActivity > SESSION_TIMEOUT_MINUTES;
+    // TEST SUPPORT METHODS
+    // These methods are used to simulate internal state hydration for BDD tests
+    // without needing a full EventSourcing repository setup or constructors that bypass business logic.
+    
+    public void enforceTestState(TellerSessionState state, Instant lastActivity, boolean navValid) {
+        this.isAuthenticated = (state == TellerSessionState.AUTHENTICATED);
+        this.isActive = this.isAuthenticated; // Assuming active if authenticated
+        this.lastActivityAt = lastActivity;
+        this.navigationContextValid = navValid;
+    }
+
+    public void flagNavigationStateInconsistent() {
+        this.navigationContextValid = false;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public boolean isAuthenticated() {
+        return isAuthenticated;
     }
 }

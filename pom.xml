@@ -54,6 +54,7 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
+        <!-- CRITICAL FIX: Explicit version required for DB2 extension as it is outside the standard BOM -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-db2</artifactId>

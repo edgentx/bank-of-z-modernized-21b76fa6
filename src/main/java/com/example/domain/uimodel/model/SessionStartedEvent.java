@@ -15,21 +15,11 @@ public record SessionStartedEvent(
     Instant occurredAt
 ) implements DomainEvent {
     public SessionStartedEvent {
-        // Validate immutability/defaults if necessary
+        // Defensive copy/validation if necessary, though records handle nulls via component checks generally
     }
 
     @Override
     public String type() {
         return "session.started";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

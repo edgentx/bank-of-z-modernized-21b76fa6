@@ -1,10 +1,13 @@
 package com.example.domain.validation;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
 
-// Placeholder event if the domain model requires it for structure.
-// Currently unused in the orchestration test but part of the shared domain context.
+/**
+ * Event emitted when a defect is validated and reported.
+ * Part of the shared domain context.
+ */
 public class ValidationReportedEvent implements DomainEvent {
     private final String id;
     private final Instant occurredAt;

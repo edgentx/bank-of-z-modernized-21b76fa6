@@ -6,6 +6,7 @@ import java.time.Instant;
 
 public record SessionEndedEvent(
     String aggregateId,
+    String sessionId,
     Instant occurredAt
 ) implements DomainEvent {
     @Override

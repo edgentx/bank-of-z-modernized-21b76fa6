@@ -1,7 +1,8 @@
 package com.example.domain.uimodel.model;
 
 public enum DeviceType {
-    DESKTOP,
-    MOBILE,
-    TN3270
+    TERMINAL_3270,
+    DESKTOP_WEB,
+    MOBILE_IOS,
+    MOBILE_ANDROID
 }

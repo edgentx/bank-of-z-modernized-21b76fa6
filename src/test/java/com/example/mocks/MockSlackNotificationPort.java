@@ -5,29 +5,30 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Stores messages in memory so tests can verify the content without calling the real Slack API.
+ * Mock adapter for Slack Notification.
+ * In-memory implementation to simulate Slack behavior during testing.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final Map<String, String> messages = new HashMap<>();
+    private final Map<String, String> channelMessages = new HashMap<>();
 
     @Override
-    public boolean sendMessage(String channelId, String messageBody) {
-        // Simulate successful send
-        messages.put(channelId, messageBody);
+    public boolean sendMessage(String channel, String messageBody) {
+        // Simulate successful sending
+        channelMessages.put(channel, messageBody);
         return true;
     }
 
     @Override
-    public String getLastMessageBody(String channelId) {
-        return messages.get(channelId);
+    public String getLastMessageBody(String channel) {
+        return channelMessages.get(channel);
     }
 
     /**
-     * Helper method for tests to clear state if needed.
+     * Helper for tests to verify the message contains the GitHub URL.
      */
-    public void clear() {
-        messages.clear();
+    public boolean messageContainsUrl(String channel, String url) {
+        String body = channelMessages.get(channel);
+        return body != null && body.contains(url);
     }
 }

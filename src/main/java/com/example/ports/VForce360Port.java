@@ -1,17 +1,18 @@
 package com.example.ports;
 
 /**
- * Port interface for the VForce360 PM diagnostic conversation integration.
- * Abstracts the external Slack/GitHub reporting mechanism.
+ * Port interface for VForce360 domain operations.
+ * This decouples the core logic from the external Slack infrastructure.
  */
 public interface VForce360Port {
-
+    
     /**
-     * Reports a defect to the VForce360 workflow.
-     *
-     * @param defectId The unique ID of the defect (e.g., VW-454).
-     * @param body The message body to be sent to Slack.
-     * @return true if the report was accepted, false otherwise.
+     * Reports a defect to the VForce360 system and posts a notification to Slack.
+     * 
+     * @param title The title of the defect.
+     * @param description The body/description of the defect.
+     * @param githubRepoUrl The base URL of the GitHub repository.
+     * @return A confirmation string or ID.
      */
-    boolean reportDefect(String defectId, String body);
+    String reportDefect(String title, String description, String githubRepoUrl);
 }

@@ -1,152 +1,110 @@
 package com.example.steps;
 
 import com.example.domain.customer.model.CustomerAggregate;
+import com.example.domain.customer.model.CustomerDetailsUpdatedEvent;
 import com.example.domain.customer.model.UpdateCustomerDetailsCmd;
-import com.example.domain.shared.DomainException; // Assuming a standard exception or using IllegalArgumentException/IllegalStateException
+import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 public class S3Steps {
 
-    private CustomerAggregate aggregate;
-    private UpdateCustomerDetailsCmd command;
-    private List<com.example.domain.shared.DomainEvent> resultingEvents;
+    private CustomerAggregate customer;
+    private String customerId;
+    private String emailAddress;
+    private String sortCode;
     private Exception capturedException;
-
-    // --- Given Steps ---
+    private List<DomainEvent> resultEvents;
 
     @Given("a valid Customer aggregate")
-    public void aValidCustomerAggregate() {
-        this.aggregate = new CustomerAggregate("cust-123")
-                .setEnrolled(true)
-                .setFullName("John Doe")
-                .setEmail("john@example.com")
-                .setGovernmentId("GOV-123")
-                .setHasActiveAccounts(false);
+    public void a_valid_Customer_aggregate() {
+        customer = new CustomerAggregate("cust-123");
+        customer.setEnrolled(true);
+        customer.setFullName("John Doe");
+        customer.setEmail("old@example.com");
+        customer.setDeleted(false);
+        customer.setHasActiveBankAccounts(false);
+        this.customerId = "cust-123";
     }
 
     @Given("a Customer aggregate that violates: A customer must have a valid, unique email address and government-issued ID.")
-    public void aCustomerAggregateThatViolatesEmailAndGovId() {
-        this.aggregate = new CustomerAggregate("cust-invalid")
-                .setEnrolled(true)
-                .setFullName("Jane Doe")
-                .setEmail("invalid-email")
-                .setGovernmentId("") // Empty
-                .setHasActiveAccounts(false);
+    public void a_Customer_aggregate_that_violates_email_uniqueness() {
+        customer = new CustomerAggregate("cust-123");
+        customer.setEnrolled(true);
+        customer.setFullName("Jane Doe");
+        customer.setEmail("old@example.com");
+        this.customerId = "cust-123";
     }
 
     @Given("a Customer aggregate that violates: Customer name and date of birth cannot be empty.")
-    public void aCustomerAggregateThatViolatesNameAndDoB() {
-        this.aggregate = new CustomerAggregate("cust-empty-name")
-                .setEnrolled(true)
-                .setFullName("") // Empty
-                .setEmail("jane@example.com")
-                .setGovernmentId("GOV-456")
-                .setHasActiveAccounts(false);
+    public void a_Customer_aggregate_that_violates_name_not_empty() {
+        customer = new CustomerAggregate("cust-123");
+        customer.setEnrolled(true);
+        customer.setFullName(""); // Violates Name not empty
+        customer.setEmail("valid@example.com");
+        this.customerId = "cust-123";
     }
 
     @Given("a Customer aggregate that violates: A customer cannot be deleted if they own active bank accounts.")
-    public void aCustomerAggregateThatViolatesActiveAccountsConstraint() {
-        // To simulate the constraint violation, we set the aggregate state to have active accounts.
-        // The command will be constructed or the aggregate state will be such that the logic fails.
-        // Since the AC implies the delete/update action fails, we set the flag indicating active accounts exist.
-        this.aggregate = new CustomerAggregate("cust-active")
-                .setEnrolled(true)
-                .setFullName("Rich User")
-                .setEmail("rich@example.com")
-                .setGovernmentId("GOV-789")
-                .setHasActiveAccounts(true); // This should cause the failure
+    public void a_Customer_aggregate_that_violates_deletion_with_active_accounts() {
+        customer = new CustomerAggregate("cust-123");
+        customer.setEnrolled(true);
+        customer.setFullName("Active User");
+        customer.setEmail("user@example.com");
+        customer.setDeleted(true);             // Is marked deleted
+        customer.setHasActiveBankAccounts(true); // But has active accounts
+        this.customerId = "cust-123";
     }
 
     @And("a valid customerId is provided")
-    public void aValidCustomerIdIsProvided() {
-        // Handled implicitly in aggregate construction, or we could store it for the command
+    public void a_valid_customerId_is_provided() {
+        // Usually matches the ID used to create the aggregate
+        this.customerId = customer.id();
     }
 
     @And("a valid emailAddress is provided")
-    public void aValidEmailAddressIsProvided() {
-        // Handled in the command construction step
+    public void a_valid_emailAddress_is_provided() {
+        this.emailAddress = "new.address@example.com";
     }
 
     @And("a valid sortCode is provided")
-    public void aValidSortCodeIsProvided() {
-        // Handled in the command construction step
+    public void a_valid_sortCode_is_provided() {
+        this.sortCode = "10-20-30";
     }
 
-    // --- When Steps ---
-
     @When("the UpdateCustomerDetailsCmd command is executed")
-    public void theUpdateCustomerDetailsCmdCommandIsExecuted() {
+    public void the_UpdateCustomerDetailsCmd_command_is_executed() {
         try {
-            // Construct command based on the scenario context.
-            // We use the aggregate's current state to populate fields that aren't explicitly violated in the "Given".
-            // The AC implies specific violations. We need to ensure the command triggers the specific check.
-            // However, the command *contains* the data. The aggregate *validates* it.
-
-            // For the "Active Accounts" scenario, the domain logic checks the aggregate state (hasActiveAccounts)
-            // against the command or just the aggregate state. In the implementation provided:
-            // if (c.hasActiveAccounts()) throw ...
-            // So we must ensure the command carries the state that triggers the failure if that's the check,
-            // or that the aggregate state triggers the failure.
-            // The implementation: "if (c.hasActiveAccounts()) ..." -> The command controls the failure.
-            // So for the "Violates active accounts" scenario, we pass true in the command.
-
-            boolean activeAccountsFlag = aggregate.getHasActiveAccounts();
-
-            this.command = new UpdateCustomerDetailsCmd(
-                    aggregate.id(),
-                    aggregate.getFullName() != null ? aggregate.getFullName() : "New Name", // Preserve or use new
-                    aggregate.getEmail() != null ? aggregate.getEmail() : "new@example.com",
-                    aggregate.getGovernmentId() != null ? aggregate.getGovernmentId() : "GOV-NEW",
-                    "10-20-30", // Valid SortCode
-                    activeAccountsFlag
-            );
-
-            // Special override for the specific "violates" scenarios to trigger the specific domain error paths.
-            // The domain logic checks:
-            // 1. c.hasActiveAccounts() (Active Accounts)
-            // 2. c.email() format (Email/GovID)
-            // 3. c.fullName() format (Name/DoB)
-
-            if (aggregate.getFullName() == null || aggregate.getFullName().isBlank()) {
-                // Trigger Name validation error
-                 this.command = new UpdateCustomerDetailsCmd(aggregate.id(), "", aggregate.getEmail(), aggregate.getGovernmentId(), "10-20-30", false);
-            }
-            if (aggregate.getEmail() == null || !aggregate.getEmail().contains("@")) {
-                // Trigger Email validation error
-                 this.command = new UpdateCustomerDetailsCmd(aggregate.id(), aggregate.getFullName(), aggregate.getEmail(), aggregate.getGovernmentId(), "10-20-30", false);
-            }
-            // The "Active Accounts" logic in the execute method uses the command's boolean.
-            // The Given step set the aggregate's boolean to true. We pass it along.
-
-            this.resultingEvents = aggregate.execute(command);
-            this.capturedException = null;
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            this.capturedException = e;
-            this.resultingEvents = null;
+            UpdateCustomerDetailsCmd cmd = new UpdateCustomerDetailsCmd(customerId, emailAddress, sortCode);
+            resultEvents = customer.execute(cmd);
+        } catch (Exception e) {
+            capturedException = e;
         }
     }
 
-    // --- Then Steps ---
-
     @Then("a customer.details.updated event is emitted")
-    public void aCustomerDetailsUpdatedEventIsEmitted() {
-        Assertions.assertNotNull(resultingEvents, "Events should not be null");
-        Assertions.assertEquals(1, resultingEvents.size());
-        Assertions.assertEquals("customer.details.updated", resultingEvents.get(0).type());
+    public void a_customer_details_updated_event_is_emitted() {
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof CustomerDetailsUpdatedEvent);
+        
+        CustomerDetailsUpdatedEvent event = (CustomerDetailsUpdatedEvent) resultEvents.get(0);
+        assertEquals("customer.details.updated", event.type());
+        assertEquals(customerId, event.aggregateId());
+        assertEquals(emailAddress, event.emailAddress());
+        assertEquals(sortCode, event.sortCode());
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(capturedException, "Expected a domain exception to be thrown");
-        Assertions.assertTrue(
-            capturedException instanceof IllegalArgumentException || capturedException instanceof IllegalStateException,
-            "Expected IllegalArgumentException or IllegalStateException"
-        );
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(capturedException);
+        // In this domain implementation, domain errors are modeled as IllegalArgumentException or IllegalStateException
+        assertTrue(capturedException instanceof IllegalArgumentException || capturedException instanceof IllegalStateException);
     }
 }

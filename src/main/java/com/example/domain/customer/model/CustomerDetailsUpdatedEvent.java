@@ -5,14 +5,16 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 
 /**
- * Event emitted when customer details are successfully updated.
- * S-3: UpdateCustomerDetailsCmd.
+ * Event emitted when a customer's details are successfully updated.
+ * Corresponds to Story S-3.
  */
 public record CustomerDetailsUpdatedEvent(
-        String customerId,
-        String emailAddress,
-        String sortCode,
-        Instant occurredAt
+    String customerId,
+    String emailAddress,
+    String sortCode,
+    String fullName,
+    String dateOfBirth,
+    Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {

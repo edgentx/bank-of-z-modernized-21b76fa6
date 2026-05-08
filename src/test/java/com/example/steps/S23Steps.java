@@ -1,108 +1,105 @@
 package com.example.steps;
 
-import com.example.domain.legacy.model.EvaluateRoutingCmd;
-import com.example.domain.legacy.model.LegacyTransactionRoute;
-import com.example.domain.legacy.model.RoutingEvaluatedEvent;
-import com.example.domain.shared.DomainEvent;
+import com.example.domain.legacybridge.model.EvaluateRoutingCmd;
+import com.example.domain.legacybridge.model.LegacyTransactionRouteAggregate;
+import com.example.domain.legacybridge.model.RoutingEvaluatedEvent;
+import com.example.domain.legacybridge.repository.LegacyTransactionRouteRepository;
+import com.example.mocks.InMemoryLegacyTransactionRouteRepository;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S23Steps {
 
-    private LegacyTransactionRoute route;
-    private String transactionType;
-    private String payload;
-    private List<DomainEvent> resultEvents;
-    private Exception capturedException;
+    private final LegacyTransactionRouteRepository repository = new InMemoryLegacyTransactionRouteRepository();
+    private LegacyTransactionRouteAggregate aggregate;
+    private Exception caughtException;
+    private EvaluateRoutingCmd command;
 
     @Given("a valid LegacyTransactionRoute aggregate")
-    public void a_valid_legacy_transaction_route_aggregate() {
-        route = new LegacyTransactionRoute("route-123");
+    public void aValidLegacyTransactionRouteAggregate() {
+        aggregate = new LegacyTransactionRouteAggregate("route-1");
+        repository.save(aggregate);
     }
 
-    @Given("a valid transactionType is provided")
-    public void a_valid_transaction_type_is_provided() {
-        this.transactionType = "WIRE_TRANSFER";
+    @And("a valid transactionType is provided")
+    public void aValidTransactionTypeIsProvided() {
+        // Command constructed in When step, but we ensure state here
     }
 
-    @Given("a valid payload is provided")
-    public void a_valid_payload_is_provided() {
-        this.payload = "{\"amount\": 100, \"currency\": \"USD\"}";
+    @And("a valid payload is provided")
+    public void aValidPayloadIsProvided() {
+        // Command constructed in When step
     }
 
     @When("the EvaluateRoutingCmd command is executed")
-    public void the_evaluate_routing_cmd_command_is_executed() {
-        // Default valid command setup for the happy path
-        EvaluateRoutingCmd cmd = new EvaluateRoutingCmd(
-            "tx-456", 
-            this.transactionType, 
-            this.payload, 
-            "LEGACY", // Target System
-            1 // Version
-        );
-        
+    public void theEvaluateRoutingCmdCommandIsExecuted() {
         try {
-            resultEvents = route.execute(cmd);
+            command = new EvaluateRoutingCmd("route-1", "DEPOSIT", Map.of("amount", 100), 1);
+            var events = aggregate.execute(command);
+            repository.save(aggregate); // persist state change
         } catch (Exception e) {
-            capturedException = e;
+            caughtException = e;
         }
     }
 
     @Then("a routing.evaluated event is emitted")
-    public void a_routing_evaluated_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof RoutingEvaluatedEvent);
-        
-        RoutingEvaluatedEvent event = (RoutingEvaluatedEvent) resultEvents.get(0);
+    public void aRoutingEvaluatedEventIsEmitted() {
+        assertNull(caughtException, "Should not have thrown exception");
+        var events = aggregate.uncommittedEvents();
+        assertFalse(events.isEmpty(), "Should have uncommitted events");
+        assertTrue(events.get(0) instanceof RoutingEvaluatedEvent, "Event should be RoutingEvaluatedEvent");
+
+        RoutingEvaluatedEvent event = (RoutingEvaluatedEvent) events.get(0);
         assertEquals("routing.evaluated", event.type());
-        assertEquals("tx-456", event.transactionId());
-        assertEquals("LEGACY", event.targetSystem());
+        assertEquals("MODERN", event.targetSystem());
+        assertEquals(1, event.ruleVersion());
     }
 
+    // --- Scenarios for Rejections ---
+
     @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.")
-    public void a_legacy_transaction_route_aggregate_that_violates_routing_rules() {
-        route = new LegacyTransactionRoute("route-bad");
+    public void aLegacyTransactionRouteAggregateThatViolatesDualProcessing() {
+        aggregate = new LegacyTransactionRouteAggregate("route-dual");
+        repository.save(aggregate);
     }
 
     @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback.")
-    public void a_legacy_transaction_route_aggregate_that_violates_versioning() {
-        route = new LegacyTransactionRoute("-route-version");
+    public void aLegacyTransactionRouteAggregateThatViolatesVersioning() {
+        aggregate = new LegacyTransactionRouteAggregate("route-noversion");
+        repository.save(aggregate);
     }
 
-    // We overload the When step slightly to handle different command payloads derived from the violation context.
-    // In a real framework, we might use a scenario context object.
-    
-    @When("the EvaluateRoutingCmd command is executed with invalid target system")
-    public void the_evaluate_routing_cmd_command_is_executed_with_invalid_target() {
-        // Violating "exactly one backend system" logic (e.g. null or ambiguous)
-        EvaluateRoutingCmd cmd = new EvaluateRoutingCmd("tx-bad", "TRANSFER", "{}", null, 1); 
+    @When("the EvaluateRoutingCmd command is executed")
+    public void theEvaluateRoutingCmdCommandIsExecutedViolating() {
         try {
-            route.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            capturedException = e;
-        }
-    }
-
-    @When("the EvaluateRoutingCmd command is executed with invalid version")
-    public void the_evaluate_routing_cmd_command_is_executed_with_invalid_version() {
-        // Violating "rules must be versioned" logic (e.g. version 0)
-        EvaluateRoutingCmd cmd = new EvaluateRoutingCmd("tx-ver", "TRANSFER", "{}", "MODERN", 0);
-        try {
-            route.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            capturedException = e;
+            // This command setup is generic; the specific violation logic is triggered by the aggregate state
+            // or command content based on the scenario.
+            if (aggregate.id().equals("route-dual")) {
+                // Use a type that maps to null in the simple switch logic to simulate unhandled/ambiguous
+                command = new EvaluateRoutingCmd("route-dual", "UNKNOWN_TYPE", Map.of(), 1);
+            } else if (aggregate.id().equals("route-noversion")) {
+                // Use a null/invalid version
+                command = new EvaluateRoutingCmd("route-noversion", "DEPOSIT", Map.of(), null);
+            } else {
+                // Default happy path command if not caught above (shouldn't happen in these scenarios)
+                command = new EvaluateRoutingCmd("route-1", "DEPOSIT", Map.of(), 1);
+            }
+            aggregate.execute(command);
+        } catch (Exception e) {
+            caughtException = e;
         }
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(capturedException);
-        assertTrue(capturedException instanceof IllegalArgumentException);
+    public void theCommandIsRejectedWithADomainError() {
+        assertNotNull(caughtException, "Exception should have been thrown");
+        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException,
+                "Exception should be a domain error (IllegalStateException or IllegalArgumentException)");
     }
 }

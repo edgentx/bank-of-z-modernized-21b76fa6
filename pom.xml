@@ -1,7 +1,3 @@
-<!-- POM Update for Java 11 Compatibility -->
-<!-- The existing pom.xml likely targets Java 21, but the build environment supports Java 11. -->
-<!-- We are adjusting the maven-compiler-plugin configuration to allow the build to pass. -->
-
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>

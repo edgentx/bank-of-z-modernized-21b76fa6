@@ -1,6 +1,11 @@
-Feature: Defect Reporting and Validation (VW-454)
+Feature: Validating VW-454 — GitHub URL in Slack body (end-to-end)
 
-  Scenario: Validating VW-454 - GitHub URL in Slack body (end-to-end)
-    Given a defect exists with title "VW-454"
-    When the defect is reported via temporal-worker exec
-    Then the Slack body contains GitHub issue link
+  Background:
+    Given a validation aggregate exists
+
+  Scenario: Report defect generates Slack body with GitHub URL
+    Given the defect report for VW-454 is valid
+    When I trigger the defect report command
+    Then the system creates a GitHub issue
+    And the Slack notification body includes the GitHub URL
+    And the event contains valid links

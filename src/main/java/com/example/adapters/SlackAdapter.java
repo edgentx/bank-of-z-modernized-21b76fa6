@@ -1,18 +1,22 @@
 package com.example.adapters;
 
-import com.example.domain.slack.ports.SlackNotifierPort;
+import com.example.ports.SlackPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 /**
  * Adapter for Slack notifications.
- * Currently acts as a No-Op/Stdout logger to simulate delivery.
- * S-FB-1: Ensures the Slack body contains the GitHub URL.
  */
-public class SlackAdapter implements SlackNotifierPort {
+@Component
+public class SlackAdapter implements SlackPort {
+
+    private static final Logger log = LoggerFactory.getLogger(SlackAdapter.class);
 
     @Override
-    public void sendNotification(String message) {
-        // In a real scenario, we would use OkHttpClient to POST to a Slack Webhook.
-        // For the purpose of this defect fix, we simply log or no-op to prove flow.
-        System.out.println("[SlackAdapter] Sending notification: " + message);
+    public void sendMessage(String channel, String message) {
+        // In a real scenario, this would call the Slack Web API.
+        log.info("Sending message to Slack channel {}: {}", channel, message);
+        // Verification for S-FB-1: Log output should show the URL in the message
     }
 }

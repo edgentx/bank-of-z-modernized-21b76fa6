@@ -1,51 +1,69 @@
 package com.example.application;
 
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.DefectReportedEvent;
+import com.example.domain.defect.model.ReportDefectCmd;
 import com.example.ports.SlackNotificationPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * Application Service handling the logic for reporting defects.
- * This orchestrates the creation of the notification message based on domain events
- * and dispatches it via the Slack port.
+ * Application Service for Defect Reporting.
+ * Orchestrates the domain logic and notifications (VW-454 fix).
  */
 @Service
 public class DefectReportingService {
 
+    private static final Logger logger = LoggerFactory.getLogger(DefectReportingService.class);
+    private static final String GITHUB_BASE_URL = "https://github.com/bank-of-z/vforce360/issues/";
+
     private final SlackNotificationPort slackNotificationPort;
 
-    /**
-     * Constructor injection for the Slack port.
-     * @param slackNotificationPort The adapter capable of sending Slack messages.
-     */
     public DefectReportingService(SlackNotificationPort slackNotificationPort) {
         this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Handles the DefectReportedEvent by formatting the message and sending it to Slack.
-     * 
-     * FIX for VW-454: Ensure the GitHub Issue URL is included in the message body.
-     * 
-     * @param event The domain event containing defect details.
-     * @param targetChannel The Slack channel to notify.
+     * Handles the ReportDefectCommand.
+     * 1. Executes aggregate logic.
+     * 2. Formats the Slack notification including the GitHub URL (Fix for VW-454).
+     * 3. Sends notification.
      */
-    public void reportDefect(DefectReportedEvent event, String targetChannel) {
-        if (event == null) {
-            throw new IllegalArgumentException("DefectReportedEvent cannot be null");
-        }
-        if (targetChannel == null || targetChannel.isBlank()) {
-            throw new IllegalArgumentException("Target channel cannot be blank");
-        }
+    public void reportDefect(ReportDefectCmd cmd) {
+        logger.info("Reporting defect: {}", cmd.defectId());
 
-        // Format the message body ensuring all fields from the event are present
-        // Specifically addressing VW-454 by appending the URL.
+        // 1. Domain Logic
+        DefectAggregate aggregate = new DefectAggregate(cmd.defectId());
+        var events = aggregate.execute(cmd);
+
+        events.forEach(event -> {
+            if (event instanceof DefectReportedEvent e) {
+                handleDefectReported(e);
+            }
+        });
+    }
+
+    private void handleDefectReported(DefectReportedEvent event) {
+        // 2. Format Message (VW-454: Ensure GitHub URL is present and formatted)
+        String githubUrl = GITHUB_BASE_URL + event.defectId();
+        
+        // Using Slack formatted message: <url|text>
         String messageBody = String.format(
-            "Defect Reported: %s\nSeverity: %s\nGitHub Issue: %s",
+            "Defect Reported: %s\nGitHub Issue: <%s|View Details>",
             event.title(),
-            event.severity(),
-            event.githubIssueUrl()
+            githubUrl
         );
 
-        slackNotificationPort.send(targetChannel, messageBody);
+        // 3. Send Notification
+        boolean success = slackNotificationPort.postMessage(messageBody);
+        
+        if (!success) {
+            logger.error("Failed to send Slack notification for defect {}", event.defectId());
+            // Depending on requirements, we might throw here or trigger a compensating action.
+            // For now, we log the failure.
+        } else {
+            logger.info("Slack notification sent successfully for defect {}", event.defectId());
+        }
     }
 }

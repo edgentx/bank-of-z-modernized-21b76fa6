@@ -6,7 +6,6 @@ import org.junit.platform.suite.api.Suite;
 
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features/S-20.feature")
+@SelectClasspathResource("features")
 public class S20TestSuite {
-    // This empty class is used by JUnit 5 to discover and run the Cucumber feature
 }

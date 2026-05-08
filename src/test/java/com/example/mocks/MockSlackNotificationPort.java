@@ -5,16 +5,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MockSlackNotificationPort implements SlackNotificationPort {
-    public List<String> sentMessages = new ArrayList<>();
-    public String lastChannel;
+    public final List<Message> messages = new ArrayList<>();
+
+    public record Message(String channel, String body) {}
 
     @Override
-    public void sendNotification(String channel, String message) {
-        this.lastChannel = channel;
-        this.sentMessages.add(message);
+    public void sendMessage(String channel, String body) {
+        messages.add(new Message(channel, body));
     }
 
-    public boolean wasUrlSent(String url) {
-        return sentMessages.stream().anyMatch(msg -> msg.contains(url));
+    public void reset() {
+        messages.clear();
     }
 }

@@ -1,22 +1,23 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
-
-import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Command to initiate a teller session.
- * Enforces validation of authentication (tellerId), context (terminalId), and timeliness.
+ * Evidence of successful authentication is implied by the validity of the Teller ID context
+ * in which this command is executed, or explicitly checked via invariants.
  */
-public record StartSessionCmd(
-        String aggregateId,
-        String tellerId,
-        String terminalId,
-        Instant timestamp
-) implements Command {
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {
     public StartSessionCmd {
-        Objects.requireNonNull(aggregateId, "aggregateId required");
-        Objects.requireNonNull(timestamp, "timestamp required");
+        if (sessionId == null || sessionId.isBlank()) {
+            throw new IllegalArgumentException("sessionId cannot be null or blank");
+        }
+        if (tellerId == null || tellerId.isBlank()) {
+            throw new IllegalArgumentException("tellerId cannot be null or blank");
+        }
+        if (terminalId == null || terminalId.isBlank()) {
+            throw new IllegalArgumentException("terminalId cannot be null or blank");
+        }
     }
 }

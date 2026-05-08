@@ -6,23 +6,22 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.3</version>
+        <version>3.3.3</version>
         <relativePath/>
     </parent>
-    
     <groupId>com.example</groupId>
-    <artifactId>bank-of-z</artifactId>
+    <artifactId>account-management</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>bank-of-z</name>
-    <description>Bank of Z - Modernization Project</description>
-    
+    <name>account-management</name>
+    <description>Demo project for Spring Boot</description>
+
     <properties>
-        <java.version>17</java.version>
-        <flyway.version>10.18.2</flyway.version>
+        <java.version>21</java.version>
+        <cucumber.version>7.18.1</cucumber.version>
     </properties>
-    
+
     <dependencies>
-        <!-- Spring Boot Starters -->
+        <!-- Spring Boot Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -31,29 +30,31 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        
-        <!-- Database & Migration -->
+        <!-- DB2 Driver (Assuming provided or scope runtime for legacy env) -->
         <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
+            <groupId>com.ibm.db2</groupId>
+            <artifactId>jcc</artifactId>
+            <scope>runtime</scope>
         </dependency>
+
+        <!-- Testing Dependencies -->
         <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-database-db2</artifactId>
-            <version>${flyway.version}</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
         
-        <!-- Testing (Cucumber) -->
+        <!-- Cucumber Dependencies (Explicit Version required) -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
-            <version>7.14.0</version>
+            <version>${cucumber.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>7.14.0</version>
+            <version>${cucumber.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -61,13 +62,8 @@
             <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
-    
+
     <build>
         <plugins>
             <plugin>

@@ -1,18 +1,17 @@
 package com.example.ports;
 
-import com.example.domain.shared.DefectReportedEvent;
+import com.example.application.SlackMessage;
 
 /**
- * Port for sending notifications (e.g., Slack, Email).
- * Defines the contract that the application layer uses to dispatch messages.
+ * Port interface for sending notifications (e.g., to Slack).
+ * Used to decouple the workflow implementation from the specific transport mechanism.
  */
 public interface NotificationPort {
 
     /**
-     * Publishes a defect report to the configured external system (Slack).
-     * Implementations must ensure the GitHub URL is formatted correctly in the body.
+     * Sends a message to the configured Slack channel.
      *
-     * @param event The domain event containing defect details and links.
+     * @param message The message payload to send.
      */
-    void publishDefectReport(DefectReportedEvent event);
+    void send(SlackMessage message);
 }

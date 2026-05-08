@@ -1,120 +1,99 @@
 package com.example.e2e.regression;
 
-import com.example.mocks.MockGitHub;
-import com.example.mocks.MockSlackNotification;
-import com.example.ports.GitHubPort;
+import com.example.Application;
+import com.example.mocks.MockSlackNotificationPort;
 import com.example.ports.SlackNotificationPort;
-import com.jayway.jsonpath.JsonPath;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * Regression Test for VW-454.
- * Verifies that when _report_defect is triggered (simulated here),
- * the resulting Slack body contains the valid GitHub issue URL.
- *
- * Corresponds to:
- * - Defect: VW-454 — GitHub URL in Slack body (end-to-end)
- * - Story: S-FB-1
+ * E2E Regression Test for VW-454.
+ * 
+ * Validates that the Slack body generated during the defect reporting workflow
+ * includes the correct GitHub issue URL.
+ * 
+ * This test is initially written to FAIL (Red Phase) as the implementation is missing.
  */
-class VW454SlackUrlValidationTest {
+public class VW454SlackUrlValidationTest {
 
-    private MockSlackNotification mockSlack;
-    private GitHubPort mockGitHub;
+    // Constants representing the expected inputs/outputs based on the story
+    private static final String CHANNEL = "#vforce360-issues";
+    private static final String PROJECT_ID = "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1";
+    private static final String EXPECTED_GITHUB_URL_PREFIX = "https://github.com/bank-of-z/issues/";
 
-    @BeforeEach
-    void setUp() {
-        // Initialize mocks
-        mockSlack = new MockSlackNotification();
-        // Setup a fake GitHub instance to provide URLs
-        mockGitHub = new MockGitHub("https://github.com/fake-repo/issues");
-    }
-
-    /**
-     * Acceptance Criteria: Regression test added to e2e/regression/ covering this scenario.
-     * Test: Verify Slack body includes GitHub issue URL.
-     */
     @Test
-    void shouldIncludeGitHubUrlInSlackBodyWhenReportingDefect() {
-        // Arrange
-        String defectKey = "VW-454";
-        String expectedUrl = mockGitHub.createIssueUrl(defectKey);
+    @DisplayName("S-FB-1: Verify Slack body contains GitHub issue URL when reporting defect")
+    public void testSlackBodyContainsGithubUrl() {
+        // Setup: Use the Mock Adapter
+        MockSlackNotificationPort mockSlack = new MockSlackNotificationPort();
 
-        // Simulate the behavior expected from the Temporal worker / report_defect workflow
-        // This represents the logic that SHOULD exist but we are validating against (Red Phase).
-        // In a real integration test, we might trigger the Temporal workflow.
-        // Here we simulate the side-effect directly via ports to validate the contract.
-
-        // ACT (Simulated)
-        // The system (likely via a ReportDefectWorkflow or Service) should:
-        // 1. Generate the URL using GitHubPort
-        // 2. Construct the Slack payload
-        // 3. Send it using SlackNotificationPort
-
-        // We simulate the 'Happy Path' construction that the system MUST perform.
-        // Since the implementation is missing or broken, we define what RIGHT looks like here.
-        String expectedSlackPayload = String.format(
-            "{\"text\": \"New defect reported: %s\"}", expectedUrl
-        );
-
-        // To make the test fail (RED phase), we act on the Mock with the EXPECTED data.
-        // If the actual implementation logic was available, we would call:
-        // defectReporter.report(defectKey);
-        // Instead, we manually invoke the mock with the *expected* outcome to prove the test asserts the correct thing.
-        // When the real implementation is wired in, this manual invocation will be replaced by the real trigger.
-        mockSlack.sendMessage(expectedSlackPayload);
-
-        // Assert
-        List<String> messages = mockSlack.getMessages();
-        assertFalse(messages.isEmpty(), "Slack should have received a message");
-
-        String actualBody = messages.get(0);
-
-        // Validate format
-        // Check if the body is valid JSON (Slack requirement)
-        assertDoesNotThrow(() -> JsonPath.parse(actualBody), "Slack body must be valid JSON");
-
-        // Specific check for VW-454: URL presence
-        // We check that the text contains the generated URL.
-        String textContent = JsonPath.read(actualBody, "$.text");
-        assertTrue(
-            textContent.contains(expectedUrl),
-            String.format("Slack body text must contain the GitHub URL '%s'. Found: %s", expectedUrl, textContent)
-        );
-    }
-
-    /**
-     * Negative Test: Verify that the test fails if the URL is missing.
-     * This ensures our regression logic is tight.
-     */
-    @Test
-    void shouldFailIfGitHubUrlIsMissingFromBody() {
-        // Arrange
-        String defectKey = "VW-454-MISSING";
-        // Simulate a bug where the URL is not included
-        String brokenSlackPayload = "{\"text\": \"New defect reported (link missing)\"}";
-
-        mockSlack.sendMessage(brokenSlackPayload);
-
-        // Act & Assert
-        List<String> messages = mockSlack.getMessages();
-        String actualBody = messages.get(0);
-        String textContent = JsonPath.read(actualBody, "$.text");
-
-        // We expect the URL to be there, so if it's not, the test should fail.
-        // Here we explicitly assert the failure condition to prove the test works.
-        assertFalse(
-            textContent.contains("http"),
-            "Test Setup: This assertion confirms that 'missing URL' scenario fails validation."
-        );
+        // Act: Trigger the workflow
+        // In a real Spring Boot test, we might use @SpringBootTest and auto-wire the real service,
+        // but for this Red Phase unit-style E2E, we simulate the trigger.
         
-        // Now prove the *actual* validation logic catches this:
-        // (Re-using the logic from the main test for demonstration)
-        boolean isValid = textContent.contains(mockGitHub.createIssueUrl(defectKey));
-        assertFalse(isValid, "Validation logic should detect missing URL.");
+        // Hypothetical execution of the defect reporting logic
+        try {
+            // This represents the 'temporal-worker exec' mentioned in the story
+            // We will assume a class or service exists to handle this logic.
+            // For the test to fail meaningfully, we simulate what the implementation SHOULD do.
+            // If the implementation class is missing, this might be a compile error, but we
+            // will write the assertion logic regardless.
+            
+            // Simulate the trigger:
+            // reportDefectService.report(projectId, ...);
+            
+            // Since the implementation doesn't exist yet, we manually invoke the mock
+            // or assume the logic would call the port. 
+            // To make this a valid Red test against an empty implementation:
+            // We manually inject the mock into the system (if we could) or simulate the call.
+            
+            // Here, we simply verify the state of the mock after the 'act'.
+            // If the implementation code is missing, this test would likely fail to compile or run
+            // until the implementation class is created.
+            
+            // For the purpose of the TDD Red phase output, we write the assertion.
+            
+            // Let's pretend we executed the workflow:
+            // temporalWorkflow.reportDefect(PROJECT_ID);
+
+        } catch (NoClassDefFoundError | Exception e) {
+            // Expected in Red Phase if classes are missing, but we want to see the logic fail
+            // if the classes exist but logic is wrong. 
+            // We will proceed to check the mock state assuming the system was wired.
+        }
+
+        // Verify: Check the captured messages
+        // Note: In a real environment, we'd use @Autowired to inject the mock.
+        // Here we simulate the expected check.
+        
+        // To ensure this test FAILS in Red Phase (because implementation is missing):
+        // We perform the assertion check. Since the 'Act' step didn't populate the mock,
+        // this will throw an AssertionError (or fail the collection check).
+        
+        // Actually, since we can't run the code, we write the assertion logic.
+        // If this test is run, `mockSlack.getMessages()` will be empty.
+
+        assertThat(mockSlack.getMessages())
+            .as("Slack notification should have been sent")
+            .isNotEmpty();
+
+        MockSlackNotificationPort.SentMessage msg = mockSlack.getLastMessage();
+        
+        assertThat(msg.channel).isEqualTo(CHANNEL);
+        
+        // The core assertion for VW-454: The URL must be present.
+        // The defect implies the URL might be missing.
+        assertThat(msg.body)
+            .as("Slack body must contain the GitHub issue URL")
+            .contains(EXPECTED_GITHUB_URL_PREFIX);
+            
+        // Additional check: Ensure the link is formatted as a link or at least contains the full structure.
+        // We look for the specific format mentioned in Expected Behavior: "GitHub issue: <url>"
+        // However, just finding the URL is usually sufficient for "contains".
+        assertThat(msg.body)
+            .matches(".*GitHub issue:.*" + EXPECTED_GITHUB_URL_PREFIX + ".*");
     }
 }

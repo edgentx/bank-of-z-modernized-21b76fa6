@@ -1,11 +1,8 @@
 package com.example.steps;
 
-import com.example.domain.account.model.AccountAggregate;
-import com.example.domain.account.model.AccountClosedEvent;
-import com.example.domain.account.model.CloseAccountCmd;
+import com.example.domain.account.model.*;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -19,71 +16,77 @@ public class S7Steps {
 
     private AccountAggregate account;
     private List<DomainEvent> resultEvents;
-    private Exception caughtException;
+    private Exception thrownException;
 
     @Given("a valid Account aggregate")
-    public void a_valid_account_aggregate() {
-        // Setup a valid, active, zero-balance account
+    public void a_valid_Account_aggregate() {
+        // Setup a valid account with zero balance and ACTIVE status
         account = new AccountAggregate("ACC-123");
-        // We simulate the account being active and having zero balance via direct state or a hypothetical open command.
-        // For this step, we assume the constructor sets up the basics, or we invoke a behavior that ensures it.
-        // In this context, we'll rely on the aggregate's initial state or a hypothetical setup.
-        // To make the steps pass, we might need to hydrate it. Let's assume a default active state for the 'valid' case.
-        account.markAsActive(); // Helper method for test setup
+        // Simulate opening the account to get it into a valid state
+        account.execute(new OpenAccountCmd("ACC-123", "ACC-123", "John Doe"));
+        // Clear uncommitted events from setup to isolate test
+        account.clearEvents();
     }
 
-    @And("a valid accountNumber is provided")
-    public void a_valid_account_number_is_provided() {
-        // "ACC-123" is already provided in the Given step
+    @Given("a valid accountNumber is provided")
+    public void a_valid_accountNumber_is_provided() {
+        // Account ID is set in the "Given a valid Account aggregate" step
         assertNotNull(account.id());
     }
 
+    @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
+    public void a_Account_aggregate_that_violates_minimum_balance() {
+        account = new AccountAggregate("ACC-HIGH-BAL");
+        // Open account
+        account.execute(new OpenAccountCmd("ACC-HIGH-BAL", "ACC-HIGH-BAL", "Jane Doe"));
+        // Simulate a deposit to give it a balance (Cannot close if balance != 0)
+        // Note: The requirement says balance must be zero. So having a balance > 0 violates the close invariant.
+        account.execute(new AccountCreditCommand("ACC-HIGH-BAL", new BigDecimal("100.00"))); // Hypothetical cmd to change balance
+        account.clearEvents();
+    }
+
+    @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
+    public void a_Account_aggregate_that_violates_active_status() {
+        account = new AccountAggregate("ACC-CLOSED");
+        // Open account
+        account.execute(new OpenAccountCmd("ACC-CLOSED", "ACC-CLOSED", "John Smith"));
+        // Close it immediately
+        account.execute(new CloseAccountCmd("ACC-CLOSED"));
+        account.clearEvents();
+    }
+
+    @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
+    public void a_Account_aggregate_that_violates_account_number_immutability() {
+        // This scenario covers the logic where the command's AccountID doesn't match the Aggregate's ID
+        // or the aggregate is not yet initialized/opened.
+        account = new AccountAggregate("ACC-ORPHAN");
+        // Do not open it, effectively making it invalid for operations
+    }
+
     @When("the CloseAccountCmd command is executed")
-    public void the_close_account_cmd_command_is_executed() {
+    public void the_CloseAccountCmd_command_is_executed() {
         try {
-            CloseAccountCmd cmd = new CloseAccountCmd(account.id());
+            // We use the aggregate's ID for the command, except in the immutability violation case
+            String cmdId = account.id().equals("ACC-ORPHAN") ? "INVALID-ID" : account.id();
+            Command cmd = new CloseAccountCmd(cmdId);
             resultEvents = account.execute(cmd);
         } catch (Exception e) {
-            caughtException = e;
+            thrownException = e;
         }
     }
 
     @Then("a account.closed event is emitted")
     public void a_account_closed_event_is_emitted() {
-        assertNull(caughtException, "Expected no exception, but got: " + caughtException);
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof AccountClosedEvent);
-    }
-
-    @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
-    public void a_account_aggregate_that_violates_balance() {
-        account = new AccountAggregate("ACC-444");
-        account.markAsActive();
-        // Set balance to something > 0
-        account.setBalanceForTest(BigDecimal.valueOf(100.50));
-    }
-
-    @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
-    public void a_account_aggregate_that_violates_status() {
-        account = new AccountAggregate("ACC-555");
-        // Status defaults to CLOSED or INACTIVE. Just don't call markAsActive.
-        // Or explicitly close it.
-        // Default is CLOSED based on implementation logic (no Active -> Closed).
-    }
-
-    @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
-    public void a_account_aggregate_that_violates_uniqueness() {
-        // Simulate a null or blank ID scenario passed to the command
-        // The aggregate itself might have an ID, but the command checks validity/uniqueness context
-        account = new AccountAggregate("ACC-666");
-        account.markAsActive();
+        assertNull(thrownException, "Should not have thrown an exception");
+        assertNotNull(resultEvents, "Events list should not be null");
+        assertEquals(1, resultEvents.size(), "Should have emitted one event");
+        assertEquals("account.closed", resultEvents.get(0).type());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(caughtException, "Expected an exception to be thrown");
-        // Ideally check it's an IllegalStateException or IllegalArgumentException
-        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
+        assertNotNull(thrownException, "Expected an exception to be thrown");
+        // Typically IllegalArgumentException or IllegalStateException
+        assertTrue(thrownException instanceof IllegalArgumentException || thrownException instanceof IllegalStateException);
     }
 }

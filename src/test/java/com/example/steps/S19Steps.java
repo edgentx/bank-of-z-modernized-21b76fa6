@@ -1,95 +1,94 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
-import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.teller.model.MenuNavigatedEvent;
 import com.example.domain.teller.model.NavigateMenuCmd;
 import com.example.domain.teller.model.TellerSessionAggregate;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
-import java.util.List;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S19Steps {
 
     private TellerSessionAggregate aggregate;
-    private String sessionId;
-    private String menuId;
-    private String action;
-    private List<DomainEvent> resultEvents;
-    private Exception thrownException;
+    private Exception caughtException;
+    private String resultEventId;
+    private String currentMenuId;
+    private String currentAction;
 
     @Given("a valid TellerSession aggregate")
-    public void a_valid_teller_session_aggregate() {
-        this.sessionId = "sess-123";
-        this.aggregate = new TellerSessionAggregate(sessionId);
-        // Default to valid state for positive test case
-        aggregate.markAuthenticated();
+    public void aValidTellerSessionAggregate() {
+        aggregate = new TellerSessionAggregate("session-123");
+        aggregate.markAuthenticated("teller-01");
+        aggregate.setSessionActive(true);
+        aggregate.setLastActivity(java.time.Instant.now());
     }
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_teller_session_aggregate_that_violates_authentication() {
-        this.sessionId = "sess-unauth";
-        this.aggregate = new TellerSessionAggregate(sessionId);
-        // Intentionally do not call markAuthenticated()
+    public void aTellerSessionAggregateNotAuthenticated() {
+        aggregate = new TellerSessionAggregate("session-123");
+        // Explicitly NOT authenticated
+        aggregate.setSessionActive(true);
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_teller_session_aggregate_that_violates_timeout() {
-        this.sessionId = "sess-timeout";
-        this.aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markAuthenticated();
-        aggregate.expireSession();
+    public void aTellerSessionAggregateThatIsTimedOut() {
+        aggregate = new TellerSessionAggregate("session-123");
+        aggregate.markAuthenticated("teller-01");
+        // Set activity to 20 minutes ago (timeout is 15)
+        aggregate.setLastActivity(java.time.Instant.now().minus(java.time.Duration.ofMinutes(20)));
+        aggregate.setSessionActive(true);
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_teller_session_aggregate_that_violates_navigation_state() {
-        this.sessionId = "sess-invalid-state";
-        this.aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markAuthenticated();
-        aggregate.invalidateNavigationState();
+    public void aTellerSessionAggregateInvalidContext() {
+        aggregate = new TellerSessionAggregate("session-123");
+        aggregate.markAuthenticated("teller-01");
+        // Context is invalid because session is not active
+        aggregate.setSessionActive(false);
     }
 
     @And("a valid sessionId is provided")
-    public void a_valid_session_id_is_provided() {
-        // Session ID is initialized in the Given steps
-        Assertions.assertNotNull(sessionId);
+    public void aValidSessionIdIsProvided() {
+        // Handled implicitly in scenario setup via 'a valid TellerSession aggregate'
     }
 
     @And("a valid menuId is provided")
-    public void a_valid_menu_id_is_provided() {
-        this.menuId = "MAIN_MENU";
+    public void aValidMenuIdIsProvided() {
+        this.currentMenuId = "MAIN_MENU";
     }
 
     @And("a valid action is provided")
-    public void a_valid_action_is_provided() {
-        this.action = "ENTER";
+    public void aValidActionIsProvided() {
+        this.currentAction = "ENTER";
     }
 
     @When("the NavigateMenuCmd command is executed")
-    public void the_navigate_menu_cmd_command_is_executed() {
+    public void theNavigateMenuCmdCommandIsExecuted() {
         try {
-            Command cmd = new NavigateMenuCmd(sessionId, menuId, action);
-            resultEvents = aggregate.execute(cmd);
+            var cmd = new NavigateMenuCmd(aggregate.id(), currentMenuId, currentAction);
+            var events = aggregate.execute(cmd);
+            if (!events.isEmpty()) {
+                resultEventId = events.get(0).type();
+            }
         } catch (Exception e) {
-            thrownException = e;
+            caughtException = e;
         }
     }
 
     @Then("a menu.navigated event is emitted")
-    public void a_menu_navigated_event_is_emitted() {
-        Assertions.assertNotNull(resultEvents);
-        Assertions.assertFalse(resultEvents.isEmpty());
-        Assertions.assertEquals("menu.navigated", resultEvents.get(0).type());
+    public void aMenuNavigatedEventIsEmitted() {
+        assertNotNull(aggregate.uncommittedEvents());
+        assertFalse(aggregate.uncommittedEvents().isEmpty());
+        assertEquals("menu.navigated", aggregate.uncommittedEvents().get(0).type());
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(thrownException);
-        // We expect an IllegalStateException for domain invariant violations
-        Assertions.assertTrue(thrownException instanceof IllegalStateException);
+    public void theCommandIsRejectedWithADomainError() {
+        assertNotNull(caughtException);
+        assertTrue(caughtException instanceof IllegalStateException);
     }
 }

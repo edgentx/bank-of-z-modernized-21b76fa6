@@ -1,28 +1,41 @@
 package com.example.mocks;
 
-import com.example.ports.SlackClient;
-import java.util.Map;
-import java.util.HashMap;
+import com.example.ports.SlackPort;
+import org.springframework.stereotype.Component;
 
 /**
- * Mock implementation of SlackClient for testing.
- * Allows capture of the payload sent by the application for assertion.
+ * Mock Slack Adapter for testing.
+ * Captures message content to verify the defect reporting logic.
  */
-public class MockSlackClient implements SlackClient {
+@Component
+public class MockSlackClient implements SlackPort {
 
-    private Map<String, Object> lastCapturedPayload;
+    private boolean sendMessageCalled = false;
+    private String lastMessageBody;
+    private String lastChannel;
 
     @Override
-    public void sendMessage(Map<String, Object> payload) {
-        // Instead of making a real HTTP call, we capture the data
-        this.lastCapturedPayload = payload;
+    public void sendMessage(String channel, String text) {
+        this.sendMessageCalled = true;
+        this.lastChannel = channel;
+        this.lastMessageBody = text;
     }
 
-    /**
-     * Retrieves the last payload sent to this mock.
-     * Used in tests to verify content.
-     */
-    public Map<String, Object> getCapturedPayload() {
-        return lastCapturedPayload;
+    public boolean wasSendMessageCalled() {
+        return sendMessageCalled;
+    }
+
+    public String getLastMessageBody() {
+        return lastMessageBody;
+    }
+
+    public String getLastChannel() {
+        return lastChannel;
+    }
+
+    public void reset() {
+        this.sendMessageCalled = false;
+        this.lastMessageBody = null;
+        this.lastChannel = null;
     }
 }

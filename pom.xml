@@ -4,30 +4,23 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.2.1</version>
+    <version>3.3.4</version>
     <relativePath/>
   </parent>
-  
   <groupId>com.example</groupId>
   <artifactId>teller-system</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>Teller System</name>
-  <description>Bank Teller System with Legacy Integration</description>
-  
+  <name>teller-system</name>
+  <description>Teller System for Bank-of-Z Modernization</description>
   <properties>
     <java.version>17</java.version>
-    <cucumber.version>7.15.0</cucumber.version>
+    <cucumber.version>7.18.0</cucumber.version>
+    <flyway-db2.version>10.0.0</flyway-db2.version>
   </properties>
-
   <dependencies>
-    <!-- Spring Boot Starters -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -35,7 +28,7 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-integration</artifactId>
+      <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -43,11 +36,11 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-batch</artifactId>
+      <artifactId>spring-boot-starter-integration</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-redis</artifactId>
+      <artifactId>spring-boot-starter-batch</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.integration</groupId>
@@ -56,35 +49,12 @@
     <dependency>
       <groupId>com.ibm.mq</groupId>
       <artifactId>mq-jms-spring-boot-starter</artifactId>
-      <version>3.0.3</version>
-    </dependency>
-
-    <!-- Database Drivers -->
-    <dependency>
-      <groupId>com.ibm.db2</groupId>
-      <artifactId>jcc</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    
-    <!-- Observability -->
-    <dependency>
-      <groupId>io.micrometer</groupId>
-      <artifactId>micrometer-tracing-bridge-otel</artifactId>
+      <version>3.1.6</version>
     </dependency>
     <dependency>
-      <groupId>io.opentelemetry</groupId>
-      <artifactId>opentelemetry-exporter-otlp</artifactId>
-      <version>1.36.0</version>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
     </dependency>
-    
-    <!-- Storage -->
-    <dependency>
-      <groupId>io.minio</groupId>
-      <artifactId>minio</artifactId>
-      <version>8.5.7</version>
-    </dependency>
-
-    <!-- Migration -->
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-core</artifactId>
@@ -92,9 +62,27 @@
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-db2</artifactId>
+      <version>${flyway-db2.version}</version>
     </dependency>
-
-    <!-- Testing -->
+    <dependency>
+      <groupId>com.ibm.db2</groupId>
+      <artifactId>jcc</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.temporal</groupId>
+      <artifactId>temporal-spring-boot-starter</artifactId>
+      <version>1.23.1</version>
+    </dependency>
+    <dependency>
+      <groupId>io.minio</groupId>
+      <artifactId>minio</artifactId>
+      <version>8.5.11</version>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-api</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
@@ -118,20 +106,11 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
   <build>
     <plugins>
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <source>17</source>
-          <target>17</target>
-        </configuration>
       </plugin>
     </plugins>
   </build>

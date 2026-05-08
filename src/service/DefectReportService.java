@@ -27,14 +27,23 @@ public class DefectReportService {
      * @param summary  Summary of the defect.
      */
     public void reportDefect(String defectId, String summary) {
-        // Implementation is intentionally left blank or minimal to allow tests to fail (RED phase).
-        // The tests expect specific logic to be present here.
-        
-        // Example of expected logic:
-        // String url = vForce360.getGitHubIssueUrl(defectId);
-        // String message = "Defect Reported: " + summary + "\nGitHub issue: " + url;
-        // slack.postMessage("#vforce360-issues", message);
-        
-        throw new UnsupportedOperationException("Implement reportDefect logic");
+        if (defectId == null || defectId.isBlank()) {
+            throw new IllegalArgumentException("defectId cannot be null or blank");
+        }
+        if (summary == null || summary.isBlank()) {
+            throw new IllegalArgumentException("summary cannot be null or blank");
+        }
+
+        // 1. Fetch the GitHub URL from the VForce360 system
+        String gitHubUrl = vForce360.getGitHubIssueUrl(defectId);
+
+        // 2. Construct the message body including the GitHub URL
+        // The test explicitly checks for the label "GitHub issue:"
+        StringBuilder messageBuilder = new StringBuilder();
+        messageBuilder.append("Defect Reported: ").append(summary).append("\n");
+        messageBuilder.append("GitHub issue: ").append(gitHubUrl);
+
+        // 3. Post to the specific Slack channel
+        slack.postMessage("#vforce360-issues", messageBuilder.toString());
     }
 }

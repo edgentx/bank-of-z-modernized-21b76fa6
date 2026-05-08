@@ -1,31 +1,26 @@
 package com.example.adapters;
 
-import com.example.domain.validation.model.ValidationAggregate;
-import com.example.domain.validation.repository.ValidationRepository;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Repository;
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.DefectRepository;
+import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
-/**
- * In-memory implementation of the ValidationRepository.
- * Used for development and testing when a real DB connection is not required.
- */
-@Repository
-@Profile("dev | test")
-public class ValidationRepositoryImpl implements ValidationRepository {
+// In-memory implementation for testing/dev purposes
+@Component
+public class ValidationRepositoryImpl implements DefectRepository {
 
-    private final Map<String, ValidationAggregate> store = new HashMap<>();
+    private final Map<String, DefectAggregate> store = new HashMap<>();
 
     @Override
-    public Optional<ValidationAggregate> findById(String id) {
-        return Optional.ofNullable(store.get(id));
+    public DefectAggregate save(DefectAggregate aggregate) {
+        store.put(aggregate.id(), aggregate);
+        return aggregate;
     }
 
     @Override
-    public void save(ValidationAggregate aggregate) {
-        store.put(aggregate.id(), aggregate);
+    public DefectAggregate findById(String id) {
+        return store.get(id);
     }
 }

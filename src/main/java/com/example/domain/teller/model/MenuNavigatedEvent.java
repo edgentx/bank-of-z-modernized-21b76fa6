@@ -16,8 +16,13 @@ public record MenuNavigatedEvent(
         return "menu.navigated";
     }
 
-    // Canonical constructor handling
-    public MenuNavigatedEvent {
-        // Normalize/Validate if necessary
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
     }
 }

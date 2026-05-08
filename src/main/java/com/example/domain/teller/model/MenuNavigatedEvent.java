@@ -3,19 +3,12 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
-public record MenuNavigatedEvent(
-    String eventId,
-    String aggregateId,
-    String menuId,
-    String action,
-    Instant occurredAt
-) implements DomainEvent {
-    public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), aggregateId, menuId, action, occurredAt);
-    }
-
+/**
+ * Event emitted when a teller successfully navigates to a menu.
+ * S-19: Implement NavigateMenuCmd on TellerSession.
+ */
+public record MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
         return "menu.navigated";

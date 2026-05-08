@@ -9,8 +9,7 @@ import com.example.ports.SlackWebhookPort;
  * visible to the team. It coordinates creating the GitHub issue and then
  * notifying Slack with the resulting link.
  *
- * TDD Red Phase: This file contains the minimal structure to compile,
- * but the implementation logic is stubbed or incorrect to force test failure.
+ * FIXED: S-FB-1: Now correctly formats the GitHub URL into the Slack notification body.
  */
 public class SlackNotificationPublisher {
 
@@ -23,17 +22,25 @@ public class SlackNotificationPublisher {
     }
 
     public void publishDefectNotification(ReportDefectCommand cmd) {
-        // TDD RED PHASE: INTENTIONAL BUG / MISSING IMPLEMENTATION
-        // We do not yet format the body to include the GitHub URL.
-        // This causes testSlackBodyContainsGitHubLinkAfterDefectReported to fail.
-
+        // 1. Create GitHub Issue
         String url = gitHubPort.createIssue(cmd.title(), cmd.description());
-        if (url == null) throw new RuntimeException("GitHub URL unavailable");
+        
+        if (url == null) {
+            throw new RuntimeException("GitHub URL unavailable");
+        }
 
-        // BAD: We currently just send a "Hello" text, missing the URL.
-        // The test expects the URL to be in the body.
-        String slackBody = "Hello, a defect was reported."; 
+        // 2. Construct Slack Message with GitHub Link
+        // Using Slack link formatting: <URL|text> or just <URL>
+        // S-FB-1 Fix: Ensure URL is present in the body.
+        String slackBody = String.format(
+            "Defect Reported: %s\nSeverity: %s\nComponent: %s\nGitHub Issue: <%s|View Issue>",
+            cmd.title(),
+            cmd.severity(),
+            cmd.component(),
+            url
+        );
 
+        // 3. Send Notification
         slackPort.send(slackBody);
     }
 }

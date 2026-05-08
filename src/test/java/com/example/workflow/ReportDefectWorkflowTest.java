@@ -1,9 +1,11 @@
 package com.example.workflow;
 
-import com.example.mocks.MockDefectReportingActivitiesImpl;
+import com.example.mocks.MockGitHubPort;
+import com.example.mocks.MockSlackPort;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackPort;
 import io.temporal.testing.TestWorkflowEnvironment;
 import io.temporal.worker.Worker;
-import io.temporal.workflow.WorkflowInterface;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,66 +14,54 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * TDD Red Phase Test for S-FB-1.
- * This test expects the Slack notification body to contain the GitHub issue URL.
+ * Regression test for VW-454.
+ * Verifies that when reporting a defect via Temporal,
+ * the resulting Slack message body contains the GitHub issue URL.
  */
 public class ReportDefectWorkflowTest {
 
     private TestWorkflowEnvironment testEnvironment;
     private Worker worker;
-    private MockDefectReportingActivitiesImpl activitiesImpl;
+    private MockSlackPort mockSlack;
+    private GitHubPort gitHub;
 
     @BeforeEach
     public void setUp() {
-        // Initialize the Temporal test environment
-        // Note: If Temporal dependencies are missing, this setup will fail to compile,
-        // highlighting the dependency requirements.
-        try {
-            testEnvironment = TestWorkflowEnvironment.newInstance();
-            activitiesImpl = new MockDefectReportingActivitiesImpl();
-            worker = testEnvironment.newWorker("TASK_QUEUE");
-            worker.registerWorkflowImplementationTypes(ReportDefectWorkflowImpl.class);
-            worker.registerActivitiesImplementations(activitiesImpl);
-            testEnvironment.start();
-        } catch (NoClassDefFoundError e) {
-            // Dependencies missing, fail fast
-            fail("Temporal SDK dependencies missing. Ensure pom.xml includes io.temporal:temporal-testing");
-        }
+        testEnvironment = TestWorkflowEnvironment.newInstance();
+        worker = testEnvironment.newWorker("VFORCE360_TASK_QUEUE");
+        
+        // Instantiate Mocks
+        mockSlack = new MockSlackPort();
+        gitHub = new MockGitHubPort();
+
+        // Register Workflow and Activities with Mock dependencies
+        // Note: In a real Spring setup, these would be wired via context.
+        // For unit testing Temporal logic outside of Spring, we register stubs/workers directly.
+        worker.registerWorkflowImplementationFactory(ReportDefectWorkflowImpl.class, () -> new ReportDefectWorkflowImpl(mockSlack, gitHub));
+        
+        testEnvironment.start();
     }
 
     @AfterEach
     public void tearDown() {
-        if (testEnvironment != null) {
-            testEnvironment.close();
-        }
+        testEnvironment.close();
     }
 
     @Test
-    public void testReportDefect_SlackBodyContainsGithubUrl() {
+    public void testReportDefect_ShouldIncludeGitHubUrlInSlackBody() {
         // Arrange
-        String defectId = "S-FB-1";
-        String description = "GitHub URL in Slack body (end-to-end)";
-        String expectedUrl = "https://github.com/bank-of-z/vforce360/issues/454";
+        String issueId = "VW-454";
+        String expectedUrl = "https://github.com/bank-of-z/issues/issues/" + issueId;
         
-        // Configure the mock activity to return a specific GitHub URL
-        activitiesImpl.setGithubUrlToReturn(expectedUrl);
-
-        // Get workflow stub
         ReportDefectWorkflow workflow = testEnvironment.newWorkflowStub(ReportDefectWorkflow.class);
 
         // Act
-        // Execute the workflow. In a real scenario, this triggers the temporal worker.
-        workflow.reportDefect(defectId, description);
+        workflow.reportDefect(issueId, "Defect reported by user.");
 
-        // Wait for workflow completion (synchronous for test)
         // Assert
-        String actualSlackBody = activitiesImpl.getLastSlackMessage();
+        // Validation: The mock Slack adapter should have captured a message containing the expected URL
+        boolean found = mockSlack.receivedMessageContaining(expectedUrl);
         
-        // TDD Red Phase Expectation:
-        // We expect the URL to be present in the message.
-        // If the implementation is missing or broken, this assertion fails.
-        assertTrue(actualSlackBody != null, "Slack body should not be null");
-        assertTrue(actualSlackBody.contains(expectedUrl), 
-            "Slack body must contain the GitHub URL. Expected: " + expectedUrl + " in body: " + actualSlackBody);
+        assertTrue(found, "Expected Slack body to include GitHub issue URL: " + expectedUrl + ", but it was not found in messages: " + mockSlack.messages);
     }
 }

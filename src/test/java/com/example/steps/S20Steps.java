@@ -1,97 +1,92 @@
 package com.example.steps;
 
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.tellersession.model.EndSessionCmd;
-import com.example.domain.tellersession.model.SessionEndedEvent;
-import com.example.domain.tellersession.model.TellerSession;
-import com.example.domain.tellersession.repository.InMemoryTellerSessionRepository;
-import com.example.domain.tellersession.repository.TellerSessionRepository;
+import com.example.domain.teller.model.EndSessionCmd;
+import com.example.domain.teller.model.SessionEndedEvent;
+import com.example.domain.teller.model.TellerSessionAggregate;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import static org.junit.jupiter.api.Assertions.*;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S20Steps {
-    private TellerSession aggregate;
-    private final TellerSessionRepository repo = new InMemoryTellerSessionRepository();
+
+    private TellerSessionAggregate aggregate;
     private List<DomainEvent> resultEvents;
-    private Exception thrownException;
-    private UUID sessionId;
+    private Exception capturedException;
+    private static final String SESSION_ID = "sess-123";
+    private static final String TELLER_ID = "teller-01";
 
     @Given("a valid TellerSession aggregate")
     public void a_valid_TellerSession_aggregate() {
-        sessionId = UUID.randomUUID();
-        aggregate = new TellerSession(sessionId);
-        aggregate.initializeValidSession("teller-123");
-        repo.save(aggregate);
+        aggregate = new TellerSessionAggregate(SESSION_ID);
+        // Setup valid state: authenticated, valid navigation, recent activity
+        aggregate.markActive(TELLER_ID, true, true, Instant.now());
     }
 
     @Given("a valid sessionId is provided")
     public void a_valid_sessionId_is_provided() {
-        // SessionId initialized in previous step
-        assertNotNull(sessionId);
+        // Handled by the aggregate initialization in the previous step
+        // We verify the ID matches what we expect
+        assertEquals(SESSION_ID, aggregate.id());
     }
 
     @When("the EndSessionCmd command is executed")
-    public void the_end_session_cmd_command_is_executed() {
-        EndSessionCmd cmd = new EndSessionCmd(sessionId);
+    public void the_EndSessionCmd_command_is_executed() {
         try {
-            // Reload aggregate to ensure clean state from repo
-            var agg = repo.findById(sessionId).orElseThrow();
-            resultEvents = agg.execute(cmd);
-            repo.save(agg); // Persist state changes
+            EndSessionCmd cmd = new EndSessionCmd(SESSION_ID);
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            thrownException = e;
+            capturedException = e;
         }
     }
 
     @Then("a session.ended event is emitted")
     public void a_session_ended_event_is_emitted() {
-        assertNull(thrownException, "Should not throw exception");
-        assertNotNull(resultEvents);
+        assertNotNull(resultEvents, "Events list should not be null");
         assertEquals(1, resultEvents.size());
         assertTrue(resultEvents.get(0) instanceof SessionEndedEvent);
         
         SessionEndedEvent event = (SessionEndedEvent) resultEvents.get(0);
-        assertEquals(sessionId.toString(), event.aggregateId());
+        assertEquals("session.ended", event.type());
+        assertEquals(SESSION_ID, event.aggregateId());
+        assertEquals(TELLER_ID, event.tellerId());
+        assertNull(capturedException, "Should not have thrown an exception");
     }
-
-    // Scenarios for Rejections
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
     public void a_TellerSession_aggregate_that_violates_authentication() {
-        sessionId = UUID.randomUUID();
-        aggregate = new TellerSession(sessionId);
-        aggregate.initializeValidSession("teller-123");
-        aggregate.setAuthenticated(false); // Violate invariant
-        repo.save(aggregate);
+        aggregate = new TellerSessionAggregate(SESSION_ID);
+        // Setup invalid state: NOT authenticated
+        aggregate.markActive(TELLER_ID, false, true, Instant.now());
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
     public void a_TellerSession_aggregate_that_violates_timeout() {
-        sessionId = UUID.randomUUID();
-        aggregate = new TellerSession(sessionId);
-        aggregate.initializeValidSession("teller-123");
-        aggregate.setLastActivityAt(Instant.now().minusSeconds(1800)); // 30 mins ago (> 15 min timeout)
-        repo.save(aggregate);
+        aggregate = new TellerSessionAggregate(SESSION_ID);
+        // Setup invalid state: Old timestamp (simulating timeout)
+        // Assuming timeout is 15 mins, we go back 20 mins
+        Instant oldTime = Instant.now().minus(Duration.ofMinutes(20));
+        aggregate.markActive(TELLER_ID, true, true, oldTime);
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
     public void a_TellerSession_aggregate_that_violates_navigation_state() {
-        sessionId = UUID.randomUUID();
-        aggregate = new TellerSession(sessionId);
-        aggregate.initializeValidSession("teller-123");
-        aggregate.setOperationalContextValid(false); // Violate invariant
-        repo.save(aggregate);
+        aggregate = new TellerSessionAggregate(SESSION_ID);
+        // Setup invalid state: Navigation invalid
+        aggregate.markActive(TELLER_ID, true, false, Instant.now());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(thrownException, "Exception should be thrown for invariant violation");
-        assertTrue(thrownException instanceof IllegalStateException);
+        assertNotNull(capturedException, "Expected an exception to be thrown");
+        assertTrue(capturedException instanceof IllegalStateException);
+        // Ensure no events were emitted
+        assertTrue(resultEvents == null || resultEvents.isEmpty());
     }
 }

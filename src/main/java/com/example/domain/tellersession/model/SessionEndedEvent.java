@@ -4,19 +4,23 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
-public record SessionEndedEvent(String sessionId, Instant occurredAt) implements DomainEvent {
+public record SessionEndedEvent(
+    String aggregateId,
+    String tellerId,
+    Instant endedAt
+) implements DomainEvent {
     @Override
     public String type() {
         return "session.ended";
     }
 
     @Override
-    public String aggregateId() {
-        return sessionId;
+    public Instant occurredAt() {
+        return endedAt;
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 }

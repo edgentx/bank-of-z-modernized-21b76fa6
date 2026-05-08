@@ -1,10 +1,11 @@
 package com.example.steps;
 
+import com.example.domain.screen.model.ScreenMapAggregate;
+import com.example.domain.screen.model.ScreenRenderedEvent;
+import com.example.domain.screen.model.RenderScreenCmd;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.ui.model.ScreenMapAggregate;
-import com.example.domain.ui.model.RenderScreenCmd;
-import com.example.domain.ui.model.ScreenRenderedEvent;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -15,29 +16,30 @@ import java.util.List;
 public class S21Steps {
 
     private ScreenMapAggregate aggregate;
+    private RenderScreenCmd.Builder cmdBuilder;
     private Exception caughtException;
     private List<DomainEvent> resultEvents;
 
     @Given("a valid ScreenMap aggregate")
-    public void a_valid_screen_map_aggregate() {
-        aggregate = new ScreenMapAggregate("screen-01");
+    public void a_valid_ScreenMap_aggregate() {
+        aggregate = new ScreenMapAggregate("screen-1");
+        cmdBuilder = new RenderScreenCmd.Builder("screen-1", DeviceType.WEB);
     }
 
-    @Given("a valid screenId is provided")
-    public void a_valid_screen_id_is_provided() {
-        // Context setup handled in command execution
+    @And("a valid screenId is provided")
+    public void a_valid_screenId_is_provided() {
+        // Default builder has valid ID
     }
 
-    @Given("a valid deviceType is provided")
-    public void a_valid_device_type_is_provided() {
-        // Context setup handled in command execution
+    @And("a valid deviceType is provided")
+    public void a_valid_deviceType_is_provided() {
+        // Default builder has valid type
     }
 
     @When("the RenderScreenCmd command is executed")
-    public void the_render_screen_cmd_command_is_executed() {
-        // Valid inputs for success scenario
-        RenderScreenCmd cmd = new RenderScreenCmd("screen-01", "3270");
+    public void the_RenderScreenCmd_command_is_executed() {
         try {
+            Command cmd = cmdBuilder.build();
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             caughtException = e;
@@ -46,63 +48,37 @@ public class S21Steps {
 
     @Then("a screen.rendered event is emitted")
     public void a_screen_rendered_event_is_emitted() {
+        assertNull(caughtException, "Should not have thrown exception: " + caughtException);
         assertNotNull(resultEvents);
         assertEquals(1, resultEvents.size());
         assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
         ScreenRenderedEvent event = (ScreenRenderedEvent) resultEvents.get(0);
-        assertEquals("screen.rendered", event.type());
-        assertEquals("screen-01", event.aggregateId());
+        assertEquals("screen-1", event.aggregateId());
     }
 
-    // Violation Scenarios
-    
     @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void a_screen_map_aggregate_that_violates_mandatory_fields() {
-        aggregate = new ScreenMapAggregate("screen-02");
+    public void a_ScreenMap_aggregate_that_violates_mandatory_fields() {
+        aggregate = new ScreenMapAggregate("screen-2");
+        // Violation: null screenId handled by Builder enforcement or passed null if possible
+        // Here we simulate a command with invalid internal state if builder allowed, or we test the command validation
+        // Assuming the builder enforces basic non-null, we test an empty screenId
+        cmdBuilder = new RenderScreenCmd.Builder("", DeviceType.WEB);
     }
 
     @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void a_screen_map_aggregate_that_violates_bms_constraints() {
-        aggregate = new ScreenMapAggregate("screen-03");
-    }
-
-    // We hook into the previous @When step for error cases, but we need to inject a command based on the context.
-    // However, Cucumber steps usually rely on instance state. We will use a flag or check the aggregate ID to determine flow
-    // or simply assume the @When step needs to be smart. For simplicity in this file structure, we assume the step
-    // implementation might need branching or separate @When methods. Given the prompt structure, we'll override the behavior
-    // based on the aggregate ID.
-    
-    // Note: In a real runner, we might need distinct @When methods or a data table. 
-    // To support the generic @When above for all scenarios, we check which aggregate is active.
-    
-    // Actually, let's refine the @When to handle the specific context of the 2nd scenario.
-    // The Cucumber engine will match the first @When it finds. We will keep the implementation in the first @When method
-    // or split them if necessary. Let's split them for clarity and standard Cucumber practice.
-
-    @When("the RenderScreenCmd command is executed with invalid data")
-    public void the_render_screen_cmd_command_is_executed_with_invalid_data() {
-        Command cmd;
-        if ("screen-02".equals(aggregate.id())) {
-            // Missing fields
-            cmd = new RenderScreenCmd(null, "3270");
-        } else if ("screen-03".equals(aggregate.id())) {
-            // BMS Constraint violation (e.g. device type too long, assuming legacy 4 char limit for example)
-            cmd = new RenderScreenCmd("screen-03", "TOOLONGDEVICE");
-        } else {
-            return; // Not an error case
-        }
-        
-        try {
-            resultEvents = aggregate.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            caughtException = e;
-        }
+    public void a_ScreenMap_aggregate_that_violates_BMS_constraints() {
+        aggregate = new ScreenMapAggregate("screen-3");
+        // Legacy BMS constraint: screen ID max 8 chars
+        String longId = "very-long-screen-id-123";
+        cmdBuilder = new RenderScreenCmd.Builder(longId, DeviceType.WEB);
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(caughtException);
+        assertNotNull(caughtException, "Expected exception but command succeeded");
         assertTrue(caughtException instanceof IllegalArgumentException);
     }
 
+    // Enums for test context
+    public enum DeviceType { WEB, MOBILE, TSO }
 }

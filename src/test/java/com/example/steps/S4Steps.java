@@ -1,8 +1,10 @@
 package com.example.steps;
 
 import com.example.domain.customer.model.*;
-import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.shared.Aggregate;
+import com.example.domain.customer.repository.CustomerRepository;
+import com.example.domain.shared.Command;
+import com.example.domain.shared.DomainEvent;
+import com.example.mocks.InMemoryCustomerRepository;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -15,61 +17,28 @@ import static org.junit.jupiter.api.Assertions.*;
 public class S4Steps {
 
     private CustomerAggregate aggregate;
+    private CustomerRepository repository = new InMemoryCustomerRepository();
     private Exception capturedException;
-    private List<com.example.domain.shared.DomainEvent> resultingEvents;
+    private List<DomainEvent> resultEvents;
 
     @Given("a valid Customer aggregate")
     public void a_valid_customer_aggregate() {
         aggregate = new CustomerAggregate("cust-123");
         // Enroll the customer first to make it valid
-        aggregate.execute(new EnrollCustomerCmd("cust-123", "John Doe", "john@example.com", "GOV-123"));
-        aggregate.clearEvents(); // Clear enrollment events
+        Command enrollCmd = new EnrollCustomerCmd("cust-123", "John Doe", "john@example.com", "GOV-ID-123");
+        aggregate.execute(enrollCmd);
     }
 
     @Given("a valid customerId is provided")
     public void a_valid_customer_id_is_provided() {
-        // Handled by the aggregate initialization in the previous step
-    }
-
-    @Given("a Customer aggregate that violates: A customer must have a valid, unique email address and government-issued ID.")
-    public void a_customer_aggregate_that_violates_email_and_gov_id() {
-        aggregate = new CustomerAggregate("cust-invalid");
-        // We create an aggregate that is technically constructed but would fail validation on delete
-        // Since constructor only takes ID, we need to simulate state or rely on the execute logic failing.
-        // However, the aggregate starts empty. The invariant check happens inside Execute.
-        // So we just use the raw aggregate.
-    }
-
-    @Given("a Customer aggregate that violates: Customer name and date of birth cannot be empty.")
-    public void a_customer_aggregate_that_violates_name_and_dob() {
-        aggregate = new CustomerAggregate("cust-empty-name");
-    }
-
-    @Given("a Customer aggregate that violates: A customer cannot be deleted if they own active bank accounts.")
-    public void a_customer_aggregate_that_violates_active_accounts() {
-        aggregate = new CustomerAggregate("cust-accounts");
-        // Enroll it normally first
-        aggregate.execute(new EnrollCustomerCmd("cust-accounts", "Jane Doe", "jane@example.com", "GOV-456"));
-        aggregate.clearEvents();
-        
-        // Note: The aggregate logic provided in the 'execute' method for deletion assumes 
-        // the 'active accounts' check is done externally (Application layer) because the aggregate 
-        // doesn't hold a list of accounts. 
-        // To make this Scenario pass as a 'Domain Error', the Application layer (Steps) would
-        // prevent the call. However, if the requirement is strictly Aggregate-level enforcement,
-        // the aggregate would need a field like 'activeAccountCount'. 
-        // Given the existing code structure, we will assert that the exception is thrown by 
-        // the step logic simulating the application rule.
+        // Id is already set in previous step
     }
 
     @When("the DeleteCustomerCmd command is executed")
     public void the_delete_customer_cmd_command_is_executed() {
+        Command deleteCmd = new DeleteCustomerCmd("cust-123", false);
         try {
-            // Special handling for the 'active accounts' scenario if we are simulating the domain rule
-            if (aggregate.id().equals("cust-accounts")) {
-                throw new IllegalStateException("Cannot delete customer with active bank accounts");
-            }
-            resultingEvents = aggregate.execute(new DeleteCustomerCmd(aggregate.id()));
+            resultEvents = aggregate.execute(deleteCmd);
         } catch (Exception e) {
             capturedException = e;
         }
@@ -77,20 +46,63 @@ public class S4Steps {
 
     @Then("a customer.deleted event is emitted")
     public void a_customer_deleted_event_is_emitted() {
-        assertNotNull(resultingEvents);
-        assertEquals(1, resultingEvents.size());
-        assertTrue(resultingEvents.get(0) instanceof CustomerDeletedEvent);
-        assertEquals("customer.deleted", resultingEvents.get(0).type());
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof CustomerDeletedEvent);
+        assertEquals("customer.deleted", resultEvents.get(0).type());
+    }
+
+    @Given("a Customer aggregate that violates: A customer must have a valid, unique email address and government-issued ID.")
+    public void a_customer_aggregate_that_violates_email_and_id() {
+        aggregate = new CustomerAggregate("cust-invalid");
+        // Enroll with bad data to satisfy the internal state, or manipulate state if constructor allowed.
+        // Here we rely on the Enroll logic to set the state, but we want to test Delete invariant.
+        // The prompt says "Given a Customer aggregate that violates...".
+        // Let's create a valid one then modify the 'uncommitted' logic, or just instantiate.
+        // To strictly test the Delete invariant about 'valid email', the aggregate must check it at delete time.
+        Command enrollCmd = new EnrollCustomerCmd("cust-invalid", "Jane", "invalid-email", "");
+        aggregate.execute(enrollCmd);
+    }
+
+    @Given("a Customer aggregate that violates: Customer name and date of birth cannot be empty.")
+    public void a_customer_aggregate_that_violates_name_and_dob() {
+        aggregate = new CustomerAggregate("cust-invalid-name");
+        Command enrollCmd = new EnrollCustomerCmd("cust-invalid-name", "", "test@test.com", "GOV-ID");
+        aggregate.execute(enrollCmd);
+    }
+
+    @Given("a Customer aggregate that violates: A customer cannot be deleted if they own active bank accounts.")
+    public void a_customer_aggregate_that_violates_active_accounts() {
+        aggregate = new CustomerAggregate("cust-active");
+        Command enrollCmd = new EnrollCustomerCmd("cust-active", "Active User", "active@example.com", "GOV-ID");
+        aggregate.execute(enrollCmd);
+        // The delete command must flag that accounts exist. Since this is an aggregate unit test 
+        // and we don't have a real Account repo lookup inside the aggregate, 
+        // we simulate this via a flag in the command or a state on the aggregate if it tracked accounts.
+        // The command pattern in the prompt says "Marks ... if they have no active accounts".
+        // This implies the validation might happen externally OR the command carries the info.
+        // The prompt implies "Aggregate... enforce invariants".
+        // Let's assume the Command carries a boolean flag `hasActiveAccounts` derived from a service.
+    }
+
+    @When("the DeleteCustomerCmd command is executed for invalid scenarios")
+    public void the_delete_customer_cmd_command_is_executed_invalid() {
+        // We assume the validation happens inside execute().
+        // For the active accounts case, we pass true to the command constructor.
+        String id = aggregate.id();
+        boolean hasActive = id.equals("cust-active");
+        Command deleteCmd = new DeleteCustomerCmd(id, hasActive);
+        
+        try {
+            resultEvents = aggregate.execute(deleteCmd);
+        } catch (Exception e) {
+            capturedException = e;
+        }
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
         assertNotNull(capturedException);
-        // Check for the specific expected exceptions based on the scenario
-        assertTrue(
-            capturedException instanceof IllegalArgumentException || 
-            capturedException instanceof IllegalStateException ||
-            capturedException instanceof UnknownCommandException // thrown if command logic not met
-        );
+        assertTrue(capturedException instanceof IllegalArgumentException || capturedException instanceof IllegalStateException);
     }
 }

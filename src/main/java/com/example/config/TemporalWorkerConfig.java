@@ -1,31 +1,50 @@
 package com.example.config;
 
 import com.example.ports.SlackNotificationPort;
+import com.example.workflow.DefectActivities;
+import com.example.workflow.DefectActivitiesImpl;
+import com.example.workflow.ReportDefectWorkflow;
+import com.example.workflow.ReportDefectWorkflowImpl;
+import io.temporal.client.WorkflowClient;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
 
 /**
- * Configuration for Temporal Worker.
- * Registers the _report_defect activity implementation.
+ * Configuration class to register Temporal Workflows and Activities.
+ * This wires up the real implementation with the Slack adapter upon application startup.
  */
-@Configuration
+@Component
 public class TemporalWorkerConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(TemporalWorkerConfig.class);
-    private static final String TASK_QUEUE = "VFORCE360_TASK_QUEUE";
+    private final WorkflowClient workflowClient;
+    private final SlackNotificationPort slackNotificationPort;
 
-    @Bean
-    public WorkerFactory workerFactory(io.temporal.service.WorkflowService service) {
-        WorkerFactory factory = WorkerFactory.newInstance(service);
-        // Worker is created per task queue, but we rely on Temporal Starter Auto-configuration 
-        // to provide the service connection. We just register activities here.
-        return factory;
+    public TemporalWorkerConfig(WorkflowClient workflowClient, SlackNotificationPort slackNotificationPort) {
+        this.workflowClient = workflowClient;
+        this.slackNotificationPort = slackNotificationPort;
     }
 
-    // In a real scenario with full Temporal setup, we would register the Worker beans here.
-    // For this defect fix, we are ensuring the Activity implementation exists and is a Spring Bean.
+    @EventListener(ApplicationReadyEvent.class)
+    public void startWorker() {
+        WorkerFactory factory = WorkerFactory.newInstance(workflowClient);
+        
+        // Define the task queue
+        String taskQueue = "DEFECT_TASK_QUEUE";
+        Worker worker = factory.newWorker(taskQueue);
+
+        // Register Workflow
+        worker.registerWorkflowImplementationTypes(ReportDefectWorkflowImpl.class);
+
+        // Register Activities with dependencies
+        // We register the implementation class, and pass the required dependencies (Slack Port)
+        DefectActivities activities = new DefectActivitiesImpl(slackNotificationPort);
+        worker.registerActivitiesImplementations(activities);
+
+        // Start the worker
+        factory.start();
+        System.out.println("Temporal Worker started for Task Queue: " + taskQueue);
+    }
 }

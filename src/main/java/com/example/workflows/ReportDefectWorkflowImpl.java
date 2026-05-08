@@ -1,7 +1,7 @@
 package com.example.workflows;
 
-import io.temporal.workflow.Workflow;
 import io.temporal.spring.boot.WorkflowImpl;
+import io.temporal.workflow.Workflow;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -13,7 +13,7 @@ public class ReportDefectWorkflowImpl implements ReportDefectWorkflow {
     private final ReportDefectActivity activities;
 
     // Temporal requires a default constructor for instantiation, or autowiring if using the Spring Boot starter correctly.
-    // We will use field injection for simplicity in this snippet, though constructor injection is preferred.
+    // We use constructor injection to ensure the activities are available.
     @Autowired
     public ReportDefectWorkflowImpl(ReportDefectActivity activities) {
         this.activities = activities;

@@ -5,8 +5,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 /**
- * Main application entry point for VForce360 Backend.
- * Scans components, controllers, services, and repositories.
+ * Application entry point.
+ * S-FB-1: VForce360 Defect Reporting.
  */
 @SpringBootApplication
 @ComponentScan(basePackages = "com.example")

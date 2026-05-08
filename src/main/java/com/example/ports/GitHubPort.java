@@ -1,24 +1,14 @@
 package com.example.ports;
 
 /**
- * Port interface for interacting with GitHub issues.
- * Implementations will handle the GitHub API calls.
+ * Port interface for GitHub interactions.
  */
 public interface GitHubPort {
-
     /**
-     * Creates a new issue in the repository.
-     *
-     * @param title The title of the issue.
-     * @param body The body content of the issue.
+     * Creates a GitHub issue.
+     * @param title The issue title.
+     * @param body The issue body/description.
      * @return The URL of the created issue.
-     * @throws GitHubException if creation fails.
      */
-    String createIssue(String title, String body) throws GitHubException;
-
-    class GitHubException extends RuntimeException {
-        public GitHubException(String message, Throwable cause) {
-            super(message, cause);
-        }
-    }
+    String createIssue(String title, String body);
 }

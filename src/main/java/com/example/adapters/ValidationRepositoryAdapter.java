@@ -2,18 +2,26 @@ package com.example.adapters;
 
 import com.example.domain.validation.model.ValidationAggregate;
 import com.example.ports.ValidationRepositoryPort;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
+
+import java.util.Optional;
 
 /**
- * Repository Stub for Validation Aggregate.
- * Implementing interface to resolve compilation errors.
+ * Adapter for Validation Repository.
+ * Currently a placeholder to satisfy dependency injection requirements.
  */
-@Repository
+@Component
 public class ValidationRepositoryAdapter implements ValidationRepositoryPort {
+
     @Override
-    public ValidationAggregate load(String id) {
-        return new ValidationAggregate(id);
+    public ValidationAggregate save(ValidationAggregate aggregate) {
+        // Placeholder implementation
+        return aggregate;
     }
+
     @Override
-    public void save(ValidationAggregate aggregate) {}
+    public Optional<ValidationAggregate> findById(String id) {
+        // Placeholder implementation
+        return Optional.empty();
+    }
 }

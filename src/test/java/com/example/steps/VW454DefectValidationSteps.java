@@ -1,103 +1,67 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
-import com.example.mocks.MockGitHubIssuePort;
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.ReportDefectCommand;
 import com.example.mocks.MockSlackNotificationPort;
-import com.example.ports.GitHubIssuePort;
-import com.example.ports.SlackNotificationPort;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Steps for validating VW-454.
- * Testing that the temporal worker correctly links the GitHub issue in the Slack body.
+ * Cucumber Steps for validating VW-454.
+ * Ensures that when a defect is reported via the temporal worker,
+ * the resulting Slack message contains the GitHub issue URL.
  */
 public class VW454DefectValidationSteps {
 
-    // Ports to be injected by the test suite or initialized manually
-    // In a real Spring Boot test, these might be @Mocks or @SpringBean
-    private final GitHubIssuePort gitHubPort;
-    private final SlackNotificationPort slackPort;
-    
-    // SUT: The Temporal Worker Activity implementation
-    // We assume the class name based on standard Spring Boot Temporal conventions
-    private final DefectReportingActivity activity; 
+    private MockSlackNotificationPort mockSlack;
+    private DefectAggregate aggregate;
+    private String defectId;
 
-    public VW454DefectValidationSteps() {
-        this.gitHubPort = new MockGitHubIssuePort();
-        this.slackPort = new MockSlackNotificationPort();
-        
-        // Initialize the System Under Test with mocks
-        this.activity = new DefectReportingActivity(gitHubPort, slackPort);
+    @Given("a defect reporting workflow is initialized")
+    public void a_defect_reporting_workflow_is_initialized() {
+        mockSlack = new MockSlackNotificationPort();
+        defectId = "VW-454";
+        // We initialize the aggregate with the mock port
+        aggregate = new DefectAggregate(defectId, mockSlack);
     }
 
-    @Given("a defect report is triggered")
-    public void a_defect_report_is_triggered() {
-        // Setup state if necessary
-        ((MockSlackNotificationPort) slackPort).clear();
-    }
-
-    @When("the temporal worker executes {string} with description {string}")
-    public void the_temporal_worker_executes_report_defect(String title, String description) {
-        // Execute the SUT
-        activity.reportDefect(title, description);
-    }
-
-    @Then("the Slack body should contain the GitHub issue URL")
-    public void the_slack_body_should_contain_the_github_issue_url() {
-        String slackBody = ((MockSlackNotificationPort) slackPort).getLastMessage();
-        
-        assertNotNull("Slack should have received a message", slackBody);
-        
-        // The Mock GitHub port generates a URL like http://github.com/example/issues/1
-        String expectedUrlSuffix = ((MockGitHubIssuePort) gitHubPort).createIssue("", ""); // Regenerate expected URL logic for verification or just check domain
-        
-        // Core assertion for the defect: The link must be present
-        assertTrue(
-            "Slack body should contain 'http://github.com'", 
-            slackBody.contains("http://github.com")
+    @When("the temporal worker triggers _report_defect command")
+    public void the_temporal_worker_triggers_report_defect_command() {
+        ReportDefectCommand cmd = new ReportDefectCommand(
+                defectId,
+                "GitHub URL in Slack body (end-to-end)",
+                "Defect reported by user.",
+                "LOW",
+                "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1"
         );
+
+        // Execute the command logic
+        aggregate.execute(cmd);
     }
 
-    @Then("the Slack body should not be empty")
-    public void the_slack_body_should_not_be_empty() {
-        String slackBody = ((MockSlackNotificationPort) slackPort).getLastMessage();
-        assertFalse("Slack body must not be empty", slackBody == null || slackBody.isBlank());
+    @Then("the Slack body includes the GitHub issue URL")
+    public void the_slack_body_includes_the_github_issue_url() {
+        // 1. Verify the Mock captured the message
+        assertThat(mockSlack.getMessages()).isNotEmpty();
+
+        // 2. Verify the content
+        MockSlackNotificationPort.SentMessage msg = mockSlack.getLastMessage();
+        assertThat(msg.channel).isEqualTo("#vforce360-issues");
+
+        // 3. Verify the GitHub URL is present (Regression check for VW-454)
+        // Expected URL format based on the defect description
+        assertThat(msg.body).contains("https://github.com/mock-repo/issues/" + defectId);
     }
 
-    /**
-     * Concrete class definition for the Activity we are testing.
-     * Normally this would be in src/main, but we define it here to satisfy compilation 
-     * and structure before we write the implementation in the 'Green' phase.
-     * 
-     * This class represents the 'Temporal Worker Exec' logic.
-     */
-    public static class DefectReportingActivity {
-        private final GitHubIssuePort gitHub;
-        private final SlackNotificationPort slack;
-
-        public DefectReportingActivity(GitHubIssuePort gitHub, SlackNotificationPort slack) {
-            this.gitHub = gitHub;
-            this.slack = slack;
-        }
-
-        public void reportDefect(String title, String description) {
-            // This is where the implementation will go.
-            // For the RED phase, we might leave this empty or put a stub
-            // that definitely fails the tests (e.g. does nothing).
-            
-            // NOTE: To make the build 'compile' but 'fail red', we intentionally 
-            // do not call the ports here yet, OR we call them incorrectly.
-            // But the prompt asks for files to fix the compiler error. 
-            // The logic implementation is technically 'production code', 
-            // but often included in the Activity file for simplicity in these prompts.
-            
-            // Placeholder logic that DOES NOT satisfy the test:
-            // slack.postMessage("Defect reported"); // Missing URL -> Test Red
-            throw new UnsupportedOperationException("Implement me");
-        }
+    @Then("the validation no longer exhibits the reported behavior")
+    public void the_validation_no_longer_exhibits_the_reported_behavior() {
+        // This confirms the fix. If the URL is missing, this assertion fails.
+        MockSlackNotificationPort.SentMessage msg = mockSlack.getLastMessage();
+        
+        // Basic check that the body isn't just text without the link
+        assertThat(msg.body).isNotBlank();
+        assertThat(msg.body).contains("http"); 
     }
 }

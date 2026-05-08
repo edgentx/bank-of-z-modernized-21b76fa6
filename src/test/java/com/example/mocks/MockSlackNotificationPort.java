@@ -6,23 +6,29 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Stores captured messages to allow assertions on their content.
+ * Captures messages sent to Slack to verify content without real I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<Message> messages = new ArrayList<>();
+    public static class SentMessage {
+        public final String channel;
+        public final String body;
 
-    public record Message(String channel, String body) {}
-
-    @Override
-    public void postMessage(String channel, String messageBody) {
-        if (channel == null || messageBody == null) {
-            throw new IllegalArgumentException("Channel and body must not be null");
+        public SentMessage(String channel, String body) {
+            this.channel = channel;
+            this.body = body;
         }
-        this.messages.add(new Message(channel, messageBody));
     }
 
-    public List<Message> getMessages() {
+    private final List<SentMessage> messages = new ArrayList<>();
+
+    @Override
+    public void send(String channel, String body) {
+        System.out.println("[MockSlack] Sending to " + channel + ": " + body);
+        this.messages.add(new SentMessage(channel, body));
+    }
+
+    public List<SentMessage> getMessages() {
         return messages;
     }
 
@@ -31,11 +37,9 @@ public class MockSlackNotificationPort implements SlackNotificationPort {
     }
 
     /**
-     * Helper assertion method to check if the last message contained a specific substring.
+     * Helper to check if any captured message body contains the specific text.
      */
-    public boolean lastMessageContains(String substring) {
-        if (messages.isEmpty()) return false;
-        Message last = messages.get(messages.size() - 1);
-        return last.body().contains(substring);
+    public boolean bodyContains(String text) {
+        return messages.stream().anyMatch(m -> m.body.contains(text));
     }
 }

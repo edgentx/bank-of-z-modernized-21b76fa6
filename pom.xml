@@ -18,7 +18,7 @@
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Starters --/>
+        <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
@@ -32,7 +32,7 @@
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
-        <!-- Temporal --/>
+        <!-- Temporal -->
         <!-- Explicitly listing dependencies to avoid resolution issues with the starter -->
         <dependency>
             <groupId>io.temporal</groupId>
@@ -44,8 +44,8 @@
             <artifactId>temporal-spring-boot-autoconfigure</artifactId>
             <version>${temporal.version}</version>
         </dependency>
-        
-        <!-- Testing --/>
+
+        <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

@@ -11,15 +11,23 @@ public record ScreenRenderedEvent(
         String deviceType,
         Instant occurredAt
 ) implements DomainEvent {
-    public ScreenRenderedEvent(String aggregateId, String screenId, String deviceType, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.screenId = screenId;
-        this.deviceType = deviceType;
-        this.occurredAt = occurredAt;
+    public ScreenRenderedEvent {
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
+        if (occurredAt == null) occurredAt = Instant.now();
     }
 
     @Override
     public String type() {
         return "screen.rendered";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

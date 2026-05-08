@@ -4,8 +4,6 @@ import com.example.domain.legacybridge.model.EvaluateRoutingCmd;
 import com.example.domain.legacybridge.model.LegacyTransactionRouteAggregate;
 import com.example.domain.legacybridge.model.RoutingEvaluatedEvent;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
-import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -15,34 +13,36 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class S23Steps {
-
     private LegacyTransactionRouteAggregate aggregate;
+    private EvaluateRoutingCmd command;
     private List<DomainEvent> resultEvents;
-    private Exception caughtException;
+    private Exception capturedException;
 
-    // Scenario 1: Success
     @Given("a valid LegacyTransactionRoute aggregate")
     public void a_valid_LegacyTransactionRoute_aggregate() {
-        aggregate = new LegacyTransactionRouteAggregate("route-123");
+        aggregate = new LegacyTransactionRouteAggregate("route-1");
+        // Ensure the aggregate meets the versioning invariant for success case
+        aggregate.setRoutingVersion(1);
     }
 
-    @And("a valid transactionType is provided")
+    @Given("a valid transactionType is provided")
     public void a_valid_transactionType_is_provided() {
-        // State stored in context for command execution
+        // Handled in the When block construction for simplicity, or stored here
     }
 
-    @And("a valid payload is provided")
+    @Given("a valid payload is provided")
     public void a_valid_payload_is_provided() {
-        // State stored in context
+        // Handled in the When block construction
     }
 
     @When("the EvaluateRoutingCmd command is executed")
     public void the_EvaluateRoutingCmd_command_is_executed() {
+        // Construct valid command
+        command = new EvaluateRoutingCmd("route-1", "PAYMENT", "payload-data", "modern");
         try {
-            var cmd = new EvaluateRoutingCmd("route-123", "WIRE", "modern", 1, "{}");
-            resultEvents = aggregate.execute(cmd);
+            resultEvents = aggregate.execute(command);
         } catch (Exception e) {
-            caughtException = e;
+            capturedException = e;
         }
     }
 
@@ -51,43 +51,49 @@ public class S23Steps {
         assertNotNull(resultEvents);
         assertEquals(1, resultEvents.size());
         assertTrue(resultEvents.get(0) instanceof RoutingEvaluatedEvent);
-        assertEquals("routing.evaluated", resultEvents.get(0).type());
+        RoutingEvaluatedEvent event = (RoutingEvaluatedEvent) resultEvents.get(0);
+        assertEquals("routing.evaluated", event.type());
+        assertEquals("modern", event.targetSystem());
     }
 
-    // Scenario 2: Dual-processing rejection
     @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.")
-    public void a_LegacyTransactionRoute_aggregate_that_violates_dual_processing() {
-        aggregate = new LegacyTransactionRouteAggregate("route-bad");
+    public void a_LegacyTransactionRoute_aggregate_that_violates_uniqueness() {
+        aggregate = new LegacyTransactionRouteAggregate("route-2");
+        aggregate.setRoutingVersion(1); // satisfy other rules
     }
 
-    // Reuse When from above
+    @When("the EvaluateRoutingCmd command is executed with invalid target")
+    public void the_EvaluateRoutingCmd_command_is_executed_with_invalid_target() {
+        // Target "dual" simulates violating the "exactly one" rule
+        command = new EvaluateRoutingCmd("route-2", "PAYMENT", "payload", "dual");
+        try {
+            resultEvents = aggregate.execute(command);
+        } catch (Exception e) {
+            capturedException = e;
+        }
+    }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        // Command setup for the specific scenario context
-        var cmd = new EvaluateRoutingCmd("route-bad", "WIRE", null, 1, "{}"); // Null target triggers violation
-        
-        assertThrows(IllegalArgumentException.class, () -> {
-            aggregate.execute(cmd);
-        });
+        assertNotNull(capturedException);
+        assertTrue(capturedException.getMessage().contains("dual-processing"));
     }
 
-    // Scenario 3: Versioning rejection
     @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback.")
     public void a_LegacyTransactionRoute_aggregate_that_violates_versioning() {
-        aggregate = new LegacyTransactionRouteAggregate("-route-nover");
+        aggregate = new LegacyTransactionRouteAggregate("route-3");
+        // Version defaults to 0, simulating violation
     }
 
-    // Reuse When and Then logic effectively by executing the specific bad command in the test logic
-    // For Cucumber clarity, we map the generic 'When' to the specific context in the steps or use a table.
-    // Here we assume the violation implies a specific command structure.
-    
-    // Helper for Scenario 3 specific execution (if needed separate from Scenario 2 flow)
-    @When("the EvaluateRoutingCmd command is executed with bad version")
-    public void the_EvaluateRoutingCmd_command_is_executed_with_bad_version() {
-         assertThrows(IllegalArgumentException.class, () -> {
-            // Version 0 or negative is invalid
-            aggregate.execute(new EvaluateRoutingCmd("route-nover", "WIRE", "legacy", 0, "{}"));
-        });
+    @When("the EvaluateRoutingCmd command is executed on unversioned aggregate")
+    public void the_EvaluateRoutingCmd_command_is_executed_on_unversioned_aggregate() {
+        command = new EvaluateRoutingCmd("route-3", "PAYMENT", "payload", "legacy");
+        try {
+            resultEvents = aggregate.execute(command);
+        } catch (Exception e) {
+            capturedException = e;
+        }
     }
+
+    // Then reused: the command is rejected with a domain error
 }

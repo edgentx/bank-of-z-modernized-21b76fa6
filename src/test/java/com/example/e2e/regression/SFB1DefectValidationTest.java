@@ -1,81 +1,94 @@
 package com.example.e2e.regression;
 
-import com.example.domain.shared.Command;
-import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.ReportDefectCmd;
-import com.example.domain.vforce.model.DefectReportedEvent;
-import com.example.domain.vforce.model.VForce360Aggregate;
-import com.example.mocks.MockSlackNotifier;
+import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.vforce360.model.DefectReportedEvent;
+import com.example.domain.vforce360.model.ReportDefectCmd;
+import com.example.domain.vforce360.model.VForce360Aggregate;
+import com.example.mocks.MockSlackNotificationPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * E2E Regression Test for S-FB-1: VW-454 GitHub URL in Slack body.
+ * Regression Test for Story S-FB-1.
+ * Validating VW-454 — GitHub URL in Slack body (end-to-end).
  * 
- * Red Phase: This test expects the specific behavior described in the defect report.
- * It will fail against the current stub implementation of VForce360Aggregate.
+ * Tests that the VForce360 defect reporting workflow includes
+ * the GitHub issue URL in the Slack notification body.
  */
 class SFB1DefectValidationTest {
 
-    @Test
-    void shouldIncludeGitHubIssueUrlInSlackBody() {
-        // Arrange
-        String defectId = "VW-454";
-        String projectUid = "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1";
-        String expectedUrlFragment = "github.com/example/issues/" + defectId;
-        
-        VForce360Aggregate aggregate = new VForce360Aggregate(defectId);
-        ReportDefectCmd cmd = new ReportDefectCmd(
-            defectId, 
-            "Validating VW-454 — GitHub URL in Slack body (end-to-end)", 
-            "LOW", 
-            projectUid
-        );
+    private MockSlackNotificationPort mockSlack;
+    private VForce360Aggregate aggregate;
+    private static final String DEFECT_ID = "VW-454";
+    private static final String STORY_ID = "S-FB-1";
+    private static final String PROJECT_ID = "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1";
 
-        // Act
-        List<DomainEvent> events = aggregate.execute(cmd);
-
-        // Assert
-        assertFalse(events.isEmpty(), "Expecting a DefectReportedEvent");
-        
-        DomainEvent event = events.get(0);
-        assertTrue(event instanceof DefectReportedEvent, "Event must be DefectReportedEvent");
-        
-        DefectReportedEvent slackEvent = (DefectReportedEvent) event;
-        String slackBody = slackEvent.slackBody();
-        
-        assertNotNull(slackBody, "Slack body should not be null");
-        // Core assertion for VW-454
-        assertTrue(
-            slackBody.contains(expectedUrlFragment),
-            "Slack body must contain GitHub issue URL for VW-454. Received: " + slackBody
-        );
+    @BeforeEach
+    void setUp() {
+        mockSlack = new MockSlackNotificationPort();
+        aggregate = new VForce360Aggregate(DEFECT_ID, mockSlack);
     }
 
     @Test
-    void shouldPopulateSlackBodyWithValidStructure() {
-        // Arrange
-        VForce360Aggregate aggregate = new VForce360Aggregate("VW-123");
+    void shouldIncludeGitHubIssueLinkInSlackBody() {
+        // Given
         ReportDefectCmd cmd = new ReportDefectCmd(
-            "VW-123", 
-            "Test Defect", 
-            "HIGH", 
-            "proj-uid"
+            DEFECT_ID,
+            "Fix: Validating VW-454",
+            "LOW",
+            PROJECT_ID,
+            STORY_ID,
+            "Trigger _report_defect..."
         );
 
-        // Act
-        List<DomainEvent> events = aggregate.execute(cmd);
+        // When
+        aggregate.execute(cmd);
 
-        // Assert
-        assertTrue(events.size() > 0);
+        // Then
+        String slackBody = mockSlack.getLatestPayload();
+        
+        // Validation: Body must contain the specific GitHub Issue URL format
+        // Expected: https://github.com/example-org/bank-of-z-modernization/issues/S-FB-1
+        String expectedUrl = "https://github.com/example-org/bank-of-z-modernization/issues/" + STORY_ID;
+        
+        assertThat(slackBody)
+            .as("Slack body should contain the GitHub issue URL")
+            .contains(expectedUrl);
+            
+        assertThat(slackBody)
+            .as("Slack body should contain the Story ID for reference")
+            .contains(STORY_ID);
+    }
+
+    @Test
+    void shouldFailIfCommandIsUnknown() {
+        // Given: An invalid command (e.g. a plain record implementing Command)
+        Object invalidCmd = new Object() implements com.example.domain.shared.Command {};
+
+        // When / Then
+        assertThrows(UnknownCommandException.class, () -> {
+            aggregate.execute((com.example.domain.shared.Command) invalidCmd);
+        });
+    }
+
+    @Test
+    void shouldEmitDefectReportedEvent() {
+        // Given
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            DEFECT_ID, "Test Defect", "HIGH", PROJECT_ID, STORY_ID, "Steps"
+        );
+
+        // When
+        var events = aggregate.execute(cmd);
+
+        // Then
+        assertThat(events).hasSize(1);
         DefectReportedEvent event = (DefectReportedEvent) events.get(0);
         
-        // Basic structure validation
-        assertNotNull(event.slackBody());
-        assertFalse(event.slackBody().isBlank());
-        assertNotNull(event.occurredAt());
+        assertThat(event.aggregateId()).isEqualTo(DEFECT_ID);
+        assertThat(event.storyId()).isEqualTo(STORY_ID);
     }
 }

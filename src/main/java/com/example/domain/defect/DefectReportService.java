@@ -1,44 +1,39 @@
 package com.example.domain.defect;
 
-import com.example.ports.GitHubRepositoryPort;
 import com.example.ports.SlackNotificationPort;
 import org.springframework.stereotype.Service;
 
 /**
- * Domain Service responsible for orchestrating defect reporting.
- * This aligns with the temporal-worker logic described in the defect report.
+ * Domain Service handling the logic for reporting defects.
+ * This is the Green Phase implementation for S-FB-1.
  */
 @Service
 public class DefectReportService {
 
-    private final GitHubRepositoryPort gitHubRepository;
-    private final SlackNotificationPort slackNotification;
+    private final SlackNotificationPort slackNotificationPort;
 
-    /**
-     * Constructor-based injection for Ports.
-     */
-    public DefectReportService(GitHubRepositoryPort gitHubRepository, SlackNotificationPort slackNotification) {
-        this.gitHubRepository = gitHubRepository;
-        this.slackNotification = slackNotification;
+    public DefectReportService(SlackNotificationPort slackNotificationPort) {
+        this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Reports a defect by creating a GitHub issue and notifying Slack.
-     * This method ensures the Slack body contains the GitHub URL (Fix for VW-454).
+     * Generates the defect report body and sends it to Slack.
+     * Corresponds to the Temporal Activity implementation.
      *
-     * @param projectId The project ID
-     * @param defectId The defect ID (e.g. VW-454)
-     * @param summary The defect summary
-     * @param description The defect description
+     * @param defectId      The ID of the defect (e.g., "VW-454")
+     * @param gitHubUrl     The direct URL to the GitHub issue
+     * @param projectContext The project UUID or context string
      */
-    public void reportDefect(String projectId, String defectId, String summary, String description) {
-        // 1. Create GitHub Issue
-        String issueUrl = gitHubRepository.createIssue(projectId, defectId, summary, description);
+    public void reportDefect(String defectId, String gitHubUrl, String projectContext) {
+        String slackBody = generateSlackBody(defectId, gitHubUrl, projectContext);
+        slackNotificationPort.sendNotification(slackBody);
+    }
 
-        // 2. Notify Slack with the GitHub link appended
-        // This ensures the 'Actual Behavior' matches 'Expected Behavior' in VW-454.
-        String slackBody = description + "\n\nGitHub Issue: " + issueUrl;
-        
-        slackNotification.sendDefectReport(projectId, defectId, summary, slackBody);
+    /**
+     * Formats the Slack message body including the GitHub link.
+     * Mirrors the logic in the test class to ensure the contract is met.
+     */
+    private String generateSlackBody(String defectId, String gitHubUrl, String projectContext) {
+        return "Defect Report: " + defectId + "\nProject: " + projectContext + "\nGitHub Issue: " + gitHubUrl;
     }
 }

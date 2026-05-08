@@ -1,33 +1,31 @@
 package com.example.mocks;
 
-import com.example.domain.ports.SlackNotificationPort;
-
-import java.util.concurrent.CompletableFuture;
+import com.example.ports.SlackNotificationPort;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures the message body sent to Slack for assertion.
+ * Captures messages to memory instead of calling the real Slack API.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private String lastReceivedBody;
-    private boolean shouldFail = false;
+    private final List<String> sentMessages = new ArrayList<>();
 
     @Override
-    public CompletableFuture<String> send(String messageBody) {
-        this.lastReceivedBody = messageBody;
-        if (shouldFail) {
-            return CompletableFuture.failedFuture(new RuntimeException("Slack API unavailable"));
-        }
-        // Return a fake timestamp
-        return CompletableFuture.completedFuture("1234567890.123456");
+    public void sendMessage(String message) {
+        sentMessages.add(message);
     }
 
-    public String getLastReceivedBody() {
-        return lastReceivedBody;
+    public List<String> getSentMessages() {
+        return new ArrayList<>(sentMessages);
     }
 
-    public void setShouldFail(boolean shouldFail) {
-        this.shouldFail = shouldFail;
+    public boolean containsUrl(String url) {
+        return sentMessages.stream().anyMatch(msg -> msg.contains(url));
+    }
+
+    public void clear() {
+        sentMessages.clear();
     }
 }

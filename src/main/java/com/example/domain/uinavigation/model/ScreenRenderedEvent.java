@@ -3,18 +3,24 @@ package com.example.domain.uinavigation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
- * Domain event emitted when a screen map is successfully rendered.
+ * Domain event emitted when a screen layout is successfully generated.
  */
 public record ScreenRenderedEvent(
-    String aggregateId,
-    String deviceType,
-    int width,
-    int height,
-    Instant occurredAt
+        String eventId,
+        String aggregateId,
+        String screenId,
+        String deviceType,
+        Instant occurredAt
 ) implements DomainEvent {
-    @Override public String type() { return "screen.rendered"; }
-    @Override public String aggregateId() { return aggregateId; }
-    @Override public Instant occurredAt() { return occurredAt; }
+    public ScreenRenderedEvent(String aggregateId, String screenId, String deviceType, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, screenId, deviceType, occurredAt);
+    }
+
+    @Override
+    public String type() {
+        return "screen.rendered";
+    }
 }

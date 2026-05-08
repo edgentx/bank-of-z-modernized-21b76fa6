@@ -3,21 +3,24 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Objects;
 
 /**
- * Domain event emitted when a TellerSession is successfully terminated.
+ * Event emitted when a Teller session is terminated.
  */
 public record SessionEndedEvent(
-    String aggregateId,
-    Instant occurredAt
+        String type,
+        String aggregateId,
+        Instant occurredAt
 ) implements DomainEvent {
-    public SessionEndedEvent(String aggregateId) {
-        this(aggregateId, Instant.now());
+
+    public SessionEndedEvent {
+        Objects.requireNonNull(type, "type cannot be null");
+        Objects.requireNonNull(aggregateId, "aggregateId cannot be null");
+        Objects.requireNonNull(occurredAt, "occurredAt cannot be null");
     }
 
-    @Override
-    public String type() {
-        return "session.ended";
+    public static SessionEndedEvent create(String aggregateId, Instant timestamp) {
+        return new SessionEndedEvent("session.ended", aggregateId, timestamp);
     }
 }

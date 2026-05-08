@@ -1,94 +1,85 @@
 package com.example.steps;
 
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.tellersession.model.SessionStartedEvent;
 import com.example.domain.tellersession.model.StartSessionCmd;
 import com.example.domain.tellersession.model.TellerSessionAggregate;
-import com.example.mocks.InMemoryTellerSessionRepository;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Assertions;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 public class S18Steps {
 
     private TellerSessionAggregate aggregate;
-    private final InMemoryTellerSessionRepository repository = new InMemoryTellerSessionRepository();
-    private Exception capturedException;
+    private String sessionId = "session-123";
+    private String tellerId;
+    private String terminalId;
+    private boolean isAuthenticated = true;
     private List<DomainEvent> resultEvents;
+    private Exception thrownException;
 
     @Given("a valid TellerSession aggregate")
-    public void aValidTellerSessionAggregate() {
-        aggregate = new TellerSessionAggregate("session-123");
-        aggregate.markAuthenticated(); // Setup pre-condition
+    public void a_valid_teller_session_aggregate() {
+        aggregate = new TellerSessionAggregate(sessionId);
     }
 
     @And("a valid tellerId is provided")
-    public void aValidTellerIdIsProvided() {
-        // Handled in When step via construction
+    public void a_valid_teller_id_is_provided() {
+        this.tellerId = "teller-001";
     }
 
     @And("a valid terminalId is provided")
-    public void aValidTerminalIdIsProvided() {
-        // Handled in When step via construction
+    public void a_valid_terminal_id_is_provided() {
+        this.terminalId = "term-A01";
     }
 
     @When("the StartSessionCmd command is executed")
-    public void theStartSessionCmdCommandIsExecuted() {
-        StartSessionCmd cmd = new StartSessionCmd("session-123", "teller-001", "terminal-A");
+    public void the_start_session_cmd_command_is_executed() {
         try {
+            Command cmd = new StartSessionCmd(sessionId, tellerId, terminalId, isAuthenticated);
             resultEvents = aggregate.execute(cmd);
-            repository.save(aggregate);
         } catch (Exception e) {
-            capturedException = e;
+            thrownException = e;
         }
     }
 
     @Then("a session.started event is emitted")
-    public void aSessionStartedEventIsEmitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof SessionStartedEvent);
-
+    public void a_session_started_event_is_emitted() {
+        Assertions.assertNotNull(resultEvents);
+        Assertions.assertEquals(1, resultEvents.size());
+        Assertions.assertTrue(resultEvents.get(0) instanceof SessionStartedEvent);
         SessionStartedEvent event = (SessionStartedEvent) resultEvents.get(0);
-        assertEquals("session.started", event.type());
-        assertEquals("teller-001", event.tellerId());
-        assertEquals("terminal-A", event.terminalId());
+        Assertions.assertEquals("session.started", event.type());
+        Assertions.assertEquals(tellerId, event.tellerId());
+        Assertions.assertEquals(terminalId, event.terminalId());
     }
-
-    // --- Negative Scenarios ---
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void aTellerSessionAggregateThatViolatesAuthentication() {
-        aggregate = new TellerSessionAggregate("session-401");
-        aggregate.markUnauthenticated(); // Violation
-    }
-
-    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void aTellerSessionAggregateThatViolatesTimeout() {
-        aggregate = new TellerSessionAggregate("session-timeout");
-        aggregate.markAuthenticated();
-        // Set last activity to 20 minutes ago (assuming timeout is 15)
-        aggregate.setLastActivityAt(Instant.now().minus(Duration.ofMinutes(20)));
-    }
-
-    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void aTellerSessionAggregateThatViolatesNavigationState() {
-        aggregate = new TellerSessionAggregate("session-bad-state");
-        aggregate.markAuthenticated();
-        // Set status to something other than NONE, implying it's already running or ended
-        aggregate.setStatus(TellerSessionAggregate.Status.STARTED);
+    public void a_teller_session_aggregate_that_violates_authentication() {
+        aggregate = new TellerSessionAggregate(sessionId);
+        isAuthenticated = false; // Simulate lack of auth
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(capturedException);
-        assertTrue(capturedException instanceof IllegalStateException);
+    public void the_command_is_rejected_with_a_domain_error() {
+        Assertions.assertNotNull(thrownException);
+        Assertions.assertTrue(thrownException instanceof IllegalStateException);
+    }
+
+    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
+    public void a_teller_session_aggregate_that_violates_timeout() {
+        aggregate = new TellerSessionAggregate(sessionId);
+        aggregate.markStale(); // Helper to set time in the past
+    }
+
+    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
+    public void a_teller_session_aggregate_that_violates_navigation_state() {
+        aggregate = new TellerSessionAggregate(sessionId);
+        aggregate.invalidateNavigationContext(); // Helper to break navigation state
     }
 }

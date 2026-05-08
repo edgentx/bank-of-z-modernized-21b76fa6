@@ -1,0 +1,4 @@
+{
+  "path": "src/main/java/com/example/domain/account/model/OpenAccountCmd.java",
+  "content": "package com.example.domain.account.model;\n\nimport com.example.domain.shared.Command;\nimport java.math.BigDecimal;\n\nimport java.util.Objects;\n\npublic record OpenAccountCmd(\n        String customerId,\n        String accountType,\n        BigDecimal initialDeposit,\n        String sortCode\n) implements Command {\n    public OpenAccountCmd {\n        Objects.requireNonNull(customerId, \"customerId cannot be null\");\n        Objects.requireNonNull(accountType, \"accountType cannot be null\");\n        Objects.requireNonNull(initialDeposit, \"initialDeposit cannot be null\");\n        Objects.requireNonNull(sortCode, \"sortCode cannot be null\");\n    }\n}\n"
+}

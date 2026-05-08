@@ -3,9 +3,7 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to initiate a new teller session.
- * Validated by {@link TellerSessionAggregate}.
+ * Command to initiate a Teller Session.
+ * Verifies authentication and terminal availability.
  */
-public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {
-    // Simple record carriers are idiomatic for Java DDD
-}
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId, boolean isAuthenticated, boolean isTerminalAvailable) implements Command {}

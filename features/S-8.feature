@@ -1,4 +1,5 @@
 Feature: Implement GenerateStatementCmd on Statement (account-management)
+
   Feature: GenerateStatementCmd
 
     Scenario: Successfully execute GenerateStatementCmd

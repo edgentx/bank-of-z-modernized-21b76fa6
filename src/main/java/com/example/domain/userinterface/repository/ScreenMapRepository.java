@@ -5,6 +5,6 @@ import com.example.domain.userinterface.model.ScreenMapAggregate;
 import java.util.Optional;
 
 public interface ScreenMapRepository {
-    void save(ScreenMapAggregate aggregate);
+    ScreenMapAggregate save(ScreenMapAggregate aggregate);
     Optional<ScreenMapAggregate> findById(String id);
 }

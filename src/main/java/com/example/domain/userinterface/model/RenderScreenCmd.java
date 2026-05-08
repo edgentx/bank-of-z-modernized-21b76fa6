@@ -3,12 +3,11 @@ package com.example.domain.userinterface.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to render a specific screen layout adapted for a device type.
- * Context: S-21 RenderScreenCmd.
+ * Command to render a specific screen layout for a given device type.
+ * Part of S-21: Implement RenderScreenCmd on ScreenMap.
  */
 public record RenderScreenCmd(
     String screenMapId,
-    String screenId,
     String deviceType,
-    String layoutDefinition
+    String screenId
 ) implements Command {}

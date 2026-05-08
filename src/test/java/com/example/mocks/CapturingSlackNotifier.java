@@ -1,35 +1,28 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotifier;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
- * Mock implementation of SlackNotifier that captures messages for verification.
+ * Mock implementation of SlackNotifier for testing.
+ * Captures the message body in memory so tests can assert on its content.
  */
 public class CapturingSlackNotifier implements SlackNotifier {
-    public static class Notification {
-        public final String aggregateId;
-        public final String githubUrl;
 
-        public Notification(String aggregateId, String githubUrl) {
-            this.aggregateId = aggregateId;
-            this.githubUrl = githubUrl;
-        }
-    }
-
-    private final List<Notification> capturedNotifications = new ArrayList<>();
+    private String capturedBody;
 
     @Override
-    public void notifyDefectReported(String aggregateId, String githubIssueUrl) {
-        capturedNotifications.add(new Notification(aggregateId, githubIssueUrl));
+    public void notify(String messageBody) {
+        if (messageBody == null) {
+            throw new IllegalArgumentException("Message body cannot be null");
+        }
+        this.capturedBody = messageBody;
     }
 
-    public List<Notification> getCapturedNotifications() {
-        return capturedNotifications;
-    }
-
-    public void clear() {
-        capturedNotifications.clear();
+    /**
+     * Returns the message body captured in the last call to notify().
+     * Returns null if notify has not been called yet.
+     */
+    public String getCapturedBody() {
+        return this.capturedBody;
     }
 }

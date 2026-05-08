@@ -1,16 +1,15 @@
 package com.example.ports;
 
 /**
- * Port for sending notifications to Slack.
- * Used to validate the presence of GitHub URLs in defect reports.
+ * Port for sending Slack notifications.
+ * Used to decouple the domain logic from the specific Slack client implementation.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends a notification payload to Slack.
+     * Sends a notification to the configured Slack channel.
      *
-     * @param payload The formatted message body.
-     * @throws IllegalArgumentException if the payload is invalid (e.g., missing required URL).
+     * @param messageBody The content of the message to be sent.
      */
-    void send(String payload);
+    void sendNotification(String messageBody);
 }

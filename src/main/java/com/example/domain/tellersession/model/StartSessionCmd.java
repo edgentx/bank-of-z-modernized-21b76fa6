@@ -2,14 +2,10 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
 
-import java.time.Instant;
-import java.util.Objects;
-
-public record StartSessionCmd(String sessionId, String tellerId, String terminalId, Instant occurredAt) implements Command {
-    public StartSessionCmd {
-        Objects.requireNonNull(sessionId);
-        Objects.requireNonNull(tellerId);
-        Objects.requireNonNull(terminalId);
-        Objects.requireNonNull(occurredAt);
-    }
-}
+/**
+ * Command to initiate a new Teller Session.
+ * @param sessionId The unique identifier for the session instance.
+ * @param tellerId  The authenticated teller's ID.
+ * @param terminalId The terminal ID from which the session is initiated.
+ */
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {}

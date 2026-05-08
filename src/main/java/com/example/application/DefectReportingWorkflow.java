@@ -1,38 +1,19 @@
 package com.example.application;
 
-import com.example.domain.validation.model.ReportDefectCmd;
 import com.example.workers.ReportDefectActivity;
+import com.example.workflows.ReportDefectWorkflow;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
+import io.temporal.workflow.ActivityStub;
+import io.temporal.workflow.Workflow;
 
 /**
- * Orchestrates the reporting of defects via Temporal.
- * Ensures that if the Slack notification fails, the workflow can retry based on Temporal policies.
+ * Workflow implementation for S-FB-1.
+ * Orchestrates GitHub issue creation and Slack notification.
  */
 @WorkflowInterface
-public interface DefectReportingWorkflow {
-
+public interface DefectReportingWorkflow extends ReportDefectWorkflow {
+    
     @WorkflowMethod
-    void reportDefect(ReportDefectCmd cmd);
-
-    /**
-     * Workflow implementation.
-     */
-    class DefectReportingWorkflowImpl implements DefectReportingWorkflow {
-        private final ReportDefectActivity activity;
-
-        // Temporal requires a no-arg constructor or factory for the Workflow class,
-        // but Activities are injected via the Worker stub in practice.
-        // For this Spring implementation, we assume the stub is proxied.
-        public DefectReportingWorkflowImpl() {
-            // Activities are initialized by the Temporal Worker using a stub, 
-            // but we declare the type for clarity.
-            this.activity = io.temporal.workflow.Workflow.newActivityStub(ReportDefectActivity.class);
-        }
-
-        @Override
-        public void reportDefect(ReportDefectCmd cmd) {
-            activity.reportDefect(cmd);
-        }
-    }
+    void reportDefect(String title, String description, String component);
 }

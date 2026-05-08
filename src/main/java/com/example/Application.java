@@ -1,12 +1,19 @@
 package com.example;
 
-import com.example.adapters.SlackNotificationAdapter;
-import com.example.ports.SlackNotificationPort;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackNotificationPort;
+import com.example.services.DefectService;
+
+/**
+ * Main Spring Boot Application for Bank of Z Modernization.
+ */
 @SpringBootApplication
+@ComponentScan(basePackages = "com.example")
 public class Application {
 
     public static void main(String[] args) {
@@ -14,11 +21,10 @@ public class Application {
     }
 
     /**
-     * Production configuration for Slack notifications.
-     * Replaced by MockSlackNotificationPort in test context.
+     * Service to handle defect reporting logic (Orchestrates GitHub and Slack).
      */
     @Bean
-    public SlackNotificationPort slackNotificationPort() {
-        return new SlackNotificationAdapter();
+    public DefectService defectService(GitHubPort githubPort, SlackNotificationPort slackPort) {
+        return new DefectService(githubPort, slackPort);
     }
 }

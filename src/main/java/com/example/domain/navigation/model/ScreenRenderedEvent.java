@@ -1,18 +1,18 @@
 package com.example.domain.navigation.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Set;
 
 /**
- * Event emitted when a screen is successfully rendered.
+ * Domain event emitted when a screen is successfully rendered.
  */
 public record ScreenRenderedEvent(
-    String aggregateId,
-    String deviceType,
-    String presentationLayout,
-    Instant occurredAt
+        String aggregateId,
+        String screenId,
+        DeviceType deviceType,
+        String layoutId,
+        Instant occurredAt
 ) implements DomainEvent {
 
     @Override
@@ -22,7 +22,7 @@ public record ScreenRenderedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return aggregateId();
     }
 
     @Override

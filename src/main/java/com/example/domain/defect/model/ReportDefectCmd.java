@@ -3,8 +3,8 @@ package com.example.domain.defect.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to report a defect via the Temporal worker.
- * This triggers the validation and Slack notification workflow.
+ * Command to report a defect (e.g., via VForce360).
+ * Triggers validation and GitHub/Slack workflows.
  */
 public record ReportDefectCmd(
     String defectId,

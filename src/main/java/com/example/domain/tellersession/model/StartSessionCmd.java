@@ -4,6 +4,12 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to initiate a teller session.
- * Validated invariants: Teller must be authenticated, Terminal must be available.
+ * Used by TellerSessionAggregate.
  */
-public record StartSessionCmd(String tellerId, String terminalId) implements Command {}
+public record StartSessionCmd(
+    String tellerId,
+    String terminalId,
+    String navigationContext,
+    boolean isAuthenticated
+) implements Command {
+}

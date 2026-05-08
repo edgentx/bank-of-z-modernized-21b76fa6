@@ -3,22 +3,15 @@ package com.example.domain.account.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Objects;
 
-public record AccountClosedEvent(String aggregateId, String accountNumber, Instant occurredAt) implements DomainEvent {
-    public AccountClosedEvent {
-        Objects.requireNonNull(aggregateId, "aggregateId cannot be null");
-        Objects.requireNonNull(accountNumber, "accountNumber cannot be null");
-        Objects.requireNonNull(occurredAt, "occurredAt cannot be null");
-    }
-
+public record AccountClosedEvent(String accountNumber, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
-        return "AccountClosed";
+        return "account.closed";
     }
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return accountNumber;
     }
 }

@@ -1,17 +1,18 @@
 package com.example.ports;
 
+import java.util.Optional;
+
 /**
  * Port for interacting with GitHub issues.
- * Used by the defect reporting workflow to create the remote ticket.
+ * Used to retrieve metadata like URLs for reported defects.
  */
 public interface GitHubPort {
-    
+
     /**
-     * Creates a new issue in GitHub.
-     * 
-     * @param title The title of the issue
-     * @param description The body of the issue
-     * @return The HTML URL of the created issue
+     * Retrieves the URL for a specific issue ID.
+     *
+     * @param issueId The unique identifier for the issue (e.g., VW-454).
+     * @return An Optional containing the URL string, or empty if not found.
      */
-    String createIssue(String title, String description);
+    Optional<String> getIssueUrl(String issueId);
 }

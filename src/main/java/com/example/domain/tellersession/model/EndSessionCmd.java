@@ -3,12 +3,14 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to terminate an existing teller session.
- * Useful for 3270 F3 (Exit) or timeout handlers.
+ * Command to end a teller session.
+ * Story: S-20.
  */
-public record EndSessionCmd(String sessionId, String tellerId) implements Command {
+public record EndSessionCmd(String sessionId) implements Command {
+    // Constructor validation is optional but good practice
     public EndSessionCmd {
-        if (sessionId == null || sessionId.isBlank()) throw new IllegalArgumentException("sessionId required");
-        if (tellerId == null || tellerId.isBlank()) throw new IllegalArgumentException("tellerId required");
+        if (sessionId == null || sessionId.isBlank()) {
+            throw new IllegalArgumentException("sessionId cannot be null or blank");
+        }
     }
 }

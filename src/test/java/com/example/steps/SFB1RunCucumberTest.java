@@ -1,9 +1,18 @@
 package com.example.steps;
 
-import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
-import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
+import org.junit.platform.suite.api.ConfigurationParameter;
+import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectClasspathResource;
+import org.junit.platform.suite.api.Suite;
 
-// This file serves as the glue code validation or placeholder if CucumberTestSuite pattern is split.
-// Kept simple to align with existing S-17 patterns.
+import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
+
+/**
+ * JUnit Platform wrapper for Cucumber tests.
+ */
+@Suite
+@IncludeEngines("cucumber")
+@SelectClasspathResource("features")
+@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
+public class SFB1RunCucumberTest {
+}

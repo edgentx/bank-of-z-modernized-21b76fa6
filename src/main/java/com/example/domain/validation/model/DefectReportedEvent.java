@@ -4,16 +4,10 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
-/**
- * Event emitted when a defect is successfully reported in the system.
- * MUST contain the GitHub URL for the VW-454 requirement.
- */
 public record DefectReportedEvent(
-    String aggregateId,
-    String code,
-    String summary,
+    String defectId,
+    String title,
     String severity,
-    String gitHubIssueUrl, // Critical field for VW-454
     Instant occurredAt
 ) implements DomainEvent {
     @Override
@@ -23,7 +17,7 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return defectId;
     }
 
     @Override

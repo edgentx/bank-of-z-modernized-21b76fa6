@@ -1,16 +1,22 @@
 package com.example.ports;
 
 /**
- * Port interface for sending Slack notifications.
- * Used to decouple the Temporal workflow logic from the actual Slack implementation.
+ * Port interface for sending notifications to Slack.
+ * Implementations will handle the actual HTTP webhook calls.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends a notification payload to Slack.
+     * Sends a notification to the configured Slack channel.
      *
-     * @param payload The formatted message to be sent.
-     * @throws RuntimeException if the notification fails to send.
+     * @param messageBody The formatted message body to send.
+     * @throws SlackNotificationException if the notification fails.
      */
-    void sendNotification(String payload);
+    void send(String messageBody) throws SlackNotificationException;
+
+    class SlackNotificationException extends RuntimeException {
+        public SlackNotificationException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
 }

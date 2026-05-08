@@ -4,19 +4,19 @@ import com.example.ports.GitHubPort;
 
 /**
  * Mock implementation of GitHubPort for testing.
+ * Returns predictable URLs without network calls.
  */
 public class MockGitHubPort implements GitHubPort {
 
-    private String fakeUrlBase = "https://github.com/fake-repo/issues/";
+    private String simulatedUrl = "https://github.com/mock/issues/1";
 
     @Override
-    public String getIssueUrl(String title, String projectId) {
-        // Simulate deterministic URL generation based on inputs
-        if (title == null) return null;
-        return fakeUrlBase + projectId + "-" + title.hashCode();
+    public String reportIssue(String title, String body) {
+        // Simulate GitHub creating an issue and returning a URL
+        return simulatedUrl;
     }
 
-    public void setFakeUrlBase(String url) {
-        this.fakeUrlBase = url;
+    public void setSimulatedUrl(String url) {
+        this.simulatedUrl = url;
     }
 }

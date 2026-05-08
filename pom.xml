@@ -20,29 +20,13 @@
 
     <properties>
         <java.version>17</java.version>
-        <temporal.version>1.22.3</temporal.version>
         <flyway.version>9.22.3</flyway.version>
-        <mq.version>3.1.3</mq.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
-        </dependency>
-
-        <!-- Temporal IO (Durable Workflows) - Explicitly versioned as not in Spring BOM -->
-        <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>${temporal.version}</version>
-        </dependency>
-
-        <!-- IBM MQ (JMS) - Explicitly versioned -->
-        <dependency>
-            <groupId>com.ibm.mq</groupId>
-            <artifactId>mq-jms-spring-boot-starter</artifactId>
-            <version>${mq.version}</version>
         </dependency>
 
         <!-- Flyway DB2 - Explicitly versioned -->
@@ -69,8 +53,6 @@
         </plugins>
     </build>
 
-    <!-- Adding a placeholder repository for the context of 'Missing Artifacts' scenario. 
-         In a real scenario, these would be proprietary repos. -->
     <repositories>
         <repository>
             <id>central</id>

@@ -1,14 +1,10 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasspathResource;
-import org.junit.platform.suite.api.Suite;
+import io.cucumber.spring.CucumberContextConfiguration;
+import org.springframework.boot.test.context.SpringBootTest;
 
-/**
- * Test Suite to run Cucumber features.
- */
-@Suite
-@IncludeEngines("cucumber")
-@SelectClasspathResource("features")
+@CucumberContextConfiguration
+@SpringBootTest
 public class CucumberTestSuite {
+    // Spring context configuration for Cucumber tests
 }

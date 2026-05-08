@@ -1,42 +1,34 @@
 package com.example.mocks;
 
-import com.example.ports.SlackNotificationPort;
-import java.util.ArrayList;
-import java.util.List;
+import com.example.domain.validation.port.SlackNotificationPort;
 
+/**
+ * Mock implementation of SlackNotificationPort for testing.
+ * Captures the last sent message body to allow assertions in tests.
+ */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public final List<String> postedMessages = new ArrayList<>();
-    public String lastChannelId;
-    private boolean shouldFail = false;
+    private boolean invoked = false;
+    private String capturedBody;
 
     @Override
-    public void postMessage(String channelId, String messageBody) {
-        if (shouldFail) {
-            throw new RuntimeException("Slack API unavailable (simulated)");
-        }
-        if (channelId == null || messageBody == null) {
-            throw new IllegalArgumentException("ChannelId and MessageBody cannot be null");
-        }
-        this.lastChannelId = channelId;
-        this.postedMessages.add(messageBody);
+    public void send(String body) {
+        this.invoked = true;
+        this.capturedBody = body;
+        // In a real mock, we might log this or do nothing.
+        // System.out.println("[MockSlack] Captured: " + body);
     }
 
-    @Override
-    public void postToDefaultChannel(String messageBody) {
-        postMessage("C_DEFAULT_ISSUES", messageBody);
+    public boolean wasInvoked() {
+        return invoked;
+    }
+
+    public String getCapturedBody() {
+        return capturedBody;
     }
 
     public void reset() {
-        postedMessages.clear();
-        lastChannelId = null;
-    }
-
-    public void setShouldFail(boolean flag) {
-        this.shouldFail = flag;
-    }
-
-    public boolean wasCalled() {
-        return !postedMessages.isEmpty();
+        this.invoked = false;
+        this.capturedBody = null;
     }
 }

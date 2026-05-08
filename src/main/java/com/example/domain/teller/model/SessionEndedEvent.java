@@ -1,12 +1,14 @@
 package com.example.domain.teller.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
 
-/**
- * Domain event emitted when a teller session is terminated.
- */
-public record SessionEndedEvent(String sessionId, Instant occurredAt) implements DomainEvent {
+public record SessionEndedEvent(
+    String aggregateId,
+    String tellerId,
+    Instant occurredAt
+) implements DomainEvent {
     @Override
     public String type() {
         return "session.ended";
@@ -14,7 +16,7 @@ public record SessionEndedEvent(String sessionId, Instant occurredAt) implements
 
     @Override
     public String aggregateId() {
-        return sessionId;
+        return aggregateId;
     }
 
     @Override

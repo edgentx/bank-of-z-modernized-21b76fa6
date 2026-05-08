@@ -4,22 +4,28 @@ import com.example.ports.SlackNotificationPort;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Mock implementation of SlackNotificationPort for testing.
+ * Captures messages to verify the content (e.g. presence of URLs).
+ */
 public class MockSlackNotificationPort implements SlackNotificationPort {
-    public final List<String> sentMessages = new ArrayList<>();
-    public boolean shouldFail = false;
+
+    public final List<Message> messages = new ArrayList<>();
+    private boolean simulateSuccess = true;
+
+    public record Message(String channel, String body) {}
 
     @Override
-    public void sendNotification(String message) {
-        if (shouldFail) throw new RuntimeException("Slack API Unavailable");
-        sentMessages.add(message);
+    public boolean sendMessage(String channel, String messageBody) {
+        messages.add(new Message(channel, messageBody));
+        return simulateSuccess;
     }
 
-    public boolean containsUrl(String url) {
-        return sentMessages.stream().anyMatch(msg -> msg.contains(url));
+    public void setSimulateSuccess(boolean simulateSuccess) {
+        this.simulateSuccess = simulateSuccess;
     }
 
     public void reset() {
-        sentMessages.clear();
-        shouldFail = false;
+        messages.clear();
     }
 }

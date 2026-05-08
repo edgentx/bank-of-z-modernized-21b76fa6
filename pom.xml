@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.5</version>
+        <version>3.2.0</version>
         <relativePath/>
     </parent>
     
@@ -13,38 +13,21 @@
     <artifactId>customer-management</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>customer-management</name>
-    <description>Demo project for Spring Boot</description>
+    <description>Customer Management Domain Project</description>
     
     <properties>
         <java.version>17</java.version>
-        <cucumber.version>7.18.0</cucumber.version>
+        <cucumber.version>7.14.0</cucumber.version>
     </properties>
     
     <dependencies>
-        <!-- Spring Boot Starters -->
+        <!-- Spring Boot Dependencies (BOM Managed) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        
-        <!-- DB2 Driver (Shared History) -->
-        <dependency>
-            <groupId>com.ibm.db2</groupId>
-            <artifactId>jcc</artifactId>
-            <scope>runtime</scope>
+            <artifactId>spring-boot-starter</artifactId>
         </dependency>
 
-        <!-- MongoDB (VForce360 shared) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
-        </dependency>
-
-        <!-- Cucumber BDD -->
+        <!-- Cucumber Dependencies (BOM does NOT fully pin all versions, explicit versions used) -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
@@ -62,7 +45,7 @@
             <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
-        
+
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -79,5 +62,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

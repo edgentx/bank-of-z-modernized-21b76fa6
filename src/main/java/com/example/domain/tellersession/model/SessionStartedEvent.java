@@ -3,30 +3,13 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Objects;
 
-/**
- * Domain event emitted when a teller session is successfully started.
- */
 public record SessionStartedEvent(
-        String aggregateId,
+        String sessionId,
         String tellerId,
         String terminalId,
-        Instant validUntil,
-        Instant occurredAt
+        Instant startedAt
 ) implements DomainEvent {
-
-    public SessionStartedEvent {
-        // Ensure occurredAt is truncated to millis for consistency if needed,
-        // though Instant is fine.
-        Objects.requireNonNull(aggregateId);
-        Objects.requireNonNull(tellerId);
-        Objects.requireNonNull(terminalId);
-        Objects.requireNonNull(validUntil);
-        Objects.requireNonNull(occurredAt);
-    }
-
     @Override
     public String type() {
         return "session.started";
@@ -34,11 +17,11 @@ public record SessionStartedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return sessionId;
     }
 
     @Override
     public Instant occurredAt() {
-        return occurredAt;
+        return startedAt;
     }
 }

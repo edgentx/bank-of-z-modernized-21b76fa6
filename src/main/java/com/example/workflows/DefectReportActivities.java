@@ -1,19 +1,11 @@
 package com.example.workflows;
 
-import com.example.domain.notification.model.SendNotificationCmd;
-import com.example.domain.validation.model.ValidateUrlInclusionCmd;
 import io.temporal.activity.ActivityInterface;
-import io.temporal.activity.ActivityMethod;
 
+/**
+ * Temporal Activity interface for Defect Reporting operations.
+ */
 @ActivityInterface
 public interface DefectReportActivities {
-
-    @ActivityMethod
-    String generateGitHubIssueLink(String defectId);
-
-    @ActivityMethod
-    void sendSlackNotification(SendNotificationCmd cmd);
-
-    @ActivityMethod
-    void validateBodyContent(ValidateUrlInclusionCmd cmd);
+    void notifySlack(String defectId);
 }

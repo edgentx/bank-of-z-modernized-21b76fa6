@@ -8,6 +8,9 @@ import org.junit.runner.RunWith;
 @CucumberOptions(
     features = {"features/S-FB-1.feature"},
     glue = {"com.example.steps"},
-    plugin = {"pretty", "summary"}
+    plugin = {"pretty", "html:target/cucumber/S-FB-1.html"},
+    monochrome = true
 )
-public class SFB1TestSuite {}
+public class SFB1TestSuite {
+    // Cucumber test suite runner for S-FB-1
+}

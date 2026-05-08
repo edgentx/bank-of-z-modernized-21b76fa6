@@ -1,7 +1,14 @@
-Feature: Validating VW-454 — GitHub URL in Slack body (end-to-end)
+Feature: GitHub URL in Slack Body (VW-454)
 
-  Scenario: Trigger report_defect and verify GitHub link
-    Given the GitHub adapter is available
-    When _report_defect is triggered via temporal-worker exec
-    Then Slack body includes GitHub issue: "https://github.com/example/bank-of-z/issues/"
-    And the validation no longer exhibits the reported behavior
+  As a VForce360 Engineer
+  I want defect reports in Slack to include a direct link to the GitHub issue
+  So that I can quickly navigate to the ticket from the alert
+
+  Scenario: Defect report includes GitHub URL
+    Given a reconciliation has failed and a defect is detected
+    When the temporal workflow executes the report_defect command
+    Then the Slack message body must contain the GitHub issue URL
+
+  Scenario: Defect report validation prevents invalid IDs
+    When the temporal workflow executes report_defect with an invalid ID
+    Then the workflow should reject the command and Slack should not be notified

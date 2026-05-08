@@ -1,27 +1,24 @@
 package com.example.domain.teller.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Event emitted when a Teller successfully navigates to a new menu screen.
- */
 public record MenuNavigatedEvent(
-        String aggregateId,
-        String menuId,
-        String action,
-        Instant occurredAt
+    String eventId,
+    String aggregateId,
+    String menuId,
+    String action,
+    Instant occurredAt
 ) implements DomainEvent {
-    public MenuNavigatedEvent {
-        if (aggregateId == null || aggregateId.isBlank()) {
-            throw new IllegalArgumentException("aggregateId cannot be null or blank");
-        }
-    }
+  public MenuNavigatedEvent {
+    if (eventId == null) eventId = UUID.randomUUID().toString();
+    if (occurredAt == null) occurredAt = Instant.now();
+  }
 
-    @Override
-    public String type() {
-        return "menu.navigated";
-    }
+  public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
+    this(UUID.randomUUID().toString(), aggregateId, menuId, action, occurredAt);
+  }
+
+  @Override public String type() { return "menu.navigated"; }
 }

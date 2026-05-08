@@ -6,9 +6,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * In-memory implementation of the TellerSessionRepository for testing.
- */
 public class InMemoryTellerSessionRepository implements TellerSessionRepository {
 
     private final Map<String, TellerSessionAggregate> store = new HashMap<>();
@@ -25,7 +22,7 @@ public class InMemoryTellerSessionRepository implements TellerSessionRepository 
     }
 
     @Override
-    public void delete(String id) {
+    public void deleteById(String id) {
         store.remove(id);
     }
 }

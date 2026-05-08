@@ -3,7 +3,11 @@ package com.example.domain.validation.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to report a defect.
- * Triggers creation of a GitHub issue and a Slack notification.
+ * Command to report a defect (VW-454).
+ * Bridges the Temporal workflow execution to the domain logic.
  */
-public record ReportDefectCommand(String title, String description) implements Command {}
+public record ReportDefectCommand(
+    String projectId,
+    String title,
+    String description
+) implements Command {}

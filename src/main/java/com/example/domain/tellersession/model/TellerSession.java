@@ -4,22 +4,26 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 public class TellerSession extends AggregateRoot {
-
     private final String sessionId;
     private String tellerId;
-    private boolean authenticated = false;
+    private String currentMenuId;
+    private String currentAction;
     private Instant lastActivityAt;
-    private boolean locked = false;
-    private Duration timeoutDuration = Duration.ofMinutes(30);
+    private boolean isAuthenticated;
+    private boolean isActive;
+
+    // Configurable timeout in minutes (mockable value)
+    private static final long SESSION_TIMEOUT_MINUTES = 30;
 
     public TellerSession(String sessionId) {
         this.sessionId = sessionId;
-        this.lastActivityAt = Instant.now(); // Default to now on construction
+        this.lastActivityAt = Instant.now();
+        this.isActive = true;
     }
 
     @Override
@@ -27,68 +31,63 @@ public class TellerSession extends AggregateRoot {
         return sessionId;
     }
 
-    /**
-     * Helper to set up the aggregate for testing.
-     * In a real scenario, this state comes from event sourcing.
-     */
-    public void initialize(String tellerId) {
-        this.tellerId = tellerId;
-        this.authenticated = true;
-        this.lastActivityAt = Instant.now();
-    }
-
-    /**
-     * Helper for testing timeout scenarios.
-     */
-    public void setLastActivityAt(Instant time) {
-        this.lastActivityAt = time;
-    }
-
-    /**
-     * Helper for testing invalid context scenarios.
-     */
-    public void setLocked(boolean locked) {
-        this.locked = locked;
-    }
-
     @Override
     public List<DomainEvent> execute(Command cmd) {
         if (cmd instanceof NavigateMenuCmd c) {
-            return navigate(c);
+            return handleNavigateMenu(c);
         }
         throw new UnknownCommandException(cmd);
     }
 
-    private List<DomainEvent> navigate(NavigateMenuCmd cmd) {
+    private List<DomainEvent> handleNavigateMenu(NavigateMenuCmd cmd) {
         // Invariant: A teller must be authenticated to initiate a session.
-        if (!authenticated) {
+        if (!isAuthenticated) {
             throw new IllegalStateException("Teller must be authenticated.");
         }
 
         // Invariant: Sessions must timeout after a configured period of inactivity.
-        if (lastActivityAt != null && Duration.between(lastActivityAt, Instant.now()).compareTo(timeoutDuration) > 0) {
-            throw new IllegalStateException("Session has timed out due to inactivity.");
+        if (lastActivityAt != null) {
+            long minutesSinceActivity = ChronoUnit.MINUTES.between(lastActivityAt, Instant.now());
+            if (minutesSinceActivity > SESSION_TIMEOUT_MINUTES) {
+                throw new IllegalStateException("Session has timed out due to inactivity.");
+            }
         }
 
         // Invariant: Navigation state must accurately reflect the current operational context.
-        if (locked) {
-            throw new IllegalStateException("Cannot navigate: session is locked due to operational state.");
+        // (Assuming the provided context must match the current session state for the transition to be valid)
+        if (cmd.currentContext() != null && !cmd.currentContext().equals(this.currentMenuId)) {
+             throw new IllegalArgumentException("Navigation state conflict: Current context does not match operational state.");
         }
 
-        if (cmd.menuId() == null || cmd.menuId().isBlank()) {
-            throw new IllegalArgumentException("menuId cannot be blank");
-        }
+        String previousMenu = this.currentMenuId;
+        this.currentMenuId = cmd.targetMenuId();
+        this.currentAction = cmd.action();
+        this.lastActivityAt = Instant.now();
 
-        if (cmd.action() == null || cmd.action().isBlank()) {
-            throw new IllegalArgumentException("action cannot be blank");
-        }
+        // Create Event: sessionId, previousMenu, newMenu, action, timestamp
+        MenuNavigatedEvent event = new MenuNavigatedEvent(
+            this.sessionId,
+            previousMenu,
+            this.currentMenuId,
+            this.currentAction,
+            Instant.now()
+        );
 
-        var event = new MenuNavigatedEvent(sessionId, cmd.menuId(), cmd.action(), Instant.now());
         addEvent(event);
         incrementVersion();
-        // Update state side-effect
-        this.lastActivityAt = event.occurredAt();
-
         return List.of(event);
+    }
+
+    // Test hooks
+    public void setAuthenticated(boolean authenticated) {
+        this.isAuthenticated = authenticated;
+    }
+
+    public void setLastActivityAt(Instant time) {
+        this.lastActivityAt = time;
+    }
+
+    public void setCurrentMenuId(String menuId) {
+        this.currentMenuId = menuId;
     }
 }

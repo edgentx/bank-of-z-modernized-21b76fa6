@@ -10,7 +10,7 @@ import jakarta.annotation.PreDestroy;
 
 @Service
 public class TemporalWorker {
-    
+
     private final WorkflowClient workflowClient;
     private final ReportDefectActivity activities;
     private WorkerFactory factory;
@@ -24,9 +24,13 @@ public class TemporalWorker {
     public void init() {
         factory = WorkerFactory.newInstance(workflowClient);
         Worker worker = factory.newWorker("VForce360TaskQueue");
-        // Workflows and Activities would be registered here in the real implementation
-        // e.g. worker.registerWorkflowImplementationTypes(VForce360WorkflowImpl.class);
-        // e.g. worker.registerActivitiesImplementations(activities);
+        
+        // Register Workflow Implementation
+        worker.registerWorkflowImplementationTypes(com.example.domain.vforce360.service.VForce360WorkflowImpl.class);
+        
+        // Register Activity Implementation
+        worker.registerActivitiesImplementations(activities);
+        
         factory.start();
     }
 

@@ -4,22 +4,24 @@ import com.example.ports.GitHubIssuePort;
 
 /**
  * Mock implementation of GitHubIssuePort for testing.
- * Returns deterministic URLs for issue creation.
+ * Returns predictable URLs.
  */
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private String returnedUrl = "https://github.com/example-bank/vforce360/issues/42";
+    private final String baseUrl;
+    private int issueCount = 0;
 
-    @Override
-    public String createIssue(String title, String description) {
-        // Simulate successful issue creation
-        return returnedUrl;
+    public MockGitHubIssuePort(String baseUrl) {
+        this.baseUrl = baseUrl;
     }
 
-    /**
-     * Configures the URL to return on the next call to createIssue.
-     */
-    public void setNextIssueUrl(String url) {
-        this.returnedUrl = url;
+    @Override
+    public String createIssue(String title, String body) {
+        issueCount++;
+        return baseUrl + "/issue/" + issueCount;
+    }
+
+    public void reset() {
+        issueCount = 0;
     }
 }

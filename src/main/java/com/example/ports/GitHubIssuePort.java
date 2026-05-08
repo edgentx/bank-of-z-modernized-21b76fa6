@@ -1,17 +1,15 @@
 package com.example.ports;
 
 /**
- * Port interface for creating GitHub issues.
- * Used by the VForce360 workflow to track reported defects.
+ * Port interface for GitHub Issue operations.
+ * Used to retrieve issue metadata.
  */
 public interface GitHubIssuePort {
-    
+
     /**
-     * Creates a new issue in the GitHub repository.
-     *
-     * @param title The title of the issue.
-     * @param description The body/description of the issue.
-     * @return The HTML URL of the created issue (e.g., "https://github.com/owner/repo/issues/123").
+     * Retrieves the full browser URL for a specific issue ID.
+     * @param issueId The ID or key of the issue (e.g. "VW-454")
+     * @return The full URL (e.g. "https://github.com/org/repo/issues/454")
      */
-    String createIssue(String title, String description);
+    String getIssueUrl(String issueId);
 }

@@ -7,14 +7,13 @@ import java.util.UUID;
 
 public record MenuNavigatedEvent(
     String aggregateId,
-    String sessionId,
     String menuId,
     String action,
     Instant occurredAt
 ) implements DomainEvent {
-
-    public MenuNavigatedEvent(String sessionId, String menuId, String action, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), sessionId, menuId, action, occurredAt);
+    public MenuNavigatedEvent {
+        // Ensure non-null for sanity, though constructor validation handles logic
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
     }
 
     @Override
@@ -23,12 +22,12 @@ public record MenuNavigatedEvent(
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
     public Instant occurredAt() {
         return occurredAt;
+    }
+
+    // Factory to match existing aggregate style
+    public static MenuNavigatedEvent create(String aggregateId, String menuId, String action) {
+        return new MenuNavigatedEvent(aggregateId, menuId, action, Instant.now());
     }
 }

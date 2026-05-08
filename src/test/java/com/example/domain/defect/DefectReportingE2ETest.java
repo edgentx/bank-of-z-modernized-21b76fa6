@@ -1,94 +1,94 @@
 package com.example.domain.defect;
 
+import com.example.domain.defect.model.DefectAggregate;
 import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.mocks.MockGitHubIssuePort;
-import com.example.mocks.MockSlackNotificationPort;
+import com.example.domain.defect.repository.DefectRepository;
+import com.example.mocks.InMemoryDefectRepository;
+import com.example.mocks.MockGitHubIssueClient;
+import com.example.mocks.MockSlackNotifier;
 import com.example.ports.GitHubIssuePort;
-import com.example.ports.SlackNotificationPort;
+import com.example.ports.SlackNotifierPort;
+import com.example.services.DefectReportingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Regression test for VW-454.
- * 
- * Scenario: Trigger _report_defect via temporal-worker exec
- * Expected: Slack body includes GitHub issue URL
- * 
- * NOTE: This is the RED phase. The implementation class {@code DefectReportingService} 
- * does not exist yet. This test is expected to fail until the service is implemented.
+ * E2E / Regression Test for S-FB-1.
+ * Validates that when a defect is reported, the Slack notification body
+ * contains the GitHub issue URL.
  */
 class DefectReportingE2ETest {
 
-    private GitHubIssuePort githubPort;
-    private SlackNotificationPort slackPort;
-    
-    // The class under test. This class needs to be created to make the test pass.
-    // Assuming a package structure of com.example.domain.defect.service
-    private Object defectReportingService;
+    private DefectRepository defectRepository;
+    private MockGitHubIssueClient gitHubClient;
+    private MockSlackNotifier slackNotifier;
+    private DefectReportingService service;
 
     @BeforeEach
     void setUp() {
-        // We inject mocks. In a real Spring Boot test, we might use @MockBean.
-        // Here we manually instantiate POJO mocks to keep it unit-test fast.
-        githubPort = new MockGitHubIssuePort();
-        slackPort = new MockSlackNotificationPort();
-
-        // Hypothetical constructor injection for the class we need to write:
-        // defectReportingService = new DefectReportingService(githubPort, slackPort);
+        defectRepository = new InMemoryDefectRepository();
+        gitHubClient = new MockGitHubIssueClient();
+        slackNotifier = new MockSlackNotifier();
         
-        // For RED phase, we leave it null to demonstrate the failure, 
-        // or we try to instantiate it and catch the compilation error/class not found.
-        // Given this is a text-based simulation, we will assume it fails to compile if the class is missing.
+        service = new DefectReportingService(defectRepository, gitHubClient, slackNotifier);
     }
 
     @Test
-    void testReportDefect_ShouldIncludeGitHubUrlInSlackMessage() {
+    void shouldIncludeGitHubIssueUrlInSlackBodyWhenDefectReported() {
         // Arrange
-        String defectId = "S-FB-1";
-        String title = "Fix: Validating VW-454";
-        String description = "GitHub URL missing in Slack body";
-        
-        ReportDefectCmd command = new ReportDefectCmd(defectId, title, description);
+        String defectId = "VW-454";
+        String expectedTitle = "Validating VW-454";
+        String expectedSeverity = "LOW";
+        String fakeGitHubUrl = "https://github.com/egdcrypto/bank-of-z/issues/454";
 
-        // We expect the service to be implemented. Since it's not, this acts as the RED phase spec.
-        try {
-            // Assuming the class is created manually or via reflection for the sake of the test structure
-            Class<?> clazz = Class.forName("com.example.domain.defect.DefectReportingService");
-            java.lang.reflect.Constructor<?> ctor = clazz.getConstructor(GitHubIssuePort.class, SlackNotificationPort.class);
-            defectReportingService = ctor.newInstance(githubPort, slackPort);
-        } catch (Exception e) {
-            // In a real TDD cycle, this is where we stop and write code.
-            // For this prompt, we verify the Mock expectations assuming the service WAS implemented.
-        }
+        gitHubClient.setMockUrl(fakeGitHubUrl);
 
-        // Assume we have the service instance:
-        // DefectReportingService service = (DefectReportingService) defectReportingService;
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            defectId, 
+            expectedTitle, 
+            "Description of the defect", 
+            DefectAggregate.Severity.LOW
+        );
 
         // Act
-        // service.handle(command);
-        
-        // For the purpose of this test file, we will perform the assertion logic 
-        // that the implementation MUST satisfy.
-        
-        // Manually simulate what the SUT (System Under Test) should do:
-        String githubUrl = githubPort.createIssue(title, description);
-        String expectedSlackBody = "Defect Reported: " + title + "\nGitHub Issue: " + githubUrl;
-        slackPort.sendMessage(expectedSlackBody);
+        service.reportDefect(cmd);
 
         // Assert
-        MockSlackNotificationPort mockSlack = (MockSlackNotificationPort) slackPort;
+        assertThat(slackNotifier.notifications).hasSize(1);
         
-        assertFalse(mockSlack.getSentMessages().isEmpty(), "Slack should have received a message");
+        MockSlackNotifier.CapturedNotification notification = slackNotifier.notifications.get(0);
+        String slackBody = notification.messageBody;
         
-        String actualMessage = mockSlack.getSentMessages().get(0);
-        
-        // CRITICAL ASSERTION for VW-454
-        assertTrue(actualMessage.contains("https://github.com"), 
-            "Slack body must contain the GitHub URL. Found: " + actualMessage);
-            
-        assertTrue(actualMessage.contains("github.com/example/repo/issues/123"),
-            "Slack body must contain the SPECIFIC GitHub issue URL generated.");
+        // The acceptance criteria: "Slack body includes GitHub issue: <url>"
+        assertThat(slackBody)
+            .as("Slack body must contain the GitHub issue URL")
+            .contains(fakeGitHubUrl);
+    }
+
+    @Test
+    void shouldHandleGitHubFailureGracefully() {
+        // Arrange
+        String defectId = "VW-455";
+        gitHubClient.setShouldReturnEmpty(true);
+
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            defectId, 
+            "GitHub is down", 
+            "Service unavailable", 
+            DefectAggregate.Severity.MEDIUM
+        );
+
+        // Act
+        // We expect the service to handle this, perhaps logging or falling back.
+        // For the TDD red phase, we define the expected behavior: 
+        // If GitHub fails, the Slack body should contain a fallback message.
+        service.reportDefect(cmd);
+
+        // Assert
+        assertThat(slackNotifier.notifications).hasSize(1);
+        String slackBody = slackNotifier.notifications.get(0).messageBody();
+        assertThat(slackBody).contains("Failed to create GitHub issue");
     }
 }

@@ -1,16 +1,18 @@
 package com.example.ports;
 
 /**
- * Port for interacting with VForce360 PM diagnostic/Slack notifications.
- * This is the boundary interface for external communication.
+ * Port interface for VForce360 interactions (e.g., Slack notifications).
+ * This defines the contract for the report_defect workflow side effect.
  */
 public interface VForce360NotificationPort {
 
     /**
-     * Sends a defect report to the configured external system (e.g., Slack).
+     * Sends a defect report to the configured VForce360 channel (e.g., Slack).
      *
-     * @param defectId The ID of the defect (e.g., "VW-454").
-     * @param message The formatted message body containing details and the GitHub URL.
+     * @param title The title of the defect.
+     * @param description The body/description of the defect.
+     * @param githubUrl The URL to the GitHub issue.
+     * @throws IllegalArgumentException if githubUrl is null/blank.
      */
-    void reportDefect(String defectId, String message);
+    void publishDefect(String title, String description, String githubUrl);
 }

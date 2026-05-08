@@ -4,23 +4,33 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+/**
+ * Teller Session Aggregate.
+ * Manages the lifecycle of a teller's terminal session, authentication state, and context.
+ * Story: S-20
+ */
 public class TellerSession extends AggregateRoot {
+
     private final String sessionId;
     private String tellerId;
-    private boolean authenticated;
-    private boolean active;
+    private boolean isAuthenticated;
+    private boolean isActive;
     private Instant lastActivityAt;
-    private Instant sessionStart;
+    private Instant sessionStartedAt;
     private Duration timeoutDuration;
+
+    // Invariants
+    private static final Duration DEFAULT_TIMEOUT = Duration.ofMinutes(30);
 
     public TellerSession(String sessionId) {
         this.sessionId = sessionId;
-        this.timeoutDuration = Duration.ofMinutes(30); // Default timeout config
+        this.timeoutDuration = DEFAULT_TIMEOUT;
+        this.isActive = false;
     }
 
     @Override
@@ -28,12 +38,30 @@ public class TellerSession extends AggregateRoot {
         return sessionId;
     }
 
-    public void init(String tellerId, Instant startTime) {
-        this.tellerId = tellerId;
-        this.sessionStart = startTime;
-        this.lastActivityAt = startTime;
-        this.authenticated = true;
-        this.active = true;
+    /**
+     * Internal helper to verify authentication.
+     */
+    private void ensureAuthenticated() {
+        if (!isAuthenticated) {
+            throw new IllegalStateException("Teller must be authenticated.");
+        }
+    }
+
+    /**
+     * Internal helper to verify activity/timeout.
+     */
+    private void ensureActive() {
+        if (!isActive) {
+            throw new IllegalStateException("Session is not active.");
+        }
+        if (lastActivityAt == null) {
+            throw new IllegalStateException("Session activity state is invalid.");
+        }
+        Instant now = Instant.now();
+        long inactiveMinutes = ChronoUnit.MINUTES.between(lastActivityAt, now);
+        if (inactiveMinutes > timeoutDuration.toMinutes()) {
+            throw new IllegalStateException("Session has timed out due to inactivity.");
+        }
     }
 
     @Override
@@ -45,54 +73,55 @@ public class TellerSession extends AggregateRoot {
     }
 
     private List<DomainEvent> endSession(EndSessionCmd cmd) {
-        // Invariant: A teller must be authenticated to initiate a session.
-        // (Interpreted as: Only an authenticated teller can end their own session)
-        if (!authenticated || !cmd.tellerId().equals(this.tellerId)) {
-            throw new IllegalStateException("Teller must be authenticated to end the session.");
-        }
+        // Invariant Check: Authentication
+        ensureAuthenticated();
 
-        // Invariant: Sessions must timeout after a configured period of inactivity.
-        if (hasTimedOut(Instant.now())) {
-            throw new IllegalStateException("Session has timed out due to inactivity.");
-        }
+        // Invariant Check: Timeout / Activity
+        ensureActive();
 
-        // Invariant: Navigation state must accurately reflect the current operational context.
-        // (Interpreted as: Cannot end a session that isn't active)
-        if (!active) {
-            throw new IllegalStateException("Session is not active and cannot be ended.");
-        }
+        // Invariant Check: Navigation Context
+        // Implicitly satisfied by being in an active state to reach this point in this simplified aggregate model.
+        // A more complex model might check for open transactions or locked records.
 
-        SessionEndedEvent event = new SessionEndedEvent(this.id(), this.sessionId, Instant.now());
-        this.active = false;
-        this.authenticated = false;
+        var event = new SessionEndedEvent(cmd.sessionId(), cmd.occurredAt());
+
+        // Apply state changes
+        this.isActive = false;
+        this.tellerId = null; // Clear sensitive state
+        this.isAuthenticated = false;
+
         addEvent(event);
         incrementVersion();
         return List.of(event);
     }
 
-    public void markTimedOut() {
-        this.active = false;
-        this.authenticated = false;
-    }
+    // --- Public Test Probes / Setters ---
 
-    private boolean hasTimedOut(Instant now) {
-        return Duration.between(lastActivityAt, now).compareTo(timeoutDuration) > 0;
-    }
-
-    // Setters for test state manipulation
-    public void setAuthenticated(boolean authenticated) {
-        this.authenticated = authenticated;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
-    public void setLastActivityAt(Instant lastActivityAt) {
-        this.lastActivityAt = lastActivityAt;
-    }
-    
-    public void setTellerId(String tellerId) {
+    public void markAuthenticated(String tellerId) {
         this.tellerId = tellerId;
+        this.isAuthenticated = true;
+        this.isActive = true;
+        this.sessionStartedAt = Instant.now();
+        this.lastActivityAt = Instant.now();
+    }
+
+    public void markTimedOut() {
+        this.lastActivityAt = Instant.now().minus(Duration.ofHours(1));
+    }
+
+    public void markUnauthenticated() {
+        this.isAuthenticated = false;
+    }
+
+    public void markInactive() {
+        this.isActive = false;
+    }
+
+    public String getTellerId() {
+        return tellerId;
+    }
+
+    public boolean isActive() {
+        return isActive;
     }
 }

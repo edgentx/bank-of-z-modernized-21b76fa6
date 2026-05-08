@@ -1,14 +1,6 @@
-Feature: S-FB-1 Fix: Validating VW-454 — GitHub URL in Slack body (end-to-end)
+Feature: Validating VW-454 — GitHub URL in Slack body
 
-  Background:
-    Given a defect reporting workflow is initialized via temporal-worker exec
-
-  Scenario: Verify Slack body contains valid GitHub issue link
-    When the defect report containing GitHub link is generated
-    Then the Slack body should include the GitHub issue URL
-
-  Scenario: Verify build stability post-fix
-    # The previous attempt failed because of a malformed POM.
-    # We run tests to ensure the project structure remains valid.
-    Given the defect reporting workflow is initialized
-    Then the build system shall recognize the correct Maven POM structure
+  Scenario: Report Defect via Temporal includes GitHub URL
+    Given the Slack adapter is initialized
+    When the temporal worker executes "_report_defect" with issue "VW-454"
+    Then the Slack body should contain the GitHub issue link

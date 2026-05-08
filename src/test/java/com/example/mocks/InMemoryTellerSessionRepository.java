@@ -1,25 +1,20 @@
 package com.example.mocks;
 
-import com.example.domain.uimodel.model.TellerSessionAggregate;
-import com.example.domain.uimodel.repository.TellerSessionRepository;
-import org.springframework.stereotype.Repository;
+import com.example.domain.tellersession.model.TellerSessionAggregate;
+import com.example.domain.tellersession.repository.TellerSessionRepository;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-
-@Repository
+/**
+ * In-memory repository for testing TellerSession.
+ * Needed as S18 depends on TellerSessionRepository interface.
+ */
 public class InMemoryTellerSessionRepository implements TellerSessionRepository {
-    private final Map<String, TellerSessionAggregate> store = new HashMap<>();
-
     @Override
-    public TellerSessionAggregate save(TellerSessionAggregate aggregate) {
-        store.put(aggregate.id(), aggregate);
-        return aggregate;
+    public TellerSessionAggregate load(String id) {
+        return null; // Simple mock
     }
 
     @Override
-    public Optional<TellerSessionAggregate> findById(String id) {
-        return Optional.ofNullable(store.get(id));
+    public void save(TellerSessionAggregate aggregate) {
+        // No-op for in-memory testing within step definitions
     }
 }

@@ -1,25 +1,31 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
+import java.util.Optional;
 
 /**
- * In-memory mock for GitHub interactions.
- * Allows tests to control the returned URL without a real API call.
+ * Mock implementation of GitHubIssuePort for testing.
+ * Allows pre-configuring responses for issue creation.
  */
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private String simulatedUrl;
-
-    public void setUrl(String url) {
-        this.simulatedUrl = url;
-    }
+    private String mockUrl = "https://github.com/mock-repo/issues/1";
+    private boolean shouldSucceed = true;
 
     @Override
-    public String getIssueUrl(String issueId) {
-        if (simulatedUrl != null) {
-            return simulatedUrl;
+    public Optional<String> createIssue(String title, String body) {
+        if (shouldSucceed) {
+            return Optional.of(mockUrl);
+        } else {
+            return Optional.empty();
         }
-        // Default fallback if not set, or throw if strictness preferred
-        return "https://github.com/default/issues/" + issueId;
+    }
+
+    public void setMockUrl(String mockUrl) {
+        this.mockUrl = mockUrl;
+    }
+
+    public void setShouldSucceed(boolean shouldSucceed) {
+        this.shouldSucceed = shouldSucceed;
     }
 }

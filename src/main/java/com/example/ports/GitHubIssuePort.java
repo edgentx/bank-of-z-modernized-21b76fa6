@@ -1,17 +1,16 @@
 package com.example.ports;
 
+import com.example.domain.shared.ReportDefectCommand;
+
 /**
- * Port for interacting with GitHub Issues.
- * Used to create defect reports from the VForce360 system.
+ * Port interface for interacting with GitHub Issues API.
+ * Used by the workflow adapter to create tickets.
  */
 public interface GitHubIssuePort {
-
     /**
-     * Creates a new issue in the configured repository.
-     *
-     * @param title The title of the issue.
-     * @param description The body description of the issue.
-     * @return The HTML URL of the created issue (e.g., "https://github.com/org/repo/issues/123").
+     * Creates an issue in GitHub.
+     * @param cmd Defect details.
+     * @return The URL of the created issue.
      */
-    String createIssue(String title, String description);
+    String createIssue(ReportDefectCommand cmd);
 }

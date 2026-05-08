@@ -1,41 +1,43 @@
 package com.example.mocks;
 
 import com.example.ports.SlackPort;
-import org.springframework.stereotype.Component;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock Slack Adapter for testing.
- * Captures message content to verify the defect reporting logic.
+ * Mock implementation of SlackPort for testing.
+ * Captures messages sent to allow assertion on content.
  */
-@Component
 public class MockSlackClient implements SlackPort {
+    public static final class Message {
+        public final String channel;
+        public final String body;
 
-    private boolean sendMessageCalled = false;
-    private String lastMessageBody;
-    private String lastChannel;
+        public Message(String channel, String body) {
+            this.channel = channel;
+            this.body = body;
+        }
+    }
+
+    private final List<Message> sentMessages = new ArrayList<>();
 
     @Override
-    public void sendMessage(String channel, String text) {
-        this.sendMessageCalled = true;
-        this.lastChannel = channel;
-        this.lastMessageBody = text;
+    public void sendMessage(String channel, String messageBody) {
+        sentMessages.add(new Message(channel, messageBody));
     }
 
-    public boolean wasSendMessageCalled() {
-        return sendMessageCalled;
+    public List<Message> getSentMessages() {
+        return new ArrayList<>(sentMessages);
     }
 
-    public String getLastMessageBody() {
-        return lastMessageBody;
-    }
-
-    public String getLastChannel() {
-        return lastChannel;
+    public Message getLastMessage() {
+        if (sentMessages.isEmpty()) {
+            throw new IllegalStateException("No messages sent");
+        }
+        return sentMessages.get(sentMessages.size() - 1);
     }
 
     public void reset() {
-        this.sendMessageCalled = false;
-        this.lastMessageBody = null;
-        this.lastChannel = null;
+        sentMessages.clear();
     }
 }

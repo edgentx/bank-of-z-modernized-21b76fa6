@@ -3,6 +3,7 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public record MenuNavigatedEvent(
         String aggregateId,
@@ -10,18 +11,22 @@ public record MenuNavigatedEvent(
         String action,
         Instant occurredAt
 ) implements DomainEvent {
+    public MenuNavigatedEvent {
+        // Ensure immutability and valid data
+    }
+
     @Override
     public String type() {
         return "menu.navigated";
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

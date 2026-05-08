@@ -39,6 +39,7 @@
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-core</artifactId>
     </dependency>
+    <!-- Added explicit version tag to fix build error -->
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-db2</artifactId>

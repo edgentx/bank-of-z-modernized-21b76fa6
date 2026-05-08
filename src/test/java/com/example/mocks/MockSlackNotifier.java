@@ -1,25 +1,22 @@
-package com.example.mocks;
+package com.example.steps;
 
-import com.example.ports.SlackNotifier;
+import com.example.ports.SlackNotifierPort;
 
 /**
- * Mock implementation of SlackNotifier for testing.
- * Records the last sent message to allow assertions on the content.
+ * Mock adapter for SlackNotifierPort.
+ * Stores the last message for assertion verification.
  */
-public class MockSlackNotifier implements SlackNotifier {
+public class MockSlackNotifier implements SlackNotifierPort {
 
-    private String lastMessage;
+    private String lastMessageBody;
 
     @Override
-    public void void sendNotification(String messageBody) {
-        this.lastMessage = messageBody;
+    public void sendNotification(String message) {
+        this.lastMessageBody = message;
+        System.out.println("[MockSlack] Sent: " + message);
     }
 
-    public String getLastMessage() {
-        return lastMessage;
-    }
-
-    public boolean wasCalled() {
-        return lastMessage != null;
+    public String getLastMessageBody() {
+        return lastMessageBody;
     }
 }

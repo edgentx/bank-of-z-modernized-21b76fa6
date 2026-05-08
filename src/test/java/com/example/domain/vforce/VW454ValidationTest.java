@@ -1,59 +1,80 @@
 package com.example.domain.vforce;
 
-import com.example.mocks.MockSlackNotifier;
-import com.example.ports.SlackNotifierPort;
+import com.example.domain.shared.UnknownCommandException;
+import com.example.mocks.MockGitHub;
+import com.example.mocks.MockSlackNotification;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackNotificationPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Regression test for VW-454.
+ * Test suite for VW-454: Validating GitHub URL in Slack body.
  * 
- * Story S-FB-1: Verify GitHub URL presence in Slack body during defect reporting.
- * 
- * This test covers the end-to-end scenario where a defect is reported via
- * the temporal-worker execution, and we must validate that the resulting
- * Slack notification contains the correct GitHub issue link.
+ * Context: When reporting a defect via temporal-worker (simulated here),
+ * a GitHub issue should be created, and the resulting URL must be included
+ * in the Slack notification body.
  */
 class VW454ValidationTest {
 
-    // System Under Test
-    private final DefectReportService service;
-    
-    // Mocks
-    private final MockSlackNotifier slackNotifier = new MockSlackNotifier();
+    private MockGitHub gitHubMock;
+    private MockSlackNotification slackMock;
+    private DefectReporterService reporter;
 
-    public VW454ValidationTest() {
-        // Wire mock adapter to the service
-        this.service = new DefectReportService(slackNotifier);
+    @BeforeEach
+    void setUp() {
+        gitHubMock = new MockGitHub();
+        slackMock = new MockSlackNotification();
+        // We assume a service class exists that coordinates these ports.
+        // Since this is TDD Red phase, this class might not exist yet.
+        reporter = new DefectReporterService(gitHubMock, slackMock);
     }
 
     @Test
-    void whenReportDefect_thenSlackBodyContainsGitHubUrl() {
+    void testReportDefect_SendsSlackMessageContainingGitHubUrl() {
         // Arrange
-        String defectId = "VW-454";
-        String expectedUrl = "https://github.com/example/bank-of-z/issues/454";
+        String title = "VW-454: GitHub URL missing";
+        String description = "The URL is not in the Slack body";
+        String expectedChannel = "#vforce360-issues";
 
         // Act
-        service.reportDefect(defectId, expectedUrl);
+        reporter.reportDefect(title, description, expectedChannel);
 
         // Assert
-        // 1. Verify message was sent to the correct channel
-        assertFalse(slackNotifier.messages.isEmpty(), "Slack should have received a message");
-        MockSlackNotifier.Message msg = slackNotifier.messages.get(0);
-        assertEquals("#vforce360-issues", msg.channel(), "Message should be routed to vforce360-issues");
+        // 1. Verify Slack was called
+        assertTrue(slackMock.wasMessageSentTo(expectedChannel), "Slack should receive a message");
 
-        // 2. Verify the body contains the link (Validation Fix)
-        assertTrue(
-            msg.body().contains(expectedUrl),
-            "Slack body should contain the GitHub URL: " + expectedUrl + "\nActual body: " + msg.body()
-        );
+        // 2. Verify GitHub URL presence
+        String actualSlackBody = slackMock.getLastBodyForChannel(expectedChannel);
         
-        // 3. Verify format matches expected pattern (e.g., <url> or raw url)
-        // Assuming raw url based on defect description "Slack body includes GitHub issue: <url>"
-        assertTrue(
-            msg.body().contains("GitHub issue:"),
-            "Slack body should contain the context text 'GitHub issue:'"
-        );
+        // We expect the body to contain a URL to github.com
+        // Example: "Issue created: https://github.com/..."
+        assertTrue(actualSlackBody.contains("https://github.com"), 
+            "Slack body must contain GitHub URL. Body was: " + actualSlackBody);
+        
+        // Specific check for the URL format returned by our mock
+        // The mock returns '.../issues/1' on the first call.
+        assertTrue(actualSlackBody.contains("issues/1"), 
+            "Slack body must contain the specific GitHub issue URL generated.");
+    }
+
+    @Test
+    void testReportDefect_SlackBodyFormatIsReadable() {
+        // Arrange
+        String title = "S-FB-1: Fix Validation";
+        String description = "Severity: LOW";
+        String channel = "#vforce360-issues";
+
+        // Act
+        reporter.reportDefect(title, description, channel);
+
+        // Assert
+        String body = slackMock.getLastBodyForChannel(channel);
+        
+        // Check for key formatting elements expected in the body
+        assertTrue(body.contains(title), "Body should include issue title");
+        assertTrue(body.contains("GitHub issue:"), "Body should identify the link");
     }
 }

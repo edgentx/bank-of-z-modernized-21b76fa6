@@ -1,11 +1,16 @@
 package com.example.ports;
 
-import com.example.domain.vforce360.DefectReportedEvent;
-
 /**
- * Port for sending Slack notifications.
- * Implementations (Real, Mock) must handle formatting and sending the message.
+ * Port interface for sending Slack notifications.
+ * Implementations will handle the actual HTTP call to Slack Web API.
  */
 public interface SlackNotificationPort {
-    void notifyDefect(DefectReportedEvent event, String githubIssueUrl);
+
+    /**
+     * Sends a notification to the configured Slack channel.
+     *
+     * @param message The formatted message body to send.
+     * @return true if the API call was accepted, false otherwise.
+     */
+    boolean sendMessage(String message);
 }

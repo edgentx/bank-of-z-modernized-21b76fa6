@@ -2,19 +2,13 @@ package com.example.adapters;
 
 import com.example.domain.validation.model.ValidationAggregate;
 import com.example.domain.validation.repository.ValidationRepository;
-import org.springframework.stereotype.Repository;
-
+import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * In-Memory implementation of the Validation Repository.
- * Useful for testing and prototyping before persisting to DB2/Mongo.
- */
-@Repository
+@Component
 public class ValidationRepositoryAdapter implements ValidationRepository {
-
     private final Map<String, ValidationAggregate> store = new HashMap<>();
 
     @Override
@@ -24,7 +18,7 @@ public class ValidationRepositoryAdapter implements ValidationRepository {
     }
 
     @Override
-    public ValidationAggregate findById(String id) {
-        return store.get(id);
+    public Optional<ValidationAggregate> findById(String id) {
+        return Optional.ofNullable(store.get(id));
     }
 }

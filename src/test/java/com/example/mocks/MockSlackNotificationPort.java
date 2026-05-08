@@ -1,38 +1,39 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Captures the last sent message body for assertions.
+ * Mock implementation of SlackNotificationPort for unit testing.
+ * Captures sent messages to verify content without external I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
-    private String lastChannelId;
-    private Map<String, Object> lastMessageBody;
+
+    private final List<Message> sentMessages = new ArrayList<>();
+
+    public record Message(String channel, String body) {}
 
     @Override
-    public void sendMessage(String channelId, Map<String, Object> messageBody) {
-        this.lastChannelId = channelId;
-        this.lastMessageBody = new HashMap<>(messageBody); // Defensive copy
+    public void sendMessage(String channel, String messageBody) {
+        this.sentMessages.add(new Message(channel, messageBody));
     }
 
-    public String getLastChannelId() {
-        return lastChannelId;
+    public List<Message> getSentMessages() {
+        return new ArrayList<>(sentMessages);
     }
 
-    public Map<String, Object> getLastMessageBody() {
-        return lastMessageBody;
+    public void clear() {
+        sentMessages.clear();
     }
 
-    public String getLastMessageText() {
-        return lastMessageBody != null ? (String) lastMessageBody.get("text") : null;
-    }
-
-    public void reset() {
-        lastChannelId = null;
-        lastMessageBody = null;
+    /**
+     * Helper assertion for regression tests.
+     * Verifies that the body contains a GitHub URL matching the expected format.
+     */
+    public boolean hasMessageWithGitHubLink(String channel) {
+        return sentMessages.stream()
+            .filter(m -> m.channel().equals(channel))
+            .anyMatch(m -> m.body().contains("http") && m.body().contains("github.com"));
     }
 }

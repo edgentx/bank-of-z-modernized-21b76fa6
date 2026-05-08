@@ -1,18 +1,19 @@
 package com.example.domain.legacybridge.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
+import java.util.Map;
 
 /**
- * Event emitted when a routing decision has been successfully evaluated.
- * Used by S-23: EvaluateRoutingCmd on LegacyTransactionRoute.
+ * Event emitted when routing rules are successfully evaluated.
  */
 public record RoutingEvaluatedEvent(
-    String aggregateId,
-    String transactionType,
-    String targetSystem, // e.g. "MODERN", "LEGACY"
-    int rulesVersion,
-    Instant occurredAt
+        String aggregateId,
+        String targetSystem, // "MODERN" or "LEGACY"
+        String rulesVersion,
+        Map<String, Object> context,
+        Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {

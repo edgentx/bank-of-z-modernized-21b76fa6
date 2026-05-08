@@ -1,10 +1,11 @@
 package com.example.ports;
 
-import com.example.domain.shared.Command;
+import com.example.domain.vforce360.model.DefectAggregate;
 
 /**
- * Port for recording defect reports (Temporal or DB interaction).
+ * Repository interface for Defect aggregates.
  */
 public interface DefectRepositoryPort {
-    void recordDefect(String defectId, Command command);
+    void save(DefectAggregate aggregate);
+    DefectAggregate findById(String defectId);
 }

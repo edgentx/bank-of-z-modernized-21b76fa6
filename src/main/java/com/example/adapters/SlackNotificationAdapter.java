@@ -6,8 +6,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Real adapter for sending Slack notifications.
- * In a production environment, this would use the Slack WebClient API.
+ * Real Adapter for Slack Notifications.
+ * In a production environment, this would use an HTTP client (e.g., WebClient or RestTemplate)
+ * to POST the message to the Slack API Webhook URL.
+ * <p>
+ * For the purpose of defect validation VW-454, this implementation logs the payload
+ * to console to facilitate verification without requiring valid Slack credentials.
  */
 @Component
 public class SlackNotificationAdapter implements SlackNotificationPort {
@@ -15,12 +19,16 @@ public class SlackNotificationAdapter implements SlackNotificationPort {
     private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
 
     @Override
-    public void sendDefectReport(String messageBody) {
-        // Implementation stub: Real implementation would post to Slack Webhook or API.
-        // Logging here to simulate external interaction.
-        log.info("[SLACK] Sending notification: {}", messageBody);
-        
-        // Pseudocode for real implementation:
-        // SlackClient.postMessage(messageBody);
+    public void sendMessage(String messageBody) {
+        // Log the message to verify content in e2e/regression scenarios
+        log.info("Sending Slack Notification: {}", messageBody);
+
+        // In production, uncomment below to send real request:
+        // webClient.post()
+        //     .uri(slackWebhookUrl)
+        //     .bodyValue(messageBody)
+        //     .retrieve()
+        //     .bodyToMono(Void.class)
+        //     .block();
     }
 }

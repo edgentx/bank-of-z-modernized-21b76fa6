@@ -1,52 +1,41 @@
 package com.example.mocks;
 
 import com.example.ports.VForce360NotificationPort;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Mock adapter for VForce360 notifications.
- * Captures published messages for verification in tests.
+ * Stores sent payloads in memory for verification in tests.
  */
 public class MockVForce360NotificationPort implements VForce360NotificationPort {
 
-    public static class Notification {
-        public final String title;
-        public final String description;
-        public final String githubUrl;
-        public final long timestamp;
-
-        public Notification(String title, String description, String githubUrl) {
-            this.title = title;
-            this.description = description;
-            this.githubUrl = githubUrl;
-            this.timestamp = System.currentTimeMillis();
-        }
-    }
-
-    private final List<Notification> notifications = new ArrayList<>();
+    private final Map<String, Map<String, String>> sentReports = new ConcurrentHashMap<>();
+    private boolean shouldFail = false;
 
     @Override
-    public void publishDefect(String title, String description, String githubUrl) {
-        // Simulate basic validation logic expected of the real port
-        if (githubUrl == null || githubUrl.isBlank()) {
-            throw new IllegalArgumentException("GitHub URL cannot be null or blank");
-        }
-        this.notifications.add(new Notification(title, description, githubUrl));
+    public boolean reportDefect(String defectId, Map<String, String> metadata) {
+        if (shouldFail) return false;
+        sentReports.put(defectId, new HashMap<>(metadata));
+        return true;
     }
 
-    public List<Notification> getNotifications() {
-        return new ArrayList<>(notifications);
+    public Map<String, String> getReport(String defectId) {
+        return sentReports.get(defectId);
     }
 
-    public void clear() {
-        notifications.clear();
+    public Set<String> getReportedDefectIds() {
+        return sentReports.keySet();
     }
 
-    public Notification getLatest() {
-        if (notifications.isEmpty()) {
-            throw new IllegalStateException("No notifications published");
-        }
-        return notifications.get(notifications.size() - 1);
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
+    }
+
+    public void reset() {
+        sentReports.clear();
+        this.shouldFail = false;
     }
 }

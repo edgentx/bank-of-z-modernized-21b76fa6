@@ -1,11 +1,11 @@
 package com.example.ports;
 
-import com.example.vforce.shared.ReportDefectCommand;
+import com.example.domain.defect.model.DefectReportedEvent;
 
 /**
- * Port interface for sending notifications (e.g., Slack).
- * Allows mocking in tests without real I/O.
+ * Port for sending notifications (e.g., Slack).
+ * Abstracted to allow mocking in tests and real implementation in production.
  */
 public interface NotificationPort {
-    void notifyChannel(ReportDefectCommand command);
+    void sendDefectAlert(DefectReportedEvent event);
 }

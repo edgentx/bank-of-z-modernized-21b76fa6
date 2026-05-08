@@ -4,29 +4,30 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.2.0</version>
+    <version>3.3.3</version>
     <relativePath/>
   </parent>
   <groupId>com.example</groupId>
-  <artifactId>bank-of-z</artifactId>
+  <artifactId>egdcrypto-bank-of-z-modernized-21b76fa6-feature-s-18</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>Bank of Z</name>
-  <description>Bank of Z Modernization</description>
+  <name>egdcrypto-bank-of-z-modernized-21b76fa6-feature-s-18</name>
+  <description>Demo project for Spring Boot</description>
   <properties>
     <java.version>17</java.version>
+    <cucumber.version>7.18.1</cucumber.version>
   </properties>
   <dependencies>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
+      <groupId>com.ibm.db2</groupId>
+      <artifactId>jcc</artifactId>
       <scope>runtime</scope>
     </dependency>
     <dependency>
@@ -37,13 +38,19 @@
     <dependency>
       <groupId>io.cucumber</groupId>
       <artifactId>cucumber-java</artifactId>
-      <version>7.14.0</version>
+      <version>${cucumber.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.cucumber</groupId>
       <artifactId>cucumber-junit-platform-engine</artifactId>
-      <version>7.14.0</version>
+      <version>${cucumber.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.cucumber</groupId>
+      <artifactId>cucumber-spring</artifactId>
+      <version>${cucumber.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -52,6 +59,7 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
   <build>
     <plugins>
       <plugin>

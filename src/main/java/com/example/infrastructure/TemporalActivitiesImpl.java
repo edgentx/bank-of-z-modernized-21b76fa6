@@ -1,48 +1,68 @@
 package com.example.infrastructure;
 
-import com.example.domain.shared.SlackMessageValidator;
-import com.example.ports.SlackNotifier;
-import com.example.domain.defect.repository.DefectRepository;
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.domain.defect.port.DefectRepository;
+import com.example.domain.validation.model.VerifySlackLinkCmd;
+import com.example.domain.validation.model.ValidationAggregate;
+import com.example.domain.validation.port.ValidationRepository;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
-@ActivityInterface
-public interface TemporalActivities {
-    @ActivityMethod
-    String reportDefectActivity(String defectJson);
-}
+import java.util.List;
 
-public class TemporalActivitiesImpl implements TemporalActivities {
-    private static final Logger log = LoggerFactory.getLogger(TemporalActivitiesImpl.class);
-    private final SlackNotifier slackNotifier;
+/**
+ * Temporal Activities Implementation.
+ * This class contains the actual logic executed by the Temporal workflow.
+ * It interacts with the domain aggregates via repositories.
+ */
+@Service
+public class TemporalActivitiesImpl {
+
     private final DefectRepository defectRepository;
+    private final ValidationRepository validationRepository;
 
-    public TemporalActivitiesImpl(SlackNotifier slackNotifier, DefectRepository defectRepository) {
-        this.slackNotifier = slackNotifier;
+    public TemporalActivitiesImpl(DefectRepository defectRepository, ValidationRepository validationRepository) {
         this.defectRepository = defectRepository;
+        this.validationRepository = validationRepository;
     }
 
-    @Override
-    public String reportDefectActivity(String defectJson) {
-        // Implementation for story S-FB-1
-        // The defect is assumed to be parsed/hydrated here for the E2E flow
-        // In a real scenario, we would parse JSON, but we assume the Aggregate
-        // is populated for the verification step.
+    /**
+     * Reports a defect, generating the GitHub URL.
+     * Corresponds to _report_defect activity.
+     */
+    public void reportDefect(String defectId, String title, String description) {
+        DefectAggregate defect = new DefectAggregate(defectId);
+        ReportDefectCmd cmd = new ReportDefectCmd(defectId, title, description);
+        
+        defect.execute(cmd);
+        defectRepository.save(defect);
+    }
 
-        // For the purpose of the test, we will simulate the flow where
-        // we load an aggregate, verify its content, and notify Slack.
-        // Note: In a real Temporal worker, this would involve deserialization.
+    /**
+     * Validates that the Slack body contains the expected GitHub URL.
+     * Corresponds to the validation step in the workflow.
+     */
+    public boolean validateSlackBody(String validationId, String slackBody, String expectedUrl) {
+        ValidationAggregate validation = new ValidationAggregate(validationId);
+        VerifySlackLinkCmd cmd = new VerifySlackLinkCmd(validationId, slackBody, expectedUrl);
         
-        // Mocking the 'process' of validating URL presence before sending
-        // (VW-454 validation)
+        List<io.temporal.workflow.Workflow> events = (List<io.temporal.workflow.Workflow>) validation.execute(cmd);
+        validationRepository.save(validation);
         
-        // This is a placeholder for the actual logic that would be compiled.
-        // The TDD test will drive the implementation of the workflow service
-        // which utilizes this activity.
-        
-        log.info("Executing reportDefectActivity via Temporal");
-        return "ActivityExecuted";
+        return validation.isLinkVerified();
+    }
+
+    /**
+     * Interface definition for Temporal to discover activities.
+     */
+    @ActivityInterface
+    public interface DefectActivities {
+        @ActivityMethod
+        void reportDefect(String defectId, String title, String description);
+
+        @ActivityMethod
+        boolean validateSlackBody(String validationId, String slackBody, String expectedUrl);
     }
 }

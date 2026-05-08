@@ -6,14 +6,24 @@ import java.time.Instant;
 import java.util.Set;
 
 public record SessionStartedEvent(
-    String aggregateId,
-    String tellerId,
-    String terminalId,
-    Set<String> roles,
-    Instant occurredAt
+        String sessionId,
+        String tellerId,
+        String terminalId,
+        Set<String> activeOperations,
+        Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
         return "session.started";
+    }
+
+    @Override
+    public String aggregateId() {
+        return sessionId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

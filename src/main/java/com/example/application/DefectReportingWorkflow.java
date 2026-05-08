@@ -1,45 +1,38 @@
 package com.example.application;
 
-import com.example.domain.shared.ReportDefectCmd;
-import com.example.domain.shared.SlackMessage;
-import com.example.ports.SlackNotifierPort;
-import org.springframework.stereotype.Service;
+import com.example.domain.validation.model.ReportDefectCmd;
+import com.example.workers.ReportDefectActivity;
+import io.temporal.workflow.WorkflowInterface;
+import io.temporal.workflow.WorkflowMethod;
 
 /**
- * Workflow service handling the defect reporting process.
- * Orchestrates the validation of inputs and notification delivery.
- * Implements the logic required to satisfy VW-454 validation.
+ * Orchestrates the reporting of defects via Temporal.
+ * Ensures that if the Slack notification fails, the workflow can retry based on Temporal policies.
  */
-@Service
-public class DefectReportingWorkflow {
+@WorkflowInterface
+public interface DefectReportingWorkflow {
 
-    private final SlackNotifierPort slackNotifier;
-
-    public DefectReportingWorkflow(SlackNotifierPort slackNotifier) {
-        this.slackNotifier = slackNotifier;
-    }
+    @WorkflowMethod
+    void reportDefect(ReportDefectCmd cmd);
 
     /**
-     * Executes the defect reporting workflow.
-     * Validates the GitHub URL presence and formats the Slack body.
-     *
-     * @param cmd The command containing defect details and GitHub URL.
-     * @throws IllegalArgumentException if validation fails.
+     * Workflow implementation.
      */
-    public void reportDefect(ReportDefectCmd cmd) {
-        // 1. Validate inputs - Specifically ensuring URL is present as per VW-454
-        if (cmd.githubIssueUrl() == null || cmd.githubIssueUrl().isBlank()) {
-            throw new IllegalArgumentException("GitHub Issue URL cannot be null or empty");
+    class DefectReportingWorkflowImpl implements DefectReportingWorkflow {
+        private final ReportDefectActivity activity;
+
+        // Temporal requires a no-arg constructor or factory for the Workflow class,
+        // but Activities are injected via the Worker stub in practice.
+        // For this Spring implementation, we assume the stub is proxied.
+        public DefectReportingWorkflowImpl() {
+            // Activities are initialized by the Temporal Worker using a stub, 
+            // but we declare the type for clarity.
+            this.activity = io.temporal.workflow.Workflow.newActivityStub(ReportDefectActivity.class);
         }
 
-        // 2. Construct the Slack Body
-        // Expectation: The body MUST contain the URL.
-        String body = "Defect ID: " + cmd.defectId() + "\n" +
-                      "GitHub Issue: " + cmd.githubIssueUrl();
-
-        // 3. Send Notification via the port
-        // In the real world, this would be injected. Here we use the mock directly to simulate.
-        // We act as the orchestrator calling the port.
-        slackNotifier.send(new SlackMessage("#vforce360-issues", body));
+        @Override
+        public void reportDefect(ReportDefectCmd cmd) {
+            activity.reportDefect(cmd);
+        }
     }
 }

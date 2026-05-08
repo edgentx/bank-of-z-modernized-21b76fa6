@@ -1,18 +1,16 @@
 package com.example.ports;
 
-import com.example.domain.shared.Command;
-
 /**
  * Port interface for sending Slack notifications.
- * Abstraction for the Slack WebClient.
+ * Used by the domain logic to decouple from the specific Slack provider implementation.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Posts a defect report to the configured Slack channel.
+     * Sends a notification message to a specific channel.
      *
-     * @param command The command triggering the notification (contains context).
-     * @param messageBody The formatted message body to be sent.
+     * @param channel The target Slack channel (e.g., "#vforce360-issues")
+     * @param messageBody The formatted body of the message (Slack markdown)
      */
-    void postDefectNotification(Command command, String messageBody);
+    void sendNotification(String channel, String messageBody);
 }

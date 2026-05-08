@@ -2,10 +2,10 @@ package com.example.application;
 
 import com.example.ports.GithubPort;
 import com.example.ports.SlackPort;
+import com.example.vforce.shared.ReportDefectCommand;
+import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Map;
-
+@Service
 public class ReportDefectWorkflowService {
 
     private final GithubPort githubPort;
@@ -16,16 +16,14 @@ public class ReportDefectWorkflowService {
         this.slackPort = slackPort;
     }
 
-    public void reportDefect(String title, String description) {
+    public void execute(ReportDefectCommand command) {
         // 1. Create GitHub Issue
-        String githubUrl = githubPort.createIssue(title, description);
+        String issueUrl = githubPort.createIssue(command);
 
-        // 2. Notify Slack with the URL included in the body
-        // Expected Behavior: Slack body includes GitHub issue: <url>
-        Map<String, String> slackMessage = new HashMap<>();
-        slackMessage.put("text", "Defect reported: " + title + "\nGitHub issue: " + githubUrl);
-
-        // Send to specific channel mentioned in defect report
+        // 2. Send Slack notification with the link (The Fix for VW-454)
+        // Defect: The URL was missing in the previous implementation.
+        // Expected: Slack body includes GitHub issue: <url>
+        String slackMessage = "New defect reported: " + command.title() + "\nGitHub Issue: " + issueUrl;
         slackPort.sendMessage("#vforce360-issues", slackMessage);
     }
 }

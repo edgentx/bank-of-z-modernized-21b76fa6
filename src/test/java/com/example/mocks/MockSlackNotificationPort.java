@@ -6,25 +6,23 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages to verify contents without external I/O.
+ * Captures messages sent to Slack to verify content and URLs.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
-    private final List<String> postedBodies = new ArrayList<>();
+
+    public final List<String> postedMessages = new ArrayList<>();
 
     @Override
-    public void postMessage(String body) {
-        if (body == null) {
-            throw new IllegalArgumentException("Slack body cannot be null");
-        }
-        // Simulate recording the message
-        this.postedBodies.add(body);
+    public void postMessage(String messageBody) {
+        this.postedMessages.add(messageBody);
     }
 
-    public List<String> getPostedBodies() {
-        return new ArrayList<>(postedBodies);
+    public String getLastMessage() {
+        if (postedMessages.isEmpty()) return null;
+        return postedMessages.get(postedMessages.size() - 1);
     }
 
     public void clear() {
-        postedBodies.clear();
+        postedMessages.clear();
     }
 }

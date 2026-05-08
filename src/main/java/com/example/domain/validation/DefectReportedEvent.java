@@ -1,4 +1,4 @@
-package com.example.domain.validation.model;
+package com.example.domain.validation;
 
 import com.example.domain.shared.DomainEvent;
 
@@ -6,50 +6,25 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Domain Event representing a defect report filed in the system.
- * Emitted when a defect reporting workflow (e.g., Temporal) concludes.
+ * Domain event published when a defect is successfully reported and validated.
  */
-public class DefectReportedEvent implements DomainEvent {
-
-    private final String eventId = UUID.randomUUID().toString();
-    private final String aggregateId;
-    private final String defectId;
-    private final String description;
-    private final String githubIssueUrl;
-    private final Instant occurredAt;
-
-    public DefectReportedEvent(String defectId, String description, String githubIssueUrl) {
-        this.aggregateId = defectId; // Using defect ID as the aggregate identifier for this context
-        this.defectId = defectId;
-        this.description = description;
-        this.githubIssueUrl = githubIssueUrl;
-        this.occurredAt = Instant.now();
-    }
+public record DefectReportedEvent(
+        String aggregateId,
+        String channel,
+        String messageBody,
+        Instant occurredAt
+) implements DomainEvent {
 
     @Override
     public String type() {
-        return "DefectReported";
+        return "DefectReportedEvent";
     }
 
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
-
-    public String getDefectId() {
-        return defectId;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public String getGithubIssueUrl() {
-        return githubIssueUrl;
+    // Explicit canonical constructor to prevent synthetic field issues if needed,
+    // though record handles this. Keeping it simple.
+    public DefectReportedEvent {
+        if (aggregateId == null || aggregateId.isBlank()) {
+            throw new IllegalArgumentException("aggregateId cannot be null");
+        }
     }
 }

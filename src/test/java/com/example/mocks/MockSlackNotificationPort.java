@@ -1,42 +1,42 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- * Mock adapter for Slack notifications.
- * Stores messages in memory to verify behavior without external I/O.
- */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final Map<String, String> messages = new HashMap<>();
+    public final List<String> postedMessages = new ArrayList<>();
+    public String lastChannelId;
+    private boolean shouldFail = false;
 
     @Override
-    public void sendMessage(String channel, String messageBody) {
-        if (channel == null || channel.isBlank()) {
-            throw new IllegalArgumentException("Channel cannot be null or empty");
+    public void postMessage(String channelId, String messageBody) {
+        if (shouldFail) {
+            throw new RuntimeException("Slack API unavailable (simulated)");
         }
-        if (messageBody == null) {
-            throw new IllegalArgumentException("Message body cannot be null");
+        if (channelId == null || messageBody == null) {
+            throw new IllegalArgumentException("ChannelId and MessageBody cannot be null");
         }
-        // In a real mock, we might want to simulate errors, but for default behavior we just store.
-        this.messages.put(channel, messageBody);
+        this.lastChannelId = channelId;
+        this.postedMessages.add(messageBody);
     }
 
     @Override
-    public String getLastMessage(String channel) {
-        return this.messages.get(channel);
+    public void postToDefaultChannel(String messageBody) {
+        postMessage("C_DEFAULT_ISSUES", messageBody);
     }
 
-    /**
-     * Helper method for tests to check if a specific channel was ever called.
-     */
-    public boolean hasReceivedMessageForChannel(String channel) {
-        return this.messages.containsKey(channel);
+    public void reset() {
+        postedMessages.clear();
+        lastChannelId = null;
     }
 
-    public void clear() {
-        this.messages.clear();
+    public void setShouldFail(boolean flag) {
+        this.shouldFail = flag;
+    }
+
+    public boolean wasCalled() {
+        return !postedMessages.isEmpty();
     }
 }

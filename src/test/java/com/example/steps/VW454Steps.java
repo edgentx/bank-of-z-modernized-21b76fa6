@@ -1,81 +1,105 @@
 package com.example.steps;
 
-import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.adapters.ValidationRepositoryImpl;
-import com.example.domain.validation.model.ValidationAggregate;
-import com.example.adapters.WebhookSlackNotificationAdapter;
+import com.example.adapters.SlackNotificationPort;
+import com.example.domain.vforce360.model.ReportDefectCmd;
+import com.example.domain.vforce360.model.VForce360Aggregate;
+import com.example.mocks.InMemoryVForce360Repository;
+import com.example.ports.GitHubPort;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
+import org.mockito.ArgumentCaptor;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * Steps for validating VW-454:
+ * Ensures that when a defect is reported, a GitHub issue is created
+ * and the resulting URL is successfully relayed to the Slack notification body.
+ */
 public class VW454Steps {
 
-    // Mocks / Stubs will be wired in via Spring or manual setup in a real scenario
-    // For the purpose of the failing test (Red phase), we focus on the flow.
+    // System Under Test
+    private VForce360Aggregate aggregate;
+    private InMemoryVForce360Repository repository;
 
-    private ValidationAggregate validationAggregate;
-    private WebhookSlackNotificationAdapter slackAdapter;
-    private String capturedSlackBody;
-    private Exception capturedException;
+    // Mocks
+    private GitHubPort mockGitHubPort;
+    private SlackNotificationPort mockSlackPort;
 
-    @Given("a defect report command is triggered")
-    public void a_defect_report_command_is_triggered() {
-        // Setup basic aggregates. 
-        // Since ValidationAggregate is missing (causing the build failure), we assume it will exist.
-        // We mock the Slack Adapter to capture output.
-        slackAdapter = mock(WebhookSlackNotificationAdapter.class);
-        
-        // Stub the adapter to capture the body string when notify is called
-        doAnswer(invocation -> {
-            Object[] args = invocation.getArguments();
-            if (args[0] instanceof String body) {
-                capturedSlackBody = body;
-            }
-            return null;
-        }).when(slackAdapter).notify(anyString());
+    // Inputs
+    private ReportDefectCmd command;
+
+    // Verification state
+    private Exception caughtException;
+
+    public VW454Steps() {
+        // Initialize mock adapters manually or via Spring context if configured
+        // Here we instantiate standard mocks for the red-phase
+        this.mockGitHubPort = mock(GitHubPort.class);
+        this.mockSlackPort = mock(SlackNotificationPort.class);
+        this.repository = new InMemoryVForce360Repository(mockGitHubPort, mockSlackPort);
     }
 
-    @When("the system processes the report_defect workflow")
-    public void the_system_processes_the_report_workflow() {
-        try {
-            // This simulates the workflow execution
-            // 1. Create command
-            var cmd = new ReportDefectCmd("VW-454", "GitHub URL missing in Slack body");
-            
-            // 2. Handle Validation (Simulated)
-            // ValidationRepository repo = new ValidationRepositoryImpl();
-            // validationAggregate = repo.load(cmd.defectId()); // Or create new
+    @Given("a defect report is ready for VForce360")
+    public void a_defect_report_is_ready_for_v_force360() {
+        // Valid payload based on VForce360 domain constraints
+        this.command = new ReportDefectCmd(
+            "vw-454",
+            "Validating VW-454",
+            "LOW",
+            "validation",
+            "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1"
+        );
+    }
 
-            // 3. Execute logic that eventually calls Slack Adapter
-            // In the real implementation, this happens inside the workflow/activity.
-            // Here we simulate the *expected* final call.
-            // We expect the adapter to be called with a GitHub URL.
-            // For the RED phase, we intentionally pass something that fails the check, 
-            // or we call the real adapter logic which is currently stubbed/missing.
+    @Given("the GitHub service is available")
+    public void the_github_service_is_available() {
+        // Simulate successful GitHub issue creation
+        String expectedUrl = "https://github.com/bank-of-z/vforce360/issues/454";
+        when(mockGitHubPort.createIssue(anyString(), anyString(), anyString()))
+            .thenReturn(expectedUrl);
+    }
+
+    @When("the defect is reported via the temporal-worker exec")
+    public void the_defect_is_reported_via_the_temporal_worker_exec() {
+        try {
+            // In the actual red phase, this Aggregate class might not exist yet,
+            // or might not implement the command, causing this to fail.
+            aggregate = new VForce360Aggregate(command.defectId());
             
-            // To ensure the test FAILS initially (Red Phase), we can assert that the URL is NOT present,
-            // assuming the feature hasn't been built yet to add it.
-            slackAdapter.notify("Defect VW-454 reported."); // Missing URL
+            // Simulate the command execution and repository save
+            // (which triggers the GitHub/Slack side effects)
+            repository.save(aggregate.execute(command));
+            
         } catch (Exception e) {
-            capturedException = e;
+            this.caughtException = e;
         }
     }
 
-    @Then("the Slack notification body contains the GitHub issue URL")
-    public void the_slack_notification_body_contains_the_github_issue_url() {
-        // If the feature is implemented, the body should look like:
-        // "Defect VW-454 reported. GitHub: http://github.com/..."
-        
-        assertNotNull(capturedSlackBody, "Slack body should not be null");
-        
-        // In TDD Red phase, we expect this assertion to fail because we haven't implemented the logic
-        // to append the URL yet.
-        // However, looking at the Story "Actual Behavior: checking... for the link line", 
-        // we assume the link is MISSING.
-        
-        assertTrue(capturedSlackBody.contains("http"), "Slack body must contain the GitHub URL");
-        assertTrue(capturedSlackBody.contains("github.com"), "Slack body must contain github.com domain");
+    @Then("the Slack body contains the GitHub issue link")
+    public void the_slack_body_contains_the_github_issue_link() {
+        // 1. Verify no errors during execution
+        if (caughtException != null) {
+            fail("Command execution failed unexpectedly in Red Phase: " + caughtException.getMessage(), caughtException);
+        }
+
+        // 2. Verify GitHub was called
+        verify(mockGitHubPort, times(1)).createIssue(
+            eq("[vw-454] Validating VW-454"),
+            contains("21b76fa6-afb6-4593-9e1b-b5d7548ac4d1"),
+            eq("bug")
+        );
+
+        // 3. Verify Slack was called with the URL in the body
+        ArgumentCaptor<String> slackBodyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(mockSlackPort, times(1)).sendNotification(slackBodyCaptor.capture());
+
+        String actualSlackBody = slackBodyCaptor.getValue();
+        assertTrue(
+            actualSlackBody.contains("https://github.com/bank-of-z/vforce360/issues/454"),
+            "Expected Slack body to contain GitHub URL, but got: " + actualSlackBody
+        );
     }
 }

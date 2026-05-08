@@ -2,42 +2,31 @@ package com.example.mocks;
 
 import com.example.ports.GitHubPort;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Optional;
 
 /**
- * Mock implementation of GitHubPort for testing.
- * Stores generated URLs for verification.
+ * Mock implementation of {@link com.example.ports.GitHubPort} for testing.
+ * By default, it simulates a successful creation returning a dummy URL.
  */
 public class MockGitHubPort implements GitHubPort {
 
-    private final Set<String> createdIssues = new HashSet<>();
-    private String simulatedBaseUrl = "https://github.com/mock-org/issues/";
-    private int issueCounter = 1;
+    private final String mockUrl;
     private boolean shouldFail = false;
 
+    public MockGitHubPort() {
+        // Default deterministic URL for testing
+        this.mockUrl = "https://github.com/fake-repo/issues/1";
+    }
+
     @Override
-    public String createIssue(String summary, String description) {
+    public Optional<String> createIssue(String title, String description) {
         if (shouldFail) {
-            throw new RuntimeException("Mock GitHub API Failure");
+            return Optional.empty();
         }
-        String url = simulatedBaseUrl + issueCounter++;
-        createdIssues.add(url);
-        System.out.println("[MockGitHub] Created issue: " + url);
-        return url;
+        return Optional.of(mockUrl);
     }
 
-    public boolean wasIssueCreated(String url) {
-        return createdIssues.contains(url);
-    }
-
-    public void reset() {
-        createdIssues.clear();
-        issueCounter = 1;
-        shouldFail = false;
-    }
-
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
+    public void setShouldFail(boolean shouldFail) {
+        this.shouldFail = shouldFail;
     }
 }

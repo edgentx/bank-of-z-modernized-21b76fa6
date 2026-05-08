@@ -2,27 +2,28 @@ package com.example.adapters;
 
 import com.example.domain.defect.model.DefectAggregate;
 import com.example.domain.defect.repository.DefectRepository;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
+
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
- * In-Memory implementation of DefectRepository.
- * suitable for the Green phase without a real database connection.
+ * In-memory repository adapter for DefectAggregate.
+ * Uses a simple HashMap for persistence. In a real scenario, this would interface with DB2.
  */
-@Component
+@Repository
 public class DefectRepositoryImpl implements DefectRepository {
 
     private final Map<String, DefectAggregate> store = new HashMap<>();
 
     @Override
-    public DefectAggregate save(DefectAggregate aggregate) {
+    public void save(DefectAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
-        return aggregate;
     }
 
     @Override
-    public DefectAggregate findById(String defectId) {
-        return store.get(defectId);
+    public DefectAggregate findById(String id) {
+        return store.get(id);
     }
 }

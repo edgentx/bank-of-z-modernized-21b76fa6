@@ -5,35 +5,46 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotificationPort for unit testing.
- * Captures sent messages to verify content without external I/O.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Captures messages sent to Slack for verification.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<Message> sentMessages = new ArrayList<>();
+    public static class SentMessage {
+        public final String channel;
+        public final String body;
 
-    public record Message(String channel, String body) {}
+        public SentMessage(String channel, String body) {
+            this.channel = channel;
+            this.body = body;
+        }
+    }
+
+    private final List<SentMessage> messages = new ArrayList<>();
+    private boolean simulateFailure = false;
 
     @Override
-    public void sendMessage(String channel, String messageBody) {
-        this.sentMessages.add(new Message(channel, messageBody));
+    public boolean postMessage(String channel, String messageBody) {
+        if (simulateFailure) return false;
+        this.messages.add(new SentMessage(channel, messageBody));
+        return true;
     }
 
-    public List<Message> getSentMessages() {
-        return new ArrayList<>(sentMessages);
+    public List<SentMessage> getMessages() {
+        return messages;
     }
 
-    public void clear() {
-        sentMessages.clear();
+    public void reset() {
+        messages.clear();
+        simulateFailure = false;
     }
 
-    /**
-     * Helper assertion for regression tests.
-     * Verifies that the body contains a GitHub URL matching the expected format.
-     */
-    public boolean hasMessageWithGitHubLink(String channel) {
-        return sentMessages.stream()
-            .filter(m -> m.channel().equals(channel))
-            .anyMatch(m -> m.body().contains("http") && m.body().contains("github.com"));
+    public void setSimulateFailure(boolean simulateFailure) {
+        this.simulateFailure = simulateFailure;
+    }
+
+    public SentMessage getLastMessage() {
+        if (messages.isEmpty()) return null;
+        return messages.get(messages.size() - 1);
     }
 }

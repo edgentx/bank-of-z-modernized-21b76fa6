@@ -5,37 +5,51 @@ import com.example.ports.SlackNotificationPort;
 
 /**
  * Service class responsible for reporting defects.
- * This class acts as the "System Under Test" (SUT).
- * In a real TDD cycle, this file would be created empty or with stubs to fail compilation,
- * then filled in during the Green phase.
- * 
- * Included here to allow the test logic to be illustrative of the desired behavior.
+ * Orchestrates the lookup of GitHub issue URLs and the delivery of notifications to Slack.
  */
 public class DefectReportService {
 
     private final GitHubIssuePort gitHubIssuePort;
     private final SlackNotificationPort slackNotificationPort;
 
+    /**
+     * Constructor for dependency injection.
+     *
+     * @param gitHubIssuePort       Port for retrieving GitHub metadata.
+     * @param slackNotificationPort Port for sending Slack alerts.
+     */
     public DefectReportService(GitHubIssuePort gitHubIssuePort, SlackNotificationPort slackNotificationPort) {
         this.gitHubIssuePort = gitHubIssuePort;
         this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Reports a defect to Slack, including a link to the GitHub issue if available.
+     * Reports a defect to the configured Slack channel.
+     * Attempts to resolve a GitHub URL for the issue ID. If not found,
+     * includes a fallback text in the message body.
      *
-     * @param issueId  The ID of the issue (e.g., VW-454).
-     * @param channel  The Slack channel to notify.
+     * @param issueId The ID of the issue (e.g., "VW-454").
+     * @param channel The target Slack channel (e.g., "#vforce360-issues").
      */
     public void reportDefect(String issueId, String channel) {
+        if (issueId == null || issueId.isBlank()) {
+            throw new IllegalArgumentException("Issue ID cannot be null or blank");
+        }
+        if (channel == null || channel.isBlank()) {
+            throw new IllegalArgumentException("Slack channel cannot be null or blank");
+        }
+
+        // Retrieve URL from GitHub service, fallback to error text if not found.
         String url = gitHubIssuePort.getIssueUrl(issueId)
                 .orElse("URL not found");
 
+        // Construct the message body to satisfy the Acceptance Criteria.
         String messageBody = String.format(
             "Defect Report for %s.\nGitHub Issue: %s",
             issueId, url
         );
 
+        // Send the notification.
         slackNotificationPort.sendMessage(channel, messageBody);
     }
 }

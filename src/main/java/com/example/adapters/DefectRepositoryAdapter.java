@@ -1,43 +1,26 @@
 package com.example.adapters;
 
-import com.example.domain.validation.model.ValidationAggregate;
-import com.example.domain.validation.repository.ValidationRepository;
-import com.example.ports.JpaAuditLogPort;
-import org.springframework.stereotype.Component;
-
-import java.util.Optional;
-import java.util.UUID;
+import com.example.domain.vforce360.model.DefectAggregate;
+import com.example.ports.DefectRepositoryPort;
+import org.springframework.stereotype.Repository;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Real adapter for the Validation Repository.
- * Delegates persistence logic to the defined ports (e.g., MongoDB, DB2).
+ * In-memory adapter for DefectRepositoryPort.
+ * Useful for rapid prototyping or if persistence is not yet required for this context.
  */
-@Component
-public class DefectRepositoryAdapter implements ValidationRepository {
+@Repository
+public class DefectRepositoryAdapter implements DefectRepositoryPort {
+    
+    private final ConcurrentHashMap<String, DefectAggregate> store = new ConcurrentHashMap<>();
 
-    private final JpaAuditLogPort jpaAuditLogPort;
-
-    public DefectRepositoryAdapter(JpaAuditLogPort jpaAuditLogPort) {
-        this.jpaAuditLogPort = jpaAuditLogPort;
+    @Override
+    public void save(DefectAggregate aggregate) {
+        store.put(aggregate.id(), aggregate);
     }
 
     @Override
-    public ValidationRepository save(ValidationAggregate aggregate) {
-        // In a real scenario, we would persist the aggregate state here.
-        // For the defect reporting context, we ensure the audit log records the event.
-        // System.out.println("Saving aggregate: " + aggregate.id());
-        return this;
-    }
-
-    @Override
-    public Optional<ValidationAggregate> findById(String id) {
-        // In a real scenario, we would reconstruct the aggregate from event sourcing or DB state.
-        return Optional.empty();
-    }
-
-    @Override
-    public ValidationAggregate create() {
-        String id = UUID.randomUUID().toString();
-        return new ValidationAggregate(id);
+    public DefectAggregate findById(String defectId) {
+        return store.get(defectId);
     }
 }

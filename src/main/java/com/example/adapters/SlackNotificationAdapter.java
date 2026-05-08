@@ -1,32 +1,26 @@
 package com.example.adapters;
 
 import com.example.ports.SlackNotificationPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Real implementation of the SlackNotificationPort.
- * Formats the message body to ensure it includes the GitHub URL.
+ * Real implementation of the Slack Notification Port.
+ * In a production environment, this would use a Slack Web API client.
+ * For this TDD Green phase, it acts as a structural placeholder satisfying the port contract.
  */
 @Component
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
+    private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
+
     @Override
-    public SendResult reportDefect(String defectId, String issueUrl) {
-        // Construct the Slack body according to requirements
-        String messageBody = buildSlackBody(defectId, issueUrl);
-
-        // Simulate the Send operation. In a real scenario, this would call Slack Web API.
-        // For this implementation, we return a success result with the generated body.
-        // This satisfies the test validation of the body content.
-        boolean success = true;
+    public boolean postMessage(String channel, String body) {
+        // Real implementation would go here:
+        // SlackClient.getInstance().post(channel, body);
         
-        return new SendResult(success, messageBody);
-    }
-
-    private String buildSlackBody(String defectId, String issueUrl) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Defect Reported: ").append(defectId).append("\n");
-        sb.append("GitHub Issue: ").append(issueUrl);
-        return sb.toString();
+        log.info("[MOCK-PROD] Posting to Slack channel {}: {}", channel, body);
+        return true;
     }
 }

@@ -2,20 +2,18 @@ package com.example.domain.defect.model;
 
 import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
-import java.util.Map;
+import java.util.UUID;
 
 /**
- * Event emitted when a defect is reported.
- * Must contain the GitHub URL in the slackBody.
+ * Event published when a defect is reported.
+ * Expected to trigger Slack notification containing the GitHub URL.
  */
 public record DefectReportedEvent(
-        String defectId,
-        String title,
-        String projectId,
-        String slackBody,
-        String githubUrl,
-        Map<String, String> metadata,
-        Instant occurredAt
+    String aggregateId,
+    String title,
+    String description,
+    String githubUrl,
+    Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
@@ -24,7 +22,7 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return defectId;
+        return aggregateId;
     }
 
     @Override

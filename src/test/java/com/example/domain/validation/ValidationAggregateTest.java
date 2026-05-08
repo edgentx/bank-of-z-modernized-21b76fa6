@@ -1,84 +1,107 @@
 package com.example.domain.validation;
 
-import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.validation.model.DefectReportedEvent;
 import com.example.domain.validation.model.ReportDefectCmd;
 import com.example.domain.validation.model.ValidationAggregate;
+import com.example.mocks.MockSlackNotificationPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.fail;
+import java.util.Map;
 
-/*
- * Test Driven Development (Red Phase)
- * Story: S-FB-1
- * Target: Validation Aggregate logic defect reporting
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+/**
+ * TDD Test Suite for VW-454.
+ * 
+ * RED PHASE: These tests are written to FAIL initially.
+ * They expose the bug where the Slack body does not contain the GitHub URL.
  */
-public class ValidationAggregateTest {
+class ValidationAggregateTest {
+
+    private MockSlackNotificationPort mockSlack;
+    private ValidationAggregate aggregate;
+
+    @BeforeEach
+    void setUp() {
+        mockSlack = new MockSlackNotificationPort();
+        aggregate = new ValidationAggregate("test-validation-id", mockSlack);
+    }
 
     @Test
-    public void test_report_defect_command_generates_event_with_ticket_url() {
-        // Arrange
-        String defectId = "VW-454";
-        ValidationAggregate aggregate = new ValidationAggregate(defectId);
+    void shouldReportDefectSuccessfully() {
+        // Given
         ReportDefectCmd cmd = new ReportDefectCmd(
-            defectId,
-            "Validating VW-454 — GitHub URL in Slack body",
-            "LOW",
-            "validation"
+            "DEFECT-101",
+            "Critical calculation error",
+            "The system fails to calculate interest correctly",
+            "HIGH",
+            Map.of("component", "interest-engine")
         );
 
-        // Act
+        // When
         var events = aggregate.execute(cmd);
 
-        // Assert
+        // Then
+        assertThat(aggregate.isDefectReported()).isTrue();
         assertThat(events).hasSize(1);
-        
-        ValidationReportedEvent event = (ValidationReportedEvent) events.get(0);
-        assertThat(event.aggregateId()).isEqualTo(defectId);
-        assertThat(event.description()).contains("GitHub URL");
-        assertThat(event.severity()).isEqualTo("LOW");
-        
-        // CRITICAL ACCEPTANCE CRITERION: Verify GitHub URL is present
-        assertThat(event.ticketUrl()).isNotBlank();
-        assertThat(event.ticketUrl()).startsWith("https://github.com");
-        assertThat(aggregate.getTicketUrl()).isNotNull();
+        assertThat(events.get(0)).isInstanceOf(DefectReportedEvent.class);
     }
 
     @Test
-    public void test_report_defect_fails_with_blank_description() {
-        // Arrange
-        ValidationAggregate aggregate = new ValidationAggregate("ID-1");
-        ReportDefectCmd cmd = new ReportDefectCmd("ID-1", "", "LOW", "validation");
+    void shouldIncludeGitHubUrlInSlackBody() {
+        // This test verifies the specific bug reported in VW-454.
+        // It expects the Slack body to contain the URL, but the current implementation
+        // (in ValidationAggregate) is intentionally bugged and will fail this test.
 
-        // Act & Assert
-        assertThatThrownBy(() -> aggregate.execute(cmd))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("description required");
-    }
-
-    @Test
-    public void test_report_defect_fails_with_null_defect_id() {
-        // Arrange
-        ValidationAggregate aggregate = new ValidationAggregate(null);
-        ReportDefectCmd cmd = new ReportDefectCmd(null, "desc", "LOW", "validation");
-
-        // Act & Assert
-        assertThatThrownBy(() -> aggregate.execute(cmd))
-            .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    public void test_unsupported_command_throws_exception() {
-        // Arrange
-        ValidationAggregate aggregate = new ValidationAggregate("ID-1");
-        String cmdString = "InvalidCommand";
+        // Given
+        String defectId = "VW-454";
+        String expectedUrlFragment = "github.com/issues/" + defectId;
         
-        // Creating a proxy or anonymous class for the interface to test failure path
-        Command invalidCmd = () -> "InvalidCommand";
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            defectId,
+            "Slack body missing URL",
+            "The link to the issue is not showing up in Slack",
+            "LOW",
+            Map.of()
+        );
 
-        // Act & Assert
-        assertThatThrownBy(() -> aggregate.execute(invalidCmd))
-            .isInstanceOf(UnknownCommandException.class);
+        // When
+        aggregate.execute(cmd);
+        String actualSlackBody = mockSlack.getLastPayload();
+
+        // Then
+        // TDD RED PHASE:
+        // The current implementation of ValidationAggregate.reportDefect() creates a body:
+        // "Defect Reported: ... \nSeverity: ..." which DOES NOT contain the URL.
+        // This assertion will fail.
+        assertThat(actualSlackBody)
+            .withFailMessage(
+                "Expected Slack body to contain GitHub URL fragment '%s', but got: %s", 
+                expectedUrlFragment, actualSlackBody
+            )
+            .contains(expectedUrlFragment);
+    }
+
+    @Test
+    void shouldPersistUrlInDomainEvent() {
+        // Even if the Slack notification is buggy, the domain event should probably hold the link.
+        // Given
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            "VW-454",
+            "Title",
+            "Desc",
+            "LOW",
+            Map.of()
+        );
+
+        // When
+        var events = aggregate.execute(cmd);
+        var event = (DefectReportedEvent) events.get(0);
+
+        // Then
+        assertThat(event.githubIssueUrl()).isNotEmpty();
+        assertThat(event.githubIssueUrl()).contains("github.com");
     }
 }

@@ -1,7 +1,6 @@
 package com.example.ports;
 
-import java.util.concurrent.CompletableFuture;
-
+/** Port for sending notifications to Slack */
 public interface SlackPort {
-    CompletableFuture<Void> sendMessage(String channel, String message);
+    void sendMessage(String messageBody);
 }

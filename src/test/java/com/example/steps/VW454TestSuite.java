@@ -6,10 +6,10 @@ import org.junit.runner.RunWith;
 
 @RunWith(Cucumber.class)
 @CucumberOptions(
-    features = {"features/VW-454.feature"},
+    features = "features/VW-454.feature",
     glue = {"com.example.steps"},
-    plugin = {"pretty", "html:target/cucumber-report/VW-454.html"}
+    plugin = {"pretty", "html:target/cucumber-report/VW-454"}
 )
 public class VW454TestSuite {
-    // JUnit Runner for the feature file
+    // Test suite configuration
 }

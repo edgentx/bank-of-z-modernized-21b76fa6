@@ -5,35 +5,22 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Event emitted when a statement is successfully exported.
+ */
 public record StatementExportedEvent(
-        String eventId,
         String aggregateId,
+        String artifactId,
         String format,
-        String artifactLocation,
         Instant occurredAt
 ) implements DomainEvent {
-    public StatementExportedEvent {
-        if (eventId == null || eventId.isBlank()) {
-            throw new IllegalArgumentException("eventId cannot be null or blank");
-        }
-    }
 
-    public StatementExportedEvent(String aggregateId, String format, String artifactLocation) {
-        this(UUID.randomUUID().toString(), aggregateId, format, artifactLocation, Instant.now());
+    public StatementExportedEvent(String aggregateId, String format) {
+        this(aggregateId, UUID.randomUUID().toString(), format, Instant.now());
     }
 
     @Override
     public String type() {
         return "statement.exported";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

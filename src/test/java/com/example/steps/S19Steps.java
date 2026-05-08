@@ -3,111 +3,94 @@ package com.example.steps;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.tellersession.model.*;
+import com.example.domain.teller.model.MenuNavigatedEvent;
+import com.example.domain.teller.model.NavigateMenuCmd;
+import com.example.domain.teller.model.TellerSessionAggregate;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
-import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S19Steps {
 
     private TellerSessionAggregate aggregate;
-    private String currentSessionId;
-    private String currentMenuId;
-    private String currentAction;
     private List<DomainEvent> resultEvents;
-    private Exception thrownException;
-
-    // Shared In-Memory Repository Mock (simulating loader)
-    private TellerSessionAggregate loadAggregate(String id) {
-        return new TellerSessionAggregate(id);
-    }
+    private Exception capturedException;
 
     @Given("a valid TellerSession aggregate")
-    public void a_valid_teller_session_aggregate() {
-        String id = UUID.randomUUID().toString();
-        this.aggregate = loadAggregate(id);
-        this.currentSessionId = id;
-        // Simulate authenticated state and active timeout
-        this.aggregate.applyHistory(new TellerSessionAuthenticatedEvent(id, "teller123", Instant.now()));
-        this.aggregate.applyHistory(new TellerSessionActivatedEvent(id, Instant.now()));
+    public void aValidTellerSessionAggregate() {
+        aggregate = new TellerSessionAggregate("session-123");
+        aggregate.markAuthenticated(); // Assume authenticated for base case
     }
 
-    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_teller_session_aggregate_that_violates_authentication() {
-        String id = UUID.randomUUID().toString();
-        this.aggregate = loadAggregate(id);
-        this.currentSessionId = id;
-        // Intentionally do NOT apply authentication event
+    @Given("a valid sessionId is provided")
+    public void aValidSessionIdIsProvided() {
+        // Handled by aggregate initialization
     }
 
-    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_teller_session_aggregate_that_violates_timeout() {
-        String id = UUID.randomUUID().toString();
-        this.aggregate = loadAggregate(id);
-        this.currentSessionId = id;
-        // Simulate authenticated state but timed out
-        this.aggregate.applyHistory(new TellerSessionAuthenticatedEvent(id, "teller123", Instant.now().minusSeconds(3600))); // Old event
-        this.aggregate.applyHistory(new TellerSessionTimedOutEvent(id, Instant.now())); // Explicitly timed out
-    }
-
-    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_teller_session_aggregate_that_violates_context() {
-        String id = UUID.randomUUID().toString();
-        this.aggregate = loadAggregate(id);
-        this.currentSessionId = id;
-        // Authenticated, but navigation is locked or invalid
-        this.aggregate.applyHistory(new TellerSessionAuthenticatedEvent(id, "teller123", Instant.now()));
-        this.aggregate.applyHistory(new TellerSessionLockedEvent(id, "Context violation", Instant.now()));
-    }
-
-    @And("a valid sessionId is provided")
-    public void a_valid_session_id_is_provided() {
-        // Handled in the setup steps
-    }
-
-    @And("a valid menuId is provided")
-    public void a_valid_menu_id_is_provided() {
-        this.currentMenuId = "MAIN_MENU";
+    @Given("a valid menuId is provided")
+    public void aValidMenuIdIsProvided() {
+        // Context: Handled in the 'When' step via command object
     }
 
     @And("a valid action is provided")
-    public void a_valid_action_is_provided() {
-        this.currentAction = "OPEN";
+    public void aValidActionIsProvided() {
+        // Context: Handled in the 'When' step via command object
     }
 
     @When("the NavigateMenuCmd command is executed")
-    public void the_navigate_menu_cmd_command_is_executed() {
-        Command cmd = new NavigateMenuCmd(currentSessionId, currentMenuId, currentAction);
+    public void theNavigateMenuCmdCommandIsExecuted() {
         try {
-            this.resultEvents = this.aggregate.execute(cmd);
+            Command cmd = new NavigateMenuCmd("session-123", "MAIN_MENU", "ENTER");
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            this.thrownException = e;
+            capturedException = e;
         }
     }
 
     @Then("a menu.navigated event is emitted")
-    public void a_menu_navigated_event_is_emitted() {
-        Assertions.assertNotNull(resultEvents);
-        Assertions.assertEquals(1, resultEvents.size());
-        Assertions.assertTrue(resultEvents.get(0) instanceof MenuNavigatedEvent);
+    public void aMenuNavigatedEventIsEmitted() {
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof MenuNavigatedEvent);
+        
         MenuNavigatedEvent event = (MenuNavigatedEvent) resultEvents.get(0);
-        Assertions.assertEquals("menu.navigated", event.type());
-        Assertions.assertEquals(currentMenuId, event.targetMenuId());
-        Assertions.assertEquals(currentAction, event.action());
+        assertEquals("session-123", event.aggregateId());
+        assertEquals("MAIN_MENU", event.menuId());
+        assertEquals("menu.navigated", event.type());
+    }
+
+    // --- Error Scenarios ---
+
+    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
+    public void aTellerSessionAggregateThatViolatesAuthentication() {
+        aggregate = new TellerSessionAggregate("session-401");
+        // Do NOT markAuthenticated
+    }
+
+    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
+    public void aTellerSessionAggregateThatViolatesTimeout() {
+        aggregate = new TellerSessionAggregate("session-408");
+        aggregate.markAuthenticated();
+        aggregate.markTimedOut();
+    }
+
+    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
+    public void aTellerSessionAggregateThatViolatesNavState() {
+        aggregate = new TellerSessionAggregate("session-409");
+        aggregate.markAuthenticated();
+        aggregate.lockSession(); // Puts it in SYSTEM_LOCKED state
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(thrownException);
-        // We expect IllegalStateException or IllegalArgumentException as domain errors
-        Assertions.assertTrue(thrownException instanceof IllegalStateException || 
-                              thrownException instanceof IllegalArgumentException ||
-                              thrownException instanceof UnknownCommandException);
+    public void theCommandIsRejectedWithADomainError() {
+        assertNotNull(capturedException, "Expected an exception to be thrown");
+        // We verify it's not a UnknownCommandException, meaning our handler logic ran and rejected it.
+        assertFalse(capturedException instanceof UnknownCommandException);
+        assertTrue(capturedException instanceof IllegalStateException);
     }
 }

@@ -2,61 +2,50 @@ package com.example.adapters;
 
 import com.example.ports.SlackNotificationPort;
 import com.slack.api.Slack;
-import com.slack.api.methods.MethodsClient;
+import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.chat.ChatPostMessageRequest;
-import com.slack.api.methods.response.chat.ChatPostMessageResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+import java.util.Map;
 
 /**
- * Real production adapter for sending notifications to Slack.
- * This component is only active in non-test profiles.
+ * Real implementation of SlackNotificationPort using the Slack API Client.
+ * This adapter is configured via Spring Boot application properties/yml.
  */
-@Component
-@Profile("!test")
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
     private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
-    private final MethodsClient slackMethodsClient;
+    private final Slack slackClient;
+    private final String authToken;
 
-    public SlackNotificationAdapter(
-            @Value("${slack.token}") String slackToken,
-            Slack slackApi) {
-        // In a real scenario, we initialize the Slack API client here.
-        // For TDD Green phase, we focus on the contract.
-        this.slackMethodsClient = slackApi.methods(slackToken);
+    public SlackNotificationAdapter(String authToken) {
+        this.authToken = authToken;
+        this.slackClient = Slack.getInstance();
     }
 
     @Override
-    public void postMessage(String channelId, String message) {
-        if (channelId == null || channelId.isBlank()) {
-            throw new IllegalArgumentException("channelId cannot be blank");
-        }
-        if (message == null) {
-            throw new IllegalArgumentException("message cannot be null");
-        }
-
+    public boolean postMessage(String channel, String body, Map<String, String> contextMetadata) {
         try {
             ChatPostMessageRequest request = ChatPostMessageRequest.builder()
-                    .channel(channelId)
-                    .text(message)
+                    .channel(channel)
+                    .text(body)
+                    // We could unfurl links or add attachments based on contextMetadata here
                     .build();
 
-            ChatPostMessageResponse response = slackMethodsClient.chatPostMessage(request);
+            var response = slackClient.methods(authToken).chatPostMessage(request);
 
-            if (!response.isOk()) {
-                log.error("Slack API Error: {} - {}", response.getError(), response.getWarning());
-                throw new RuntimeException("Failed to post message to Slack: " + response.getError());
+            if (response.isOk()) {
+                log.info("Successfully posted message to Slack channel {}", channel);
+                return true;
+            } else {
+                log.error("Failed to post message to Slack: {} - {}", response.getError(), response.getWarning());
+                return false;
             }
-            
-            log.info("Successfully posted defect notification to channel {}", channelId);
-
-        } catch (Exception e) {
-            // Wrap checked exceptions or network errors in a runtime exception for the domain
-            throw new RuntimeException("Failed to communicate with Slack", e);
+        } catch (IOException | SlackApiException e) {
+            log.error("Error communicating with Slack API", e);
+            return false;
         }
     }
 }

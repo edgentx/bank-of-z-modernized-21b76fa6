@@ -1,32 +1,22 @@
 package com.example.mocks;
 
-import com.example.ports.GitHubClient;
-
-import java.util.List;
+import com.example.ports.GitHubIssuePort;
+import java.util.Optional;
 
 /**
- * Mock implementation of GitHubClient for testing.
- * Returns predictable values to simulate successful GitHub interactions.
+ * Mock implementation of GitHubIssuePort.
+ * Allows configuring specific URLs to be returned for testing.
  */
-public class MockGitHubClient implements GitHubClient {
+public class MockGitHubClient implements GitHubIssuePort {
 
-    private String mockUrl = "https://github.com/fake-org/repo/issues/454";
-    private boolean shouldFail = false;
+    private Optional<String> mockUrl = Optional.empty();
 
     public void setMockUrl(String url) {
-        this.mockUrl = url;
-    }
-
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
+        this.mockUrl = Optional.ofNullable(url);
     }
 
     @Override
-    public String createIssue(String title, String body, List<String> labels) {
-        if (shouldFail) {
-            return null; // Simulate failure
-        }
-        // In a more sophisticated mock, we could verify arguments here.
+    public Optional<String> getIssueUrl(String issueId) {
         return mockUrl;
     }
 }

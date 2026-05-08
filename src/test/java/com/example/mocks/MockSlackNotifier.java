@@ -1,37 +1,31 @@
 package com.example.mocks;
 
-import com.example.ports.SlackNotifier;
+import com.example.ports.SlackNotifierPort;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotifier for testing purposes.
- * Records messages sent to allow verification in tests.
+ * Mock implementation of SlackNotifierPort.
+ * Captures messages for verification in tests.
  */
-public class MockSlackNotifier implements SlackNotifier {
-    
-    public static class Message {
-        public final String channel;
-        public final String message;
+public class MockSlackNotifier implements SlackNotifierPort {
 
-        public Message(String channel, String message) {
-            this.channel = channel;
-            this.message = message;
-        }
-    }
-
-    private final List<Message> sentMessages = new ArrayList<>();
+    private final List<String> postedMessages = new ArrayList<>();
 
     @Override
-    public void send(String channel, String message) {
-        this.sentMessages.add(new Message(channel, message));
+    public void postMessage(String messageBody) {
+        // Simulate latency or logic if necessary
+        if (messageBody == null) {
+            throw new IllegalArgumentException("Message body cannot be null");
+        }
+        this.postedMessages.add(messageBody);
     }
 
-    public List<Message> getSentMessages() {
-        return sentMessages;
+    public List<String> getPostedMessages() {
+        return new ArrayList<>(postedMessages);
     }
 
-    public void clear() {
-        sentMessages.clear();
+    public void reset() {
+        postedMessages.clear();
     }
 }

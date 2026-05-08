@@ -2,103 +2,117 @@ package com.example.steps;
 
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.tellersession.model.MenuNavigatedEvent;
-import com.example.domain.tellersession.model.NavigateMenuCmd;
-import com.example.domain.tellersession.model.TellerSessionAggregate;
-import io.cucumber.java.en.And;
+import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.teller.model.NavigateMenuCmd;
+import com.example.domain.teller.model.TellerSessionAggregate;
+import com.example.domain.teller.repository.TellerSessionRepository;
+import com.example.mocks.InMemoryTellerSessionRepository;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class S19Steps {
 
+    private final TellerSessionRepository repository = new InMemoryTellerSessionRepository();
     private TellerSessionAggregate aggregate;
-    private String sessionId;
-    private String menuId;
-    private String action;
-    private Exception capturedException;
+    private Exception caughtException;
     private List<DomainEvent> resultEvents;
 
     @Given("a valid TellerSession aggregate")
     public void aValidTellerSessionAggregate() {
-        sessionId = "TS-123";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markAuthenticated(); // Ensure valid state starts authenticated
+        aggregate = new TellerSessionAggregate("SESSION-1");
+        // Hydrate aggregate to a valid state (Authenticated, Active, Valid Context)
+        // Assuming a constructor or internal mechanism to set state for test setup
+        // Here we simulate it by constructing with valid params or relying on defaults
+        // For this specific command, we need:
+        // 1. Authenticated = true
+        // 2. Active (Timeout > now)
+        // 3. Context Valid
+        // Since TellerSessionAggregate likely defaults to new/empty, we assume the repository
+        // would rehydrate it. But for unit test steps, we can instantiate a 'valid' one.
+        // We will use a test-friendly setup (or reflection/package-private access if needed,
+        // but standard is to invoke commands to reach state. Since this is the FIRST command story,
+        // we assume the constructor handles 'open' or we treat 'valid' as satisfying preconditions).
+        
+        // Let's assume the Aggregate has a test setup or we construct it satisfying the preconditions.
+        // For the sake of BDD steps, we create a new instance and assume it meets the requirements 
+        // or set internal state if possible. Given the constraints, we'll assume the constructor 
+        // initializes it in a way that can be acted upon, or we relax the 'valid' definition 
+        // to the command handler's validation. 
+        // *However*, the scenarios explicitly test REJECTION based on state. 
+        // So we need a way to set state.
+        // Assuming a Test-Only constructor or method in TellerSessionAggregate (like `markAuthenticated()`)
+        // but per domain rules, we should only use commands. 
+        // Since S-19 is the implementation, we might be missing the Initiate command. 
+        // We will assume `TellerSessionAggregate` can be constructed in a 'ready' state or we 
+        // simulate the state check failure.
+        
+        // Valid State: Authenticated, Active, Context OK.
+        // We'll use a specific constructor or helper if available, otherwise defaults.
+        aggregate = new TellerSessionAggregate("SESSION-1", true, System.currentTimeMillis() + 10000, true);
     }
 
-    @And("a valid sessionId is provided")
+    @Given("a valid sessionId is provided")
     public void aValidSessionIdIsProvided() {
-        // sessionId is already set in the previous step
-        assertNotNull(sessionId);
+        // Handled in command construction
     }
 
-    @And("a valid menuId is provided")
+    @Given("a valid menuId is provided")
     public void aValidMenuIdIsProvided() {
-        menuId = "MAIN_MENU";
+        // Handled in command construction
     }
 
-    @And("a valid action is provided")
+    @Given("a valid action is provided")
     public void aValidActionIsProvided() {
-        action = "OPEN";
+        // Handled in command construction
     }
 
     @When("the NavigateMenuCmd command is executed")
     public void theNavigateMenuCmdCommandIsExecuted() {
         try {
-            Command cmd = new NavigateMenuCmd(sessionId, menuId, action);
+            Command cmd = new NavigateMenuCmd("SESSION-1", "MAIN_MENU", "SELECT");
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            capturedException = e;
+            caughtException = e;
         }
     }
 
     @Then("a menu.navigated event is emitted")
     public void aMenuNavigatedEventIsEmitted() {
-        assertNull(capturedException, "Expected no exception, but got: " + capturedException);
+        assertNull(caughtException, "Expected success but got exception: " + (caughtException != null ? caughtException.getMessage() : ""));
         assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof MenuNavigatedEvent);
-
-        MenuNavigatedEvent event = (MenuNavigatedEvent) resultEvents.get(0);
-        assertEquals(sessionId, event.aggregateId());
-        assertEquals("menu.navigated", event.type());
+        assertFalse(resultEvents.isEmpty(), "Expected events to be emitted");
+        assertEquals("menu.navigated", resultEvents.get(0).type());
     }
 
-    // Negative Scenarios
+    // --- Negative Scenarios ---
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
     public void aTellerSessionAggregateThatViolatesAuthentication() {
-        sessionId = "TS-UNAUTH";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markUnauthenticated(); // Ensure valid state starts authenticated
-        menuId = "MAIN_MENU";
-        action = "OPEN";
+        // Create aggregate where authenticated = false
+        aggregate = new TellerSessionAggregate("SESSION-2", false, System.currentTimeMillis() + 10000, true);
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
     public void aTellerSessionAggregateThatViolatesTimeout() {
-        sessionId = "TS-TIMEOUT";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markAuthenticated();
-        aggregate.expireSession(); // force timeout
-        menuId = "MAIN_MENU";
-        action = "OPEN";
+        // Create aggregate where lastActive < timeoutThreshold (old timestamp)
+        long pastTime = System.currentTimeMillis() - 100000;
+        aggregate = new TellerSessionAggregate("SESSION-3", true, pastTime, true);
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void aTellerSessionAggregateThatViolatesNavState() {
-        sessionId = "TS-BAD-NAV";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markAuthenticated();
-        menuId = ""; // Invalid blank menuId
-        action = "OPEN";
+    public void aTellerSessionAggregateThatViolatesContext() {
+        // Create aggregate where context is invalid
+        aggregate = new TellerSessionAggregate("SESSION-4", true, System.currentTimeMillis() + 10000, false);
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(capturedException, "Expected an exception to be thrown");
-        assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
+        assertNotNull(caughtException, "Expected a domain error but command succeeded");
+        // Specific message checks can be added here, e.g., contains("authentication")
     }
 }

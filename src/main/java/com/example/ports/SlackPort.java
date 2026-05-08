@@ -1,11 +1,14 @@
 package com.example.ports;
 
-import com.example.model.DefectReport;
-
 /**
- * Port interface for Slack notifications.
- * Used by the Temporal worker logic to alert the engineering team.
+ * Port for sending notifications to Slack.
  */
 public interface SlackPort {
-    void sendDefectNotification(DefectReport report);
+    /**
+     * Sends a message to a specific Slack channel.
+     *
+     * @param channel The channel ID or name (e.g., "#vforce360-issues")
+     * @param messageBody The formatted message content
+     */
+    void sendMessage(String channel, String messageBody);
 }

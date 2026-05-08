@@ -1,34 +1,32 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock adapter for Slack Notification.
- * In-memory implementation to simulate Slack behavior during testing.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Captures messages sent to Slack to allow assertions.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
-
-    private final Map<String, String> channelMessages = new HashMap<>();
-
-    @Override
-    public boolean sendMessage(String channel, String messageBody) {
-        // Simulate successful sending
-        channelMessages.put(channel, messageBody);
-        return true;
-    }
+    private final List<String> messages = new ArrayList<>();
 
     @Override
-    public String getLastMessageBody(String channel) {
-        return channelMessages.get(channel);
+    public void send(String body) {
+        // In a real mock framework we might intercept, but here we just capture.
+        // System.out.println("[MockSlack] Captured: " + body);
+        this.messages.add(body);
     }
 
-    /**
-     * Helper for tests to verify the message contains the GitHub URL.
-     */
-    public boolean messageContainsUrl(String channel, String url) {
-        String body = channelMessages.get(channel);
-        return body != null && body.contains(url);
+    public List<String> getMessages() {
+        return new ArrayList<>(messages);
+    }
+
+    public void clear() {
+        messages.clear();
+    }
+
+    public boolean hasReceivedMessageContaining(String substring) {
+        return messages.stream().anyMatch(msg -> msg.contains(substring));
     }
 }

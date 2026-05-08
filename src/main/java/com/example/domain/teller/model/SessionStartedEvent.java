@@ -3,27 +3,32 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
 /**
- * Event emitted when a Teller Session is successfully started.
- * Context: S-18 Implement StartSessionCmd on TellerSession.
+ * Event emitted when a teller session is successfully started.
  */
 public record SessionStartedEvent(
-        String aggregateId,
+        String sessionId,
         String tellerId,
         String terminalId,
-        TellerSessionState navigationContext,
+        String navigationContext,
         Instant occurredAt
 ) implements DomainEvent {
 
     public SessionStartedEvent {
-        Objects.requireNonNull(aggregateId);
-        Objects.requireNonNull(occurredAt);
+        if (sessionId == null || sessionId.isBlank()) {
+            throw new IllegalArgumentException("sessionId cannot be null");
+        }
     }
 
     @Override
     public String type() {
         return "session.started";
+    }
+
+    @Override
+    public String aggregateId() {
+        return sessionId;
     }
 }

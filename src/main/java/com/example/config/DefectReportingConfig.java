@@ -1,44 +1,33 @@
 package com.example.config;
 
-import com.example.adapters.DefectRepositoryAdapter;
-import com.example.adapters.SlackNotificationAdapter;
-import com.example.ports.DefectRepositoryPort;
-import com.example.ports.SlackNotificationPort;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import com.example.activities.DefectReportingActivities;
+import com.example.activities.DefectReportingActivitiesImpl;
+import com.example.adapters.GitHubRestAdapter;
+import com.example.adapters.OkHttpSlackClient;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.client.RestClient;
 
 /**
  * Configuration for Defect Reporting components.
- * Instantiates real adapters if properties permit, otherwise allows mocks to be used.
+ * Wires the ports and adapters together.
  */
 @Configuration
 public class DefectReportingConfig {
 
     @Bean
-    public RestClient.Builder restClientBuilder() {
-        return RestClient.builder();
-    }
-
-    // Real Slack Adapter Bean (Conditionally loaded in SlackNotificationAdapter)
-    // We define the interface type here so injection works regardless of implementation
-    @Bean
-    @ConditionalOnMissingBean(SlackNotificationPort.class)
-    public SlackNotificationPort slackNotificationPort() {
-        // Fallback no-op implementation if real adapter is disabled and no mock is provided
-        return (channel, messageBody) -> {
-            System.out.println("[Mock/NoOp Slack] Channel: " + channel + ", Body: " + messageBody);
-            return true;
-        };
+    public SlackPort slackClient() {
+        return new OkHttpSlackClient();
     }
 
     @Bean
-    @ConditionalOnMissingBean(DefectRepositoryPort.class)
-    public DefectRepositoryPort defectRepositoryPort() {
-        // Fallback no-op implementation
-        return (defectId, command) -> {
-            System.out.println("[Mock/NoOp Repo] Defect: " + defectId);
-        };
+    public GitHubPort gitHubAdapter() {
+        return new GitHubRestAdapter();
+    }
+
+    @Bean
+    public DefectReportingActivities defectReportingActivities(SlackPort slackClient, GitHubPort gitHubAdapter) {
+        return new DefectReportingActivitiesImpl(slackClient, gitHubAdapter);
     }
 }

@@ -7,7 +7,6 @@ import java.util.Optional;
 
 /**
  * In-memory implementation of TellerSessionRepository for testing/prototyping.
- * Fix: Changed generic type from TellerSessionAggregate to TellerSession to match domain model.
  */
 public class InMemoryTellerSessionRepository implements TellerSessionRepository {
 
@@ -15,8 +14,6 @@ public class InMemoryTellerSessionRepository implements TellerSessionRepository 
 
     @Override
     public TellerSession save(TellerSession aggregate) {
-        // The interface TellerSessionRepository defines save as returning the aggregate.
-        // We put it in our map and return it.
         store.put(aggregate.id(), aggregate);
         return aggregate;
     }

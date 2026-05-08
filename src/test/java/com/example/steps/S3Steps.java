@@ -1,136 +1,111 @@
 package com.example.steps;
 
-import com.example.domain.customer.model.*;
-import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.customer.model.CustomerAggregate;
+import com.example.domain.customer.model.CustomerDetailsUpdatedEvent;
+import com.example.domain.customer.model.UpdateCustomerDetailsCmd;
+import com.example.domain.shared.Aggregate;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
-import java.time.LocalDate;
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 public class S3Steps {
-    
+
     private CustomerAggregate aggregate;
-    private Exception thrownException;
-    private List<DomainEvent> resultEvents;
-    
-    // Test Data
-    private static final String VALID_CUSTOMER_ID = "cust-123";
-    private static final String VALID_EMAIL = "test@example.com";
-    private static final String VALID_SORT_CODE = "12-34-56";
-    private static final String VALID_NAME = "John Doe";
-    private static final LocalDate VALID_DOB = LocalDate.of(1990, 1, 1);
-    private static final String VALID_GOVT_ID = "GOV-123";
+    private Exception capturedException;
+    private UpdateCustomerDetailsCmd lastCommand;
 
     @Given("a valid Customer aggregate")
     public void aValidCustomerAggregate() {
-        aggregate = new CustomerAggregate(VALID_CUSTOMER_ID);
-        // Ensure it is enrolled so we can update it
-        aggregate.setEnrolled(true);
+        // Default constructor sets ID. We assume state is loaded or initialized.
+        this.aggregate = new CustomerAggregate("cust-123");
+        // Manually setting internal state for test purposes (simulating a loaded aggregate)
+        // In a real scenario, we might use a repository to load a fully built aggregate.
+        // Here we rely on the constructor and potentially a reflectionless setup or just the command logic.
     }
 
     @And("a valid customerId is provided")
     public void aValidCustomerIdIsProvided() {
-        // ID is implicitly part of the aggregate construction in this test setup
+        // Handled in command creation
     }
 
     @And("a valid emailAddress is provided")
     public void aValidEmailAddressIsProvided() {
-        // Handled in the command execution setup
+        // Handled in command creation
     }
 
     @And("a valid sortCode is provided")
     public void aValidSortCodeIsProvided() {
-        // Handled in the command execution setup
+        // Handled in command creation
     }
 
     @When("the UpdateCustomerDetailsCmd command is executed")
     public void theUpdateCustomerDetailsCmdCommandIsExecuted() {
-        try {
-            var cmd = new UpdateCustomerDetailsCmd(VALID_CUSTOMER_ID, VALID_NAME, VALID_EMAIL, VALID_GOVT_ID, VALID_DOB, VALID_SORT_CODE);
-            resultEvents = aggregate.execute(cmd);
-        } catch (Exception e) {
-            thrownException = e;
-        }
+        executeCommand(new UpdateCustomerDetailsCmd("cust-123", "new@example.com", "123456", null, null, true, false));
     }
 
     @Then("a customer.details.updated event is emitted")
     public void aCustomerDetailsUpdatedEventIsEmitted() {
-        assertNull(thrownException, "Should not have thrown an exception");
-        assertNotNull(resultEvents);
-        assertFalse(resultEvents.isEmpty());
-        assertTrue(resultEvents.get(0) instanceof CustomerDetailsUpdatedEvent);
-        assertEquals("customer.details.updated", resultEvents.get(0).type());
+        assertNotNull(aggregate);
+        var events = aggregate.uncommittedEvents();
+        assertFalse(events.isEmpty());
+        assertTrue(events.get(0) instanceof CustomerDetailsUpdatedEvent);
+        var evt = (CustomerDetailsUpdatedEvent) events.get(0);
+        assertEquals("new@example.com", evt.emailAddress());
+        assertEquals("customer.details.updated", evt.type());
     }
 
     // --- Rejection Scenarios ---
 
     @Given("a Customer aggregate that violates: A customer must have a valid, unique email address and government-issued ID.")
-    public void aCustomerAggregateThatViolatesEmailAndGovtId() {
-        aggregate = new CustomerAggregate(VALID_CUSTOMER_ID);
-        aggregate.setEnrolled(true);
-        // The violation happens via Command input, but we check state here if needed.
-        // For this story, we trigger the violation via command content below
+    public void aCustomerAggregateThatViolatesValidEmail() {
+        this.aggregate = new CustomerAggregate("cust-violate-email");
+        // We simulate the violation by passing a bad email in the command step
     }
 
     @Given("a Customer aggregate that violates: Customer name and date of birth cannot be empty.")
-    public void aCustomerAggregateThatViolatesNameAndDob() {
-        aggregate = new CustomerAggregate(VALID_CUSTOMER_ID);
-        aggregate.setEnrolled(true);
+    public void aCustomerAggregateThatViolatesEmptyName() {
+        this.aggregate = new CustomerAggregate("cust-violate-name");
     }
 
     @Given("a Customer aggregate that violates: A customer cannot be deleted if they own active bank accounts.")
     public void aCustomerAggregateThatViolatesActiveAccounts() {
-        aggregate = new CustomerAggregate(VALID_CUSTOMER_ID);
-        aggregate.setEnrolled(true);
-        aggregate.setDeleted(true);
-        aggregate.setHasActiveBankAccounts(true);
+        this.aggregate = new CustomerAggregate("cust-violate-delete");
+    }
+
+    // Specific When handlers for the violation scenarios to construct the correct bad data
+    @When("the UpdateCustomerDetailsCmd command is executed")
+    public void theCommandIsExecutedWithInvalidEmail() {
+        executeCommand(new UpdateCustomerDetailsCmd("cust-violate-email", "invalid-email", "123456", null, null, true, false));
     }
 
     @When("the UpdateCustomerDetailsCmd command is executed")
-    public void theUpdateCustomerDetailsCmdCommandIsExecutedForRejection() {
-        // This step is shared, but we need to dispatch to the correct 'bad' command based on the scenario.
-        // Since Cucumber doesn't pass context automatically to the 'When' step to distinguish scenarios easily without extra state,
-        // we inspect the aggregate state set in the Given to decide which invalid command to send.
-        
-        try {
-            if (aggregate.isEnrolled() && aggregate.getFullName() == null) {
-                 // Scenario: Name and DOB empty
-                 var cmd = new UpdateCustomerDetailsCmd(VALID_CUSTOMER_ID, null, VALID_EMAIL, VALID_GOVT_ID, null, VALID_SORT_CODE);
-                 resultEvents = aggregate.execute(cmd);
-            } else if (aggregate.isEnrolled()) {
-                // Try to trigger the 'Deleted with active accounts' check if applicable
-                // Note: The current aggregate logic only checks this if deleted=true AND hasActiveAccounts=true.
-                // We need a command that triggers the check. 
-                // Re-using the valid command, but the invariant check inside execute should catch the aggregate state.
-                // However, the logic provided in the Aggregate snippet only throws if `deleted` is true.
-                // Let's assume the command sets deleted to true implicitly or we check the invariant before allowing a delete-related update.
-                // Given the strict prompt, we assume the logic inside execute handles it.
-                // For this specific scenario, let's send a valid command that might fail due to state.
-                 var cmd = new UpdateCustomerDetailsCmd(VALID_CUSTOMER_ID, VALID_NAME, VALID_EMAIL, VALID_GOVT_ID, VALID_DOB, VALID_SORT_CODE);
-                 // We might need to assume the command implies a delete attempt or the state check is purely on aggregate state.
-                 // Based on the snippet: `if (deleted && hasActiveBankAccounts)`. 
-                 // The command execution doesn't set `deleted=true` in the snippet. 
-                 // We will assume the snippet implies the check happens.
-                 resultEvents = aggregate.execute(cmd);
-            } else {
-                // Scenario: Invalid Email/Govt ID
-                 var cmd = new UpdateCustomerDetailsCmd(VALID_CUSTOMER_ID, VALID_NAME, "invalid-email", null, VALID_DOB, VALID_SORT_CODE);
-                 resultEvents = aggregate.execute(cmd);
-            }
-        } catch (Exception e) {
-            thrownException = e;
-        }
+    public void theCommandIsExecutedWithEmptyName() {
+        executeCommand(new UpdateCustomerDetailsCmd("cust-violate-name", "valid@example.com", "123456", "", null, true, false));
+    }
+
+    @When("the UpdateCustomerDetailsCmd command is executed")
+    public void theCommandIsExecutedWithActiveAccounts() {
+        // Simulating a delete attempt (active = false) while having active accounts (hasActiveAccounts = true)
+        executeCommand(new UpdateCustomerDetailsCmd("cust-violate-delete", "valid@example.com", "123456", null, null, false, true));
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(thrownException, "Expected a domain error but execution succeeded");
-        assertTrue(thrownException instanceof IllegalArgumentException || thrownException instanceof IllegalStateException);
+        assertNotNull(capturedException);
+        // The aggregate throws IllegalArgumentException or IllegalStateException for domain violations
+        assertTrue(capturedException instanceof IllegalArgumentException || capturedException instanceof IllegalStateException);
+    }
+
+    private void executeCommand(UpdateCustomerDetailsCmd cmd) {
+        this.lastCommand = cmd;
+        this.capturedException = null;
+        try {
+            aggregate.execute(cmd);
+        } catch (Exception e) {
+            this.capturedException = e;
+        }
     }
 }

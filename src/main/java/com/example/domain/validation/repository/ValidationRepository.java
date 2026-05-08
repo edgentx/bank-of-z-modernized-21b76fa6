@@ -1,9 +1,11 @@
 package com.example.domain.validation.repository;
 
 import com.example.domain.validation.model.ValidationAggregate;
-import java.util.Optional;
 
+/**
+ * Repository for Validation Aggregates.
+ */
 public interface ValidationRepository {
     void save(ValidationAggregate aggregate);
-    Optional<ValidationAggregate> findById(String id);
+    ValidationAggregate find(String validationId);
 }

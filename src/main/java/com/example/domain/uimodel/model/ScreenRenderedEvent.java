@@ -3,13 +3,12 @@ package com.example.domain.uimodel.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
 public record ScreenRenderedEvent(
-    String screenId,
-    String layoutJson,
-    String layoutContentType,
-    Instant occurredAt
+        String aggregateId,
+        String screenId,
+        String deviceType,
+        Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
@@ -18,7 +17,7 @@ public record ScreenRenderedEvent(
 
     @Override
     public String aggregateId() {
-        return screenId;
+        return aggregateId;
     }
 
     @Override

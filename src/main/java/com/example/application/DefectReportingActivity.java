@@ -2,8 +2,6 @@ package com.example.application;
 
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
-import io.temporal.spring.boot.ActivityImpl;
-import org.springframework.stereotype.Component;
 
 /**
  * Activity Interface for Defect Reporting operations (Slack, GitHub, etc.).

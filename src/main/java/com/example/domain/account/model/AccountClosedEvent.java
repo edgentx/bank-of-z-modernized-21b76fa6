@@ -1,21 +1,18 @@
 package com.example.domain.account.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
 import java.util.UUID;
 
 public record AccountClosedEvent(
     String aggregateId,
+    String accountNumber,
     Instant occurredAt
 ) implements DomainEvent {
-    public AccountClosedEvent {
-        // Ensure values are non-null
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId cannot be null");
-    }
-
-    public AccountClosedEvent(String aggregateId) {
-        this(aggregateId, Instant.now());
+    public AccountClosedEvent(String aggregateId, String accountNumber, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.accountNumber = accountNumber;
+        this.occurredAt = occurredAt;
     }
 
     @Override
@@ -26,10 +23,5 @@ public record AccountClosedEvent(
     @Override
     public String aggregateId() {
         return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

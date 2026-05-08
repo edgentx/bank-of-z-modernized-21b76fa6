@@ -6,18 +6,11 @@ import java.util.UUID;
 
 public record DefectReportedEvent(
     String aggregateId,
-    String githubUrl,
-    String severity,
-    String component,
+    String summary,
+    String description,
     Instant occurredAt
 ) implements DomainEvent {
-    @Override
-    public String type() {
-        return "DefectReported";
-    }
-    
-    // Constructor wrapper to generate ID if needed, though record handles it
-    public static DefectReportedEvent create(String id, String url, String severity, String component) {
-        return new DefectReportedEvent(id, url, severity, component, Instant.now());
-    }
+    @Override public String type() { return "DefectReported"; }
+    @Override public String aggregateId() { return aggregateId; }
+    @Override public Instant occurredAt() { return occurredAt; }
 }

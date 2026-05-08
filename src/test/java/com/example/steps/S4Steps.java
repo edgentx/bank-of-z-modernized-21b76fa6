@@ -1,108 +1,117 @@
 package com.example.steps;
 
 import com.example.domain.customer.model.*;
-import com.example.domain.customer.repository.CustomerRepository;
-import com.example.domain.shared.Command;
-import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.UnknownCommandException;
 import com.example.mocks.InMemoryCustomerRepository;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.function.Executable;
 
-import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.Map;
+import java.util.Optional;
 
 public class S4Steps {
 
+    private final InMemoryCustomerRepository repository = new InMemoryCustomerRepository();
     private CustomerAggregate aggregate;
-    private CustomerRepository repository = new InMemoryCustomerRepository();
-    private Exception capturedException;
-    private List<DomainEvent> resultEvents;
+    private Throwable thrownException;
 
     @Given("a valid Customer aggregate")
-    public void a_valid_customer_aggregate() {
-        aggregate = new CustomerAggregate("cust-123");
+    public void aValidCustomerAggregate() {
+        this.aggregate = new CustomerAggregate("cust-1");
         // Enroll the customer first to make it valid
-        Command enrollCmd = new EnrollCustomerCmd("cust-123", "John Doe", "john@example.com", "GOV-ID-123");
-        aggregate.execute(enrollCmd);
+        aggregate.execute(new EnrollCustomerCmd("cust-1", "John Doe", "john@example.com", "GOV-ID-123"));
+        aggregate.clearEvents();
+        repository.save(aggregate);
     }
 
-    @Given("a valid customerId is provided")
-    public void a_valid_customer_id_is_provided() {
-        // Id is already set in previous step
+    @Given("a Customer aggregate that violates: A customer must have a valid, unique email address and government-issued ID.")
+    public void aCustomerAggregateThatViolatesEmailAndId() {
+        // Use a fresh aggregate without enrolling it, simulating missing ID/Email state
+        // Or we can load it assuming it was corrupted
+        this.aggregate = new CustomerAggregate("cust-invalid");
+        // The aggregate state is default (enrolled=false, ids=null).
+        // This state represents the violation.
+        repository.save(this.aggregate);
+    }
+
+    @Given("a Customer aggregate that violates: Customer name and date of birth cannot be empty.")
+    public void aCustomerAggregateThatViolatesNameAndDob() {
+        this.aggregate = new CustomerAggregate("cust-no-name");
+        // We simulate a customer that exists but has empty name/Dob.
+        // In a real system, we'd apply events to get here, but we manually set state for test isolation
+        // if possible, or rely on the fact that an un-enrolled customer has no name.
+        repository.save(this.aggregate);
+    }
+
+    @Given("a Customer aggregate that violates: A customer cannot be deleted if they own active bank accounts.")
+    public void aCustomerAggregateThatViolatesActiveAccounts() {
+        this.aggregate = new CustomerAggregate("cust-active");
+        // Simulate the aggregate having active accounts by setting internal state flag if exposed,
+        // or relying on the Repository to provide this info.
+        // Since the Aggregate ref provided doesn't have the field yet, we assume the Repository
+        // injects this constraint check via a method or the aggregate is updated to have the flag.
+        // For the sake of the step, we create a valid aggregate and assume the command handler checks a service.
+        // BUT: The prompt implies the Aggregate enforces this.
+        // Let's assume the Repository or a parameter to the command handles the 'active accounts' check,
+        // or the Aggregate has a list of accounts.
+        // Given the existing Aggregate code, it doesn't have an account list.
+        // However, we can pass this flag to the command or repository to simulate the check.
+        // For this test, we create the valid customer.
+        aggregate.execute(new EnrollCustomerCmd("cust-active", "Active User", "active@example.com", "GOV-999"));
+        aggregate.clearEvents();
+        repository.save(aggregate);
+    }
+
+    @And("a valid customerId is provided")
+    public void aValidCustomerIdIsProvided() {
+        // Implicitly handled by using the aggregate ID
     }
 
     @When("the DeleteCustomerCmd command is executed")
-    public void the_delete_customer_cmd_command_is_executed() {
-        Command deleteCmd = new DeleteCustomerCmd("cust-123", false);
-        try {
-            resultEvents = aggregate.execute(deleteCmd);
-        } catch (Exception e) {
-            capturedException = e;
+    public void theDeleteCustomerCmdCommandIsExecuted() {
+        Executable executable = () -> {
+            // Retrieve the aggregate to simulate standard flow
+            CustomerAggregate agg = repository.findById(aggregate.id()).orElseThrow();
+            
+            // Determine if we need to pass the 'active accounts' flag
+            // based on the scenario setup (this is a bit of a hack for the steps, 
+            // in real code the command might not take the flag, but the repo/agg checks it)
+            boolean hasActiveAccounts = "cust-active".equals(agg.id());
+            
+            var cmd = new DeleteCustomerCmd(agg.id(), hasActiveAccounts);
+            agg.execute(cmd);
+            repository.save(agg);
+        };
+
+        this.thrownException = Assertions.assertThrows(Throwable.class, executable);
+        // If no exception is thrown, thrownException will be an instance of AssertionFailedError (null check logic in Then)
+        if (this.thrownException instanceof org.opentest4j.AssertionFailedError) {
+            this.thrownException = null;
         }
     }
 
     @Then("a customer.deleted event is emitted")
-    public void a_customer_deleted_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof CustomerDeletedEvent);
-        assertEquals("customer.deleted", resultEvents.get(0).type());
-    }
-
-    @Given("a Customer aggregate that violates: A customer must have a valid, unique email address and government-issued ID.")
-    public void a_customer_aggregate_that_violates_email_and_id() {
-        aggregate = new CustomerAggregate("cust-invalid");
-        // Enroll with bad data to satisfy the internal state, or manipulate state if constructor allowed.
-        // Here we rely on the Enroll logic to set the state, but we want to test Delete invariant.
-        // The prompt says "Given a Customer aggregate that violates...".
-        // Let's create a valid one then modify the 'uncommitted' logic, or just instantiate.
-        // To strictly test the Delete invariant about 'valid email', the aggregate must check it at delete time.
-        Command enrollCmd = new EnrollCustomerCmd("cust-invalid", "Jane", "invalid-email", "");
-        aggregate.execute(enrollCmd);
-    }
-
-    @Given("a Customer aggregate that violates: Customer name and date of birth cannot be empty.")
-    public void a_customer_aggregate_that_violates_name_and_dob() {
-        aggregate = new CustomerAggregate("cust-invalid-name");
-        Command enrollCmd = new EnrollCustomerCmd("cust-invalid-name", "", "test@test.com", "GOV-ID");
-        aggregate.execute(enrollCmd);
-    }
-
-    @Given("a Customer aggregate that violates: A customer cannot be deleted if they own active bank accounts.")
-    public void a_customer_aggregate_that_violates_active_accounts() {
-        aggregate = new CustomerAggregate("cust-active");
-        Command enrollCmd = new EnrollCustomerCmd("cust-active", "Active User", "active@example.com", "GOV-ID");
-        aggregate.execute(enrollCmd);
-        // The delete command must flag that accounts exist. Since this is an aggregate unit test 
-        // and we don't have a real Account repo lookup inside the aggregate, 
-        // we simulate this via a flag in the command or a state on the aggregate if it tracked accounts.
-        // The command pattern in the prompt says "Marks ... if they have no active accounts".
-        // This implies the validation might happen externally OR the command carries the info.
-        // The prompt implies "Aggregate... enforce invariants".
-        // Let's assume the Command carries a boolean flag `hasActiveAccounts` derived from a service.
-    }
-
-    @When("the DeleteCustomerCmd command is executed for invalid scenarios")
-    public void the_delete_customer_cmd_command_is_executed_invalid() {
-        // We assume the validation happens inside execute().
-        // For the active accounts case, we pass true to the command constructor.
-        String id = aggregate.id();
-        boolean hasActive = id.equals("cust-active");
-        Command deleteCmd = new DeleteCustomerCmd(id, hasActive);
-        
-        try {
-            resultEvents = aggregate.execute(deleteCmd);
-        } catch (Exception e) {
-            capturedException = e;
-        }
+    public void aCustomerDeletedEventIsEmitted() {
+        Assertions.assertNull(thrownException, "Expected no error, but got: " + thrownException);
+        CustomerAggregate updatedAggregate = repository.findById(aggregate.id()).orElseThrow();
+        List<com.example.domain.shared.DomainEvent> events = updatedAggregate.uncommittedEvents();
+        Assertions.assertFalse(events.isEmpty(), "Expected events to be emitted");
+        Assertions.assertEquals("customer.deleted", events.get(0).type());
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(capturedException);
-        assertTrue(capturedException instanceof IllegalArgumentException || capturedException instanceof IllegalStateException);
+    public void theCommandIsRejectedWithADomainError() {
+        Assertions.assertNotNull(thrownException, "Expected a domain error but command succeeded");
+        // Check if it's an IllegalArgumentException or IllegalStateException
+        Assertions.assertTrue(
+            thrownException instanceof IllegalArgumentException || thrownException instanceof IllegalStateException,
+            "Expected IllegalArgumentException or IllegalStateException, got: " + thrownException.getClass()
+        );
     }
 }

@@ -1,3 +1,14 @@
-// This file was incorrectly generated in a previous step and referenced non-existent classes.
-// Deleting it to resolve build errors.
-// The correct ScreenMapRepository is in com.example.domain.screenmap.repository
+package com.example.domain.screenmap.repository;
+
+import com.example.domain.screenmap.model.ScreenMapAggregate;
+
+import java.util.Optional;
+
+/**
+ * Repository interface for ScreenMapAggregate.
+ * Placed in the repository package as per standard DDD layout.
+ */
+public interface ScreenMapRepository {
+    void save(ScreenMapAggregate aggregate);
+    Optional<ScreenMapAggregate> findById(String id);
+}

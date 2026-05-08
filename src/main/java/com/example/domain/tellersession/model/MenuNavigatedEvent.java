@@ -6,10 +6,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record MenuNavigatedEvent(
-    String aggregateId,
-    String menuId,
-    String action,
-    Instant occurredAt
+        String aggregateId,
+        String menuId,
+        String action,
+        Instant occurredAt
 ) implements DomainEvent {
     public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
         this.aggregateId = aggregateId;

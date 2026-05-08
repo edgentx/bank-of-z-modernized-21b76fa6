@@ -6,22 +6,33 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record SessionStartedEvent(
+    String eventId,
     String aggregateId,
     String tellerId,
     String terminalId,
     Instant occurredAt
 ) implements DomainEvent {
     public SessionStartedEvent {
-        // Ensure defaults if constructor usage varies, though record handles this
+        if (eventId == null) eventId = UUID.randomUUID().toString();
+        if (occurredAt == null) occurredAt = Instant.now();
     }
     
-    // Factory method to match potential usage patterns if constructor isn't direct
-    public static SessionStartedEvent create(String id, String tellerId, String terminalId, Instant time) {
-        return new SessionStartedEvent(id, tellerId, terminalId, time);
+    public static SessionStartedEvent create(String aggregateId, String tellerId, String terminalId) {
+        return new SessionStartedEvent(null, aggregateId, tellerId, terminalId, Instant.now());
     }
 
     @Override
     public String type() {
         return "session.started";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

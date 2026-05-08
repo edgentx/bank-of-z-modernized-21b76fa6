@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xmlns:exclude="http://www.example.org/exclude"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.springframework.boot</groupId>
@@ -9,11 +7,12 @@
 		<version>3.2.0</version>
 		<relativePath/>
 	</parent>
+
 	<groupId>com.example</groupId>
-	<artifactId>bank-of-z</artifactId>
+	<artifactId>egdcrypto-bank-of-z-modernized</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>bank-of-z</name>
-	<description>Bank of Z Core Modernization</description>
+	<name>egdcrypto-bank-of-z-modernized</name>
+	<description>Bank of Z Modernization</description>
 
 	<properties>
 		<java.version>17</java.version>
@@ -21,24 +20,17 @@
 	</properties>
 
 	<dependencies>
-		<!-- Spring Core -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter</artifactId>
-		</dependency>
+		<!-- Spring Boot Dependencies -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
-		
-		<!-- Testing -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
+			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
-		
-		<!-- Cucumber BDD (version specified as groupID is NOT in BOM closed set) -->
+
+		<!-- Cucumber Dependencies -->
 		<dependency>
 			<groupId>io.cucumber</groupId>
 			<artifactId>cucumber-java</artifactId>
@@ -58,46 +50,19 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!-- Tech Stack: DB2 (Driver) -->
+		<!-- JUnit Platform -->
 		<dependency>
-			<groupId>com.ibm.db2</groupId>
-			<artifactId>jcc</artifactId>
-			<version>11.5.8.0</version>
-			<scope>runtime</scope>
+			<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-suite</artifactId>
+			<scope>test</scope>
 		</dependency>
 
-		<!-- Tech Stack: MongoDB (VForce360) -->
+		<!-- Test Dependencies -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-mongodb</artifactId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
 		</dependency>
-
-		<!-- Tech Stack: Redis (Session Caching) -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-redis</artifactId>
-		</dependency>
-		
-		<!-- Tech Stack: MinIO (Document Storage) -->
-		<dependency>
-			<groupId>io.minio</groupId>
-			<artifactId>minio</artifactId>
-			<version>8.5.6</version>
-		</dependency>
-
-		<!-- Tech Stack: Temporal -->
-		<dependency>
-			<groupId>io.temporal</groupId>
-			<artifactId>temporal-spring-boot-starter-alpha</artifactId>
-			<version>1.22.1</version>
-		</dependency>
-
-		<!-- Tech Stack: Spring Batch (Migration) -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-batch</artifactId>
-		</dependency>
-
 	</dependencies>
 
 	<build>
@@ -105,6 +70,14 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>17</source>
+					<target>17</target>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

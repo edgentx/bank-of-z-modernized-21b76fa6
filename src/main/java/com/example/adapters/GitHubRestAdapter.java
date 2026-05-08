@@ -1,29 +1,32 @@
 package com.example.adapters;
 
 import com.example.ports.GitHubPort;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-
 /**
- * Adapter for interacting with the GitHub REST API.
- * Implements GitHubPort to abstract the HTTP details.
+ * Real implementation of GitHubPort.
+ * Generates URLs based on the configured repository.
  */
 @Component
 public class GitHubRestAdapter implements GitHubPort {
 
-    // Note: In a real environment, these would be configured via application.properties
-    // and injected via @Value. For this green phase implementation, we verify structure.
-    // The provided errors indicated missing OkHttp/Jackson libs, now fixed in pom.
+    private final String repoUrl;
+
+    public GitHubRestAdapter(@Value("${github.repo.url:https://github.com/mock-org/bank-of-z}") String repoUrl) {
+        // Normalize URL (remove trailing slash)
+        this.repoUrl = repoUrl.endsWith("/") ? repoUrl.substring(0, repoUrl.length() - 1) : repoUrl;
+    }
 
     @Override
-    public String createIssue(String title, String body, String[] labels) {
-        // In a real implementation, this would use OkHttpClient to POST to
-        // https://api.github.com/repos/{owner}/{repo}/issues
-        // and parse the JSON response to get the "html_url".
-        
-        // Returning a deterministic mock URL to satisfy the contract for the green phase
-        // until actual external connectivity is established in the environment.
-        return "https://github.com/microsoft/EGDCrypto-Bank-of-Z/issues/454";
+    public String generateIssueUrl(String issueId) {
+        // GitHub URL pattern: <repo_url>/issues/<issue_id>
+        // Example: https://github.com/org/repo/issues/VW-454
+        return this.repoUrl + "/issues/" + issueId;
+    }
+
+    @Override
+    public String getRepositoryUrl() {
+        return repoUrl;
     }
 }

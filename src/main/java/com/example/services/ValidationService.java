@@ -5,20 +5,35 @@ import com.example.domain.shared.ValidationPort;
 import org.springframework.stereotype.Service;
 
 /**
- * Application service handling validation logic.
- * Delegates to the specific validator adapter implementing the ValidationPort contract.
+ * Application Service handling validation operations.
+ * Acts as the primary entry point for validation use cases.
  */
 @Service
-public class ValidationService implements ValidationPort {
+public class ValidationService {
 
-    private final SlackMessageValidator validator;
+    private final ValidationPort validationPort;
+    private final SlackMessageValidator slackValidator;
 
-    public ValidationService(SlackMessageValidator validator) {
-        this.validator = validator;
+    public ValidationService(ValidationPort validationPort, SlackMessageValidator slackValidator) {
+        this.validationPort = validationPort;
+        this.slackValidator = slackValidator;
     }
 
-    @Override
-    public void validateSlackBody(String content) throws SlackMessageValidator.SlackValidationException {
-        validator.validateBodyContainsGitHubUrl(content);
+    /**
+     * Validates a target object using the registered ValidationPort.
+     * @param target The object to validate.
+     */
+    public void validate(Object target) {
+        validationPort.validate(target);
+    }
+
+    /**
+     * Validates a string intended for a Slack message body.
+     * S-FB-1: Ensures the body contains the required GitHub URL.
+     * @param messageBody The message content.
+     * @return true if valid, false otherwise.
+     */
+    public boolean validateSlackMessage(String messageBody) {
+        return slackValidator.isValid(messageBody);
     }
 }

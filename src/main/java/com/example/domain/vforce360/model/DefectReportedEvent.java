@@ -3,16 +3,14 @@ package com.example.domain.vforce360.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
-/**
- * Event published when a defect is reported via the VForce360 diagnostic flow.
- */
 public record DefectReportedEvent(
     String defectId,
     String title,
-    String projectId,
     String severity,
+    String projectUuid,
+    String storyId,
     Instant occurredAt
 ) implements DomainEvent {
     @Override

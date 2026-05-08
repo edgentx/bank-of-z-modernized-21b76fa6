@@ -2,13 +2,15 @@ package com.example.domain.reporting.model;
 
 import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
-import java.util.Map;
+import java.util.UUID;
 
+/**
+ * Event emitted when a defect is successfully reported to Slack/GitHub.
+ */
 public record DefectReportedEvent(
-    String defectId,
-    String title,
-    String description,
-    Map<String, String> metadata,
+    String aggregateId,
+    String githubUrl,
+    String severity,
     Instant occurredAt
 ) implements DomainEvent {
     @Override
@@ -18,7 +20,7 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return defectId;
+        return aggregateId;
     }
 
     @Override

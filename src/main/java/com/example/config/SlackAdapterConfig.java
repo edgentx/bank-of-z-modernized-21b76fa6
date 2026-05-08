@@ -1,24 +1,35 @@
 package com.example.config;
 
-import com.example.adapters.RealSlackNotificationAdapter;
+import com.example.adapters.SlackNotificationAdapter;
+import com.example.mocks.MockSlackNotificationService;
 import com.example.ports.SlackNotificationPort;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 
 /**
- * Configuration for Slack Notification Port.
- * Switches between Real and Mock implementations based on profile.
+ * Configuration for Slack Notification adapters.
+ * 
+ * Default behavior (if no specific profile is active) is to use the Mock
+ * to prevent accidental external HTTP calls during development/testing of other modules.
+ * The 'prod' profile enables the real adapter.
  */
 @Configuration
 public class SlackAdapterConfig {
 
     @Bean
-    @ConditionalOnProperty(name = "app.slack.provider", havingValue = "real", matchIfMissing = true)
-    public SlackNotificationPort realSlackPort() {
-        return new RealSlackNotificationAdapter();
+    @Primary
+    @ConditionalOnMissingBean(SlackNotificationPort.class)
+    // Default to Mock if no specific configuration is provided to ensure safety
+    public SlackNotificationPort defaultSlackAdapter() {
+        return new MockSlackNotificationService();
     }
 
-    // The mock is defined in tests, but if we needed a prod mock, we could define it here.
-    // For this exercise, we rely on the test configuration importing MockSlackNotificationPort.
+    @Bean
+    @Profile("prod")
+    public SlackNotificationPort realSlackAdapter() {
+        return new SlackNotificationAdapter();
+    }
 }

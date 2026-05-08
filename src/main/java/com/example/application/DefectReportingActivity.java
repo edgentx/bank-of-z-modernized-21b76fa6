@@ -1,14 +1,27 @@
 package com.example.application;
 
 import io.temporal.activity.ActivityInterface;
-import io.temporal.activity.ActivityMethod;
 
 /**
- * Activity interface for interacting with external systems like Slack.
- * Temporal ensures these are retryable and durable.
+ * Temporal Activity interface defining the operations performed by the Workflow.
  */
 @ActivityInterface
 public interface DefectReportingActivity {
-    @ActivityMethod
-    boolean notifySlack(String defectId, String messageBody);
+
+    /**
+     * Creates an issue in GitHub.
+     *
+     * @param title The issue title.
+     * @param body  The issue body.
+     * @return The URL of the created issue.
+     */
+    String createGitHubIssue(String title, String body);
+
+    /**
+     * Sends a notification to Slack containing the GitHub Issue URL.
+     * Defect VW-454 Validation: The body must contain the GitHub URL.
+     *
+     * @param githubUrl The URL to include in the Slack message.
+     */
+    void notifySlack(String githubUrl);
 }

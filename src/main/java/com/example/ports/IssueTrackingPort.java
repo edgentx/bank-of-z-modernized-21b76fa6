@@ -3,16 +3,15 @@ package com.example.ports;
 import java.util.Optional;
 
 /**
- * Port interface for interacting with external Issue Tracking systems (e.g. GitHub/JIRA).
+ * Port interface for interacting with Issue Tracking systems (e.g., GitHub, Jira).
  */
 public interface IssueTrackingPort {
 
     /**
      * Creates a remote issue based on the defect details.
      *
-     * @param title The title of the defect
-     * @param description The description/body of the defect
-     * @return The URL of the created issue
+     * @param defectDetails The raw details of the defect.
+     * @return An Optional containing the URL of the created issue, or empty if creation failed/was skipped.
      */
-    String createIssue(String title, String description);
+    Optional<String> createRemoteIssue(String defectDetails);
 }

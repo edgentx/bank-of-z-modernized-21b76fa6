@@ -1,25 +1,22 @@
 package com.example.domain.tellersession.repository;
 
 import com.example.domain.tellersession.model.TellerSessionAggregate;
+import org.springframework.stereotype.Repository;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
-import java.util.HashMap;
-import java.util.Map;
-
+@Repository
 public class InMemoryTellerSessionRepository implements TellerSessionRepository {
-    private final Map<String, TellerSessionAggregate> store = new HashMap<>();
 
-    @Override
-    public TellerSessionAggregate load(String id) {
-        TellerSessionAggregate aggregate = store.get(id);
-        if (aggregate == null) {
-            // Return a fresh aggregate if not found, or throw. Assuming creation-on-load for BDD simplicity.
-            return new TellerSessionAggregate(id);
-        }
-        return aggregate;
-    }
+    private final ConcurrentMap<String, TellerSessionAggregate> store = new ConcurrentHashMap<>();
 
     @Override
     public void save(TellerSessionAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
+    }
+
+    @Override
+    public TellerSessionAggregate findById(String id) {
+        return store.get(id);
     }
 }

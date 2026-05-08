@@ -5,26 +5,19 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-public class MenuNavigatedEvent implements DomainEvent {
-    private final String eventId;
-    private final String aggregateId;
-    private final String menuId;
-    private final String action;
-    private final Instant occurredAt;
-
-    public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
-        this.eventId = UUID.randomUUID().toString();
-        this.aggregateId = aggregateId;
-        this.menuId = menuId;
-        this.action = action;
-        this.occurredAt = occurredAt;
-    }
+public record MenuNavigatedEvent(
+    String aggregateId,
+    String menuId,
+    String action,
+    Instant occurredAt
+) implements DomainEvent {
 
     @Override
     public String type() {
         return "menu.navigated";
     }
 
+    // Ensure aggregateId matches the field name convention or accessor
     @Override
     public String aggregateId() {
         return aggregateId;
@@ -34,7 +27,4 @@ public class MenuNavigatedEvent implements DomainEvent {
     public Instant occurredAt() {
         return occurredAt;
     }
-
-    public String getMenuId() { return menuId; }
-    public String getAction() { return action; }
 }

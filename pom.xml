@@ -47,9 +47,5 @@
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- 
-             NOTE: User prompt mentioned pytest, but specified Language: Java. 
-             JUnit 5 is the standard for Spring Boot TDD.
-        -->
     </dependencies>
 </project>

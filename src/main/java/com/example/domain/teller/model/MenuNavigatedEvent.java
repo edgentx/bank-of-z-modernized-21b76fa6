@@ -5,15 +5,27 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Event emitted when a teller successfully navigates to a new menu context.
+ */
 public record MenuNavigatedEvent(
         String eventId,
-        String aggregateId,
+        String sessionId,
         String menuId,
         String action,
         Instant occurredAt
 ) implements DomainEvent {
-    public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), aggregateId, menuId, action, occurredAt);
+
+    public MenuNavigatedEvent {
+        Objects.requireNonNull(eventId, "eventId cannot be null");
+        Objects.requireNonNull(sessionId, "sessionId cannot be null");
+        Objects.requireNonNull(menuId, "menuId cannot be null");
+        Objects.requireNonNull(action, "action cannot be null");
+        Objects.requireNonNull(occurredAt, "occurredAt cannot be null");
+    }
+
+    public MenuNavigatedEvent(String sessionId, String menuId, String action, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), sessionId, menuId, action, occurredAt);
     }
 
     @Override
@@ -22,12 +34,12 @@ public record MenuNavigatedEvent(
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return sessionId;
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

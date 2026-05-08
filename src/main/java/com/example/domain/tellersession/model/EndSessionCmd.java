@@ -4,6 +4,6 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to terminate an active teller session.
- * ID: S-20
+ * Corresponds to Story S-20.
  */
 public record EndSessionCmd(String sessionId) implements Command {}

@@ -5,9 +5,10 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 
 public record DefectReportedEvent(
-    String aggregateId,
-    String message,
+    String defectId,
+    String title,
     String githubUrl,
+    String slackMessage,
     Instant occurredAt
 ) implements DomainEvent {
     @Override
@@ -17,11 +18,11 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return defectId();
     }
 
     @Override
     public Instant occurredAt() {
-        return occurredAt;
+        return occurredAt();
     }
 }

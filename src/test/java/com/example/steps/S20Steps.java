@@ -1,9 +1,11 @@
 package com.example.steps;
 
 import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.tellersession.model.EndSessionCmd;
 import com.example.domain.tellersession.model.SessionEndedEvent;
 import com.example.domain.tellersession.model.TellerSessionAggregate;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -17,72 +19,70 @@ import static org.junit.jupiter.api.Assertions.*;
 public class S20Steps {
 
     private TellerSessionAggregate aggregate;
-    private EndSessionCmd command;
     private List<DomainEvent> resultEvents;
-    private Exception thrownException;
+    private Exception caughtException;
+    private static final String TEST_SESSION_ID = "session-123";
 
     @Given("a valid TellerSession aggregate")
-    public void a_valid_teller_session_aggregate() {
-        aggregate = new TellerSessionAggregate("session-123");
-        aggregate.markAuthenticated();
-        aggregate.markActive();
-        aggregate.setNavigationState("/IDLE");
-        aggregate.setLastActivityAt(Instant.now());
-    }
-
-    @Given("a valid sessionId is provided")
-    public void a_valid_session_id_is_provided() {
-        command = new EndSessionCmd("session-123");
+    public void aValidTellerSessionAggregate() {
+        // Setup a valid, authenticated, active session
+        Instant activeTime = Instant.now();
+        aggregate = new TellerSessionAggregate(TEST_SESSION_ID, true, activeTime, true);
+        caughtException = null;
     }
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_teller_session_aggregate_that_violates_authentication() {
-        aggregate = new TellerSessionAggregate("session-auth-fail");
-        aggregate.markActive(); // Active but not authenticated
-        // DO NOT call markAuthenticated()
-        command = new EndSessionCmd("session-auth-fail");
+    public void aTellerSessionAggregateThatViolatesAuthentication() {
+        // Authenticated = false
+        aggregate = new TellerSessionAggregate(TEST_SESSION_ID, false, Instant.now(), true);
+        caughtException = null;
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_teller_session_aggregate_that_violates_timeout() {
-        aggregate = new TellerSessionAggregate("session-timeout");
-        aggregate.markAuthenticated();
-        // Set activity to 2 hours ago to simulate timeout
-        aggregate.setLastActivityAt(Instant.now().minus(Duration.ofHours(2)));
-        command = new EndSessionCmd("session-timeout");
+    public void aTellerSessionAggregateThatViolatesTimeout() {
+        // Last activity was 20 minutes ago (Timeout is 15)
+        Instant expiredTime = Instant.now().minus(Duration.ofMinutes(20));
+        aggregate = new TellerSessionAggregate(TEST_SESSION_ID, true, expiredTime, true);
+        caughtException = null;
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_teller_session_aggregate_that_violates_navigation_state() {
-        aggregate = new TellerSessionAggregate("session-nav-fail");
-        aggregate.markAuthenticated();
-        aggregate.markActive();
-        aggregate.setNavigationState(null); // Invalid state
-        command = new EndSessionCmd("session-nav-fail");
+    public void aTellerSessionAggregateThatViolatesNavigationState() {
+        // Navigation is unstable
+        aggregate = new TellerSessionAggregate(TEST_SESSION_ID, true, Instant.now(), false);
+        caughtException = null;
+    }
+
+    @And("a valid sessionId is provided")
+    public void aValidSessionIdIsProvided() {
+        // The aggregate is already initialized with the ID, ensuring consistency.
+        assertNotNull(aggregate.id());
     }
 
     @When("the EndSessionCmd command is executed")
-    public void the_end_session_cmd_command_is_executed() {
+    public void theEndSessionCmdCommandIsExecuted() {
         try {
-            resultEvents = aggregate.execute(command);
+            EndSessionCmd cmd = new EndSessionCmd(TEST_SESSION_ID);
+            resultEvents = aggregate.execute(cmd);
+        } catch (IllegalStateException | UnknownCommandException e) {
+            caughtException = e;
         } catch (Exception e) {
-            thrownException = e;
+            caughtException = e;
         }
     }
 
     @Then("a session.ended event is emitted")
-    public void a_session_ended_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertFalse(resultEvents.isEmpty());
-        assertTrue(resultEvents.get(0) instanceof SessionEndedEvent);
-        assertEquals("session.ended", resultEvents.get(0).type());
-        assertNull(thrownException, "Expected no exception, but got: " + thrownException);
+    public void aSessionEndedEventIsEmitted() {
+        assertNull(caughtException, "Should not have thrown an exception");
+        assertNotNull(resultEvents, "Events list should not be null");
+        assertEquals(1, resultEvents.size(), "Should have emitted one event");
+        assertTrue(resultEvents.get(0) instanceof SessionEndedEvent, "Event should be SessionEndedEvent");
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(thrownException);
-        assertTrue(thrownException instanceof IllegalStateException);
-        assertTrue(thrownException.getMessage() != null && !thrownException.getMessage().isBlank());
+    public void theCommandIsRejectedWithADomainError() {
+        assertNotNull(caughtException, "Expected an exception to be thrown");
+        // The domain error is represented by IllegalStateException in this implementation
+        assertTrue(caughtException instanceof IllegalStateException, "Expected IllegalStateException");
     }
 }

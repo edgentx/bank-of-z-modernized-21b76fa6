@@ -2,12 +2,14 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
 
+/**
+ * Command to initiate a teller session following successful authentication.
+ */
 public record StartSessionCmd(
-    String sessionId,
+    String aggregateId,
     String tellerId,
     String terminalId,
-    boolean authenticated,
-    boolean timedOut,
-    boolean navigationStateValid
-) implements Command {
-}
+    boolean isAuthenticated,
+    boolean isTimedOut,
+    String navigationState
+) implements Command {}

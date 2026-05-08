@@ -26,7 +26,7 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        
+
         <!-- Temporal (Workflow) -->
         <!-- Group ID io.temporal is NOT in the Spring Boot BOM closed set, explicit version required -->
         <dependency>
@@ -34,7 +34,7 @@
             <artifactId>temporal-sdk</artifactId>
             <version>1.22.3</version>
         </dependency>
-        
+
         <!-- JUnit 5 (Testing) -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -46,7 +46,7 @@
             <artifactId>junit-jupiter-engine</artifactId>
             <scope>test</scope>
         </dependency>
-        
+
         <!-- Mockito (Mocking) -->
         <dependency>
             <groupId>org.mockito</groupId>

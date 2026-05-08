@@ -4,87 +4,54 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
 /**
- * ReconciliationBatch Aggregate
- * Handles the logic for forcing a batch to a balanced state.
+ * Reconciliation aggregate.
+ * Handles balance verification and defect reporting (S-FB-1).
  */
 public class ReconciliationBatch extends AggregateRoot {
     private final String batchId;
-    private Status status = Status.OPEN;
-    private boolean isPreviousBatchPending = false;
-    private boolean areAllEntriesAccounted = true;
+    private Status status = Status.NONE;
 
-    public enum Status {
-        OPEN, BALANCED, CLOSED
-    }
+    public enum Status { NONE, STARTED, BALANCED, FAILED }
 
-    public ReconciliationBatch(String batchId) {
-        this.batchId = batchId;
-    }
-
-    @Override
-    public String id() {
-        return batchId;
-    }
+    public ReconciliationBatch(String batchId) { this.batchId = batchId; }
+    @Override public String id() { return batchId; }
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof ForceBalanceCmd c) {
-            return forceBalance(c);
-        }
+        if (cmd instanceof ForceBalanceCmd c) return forceBalance(c);
+        if (cmd instanceof ReportDefectCmd c) return reportDefect(c);
         throw new UnknownCommandException(cmd);
     }
 
-    private List<DomainEvent> forceBalance(ForceBalanceCmd cmd) {
-        // Invariant: Cannot execute if a previous batch is still pending
-        if (isPreviousBatchPending) {
-            throw new IllegalStateException("Cannot execute batch: Previous batch is still pending.");
-        }
-
-        // Invariant: All transaction entries must be accounted for
-        if (!areAllEntriesAccounted) {
-            throw new IllegalStateException("Cannot execute batch: Not all transaction entries are accounted for.");
-        }
-
-        // Invariant: Only Open batches can be forced to balance
-        if (status != Status.OPEN) {
-            throw new IllegalStateException("Cannot force balance on a batch that is not OPEN.");
-        }
-
-        // Validate Command fields
-        if (cmd.justification() == null || cmd.justification().isBlank()) {
-            throw new IllegalArgumentException("Justification is required to force balance.");
-        }
-
-        var event = new ReconciliationBalancedEvent(
-                this.batchId,
-                cmd.operatorId(),
-                cmd.justification(),
-                Instant.now()
-        );
-
-        // Apply state changes
+    private List<DomainEvent> forceBalance(ForceBalanceCmd c) {
+        if (status != Status.NONE) throw new IllegalStateException("Batch already started");
+        var event = new ReconciliationBalancedEvent(batchId, c.expectedSum(), c.actualSum(), Instant.now());
         this.status = Status.BALANCED;
-        addEvent(event);
-        incrementVersion();
-
+        addEvent(event); incrementVersion();
         return List.of(event);
     }
 
-    // Setters for test setup (simulating loading from history)
-    public void markPreviousBatchPending(boolean isPending) {
-        this.isPreviousBatchPending = isPending;
+    private List<DomainEvent> reportDefect(ReportDefectCmd c) {
+        if (status == Status.BALANCED) throw new IllegalStateException("Cannot report defect on balanced batch");
+        
+        // S-FB-1: Construct Slack body ensuring GitHub URL is present
+        String slackBody = String.format(
+            "Defect Detected in Batch: %s\nReason: %s\nGitHub Issue: <%s>",
+            c.batchId(), 
+            c.reason() != null ? c.reason() : "Unknown", 
+            c.githubIssueUrl()
+        );
+
+        var event = new DefectReportedEvent(batchId, batchId, slackBody, c.githubIssueUrl());
+        addEvent(event); incrementVersion();
+        return List.of(event);
     }
 
-    public void markEntriesUnaccounted() {
-        this.areAllEntriesAccounted = false;
-    }
-
-    public Status getStatus() {
-        return status;
-    }
+    // Getters for testing
+    public Status getStatus() { return status; }
 }

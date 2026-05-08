@@ -1,15 +1,13 @@
 package com.example.domain.defect.model;
 
 import com.example.domain.shared.Command;
-import java.util.Map;
 
 /**
- * Command to report a defect detected in VForce360.
- * Used by temporal-worker exec to trigger Slack notifications.
+ * Command to report a defect (VW-454 scenario).
+ * Triggered via temporal-worker exec.
  */
 public record ReportDefectCmd(
     String defectId,
     String title,
-    String severity,
-    Map<String, String> metadata // e.g., "story_id" -> "S-FB-1"
+    String severity
 ) implements Command {}

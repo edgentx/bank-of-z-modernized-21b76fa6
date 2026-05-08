@@ -3,29 +3,18 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
 /**
- * Internal event used to hydrate the aggregate for testing.
- * Represents the completion of Login/Auth.
+ * Internal event to track state initialization for the aggregate.
+ * Not exposed externally as a primary S-19 artifact, but necessary for aggregate logic.
  */
-public record TellerSessionInitializedEvent(
-        String eventId,
-        String aggregateId,
-        String tellerId,
-        Instant occurredAt
-) implements DomainEvent {
-    public TellerSessionInitializedEvent {
-        if (eventId == null) eventId = UUID.randomUUID().toString();
-        if (occurredAt == null) occurredAt = Instant.now();
-    }
-
-    public TellerSessionInitializedEvent(String aggregateId, String tellerId, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), aggregateId, tellerId, occurredAt);
-    }
-
+record TellerSessionInitializedEvent(String sessionId, String tellerId, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
         return "tellersession.initialized";
+    }
+    @Override
+    public String aggregateId() {
+        return sessionId;
     }
 }

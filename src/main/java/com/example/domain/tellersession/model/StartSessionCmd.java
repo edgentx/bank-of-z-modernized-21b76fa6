@@ -3,8 +3,8 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to initiate a new teller session.
- * Immutable record carrying the required data.
+ * Command to initiate a teller session.
+ * S-18: Implement StartSessionCmd on TellerSession.
  */
 public record StartSessionCmd(
     String sessionId,

@@ -1,16 +1,22 @@
 package com.example.ports;
 
 /**
- * Port for sending notifications to Slack.
- * Used to verify that defect report workflows generate correct URLs.
+ * Port for sending Slack notifications.
+ * Used to validate the body content of defect reports.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Posts a message to a Slack channel.
+     * Sends a notification to the configured Slack channel.
      *
-     * @param channelId The target channel ID (e.g., "C12345")
-     * @param messageBody The formatted message body content.
+     * @param messageBody The formatted body of the message.
      */
-    void postMessage(String channelId, String messageBody);
+    void sendMessage(String messageBody);
+
+    /**
+     * Helper to retrieve the last sent message body for verification in tests/state inspection.
+     * In a real async implementation, this might be handled differently, but for
+     * validation/verification logic, we need access to what was sent.
+     */
+    String getLastSentMessageBody();
 }

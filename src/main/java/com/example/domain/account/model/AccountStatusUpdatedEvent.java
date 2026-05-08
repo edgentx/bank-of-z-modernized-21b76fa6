@@ -6,10 +6,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record AccountStatusUpdatedEvent(
-    String aggregateId,
-    AccountAggregate.AccountStatus oldStatus,
-    AccountAggregate.AccountStatus newStatus,
-    Instant occurredAt
+        String aggregateId,
+        AccountStatus oldStatus,
+        AccountStatus newStatus,
+        Instant occurredAt
 ) implements DomainEvent {
 
     @Override
@@ -17,7 +17,6 @@ public record AccountStatusUpdatedEvent(
         return "account.status.updated";
     }
 
-    // Explicitly defining aggregateId to satisfy interface, though record has it
     @Override
     public String aggregateId() {
         return aggregateId;

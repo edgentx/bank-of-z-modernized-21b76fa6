@@ -1,27 +1,33 @@
 package com.example.adapters;
 
 import com.example.ports.GitHubIssuePort;
-
-import java.net.URI;
-import java.util.logging.Logger;
+import org.springframework.stereotype.Component;
 
 /**
- * Real implementation of GitHubIssuePort.
- * Would perform an HTTP POST to the GitHub API to create an issue.
+ * Real adapter for interacting with GitHub issues.
+ * Constructs standard GitHub URLs based on repository metadata.
  */
+@Component
 public class RealGitHubIssueAdapter implements GitHubIssuePort {
 
-    private static final Logger logger = Logger.getLogger(RealGitHubIssueAdapter.class.getName());
+    private static final String GITHUB_BASE_URL = "https://github.com";
+
+    public RealGitHubIssueAdapter() {
+        // Default constructor for Spring Bean instantiation
+    }
 
     @Override
-    public URI createIssue(String title, String body) {
-        // In a real implementation, we would use RestTemplate or WebClient to call GitHub API.
-        // For now, we return a mock URI to satisfy the contract.
-        // This would be replaced by logic parsing the response from GitHub API.
-        
-        String fakeUrl = "https://github.com/bank-of-z/issues/" + System.currentTimeMillis();
-        logger.info("Creating GitHub issue: " + title + " at " + fakeUrl);
-        
-        return URI.create(fakeUrl);
+    public String generateIssueUrl(String owner, String repo, int issueNumber) {
+        if (owner == null || owner.isBlank()) {
+            throw new IllegalArgumentException("GitHub owner cannot be null or empty");
+        }
+        if (repo == null || repo.isBlank()) {
+            throw new IllegalArgumentException("GitHub repo cannot be null or empty");
+        }
+        if (issueNumber <= 0) {
+            throw new IllegalArgumentException("Issue number must be positive");
+        }
+
+        return String.format("%s/%s/%s/issues/%d", GITHUB_BASE_URL, owner, repo, issueNumber);
     }
 }

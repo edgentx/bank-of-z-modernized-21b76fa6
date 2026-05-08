@@ -28,8 +28,15 @@ public class DefectReportWorkflowService {
      * @param body The defect description
      */
     public void reportDefect(String title, String body) {
-        // TDD RED PHASE IMPLEMENTATION:
-        // Deliberately empty or incorrect logic to fail the tests.
-        throw new UnsupportedOperationException("Not implemented yet");
+        if (title == null) {
+            throw new IllegalArgumentException("Defect title cannot be null");
+        }
+
+        // 1. Create GitHub Issue
+        String issueUrl = gitHubPort.createIssue(title, body);
+
+        // 2. Notify Slack with the issue URL embedded in the body
+        String messageBody = "Defect Reported: " + title + "\nGitHub Issue: " + issueUrl;
+        slackPort.sendMessage("#vforce360-issues", messageBody);
     }
 }

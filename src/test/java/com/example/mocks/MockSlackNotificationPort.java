@@ -1,34 +1,44 @@
 package com.example.mocks;
 
-import com.example.domain.validation.port.SlackNotificationPort;
+import com.example.ports.SlackNotificationPort;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures the last sent message body to allow assertions in tests.
+ * Captures messages to verify content without network calls.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private boolean invoked = false;
-    private String capturedBody;
+    public static class SentMessage {
+        public final String channel;
+        public final String body;
+
+        public SentMessage(String channel, String body) {
+            this.channel = channel;
+            this.body = body;
+        }
+    }
+
+    private final List<SentMessage> messages = new ArrayList<>();
 
     @Override
-    public void send(String body) {
-        this.invoked = true;
-        this.capturedBody = body;
-        // In a real mock, we might log this or do nothing.
-        // System.out.println("[MockSlack] Captured: " + body);
+    public void sendMessage(String channel, String body) {
+        // Record the interaction for assertion in tests
+        this.messages.add(new SentMessage(channel, body));
     }
 
-    public boolean wasInvoked() {
-        return invoked;
+    public List<SentMessage> getMessages() {
+        return new ArrayList<>(messages);
     }
 
-    public String getCapturedBody() {
-        return capturedBody;
+    public void clear() {
+        messages.clear();
     }
 
-    public void reset() {
-        this.invoked = false;
-        this.capturedBody = null;
+    public boolean hasReceivedMessageContaining(String channel, String substring) {
+        return messages.stream()
+                .filter(m -> m.channel.equals(channel))
+                .anyMatch(m -> m.body.contains(substring));
     }
 }

@@ -2,31 +2,27 @@ package com.example.domain.defect.service;
 
 import com.example.domain.defect.model.DefectAggregate;
 import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.domain.shared.DomainEvent;
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackPort;
+import com.example.domain.defect.repository.DefectRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 /**
- * Application Service for handling Defect reporting commands.
- * Bridges the Temporal/REST layer with the Domain Aggregate.
+ * Domain Service for handling Defect logic.
  */
 @Service
 public class DefectService {
+    private final DefectRepository repository;
 
-    private final SlackPort slackPort;
-    private final GitHubPort gitHubPort;
-
-    public DefectService(SlackPort slackPort, GitHubPort gitHubPort) {
-        this.slackPort = slackPort;
-        this.gitHubPort = gitHubPort;
+    public DefectService(DefectRepository repository) {
+        this.repository = repository;
     }
 
-    public List<DomainEvent> reportDefect(String defectId, String channelId) {
-        ReportDefectCmd cmd = new ReportDefectCmd(defectId, channelId);
-        DefectAggregate aggregate = new DefectAggregate(defectId, slackPort, gitHubPort);
-        return aggregate.execute(cmd);
+    public String reportDefect(ReportDefectCmd cmd) {
+        DefectAggregate aggregate = new DefectAggregate(cmd.defectId());
+        var events = aggregate.execute(cmd);
+        // Apply events to state (simplified for this aggregate)
+        repository.save(aggregate);
+        
+        // In a real CQRS setup, we'd emit events. Here we return the URL for the workflow.
+        return aggregate.getGithubUrl();
     }
 }

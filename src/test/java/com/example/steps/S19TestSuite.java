@@ -5,7 +5,8 @@ import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
 @Suite
-@IncludeEngines("cucumber")
+@IncludeEngages("cucumber")
 @SelectClasspathResource("features/S-19.feature")
 public class S19TestSuite {
+    // JUnit 5 Suite wrapper for Cucumber
 }

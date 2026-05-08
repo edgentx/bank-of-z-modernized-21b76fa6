@@ -1,38 +1,37 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * In-memory Mock for Slack Port.
- * Captures messages sent to Slack for verification in tests.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Captures messages sent to verify formatting and content.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public record SlackMessage(String channel, String body) {}
+    public String lastChannel;
+    public String lastBody;
+    public final List<MessageRecord> history = new ArrayList<>();
+    private boolean shouldSucceed = true;
 
-    private final List<SlackMessage> postedMessages = new ArrayList<>();
+    public record MessageRecord(String channel, String body) {}
 
-    @Override
-    public void postMessage(String channel, String body) {
-        postedMessages.add(new SlackMessage(channel, body));
+    public void setShouldSucceed(boolean succeed) {
+        this.shouldSucceed = succeed;
     }
 
     @Override
-    public void validateAndPost(String channel, String body) {
-        // This is the RED phase logic.
-        // If the actual implementation doesn't do this, we might not catch it here,
-        // but the assertions in the test will check if the URL was present in the body sent.
-        postMessage(channel, body);
-    }
-
-    public List<SlackMessage> getPostedMessages() {
-        return postedMessages;
+    public boolean postMessage(String channel, String body) {
+        this.lastChannel = channel;
+        this.lastBody = body;
+        history.add(new MessageRecord(channel, body));
+        return shouldSucceed;
     }
 
     public void clear() {
-        postedMessages.clear();
+        lastChannel = null;
+        lastBody = null;
+        history.clear();
     }
 }

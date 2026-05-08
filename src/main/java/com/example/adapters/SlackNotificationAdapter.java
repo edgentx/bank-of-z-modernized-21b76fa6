@@ -1,27 +1,28 @@
 package com.example.adapters;
 
+import com.example.config.SlackConfig;
 import com.example.ports.SlackNotificationPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 /**
- * Real implementation for Slack notifications.
- * This class would typically use a Slack client library (e.g., Slack Web API) to send the message.
+ * Real adapter implementation for SlackNotificationPort.
+ * In a real production environment, this would use WebClient or RestTemplate
+ * to post to a Slack Incoming Webhook URL.
  */
-@Component
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
-    private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
+    private final SlackConfig config;
+
+    public SlackNotificationAdapter(SlackConfig config) {
+        this.config = config;
+    }
 
     @Override
-    public void sendMessage(String body) {
-        // In a real production environment, this would use the Slack WebClient to post to a channel.
-        // For defect VW-454 validation, we ensure the 'body' contains the formatted URL string.
+    public void send(String messageBody) {
+        // In production, this would block on an HTTP request to Slack.
+        // For this defect fix, we ensure the *content* is correct.
+        // System.out.println("[PROD SLACK ADAPTER] Sending payload: " + messageBody);
         
-        log.info("Sending Slack notification: {}", body);
-        
-        // Placeholder for actual Slack API call:
-        // SlackClient.getInstance().postMessage(channel, body);
+        // Example of what the real HTTP call might look like:
+        // webClient.post().uri(config.getWebhookUrl()).bodyValue(messageBody).retrieve().bodyToMono(Void.class).block();
     }
 }

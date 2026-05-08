@@ -1,20 +1,17 @@
 package com.example.steps;
 
-import org.junit.runner.RunWith;
 import io.cucumber.junit.Cucumber;
 import io.cucumber.junit.CucumberOptions;
+import org.junit.runner.RunWith;
 
 /**
- * Test Suite for VW-454 Regression.
- * Verifies that defect reporting workflows correctly append the GitHub issue link to Slack notifications.
+ * Test Suite for S-FB-1.
  */
 @RunWith(Cucumber.class)
 @CucumberOptions(
-    features = "src/test/java/com/example/features/vw-454.feature",
-    glue = {"com.example.steps"},
-    plugin = {"pretty", "html:target/cucumber/vw-454"},
-    monochrome = true
+        features = "features/S-FB-1.feature",
+        glue = "com.example.steps",
+        plugin = {"pretty", "summary"}
 )
 public class VW454TestSuite {
-    // Execution entry point for the test runner
 }

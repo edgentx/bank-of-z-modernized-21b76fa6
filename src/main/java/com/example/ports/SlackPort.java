@@ -1,12 +1,15 @@
 package com.example.ports;
 
 /**
- * Port for Slack notifications.
+ * Port interface for sending Slack notifications.
  */
 public interface SlackPort {
+
     /**
-     * Sends a notification to Slack.
-     * @param messageBody The formatted JSON payload.
+     * Posts a message to a specific Slack channel.
+     * @param channel The channel ID or name.
+     * @param messageBody The formatted content of the message.
+     * @return true if the message was accepted by the API, false otherwise.
      */
-    void sendNotification(String messageBody);
+    boolean postMessage(String channel, String messageBody);
 }

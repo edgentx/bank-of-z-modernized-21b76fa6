@@ -4,7 +4,7 @@ import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 
 /**
- * Temporal Activity Interface.
+ * Temporal Activity Interface for Defect Reporting.
  */
 @ActivityInterface
 public interface DefectReportingActivityInterface {

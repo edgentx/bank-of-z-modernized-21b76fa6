@@ -4,6 +4,7 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to report a defect.
+ * Encapsulates the data required to record a defect in the system.
  */
 public record ReportDefectCommand(
     String defectId,

@@ -5,12 +5,12 @@ package com.example.ports;
  * Used by defect reporting workflows.
  */
 public interface SlackNotifierPort {
-    
+
     /**
-     * Posts a message to a Slack channel.
-     * 
-     * @param channel The target channel (e.g. "#vforce360-issues")
-     * @param messageBody The formatted body of the message
+     * Sends a message to a Slack channel.
+     *
+     * @param channel The target channel (e.g., "#vforce360-issues")
+     * @param body The message body content
      */
-    void postMessage(String channel, String messageBody);
+    void sendMessage(String channel, String body);
 }

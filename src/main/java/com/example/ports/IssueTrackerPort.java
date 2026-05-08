@@ -1,19 +1,15 @@
 package com.example.ports;
 
-import java.util.Map;
-
 /**
- * Port for creating issues in an external tracker (e.g. GitHub/Jira).
- * This interface must be implemented by the production adapter and mocked in tests.
+ * Port for creating issues in the external issue tracker (GitHub).
  */
 public interface IssueTrackerPort {
-
     /**
-     * Creates a new issue ticket.
+     * Creates a remote issue for the given defect and returns the canonical URL.
      *
-     * @param title The title of the defect
-     * @param body The body content of the defect
-     * @return A Map containing the response details, specifically 'url'
+     * @param defectId The internal aggregate ID.
+     * @param title The defect title.
+     * @return The fully qualified URL to the issue (e.g., https://github.com/.../issues/123).
      */
-    Map<String, String> createIssue(String title, String body);
+    String createIssue(String defectId, String title);
 }

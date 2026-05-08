@@ -1,65 +1,47 @@
 package com.example.adapters;
 
+import com.example.domain.validation.model.ValidationAggregate;
+import com.example.domain.validation.model.ReportDefectCmd;
+import com.example.domain.validation.model.DefectReportedEvent;
 import com.example.domain.shared.Command;
-import com.example.domain.validation.ReportDefectCommand;
-import com.example.domain.validation.ValidationAggregate;
-import com.example.domain.validation.repository.ValidationRepository;
-import com.example.ports.SlackNotificationPort;
-import com.example.ports.TemporalWorkerPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
-import java.util.Set;
+import java.util.List;
 
 /**
- * Real adapter for TemporalWorkerPort.
- * Orchestrates the domain logic to report defects.
- * This simulates the Temporal Activity/Workflow logic entry point.
+ * Adapter integrating Validation Domain with Temporal Worker logic.
  */
-public class TemporalWorkerAdapter implements TemporalWorkerPort {
+@Component
+public class TemporalWorkerAdapter {
 
-    private static final Logger logger = LoggerFactory.getLogger(TemporalWorkerAdapter.class);
-    private static final String GITHUB_BASE_URL = "https://github.com/example-org/repo/issues/";
-    private static final String SLACK_CHANNEL = "#vforce360-issues";
+    private final ValidationAggregate validationAggregate;
 
-    private final ValidationRepository validationRepository;
-    private final SlackNotificationPort slackNotificationPort;
-
-    public TemporalWorkerAdapter(ValidationRepository validationRepository,
-                                 SlackNotificationPort slackNotificationPort) {
-        this.validationRepository = validationRepository;
-        this.slackNotificationPort = slackNotificationPort;
+    public TemporalWorkerAdapter(ValidationAggregate validationAggregate) {
+        this.validationAggregate = validationAggregate;
     }
 
-    @Override
-    public void reportDefect(String defectId) {
-        logger.info("Workflow triggered: report_defect for ID {}", defectId);
-
-        // 1. Load or Create Aggregate
-        ValidationAggregate aggregate = validationRepository.findById(defectId)
-                .orElse(new ValidationAggregate(defectId));
-
-        // 2. Prepare Domain Command
-        // We construct the expected GitHub URL as part of the command data
-        String expectedUrl = GITHUB_BASE_URL + defectId;
-        Command command = new ReportDefectCommand(defectId, expectedUrl, SLACK_CHANNEL);
-
-        // 3. Execute Domain Logic
-        var events = aggregate.execute(command);
-
-        // 4. Handle Side Effects (Events)
-        for (var event : events) {
-            if (event.type().equals("DefectReportedEvent")) {
-                handleNotification((DefectReportedEvent) event);
-            }
-        }
-
-        // 5. Save Aggregate State
-        validationRepository.save(aggregate);
+    /**
+     * Entry point called by Temporal Workflow Implementation to execute domain logic
+     * and construct the Slack payload.
+     */
+    public String prepareSlackMessage(String validationId, String severity, String title, String description) {
+        Command cmd = new ReportDefectCmd(validationId, severity, title, description);
+        List<DefectReportedEvent> events = validationAggregate.execute(cmd);
+        
+        // In a real scenario, we might project these events to a view model.
+        // Here we just format the string directly for the Slack body.
+        return formatSlackBody(events.get(0));
     }
 
-    private void handleNotification(DefectReportedEvent event) {
-        logger.info("Sending notification to Slack channel {}: {}", event.channel(), event.messageBody());
-        slackNotificationPort.sendMessage(event.channel(), event.messageBody());
+    private String formatSlackBody(DefectReportedEvent event) {
+        // This is the specific defect fix: ensuring the URL is present
+        String issueUrl = "https://github.com/egdcrypto-bank-of-z/issues/" + event.aggregateId();
+        
+        return String.format(
+            "Defect Reported: %s\nSeverity: %s\nGitHub Issue: <%s|Link>",
+            event.title(),
+            event.severity(),
+            issueUrl
+        );
     }
 }

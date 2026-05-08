@@ -1,16 +1,23 @@
 package com.example.ports;
 
 /**
- * Port interface for sending Slack notifications.
- * Used by the domain logic to decouple from the specific Slack provider implementation.
+ * Port for sending notifications to Slack.
+ * Used by the defect reporting workflow.
  */
 public interface SlackNotificationPort {
-
+    
     /**
-     * Sends a notification message to a specific channel.
+     * Sends a notification payload to a Slack channel.
      *
-     * @param channel The target Slack channel (e.g., "#vforce360-issues")
-     * @param messageBody The formatted body of the message (Slack markdown)
+     * @param channel The Slack channel ID or name.
+     * @param messageBody The formatted message body to send.
+     * @throws IllegalArgumentException if messageBody is null/blank.
      */
     void sendNotification(String channel, String messageBody);
+
+    /**
+     * Returns the last message body sent to the specific channel.
+     * Helper method for testing state.
+     */
+    String getLastMessageBody(String channel);
 }

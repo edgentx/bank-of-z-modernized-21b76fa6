@@ -6,5 +6,5 @@ import io.temporal.workflow.WorkflowMethod;
 @WorkflowInterface
 public interface ReportDefectWorkflow {
     @WorkflowMethod
-    String reportDefect(String summary, String description);
+    String reportDefect(String projectId, String title, String description);
 }

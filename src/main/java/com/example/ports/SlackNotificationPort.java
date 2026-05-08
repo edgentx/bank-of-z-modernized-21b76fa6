@@ -1,23 +1,16 @@
 package com.example.ports;
 
+import java.util.Map;
+
 /**
- * Port for sending notifications to Slack.
- * Used by the temporal workflow to report defects.
+ * Port for sending Slack notifications.
+ * Used to decouple the domain from the actual Slack implementation.
  */
 public interface SlackNotificationPort {
-
     /**
-     * Sends a message to a configured Slack channel.
-     *
-     * @param messageBody The formatted content of the message.
+     * Sends a notification to Slack.
+     * @param body The message body.
+     * @param attachments Metadata (e.g., GitHub URL, Defect ID).
      */
-    void sendMessage(String messageBody);
-
-    /**
-     * Retrieves the last message body sent to Slack.
-     * This is primarily used for verification in testing environments.
-     *
-     * @return The last sent message body, or null if no message has been sent.
-     */
-    String getLastMessageBody();
+    void sendNotification(String body, Map<String, String> attachments);
 }

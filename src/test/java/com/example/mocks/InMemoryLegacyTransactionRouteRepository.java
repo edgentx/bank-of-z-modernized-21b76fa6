@@ -22,7 +22,9 @@ public class InMemoryLegacyTransactionRouteRepository implements LegacyTransacti
     }
 
     @Override
-    public LegacyTransactionRouteAggregate createOrGet(String id) {
-        return store.computeIfAbsent(id, LegacyTransactionRouteAggregate::new);
+    public LegacyTransactionRouteAggregate create(String id) {
+        var aggregate = new LegacyTransactionRouteAggregate(id);
+        store.put(id, aggregate);
+        return aggregate;
     }
 }

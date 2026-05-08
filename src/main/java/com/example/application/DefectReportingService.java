@@ -1,47 +1,41 @@
 package com.example.application;
 
-import com.example.domain.validation.DefectReportedEvent;
+import com.example.domain.shared.DefectReportedEvent;
 import com.example.ports.SlackNotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * Application service responsible for processing defect reports
- * and coordinating notifications (e.g., via Slack).
+ * Application Service handling the defect reporting workflow.
+ * Orchestrates the reaction to domain events (sending notifications).
  */
 @Service
 public class DefectReportingService {
 
-    private static final Logger logger = LoggerFactory.getLogger(DefectReportingService.class);
+    private static final Logger log = LoggerFactory.getLogger(DefectReportingService.class);
     private final SlackNotificationPort slackNotificationPort;
 
-    // Constructor injection (Adapter pattern)
     public DefectReportingService(SlackNotificationPort slackNotificationPort) {
         this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Handles the DefectReportedEvent and formats/pushes the notification to Slack.
-     * Corresponds to the temporal-worker execution context.
+     * Handles the DefectReportedEvent by generating the Slack message and posting it.
+     * This ensures the Slack body contains the GitHub issue link as per VW-454.
+     *
+     * @param event The domain event containing the defect details and GitHub URL.
      */
-    public void reportDefect(DefectReportedEvent event) {
-        logger.info("Processing defect report: {}", event.defectId());
+    public void handleDefectReported(DefectReportedEvent event) {
+        log.info("Processing defect reported event: {}", event.defectId());
 
-        String slackBody = formatSlackBody(event);
-        slackNotificationPort.postMessage("#vforce360-issues", slackBody);
-    }
-
-    /**
-     * Formats the Slack message body ensuring the GitHub URL is included.
-     * This logic is critical for VW-454 compliance.
-     */
-    private String formatSlackBody(DefectReportedEvent e) {
-        return String.format(
-                "Defect Reported: %s\nDescription: %s\nGitHub Issue: %s",
-                e.defectId(),
-                e.description(),
-                e.githubIssueUrl()
+        // Requirement: Slack body includes GitHub issue: <url>
+        String messageBody = String.format(
+                "Defect Reported: %s. View details: %s",
+                event.defectId(),
+                event.githubUrl()
         );
+
+        slackNotificationPort.postMessage(messageBody);
     }
 }

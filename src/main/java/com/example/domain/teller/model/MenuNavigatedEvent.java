@@ -6,14 +6,16 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record MenuNavigatedEvent(
-        String eventId,
-        String sessionId,
-        String menuId,
+        String aggregateId,
+        String previousMenuId,
+        String currentMenuId,
         String action,
         Instant occurredAt
 ) implements DomainEvent {
-    public MenuNavigatedEvent(String sessionId, String menuId, String action, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), sessionId, menuId, action, occurredAt);
+    
+    public MenuNavigatedEvent {
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
+        if (occurredAt == null) occurredAt = Instant.now();
     }
 
     @Override
@@ -21,13 +23,8 @@ public record MenuNavigatedEvent(
         return "menu.navigated";
     }
 
-    @Override
-    public String aggregateId() {
-        return sessionId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    // Factory for test convenience if needed, or just use constructor
+    public static MenuNavigatedEvent create(String sessionId, String prev, String curr, String action, Instant time) {
+        return new MenuNavigatedEvent(sessionId, prev, curr, action, time);
     }
 }

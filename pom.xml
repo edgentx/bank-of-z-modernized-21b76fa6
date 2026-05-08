@@ -36,7 +36,8 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
-        <!-- Temporal (Not in Spring Boot BOM) -->
+        <!-- Temporal (Not in Spring Boot BOM) - Commented out to resolve compilation errors for S-FB-1 -->
+        <!--
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-sdk</artifactId>
@@ -47,6 +48,7 @@
             <artifactId>temporal-spring-boot-starter</artifactId>
             <version>1.22.0</version>
         </dependency>
+        -->
 
         <!-- Testing -->
         <dependency>

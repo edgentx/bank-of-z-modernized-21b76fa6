@@ -1,21 +1,20 @@
 package com.example.mocks;
 
-import com.example.ports.GitHubPort;
-import java.util.ArrayList;
+import com.example.ports.GitHubClient;
+
 import java.util.List;
 
 /**
- * Mock implementation of GitHubPort for testing.
- * Allows setting expectations on the created URL and verifying interactions.
+ * Mock implementation of GitHubClient for testing.
+ * Returns predictable values to simulate successful GitHub interactions.
  */
-public class MockGitHubClient implements GitHubPort {
-    private final List<String> createdTitles = new ArrayList<>();
-    private final List<String> createdBodies = new ArrayList<>();
-    private String stubbedUrl;
+public class MockGitHubClient implements GitHubClient {
+
+    private String mockUrl = "https://github.com/fake-org/repo/issues/454";
     private boolean shouldFail = false;
 
-    public void setStubbedUrl(String url) {
-        this.stubbedUrl = url;
+    public void setMockUrl(String url) {
+        this.mockUrl = url;
     }
 
     public void setShouldFail(boolean fail) {
@@ -23,27 +22,11 @@ public class MockGitHubClient implements GitHubPort {
     }
 
     @Override
-    public String createDefect(String title, String body) {
+    public String createIssue(String title, String body, List<String> labels) {
         if (shouldFail) {
-            throw new RuntimeException("GitHub Service Unavailable");
+            return null; // Simulate failure
         }
-        createdTitles.add(title);
-        createdBodies.add(body);
-        // Return a stable URL for testing if stubbed, otherwise a default
-        return stubbedUrl != null ? stubbedUrl : "https://github.com/example/repo/issues/1";
-    }
-
-    public boolean wasCalledWithTitle(String title) {
-        return createdTitles.contains(title);
-    }
-    
-    public boolean wasCalled() {
-        return !createdTitles.isEmpty();
-    }
-    
-    public void reset() {
-        createdTitles.clear();
-        createdBodies.clear();
-        this.stubbedUrl = null;
+        // In a more sophisticated mock, we could verify arguments here.
+        return mockUrl;
     }
 }

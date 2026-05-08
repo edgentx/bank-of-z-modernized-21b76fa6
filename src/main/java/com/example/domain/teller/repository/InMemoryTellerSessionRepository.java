@@ -1,12 +1,10 @@
 package com.example.domain.teller.repository;
 
 import com.example.domain.teller.model.TellerSessionAggregate;
-import org.springframework.stereotype.Repository;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-@Repository
 public class InMemoryTellerSessionRepository implements TellerSessionRepository {
     private final Map<String, TellerSessionAggregate> store = new HashMap<>();
 

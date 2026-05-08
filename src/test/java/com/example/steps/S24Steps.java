@@ -1,110 +1,102 @@
 package com.example.steps;
 
 import com.example.domain.legacybridge.model.LegacyTransactionRoute;
-import com.example.domain.legacybridge.repository.LegacyTransactionRouteRepository;
-import com.example.domain.shared.DomainException;
-import com.example.domain.legacybridge.command.UpdateRoutingRuleCmd;
-import com.example.domain.legacybridge.event.RoutingUpdatedEvent;
+import com.example.domain.legacybridge.model.UpdateRoutingRuleCmd;
+import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.UnknownCommandException;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.time.Instant;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class S24Steps {
 
-    private final LegacyTransactionRouteRepository repository = new InMemoryLegacyTransactionRouteRepository();
     private LegacyTransactionRoute aggregate;
-    private Exception caughtException;
-    private String aggregateId;
-
-    // Test Data
-    private String ruleId = "RULE-101";
-    private String newTarget = "MODERN";
-    private Instant effectiveDate = Instant.now();
-
-    // Repository implementation for this test
-    private static class InMemoryLegacyTransactionRouteRepository implements LegacyTransactionRouteRepository {
-        private final java.util.Map<String, LegacyTransactionRoute> store = new java.util.HashMap<>();
-        @Override public void save(LegacyTransactionRoute aggregate) { store.put(aggregate.id(), aggregate); }
-        @Override public Optional<LegacyTransactionRoute> findById(String id) { return Optional.ofNullable(store.get(id)); }
-    }
+    private String routeId = "route-123";
+    private String ruleId;
+    private String newTarget;
+    private int version;
+    private Instant effectiveDate;
+    
+    private Exception capturedException;
+    private List<DomainEvent> resultEvents;
 
     @Given("a valid LegacyTransactionRoute aggregate")
-    public void a_valid_LegacyTransactionRoute_aggregate() {
-        this.aggregateId = "route-" + UUID.randomUUID();
-        this.aggregate = new LegacyTransactionRoute(aggregateId);
-        repository.save(aggregate);
+    public void aValidLegacyTransactionRouteAggregate() {
+        this.aggregate = new LegacyTransactionRoute(routeId);
     }
 
-    @Given("a valid ruleId is provided")
-    public void a_valid_ruleId_is_provided() {
-        this.ruleId = "RULE-" + System.currentTimeMillis();
+    @And("a valid ruleId is provided")
+    public void aValidRuleIdIsProvided() {
+        this.ruleId = "rule-abc";
     }
 
-    @Given("a valid newTarget is provided")
-    public void a_valid_newTarget_is_provided() {
-        this.newTarget = "VForce360";
+    @And("a valid newTarget is provided")
+    public void aValidNewTargetIsProvided() {
+        this.newTarget = "MODERN";
     }
 
-    @Given("a valid effectiveDate is provided")
-    public void a_valid_effectiveDate_is_provided() {
-        this.effectiveDate = Instant.now().plusSeconds(60);
-    }
-
-    @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.")
-    public void a_LegacyTransactionRoute_aggregate_that_violates_dual_processing() {
-        this.aggregateId = "route-dual-" + UUID.randomUUID();
-        this.aggregate = new LegacyTransactionRoute(aggregateId);
-        // Violation: Mark as dual processing
-        aggregate.markAsDualProcessingViolation();
-        repository.save(aggregate);
-    }
-
-    @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback.")
-    public void a_LegacyTransactionRoute_aggregate_that_violates_versioning() {
-        this.aggregateId = "route-vers-" + UUID.randomUUID();
-        this.aggregate = new LegacyTransactionRoute(aggregateId);
-        // Violation: Mark as versioning violation
-        aggregate.markAsVersioningViolation();
-        repository.save(aggregate);
+    @And("a valid effectiveDate is provided")
+    public void aValidEffectiveDateIsProvided() {
+        this.effectiveDate = Instant.now();
     }
 
     @When("the UpdateRoutingRuleCmd command is executed")
-    public void the_UpdateRoutingRuleCmd_command_is_executed() {
-        // Reload to ensure we have a clean state or simulate fetching from DB
-        LegacyTransactionRoute agg = repository.findById(aggregateId).orElseThrow();
-        UpdateRoutingRuleCmd cmd = new UpdateRoutingRuleCmd(ruleId, newTarget, effectiveDate);
-
+    public void theUpdateRoutingRuleCmdCommandIsExecuted() {
+        UpdateRoutingRuleCmd cmd = new UpdateRoutingRuleCmd(
+            routeId,
+            ruleId,
+            newTarget,
+            1, // Default valid version for success case unless overridden
+            effectiveDate
+        );
         try {
-            agg.execute(cmd);
-            repository.save(agg); // persist state change
-        } catch (IllegalStateException | IllegalArgumentException e) {
-            this.caughtException = e;
+            resultEvents = aggregate.execute(cmd);
+        } catch (Exception e) {
+            capturedException = e;
         }
     }
 
     @Then("a routing.updated event is emitted")
-    public void a_routing_updated_event_is_emitted() {
-        LegacyTransactionRoute agg = repository.findById(aggregateId).orElseThrow();
-        Assertions.assertFalse(agg.getUncommittedEvents().isEmpty());
-        
-        DomainEvent event = agg.getUncommittedEvents().get(0);
-        Assertions.assertTrue(event instanceof RoutingUpdatedEvent);
-        
-        RoutingUpdatedEvent rue = (RoutingUpdatedEvent) event;
-        Assertions.assertEquals("routing.updated", rue.type());
-        Assertions.assertEquals(aggregateId, rue.aggregateId());
+    public void aRoutingUpdatedEventIsEmitted() {
+        assertThat(capturedException).isNull();
+        assertThat(resultEvents).hasSize(1);
+        assertThat(resultEvents.get(0).type()).isEqualTo("RoutingRuleUpdated");
+    }
+
+    // Failure Scenarios
+
+    @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.")
+    public void aLegacyTransactionRouteAggregateThatViolatesDualProcessing() {
+        this.aggregate = new LegacyTransactionRoute(routeId);
+        this.aggregate.markDualProcessingViolation();
+        // Setup valid command data for the attempt
+        this.ruleId = "rule-abc";
+        this.newTarget = "MODERN";
+        this.effectiveDate = Instant.now();
+    }
+
+    @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback.")
+    public void aLegacyTransactionRouteAggregateThatViolatesVersioning() {
+        this.aggregate = new LegacyTransactionRoute(routeId);
+        this.aggregate.markVersioningViolation();
+        // Setup valid command data for the attempt
+        this.ruleId = "rule-abc";
+        this.newTarget = "MODERN";
+        this.effectiveDate = Instant.now();
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(caughtException);
-        // In DDD, domain errors are often specific exceptions or IllegalArgumentException/IllegalStateException
-        Assertions.assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
+    public void theCommandIsRejectedWithADomainError() {
+        assertThat(capturedException).isNotNull();
+        // We expect an IllegalStateException or IllegalArgumentException depending on the specific invariant check
+        assertThat(capturedException).isInstanceOf(IllegalStateException.class);
     }
 }

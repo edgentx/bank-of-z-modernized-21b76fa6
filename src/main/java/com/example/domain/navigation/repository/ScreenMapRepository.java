@@ -4,10 +4,11 @@ import com.example.domain.navigation.model.ScreenMapAggregate;
 
 import java.util.Optional;
 
-/**
- * Repository interface for the ScreenMap aggregate.
- */
 public interface ScreenMapRepository {
-    void save(ScreenMapAggregate aggregate);
+    ScreenMapAggregate save(ScreenMapAggregate aggregate);
     Optional<ScreenMapAggregate> findById(String id);
+    // Overload load/create for convenience in tests
+    default ScreenMapAggregate create(String id) {
+        return save(new ScreenMapAggregate(id));
+    }
 }

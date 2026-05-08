@@ -1,15 +1,15 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
+import java.util.UUID;
 
 /**
  * Command to initiate a teller session.
- * Context: User-Interface-Navigation (S-18)
+ * Validated against invariants: Teller AuthZ, Terminal validity, Context validity.
  */
 public record StartSessionCmd(
     String sessionId,
     String tellerId,
     String terminalId,
-    boolean isAuthenticated,
-    String navContext
+    String operationalContext
 ) implements Command {}

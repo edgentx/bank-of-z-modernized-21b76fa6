@@ -88,8 +88,8 @@
 
     <repositories>
         <repository>
-            <id>temporal-snapshots</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
         </repository>
     </repositories>
 

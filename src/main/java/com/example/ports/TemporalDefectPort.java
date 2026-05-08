@@ -1,11 +1,8 @@
 package com.example.ports;
 
-import com.example.domain.shared.Command;
-
 /**
- * Port for triggering Temporal workflows related to defects.
- * This isolates the application service from the Temporal SDK.
+ * Port for triggering the defect reporting workflow via Temporal.
  */
 public interface TemporalDefectPort {
-    void reportDefect(Command command);
+    void triggerDefectReport(String defectId, String description);
 }

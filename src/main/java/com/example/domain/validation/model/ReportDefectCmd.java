@@ -3,11 +3,11 @@ package com.example.domain.validation.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to report a defect (VW-454 scenario).
- * This command triggers the workflow that creates a GitHub issue and notifies Slack.
+ * Command to report a defect, triggering workflow execution and Slack notifications.
  */
 public record ReportDefectCmd(
     String defectId,
     String title,
-    String description
+    String description,
+    String githubIssueUrl
 ) implements Command {}

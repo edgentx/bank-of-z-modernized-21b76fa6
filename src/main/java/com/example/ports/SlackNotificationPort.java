@@ -15,7 +15,7 @@ public interface SlackNotificationPort {
     String formatDefectNotification(String defectId);
 
     /**
-     * (Optional) Actual send method if we were mocking the transport too.
+     * Sends the notification.
      */
     void sendNotification(String messageBody);
 }

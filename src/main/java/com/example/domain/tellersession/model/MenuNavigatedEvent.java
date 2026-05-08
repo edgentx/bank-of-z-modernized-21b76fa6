@@ -6,16 +6,14 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * Event emitted when a teller successfully navigates the menu system.
- * S-19.
+ * Domain event emitted when a teller successfully navigates to a new screen.
  */
-public record MenuNavigatedEvent(String aggregateId, String targetMenuId, String action, Instant occurredAt) implements DomainEvent {
-    public MenuNavigatedEvent {
-        Objects.requireNonNull(aggregateId);
-        Objects.requireNonNull(targetMenuId);
-        Objects.requireNonNull(action);
-        Objects.requireNonNull(occurredAt);
-    }
+public record MenuNavigatedEvent(
+        String aggregateId,
+        String menuId,
+        String action,
+        Instant occurredAt
+) implements DomainEvent {
 
     @Override
     public String type() {
@@ -25,5 +23,10 @@ public record MenuNavigatedEvent(String aggregateId, String targetMenuId, String
     @Override
     public String aggregateId() {
         return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

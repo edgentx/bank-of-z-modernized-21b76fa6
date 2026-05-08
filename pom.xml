@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.2.5</version>
+    <version>3.2.0</version>
     <relativePath/>
   </parent>
-  
+
   <groupId>com.example</groupId>
-  <artifactId>egdcrypto-bank-of-z-modernized-21b76fa6-feature-s-7</artifactId>
+  <artifactId>bank-of-z</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>egdcrypto-bank-of-z-modernized-21b76fa6-feature-s-7</name>
-  <description>Bank of Z Modernization Feature S-7: Account Close Command</description>
-  
+  <name>Bank of Z Domain</name>
+  <description>Bank of Z Core Domain</description>
+
   <properties>
     <java.version>17</java.version>
-    <cucumber.version>7.18.0</cucumber.version>
+    <cucumber.version>7.14.0</cucumber.version>
   </properties>
-  
+
   <dependencies>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -28,8 +28,12 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
-    
-    <!-- Cucumber Dependencies for BDD Testing -->
+    <!-- Test Dependencies -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>io.cucumber</groupId>
       <artifactId>cucumber-java</artifactId>
@@ -46,16 +50,6 @@
       <groupId>org.junit.platform</groupId>
       <artifactId>junit-platform-suite</artifactId>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <!-- Apache Commons Lang for StringUtils -->
-    <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-lang3</artifactId>
     </dependency>
   </dependencies>
 

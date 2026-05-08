@@ -2,10 +2,14 @@ package com.example.domain.customer.model;
 
 import com.example.domain.shared.Command;
 
+/**
+ * Command to update contact information for an existing customer.
+ */
 public record UpdateCustomerDetailsCmd(
     String customerId,
-    String fullName,
     String emailAddress,
+    String sortCode,
     String governmentId,
-    String sortCode
+    String fullName,
+    String dateOfBirth
 ) implements Command {}

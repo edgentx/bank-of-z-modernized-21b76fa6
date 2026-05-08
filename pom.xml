@@ -35,7 +35,6 @@
         </dependency>
 
         <!-- Spring Cloud (OpenFeign) -->
-        <!-- FIXED: Added explicit version to resolve build error. 2023.0.0 matches properties -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
@@ -43,7 +42,6 @@
         </dependency>
 
         <!-- Flyway DB2 (NOT in Spring Boot BOM) -->
-        <!-- FIXED: Added explicit version to resolve build error -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-db2</artifactId>

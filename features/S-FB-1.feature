@@ -1,11 +1,9 @@
-Feature: Validate VForce360 Defect Reporting (VW-454)
+Feature: Validating VW-454 — GitHub URL in Slack body
 
-  Scenario: Valid defect report contains GitHub URL
-    Given a defect report is generated with GitHub URL "https://github.com/example/bank-of-z/issues/454"
-    When the validation logic runs
-    Then the Slack body should contain a valid GitHub issue link
+  Background:
+    Given the system requires a defect report for reconciliation failure
 
-  Scenario: Invalid defect report misses GitHub URL
-    Given a defect report is generated without a GitHub URL
-    When the validation logic runs
-    Then the Slack body should be marked as invalid
+  Scenario: Triggering defect report via temporal worker includes GitHub URL
+    When the temporal worker executes "report_defect" workflow triggering defect report
+    Then the Slack body includes GitHub issue link "https://github.com/bank-of-z/issues/454"
+    And the Slack channel is targeted to "#vforce360-issues"

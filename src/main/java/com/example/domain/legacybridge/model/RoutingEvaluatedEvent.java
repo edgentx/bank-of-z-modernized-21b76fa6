@@ -3,27 +3,20 @@ package com.example.domain.legacybridge.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Map;
 
+/**
+ * Event emitted when a routing decision has been made.
+ * Story S-23.
+ */
 public record RoutingEvaluatedEvent(
-        String aggregateId,
-        String targetSystem,
-        Integer ruleVersion,
-        Map<String, Object> context,
-        Instant occurredAt
+    String aggregateId,
+    String transactionType,
+    String targetSystem,
+    int ruleVersion,
+    Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
         return "routing.evaluated";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

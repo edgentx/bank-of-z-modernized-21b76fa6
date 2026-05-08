@@ -1,16 +1,17 @@
 package com.example.ports;
 
 /**
- * Port interface for reporting defects.
- * Used by the Temporal Worker logic to decouple from specific implementations.
+ * Port interface for reporting defects (e.g., creating GitHub issues).
+ * This decouples the domain logic from the specific implementation of issue tracking.
  */
 public interface DefectReporterPort {
 
     /**
-     * Reports a defect to the specified channel, including a formatted link.
+     * Records a defect report and returns the URL to the created issue.
      *
-     * @param channelId The target Slack channel ID.
-     * @param url The GitHub issue URL to include.
+     * @param title   The title of the defect.
+     * @param details The details/body of the defect.
+     * @return The URL of the created GitHub issue.
      */
-    void reportDefect(String channelId, String url);
+    String reportDefect(String title, String details);
 }

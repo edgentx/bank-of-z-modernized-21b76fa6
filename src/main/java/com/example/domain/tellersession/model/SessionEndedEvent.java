@@ -6,18 +6,20 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event emitted when a Teller Session is successfully terminated.
- * S-20: user-interface-navigation.
+ * Event published when a TellerSession is terminated.
+ * S-20: EndSessionCmd on TellerSession.
  */
 public record SessionEndedEvent(
-  String aggregateId,
-  Instant occurredAt
+    String aggregateId,
+    Instant occurredAt
 ) implements DomainEvent {
-  public SessionEndedEvent(String aggregateId) {
-    this(aggregateId, Instant.now());
-  }
 
-  @Override public String type() { return "session.ended"; }
-  @Override public String aggregateId() { return aggregateId; }
-  @Override public Instant occurredAt() { return occurredAt; }
+    public SessionEndedEvent(String aggregateId) {
+        this(aggregateId, Instant.now());
+    }
+
+    @Override
+    public String type() {
+        return "session.ended";
+    }
 }

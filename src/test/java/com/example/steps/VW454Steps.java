@@ -1,7 +1,10 @@
 package com.example.steps;
 
 import com.example.domain.validation.model.ReportDefectCommand;
+import com.example.domain.validation.model.ReportDefectWorkflow;
+import com.example.domain.validation.model.ReportDefectWorkflowImpl;
 import com.example.mocks.MockSlackNotifier;
+import com.example.ports.GitHubIssueTracker;
 import com.example.ports.SlackNotifier;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -20,12 +23,17 @@ public class VW454Steps {
     @Autowired
     private MockSlackNotifier mockSlack;
 
+    @Autowired
+    private GitHubIssueTracker gitHub; // Will be a mock or stub implementation in test context
+
     private ReportDefectCommand command;
     private Exception workflowException;
+    private String resultUrl;
 
     @Given("the temporal worker is executing the report_defect workflow")
     public void the_worker_is_ready() {
         // Setup is handled by the TestSuite initialization
+        assertNotNull(mockSlack, "MockSlack should be autowired");
     }
 
     @When("a defect report command is triggered with title {string} and id {string}")
@@ -38,9 +46,12 @@ public class VW454Steps {
         );
         
         try {
-            // In a real test, we would inject the mock into the Workflow client here
-            // For this TDD step, we simulate the execution passing the mock
-            executeWorkflowWithMock(mockSlack, command);
+            // Instantiate the workflow with the mock dependencies provided by Spring TestContext
+            ReportDefectWorkflow workflow = new ReportDefectWorkflowImpl(mockSlack, gitHub);
+            
+            // Execute the workflow logic synchronously for this Cucumber test
+            this.resultUrl = workflow.execute(command);
+            
         } catch (Exception e) {
             this.workflowException = e;
         }
@@ -64,13 +75,6 @@ public class VW454Steps {
         // The defect report states: "Slack body includes GitHub issue: <url>"
         assertTrue(msg.body.contains("github.com"), "Body should contain GitHub URL domain");
         assertTrue(msg.body.contains("http"), "Body should contain a valid URL");
-    }
-
-    // Helper method to simulate the Temporal workflow invocation with the mock injected
-    private void executeWorkflowWithMock(SlackNotifier slack, ReportDefectCommand cmd) {
-        // This is where the Workflow stub would be created using TestWorkflowEnvironment
-        // Simulating the side-effect for the Red phase:
-        slack.send("#vforce360-issues", "[TEST] Defect " + cmd.defectId() + " reported.");
-        // Note: The actual implementation needs to fetch/create the GitHub URL.
+        assertTrue(msg.body.contains(resultUrl), "Body should contain the specific URL returned by the mock");
     }
 }

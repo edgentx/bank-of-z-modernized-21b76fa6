@@ -2,10 +2,14 @@ package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
 
-public record NavigateMenuCmd(
-    String sessionId,
-    String targetMenuId,
-    String action,
-    String currentContext, // Used to validate the caller's view of state
-    String newContext      // Used to update the aggregate's view of state
-) implements Command {}
+/**
+ * Command to navigate the teller session to a new menu or screen.
+ * Part of S-19: TellerSession user-interface-navigation.
+ */
+public record NavigateMenuCmd(String sessionId, String targetMenuId, String action) implements Command {
+    public NavigateMenuCmd {
+        if (sessionId == null || sessionId.isBlank()) throw new IllegalArgumentException("sessionId required");
+        if (targetMenuId == null || targetMenuId.isBlank()) throw new IllegalArgumentException("targetMenuId required");
+        if (action == null || action.isBlank()) throw new IllegalArgumentException("action required");
+    }
+}

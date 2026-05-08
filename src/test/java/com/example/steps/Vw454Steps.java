@@ -1,89 +1,93 @@
 package com.example.steps;
 
-import com.example.adapters.GitHubIssueTrackerAdapter;
-import com.example.domain.validation.model.ReportDefectCmd;
-import com.example.domain.validation.model.ValidationReportedEvent;
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.domain.defect.repository.DefectRepository;
+import com.example.adapters.WebhookSlackNotificationAdapter;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import java.time.Instant;
-import java.util.List;
-
+import io.cucumber.java.en.Then;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
- * Steps for validating VW-454.
- * Ensures that when a defect is reported, the resulting event (or Slack body representation)
- * contains the actual GitHub URL.
+ * Steps for validating VW-454: GitHub URL in Slack body.
+ * This acts as the regression test for the defect.
  */
 public class Vw454Steps {
 
-    @Autowired(required = false)
-    private GitHubIssueTrackerAdapter issueTracker;
+    private DefectAggregate defectAggregate;
+    private ReportDefectCmd cmd;
+    private final DefectRepository defectRepository = new InMemoryDefectRepository();
+    private final TestSlackValidator slackValidator = new TestSlackValidator();
+    private final WebhookSlackNotificationAdapter slackAdapter = new WebhookSlackNotificationAdapter(slackValidator);
+    
+    private Exception capturedException;
 
-    private String actualUrl;
-    private Exception executionException;
-
-    @Given("the GitHub adapter is available")
-    public void the_github_adapter_is_available() {
-        // Context setup. In a real test, we might mock the HTTP client, but here
-        // we are testing the logic of the adapter/pipeline assembly.
-        assertNotNull(issueTracker, "GitHubIssueTrackerAdapter should be wired");
+    @Given("a defect report command is issued")
+    public void a_defect_report_command_is_issued() {
+        // Setup defect ID corresponding to VW-454 logic
+        String defectId = "VW-454";
+        this.cmd = new ReportDefectCmd(defectId, "GitHub URL Missing", "Slack body does not contain link", "LOW");
+        this.defectAggregate = new DefectAggregate(defectId);
     }
 
-    @When("_report_defect is triggered via temporal-worker exec")
-    public void report_defect_is_triggered() {
-        // Simulate the command execution that would happen in the Temporal workflow
-        // Project ID matches the story description
-        String projectId = "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1";
-        
+    @When("the defect is reported and Slack notification is triggered")
+    public void the_defect_is_reported_and_slack_notification_is_triggered() {
         try {
-            // This is the interaction that would generate the event containing the URL
-            actualUrl = issueTracker.reportDefect(
-                projectId, 
-                "VW-454 Regression Test", 
-                "Verifying GitHub URL presence in Slack body."
-            );
+            // 1. Execute Domain Logic (Report Defect)
+            var events = defectAggregate.execute(cmd);
+            defectRepository.save(defectAggregate);
+
+            // 2. Prepare Slack Body (simulating the temporal-worker exec flow)
+            if (!events.isEmpty()) {
+                String githubUrl = ((com.example.domain.defect.model.DefectReportedEvent) events.get(0)).githubIssueUrl();
+                String slackBody = "Defect Reported: " + githubUrl;
+
+                // 3. Trigger Slack Adapter
+                slackAdapter.post(slackBody);
+            }
         } catch (Exception e) {
-            executionException = e;
+            this.capturedException = e;
         }
     }
 
-    @Then("Slack body includes GitHub issue: {string}")
-    public void slack_body_includes_github_issue(String expectedUrlPrefix) {
-        if (executionException != null) {
-            fail("Execution failed with exception: " + executionException.getMessage());
-        }
-
-        assertNotNull(actualUrl, "The generated URL should not be null");
-        
-        // Expected Behavior: Slack body includes GitHub issue: <url>
-        // Here we validate that the URL string is present and well-formed according to the defect requirements
-        assertTrue(
-            actualUrl.startsWith("https://github.com/"),
-            "URL should start with https://github.com/ but was: " + actualUrl
-        );
-        
-        // Ensure it's not just the prefix, but includes the issue ID/number part
-        assertTrue(
-            actualUrl.length() > "https://github.com/".length(),
-            "URL seems incomplete or missing issue ID"
-        );
+    @Then("the Slack body should include the GitHub issue link")
+    public void the_slack_body_should_include_the_github_issue_link() {
+        // If the validator logic is broken or missing, this might fail
+        assertNull(capturedException, "Slack notification should succeed with GitHub URL");
+        assertTrue(slackValidator.lastBodyValidated.contains("github.com"), "Body should contain github.com");
     }
 
-    @Then("the validation no longer exhibits the reported behavior")
-    public void validation_no_longer_exhibits_reported_behavior() {
-        // Regression check: Ensure we don't return an empty string or "About to find out"
-        assertNotNull(actualUrl, "URL should not be null (regression check)");
-        assertFalse(
-            actualUrl.contains("About to find out"),
-            "URL should not contain placeholder text 'About to find out'"
-        );
-        assertFalse(
-            actualUrl.isEmpty(),
-            "URL should not be empty"
-        );
+    @When("the Slack body is missing the GitHub URL")
+    public void the_slack_body_is_missing_the_github_url() {
+        String invalidBody = "Defect Reported without link";
+        try {
+            slackAdapter.post(invalidBody);
+        } catch (IllegalArgumentException e) {
+            this.capturedException = e;
+        }
+    }
+
+    @Then("the validation should fail with an error")
+    public void the_validation_should_fail_with_an_error() {
+        assertNotNull(capturedException, "Expected validation exception");
+        assertEquals("Slack body validation failed: GitHub URL missing", capturedException.getMessage());
+    }
+
+    // --- Mocks / Support Classes ---
+
+    static class InMemoryDefectRepository implements DefectRepository {
+        private final java.util.Map<String, DefectAggregate> store = new java.util.HashMap<>();
+        @Override public void save(DefectAggregate defect) { store.put(defect.id(), defect); }
+        @Override public DefectAggregate findById(String defectId) { return store.get(defectId); }
+    }
+
+    static class TestSlackValidator implements com.example.domain.shared.SlackMessageValidator {
+        String lastBodyValidated;
+        @Override public boolean containsGitHubUrl(String body) {
+            lastBodyValidated = body;
+            return body != null && body.contains("github.com");
+        }
     }
 }

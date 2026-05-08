@@ -4,7 +4,14 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
-public record SessionEndedEvent(String aggregateId, Instant occurredAt) implements DomainEvent {
+/**
+ * Event emitted when a TellerSession is successfully terminated.
+ * Story: S-20.
+ */
+public record SessionEndedEvent(
+        String aggregateId,
+        Instant occurredAt
+) implements DomainEvent {
     @Override
     public String type() {
         return "session.ended";

@@ -1,76 +1,46 @@
 package com.example.services;
 
-import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.DefectReportedEvent;
 import com.example.domain.defect.model.ReportDefectCommand;
-import com.example.domain.validation.model.ValidationAggregate;
-import com.example.domain.validation.model.ValidateUrlPresenceCommand;
-import com.example.domain.validation.port.ValidationRepository;
-import io.temporal.workflow.WorkflowInterface;
-import io.temporal.workflow.WorkflowMethod;
+import com.example.domain.defect.service.DefectService;
+import com.example.ports.SlackNotificationPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.UUID;
-
 /**
- * Service handling the temporal workflow and orchestration of Defect Reporting.
- * This class acts as the bridge between the Temporal workflow and the Domain layer.
+ * Application Service orchestrating the defect reporting workflow.
+ * This service coordinates between the domain logic (DefectService) and external adapters (Slack).
+ * This is typically triggered by a Temporal workflow activity.
  */
 @Service
-@WorkflowInterface
 public class DefectReportingService {
 
-    private final ValidationRepository validationRepository;
+    private static final Logger log = LoggerFactory.getLogger(DefectReportingService.class);
 
-    public DefectReportingService(ValidationRepository validationRepository) {
-        this.validationRepository = validationRepository;
+    private final DefectService defectService;
+    private final SlackNotificationPort slackNotificationPort;
+
+    public DefectReportingService(DefectService defectService, SlackNotificationPort slackNotificationPort) {
+        this.defectService = defectService;
+        this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Temporal Workflow method to report a defect and verify the link propagation.
-     * Simulates the end-to-end flow described in S-FB-1.
+     * Executes the defect reporting process.
+     * 1. Processes the command via the Domain Service.
+     * 2. Notifies Slack via the Port.
+     *
+     * @param cmd The command containing defect details.
      */
-    @WorkflowMethod
-    public String reportDefectWorkflow(String title, String description, String githubIssueUrl) {
-        // Step 1: Create the Defect Aggregate
-        String defectId = "DEFECT-" + UUID.randomUUID().toString().substring(0, 8);
-        DefectAggregate defectAggregate = new DefectAggregate(defectId);
-        
-        ReportDefectCommand cmd = new ReportDefectCommand(defectId, title, description, githubIssueUrl);
-        defectAggregate.execute(cmd);
+    public void reportDefect(ReportDefectCommand cmd) {
+        log.info("Reporting defect: {}", cmd.defectId());
 
-        // Step 2: Simulate creating the Slack body (usually an adapter would call Slack API)
-        // We mimic the adapter logic here: formatting the body using data from the event.
-        List<com.example.domain.shared.DomainEvent> events = defectAggregate.uncommittedEvents();
-        String actualSlackBody = "";
-        String extractedUrl = "";
-        
-        if (!events.isEmpty() && events.get(0) instanceof DefectReportedEvent e) {
-            // This mimics the Slack Adapter generating the message body
-            actualSlackBody = String.format("Defect Reported: %s - View: %s", e.title(), e.githubUrl());
-            extractedUrl = e.githubUrl();
-        }
+        var aggregate = defectService.reportDefect(cmd);
+        String gitHubUrl = aggregate.getGitHubIssueUrl();
 
-        // Step 3: Validate that the generated body contains the GitHub URL (VW-454)
-        String validationId = "VAL-" + UUID.randomUUID().toString().substring(0, 8);
-        ValidationAggregate validationAggregate = new ValidationAggregate(validationId);
-        
-        ValidateUrlPresenceCommand validationCmd = new ValidateUrlPresenceCommand(
-            validationId, 
-            extractedUrl, 
-            actualSlackBody
-        );
-        
-        validationAggregate.execute(validationCmd);
+        String message = String.format("Defect Reported: %s - %s", cmd.defectId(), gitHubUrl);
+        slackNotificationPort.sendNotification(message);
 
-        // Persist the validation result for audit/logs
-        validationRepository.save(validationAggregate);
-
-        if (validationAggregate.isPassed()) {
-            return defectId; // Success
-        } else {
-            throw new RuntimeException("VW-454 Validation Failed: Slack body does not contain the GitHub URL.");
-        }
+        log.info("Defect {} reported successfully. Slack notification sent.", cmd.defectId());
     }
 }

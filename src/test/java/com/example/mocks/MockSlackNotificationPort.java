@@ -1,38 +1,27 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages to memory for assertion.
+ * Captures messages sent during workflow execution to verify content without real I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class PostedMessage {
-        public final String channelId;
-        public final String body;
+    public final List<SlackMessage> sentMessages = new ArrayList<>();
 
-        public PostedMessage(String channelId, String body) {
-            this.channelId = channelId;
-            this.body = body;
-        }
-    }
-
-    private final List<PostedMessage> messages = new ArrayList<>();
+    public record SlackMessage(String channel, String body) {}
 
     @Override
-    public void postMessage(String channelId, String messageBody) {
-        System.out.println("[MockSlack] Sending to " + channelId + ": " + messageBody);
-        this.messages.add(new PostedMessage(channelId, messageBody));
+    public void sendMessage(String channel, String messageBody) {
+        // Simulate network latency or processing if necessary
+        this.sentMessages.add(new SlackMessage(channel, messageBody));
     }
 
-    public List<PostedMessage> getMessages() {
-        return new ArrayList<>(messages);
-    }
-
-    public void clear() {
-        messages.clear();
+    public void reset() {
+        sentMessages.clear();
     }
 }

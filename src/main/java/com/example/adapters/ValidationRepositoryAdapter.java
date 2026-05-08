@@ -3,22 +3,23 @@ package com.example.adapters;
 import com.example.domain.validation.model.ValidationAggregate;
 import com.example.ports.ValidationRepositoryPort;
 import org.springframework.stereotype.Component;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * In-memory implementation of the ValidationRepositoryPort.
+ * NOTE: In a real production environment, this would interact with the persistence layer.
+ */
 @Component
 public class ValidationRepositoryAdapter implements ValidationRepositoryPort {
 
-    // In-memory store for this implementation to resolve compilation.
-    // In a real scenario, this would interface with MongoDB or DB2.
-    private final Map<String, ValidationAggregate> store = new ConcurrentHashMap<>();
+    private final Map<String, ValidationAggregate> store = new HashMap<>();
 
     @Override
-    public ValidationAggregate save(ValidationAggregate aggregate) {
+    public void save(ValidationAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
-        return aggregate;
     }
 
     @Override

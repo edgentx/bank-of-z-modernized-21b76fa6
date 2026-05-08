@@ -6,46 +6,38 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Records messages posted to channels to verify behavior without real I/O.
+ * Captures messages sent during workflow execution to verify content.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class PostedMessage {
+    public static class Message {
         public final String channel;
         public final String body;
 
-        public PostedMessage(String channel, String body) {
+        public Message(String channel, String body) {
             this.channel = channel;
             this.body = body;
         }
     }
 
-    private final List<PostedMessage> postedMessages = new ArrayList<>();
+    private final List<Message> messages = new ArrayList<>();
 
     @Override
-    public void postMessage(String channel, String body) {
-        this.postedMessages.add(new PostedMessage(channel, body));
+    public void send(String channel, String body) {
+        System.out.println("[MockSlack] Sending to " + channel + ": " + body);
+        this.messages.add(new Message(channel, body));
     }
 
-    public List<PostedMessage> getPostedMessages() {
-        return postedMessages;
+    public List<Message> getMessages() {
+        return new ArrayList<>(messages);
     }
 
-    /**
-     * Helper to verify if a message was posted to a specific channel.
-     */
-    public boolean wasPostedTo(String channel) {
-        return postedMessages.stream().anyMatch(m -> m.channel.equals(channel));
+    public void clear() {
+        messages.clear();
     }
 
-    /**
-     * Helper to find the last message body sent to a specific channel.
-     */
-    public String getLastBodyForChannel(String channel) {
-        return postedMessages.stream()
-                .filter(m -> m.channel.equals(channel))
-                .reduce((a, b) -> b)
-                .map(m -> m.body)
-                .orElse(null);
+    public Message getLastMessage() {
+        if (messages.isEmpty()) return null;
+        return messages.get(messages.size() - 1);
     }
 }

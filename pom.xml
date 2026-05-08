@@ -22,7 +22,7 @@
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Starters (Pinned by BOM) -->
+        <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -52,15 +52,13 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
-        <!-- Temporal.io (EXPLICIT VERSION REQUIRED - NOT in Spring BOM) -->
-        <!-- Using versions compatible with Spring Boot 3.x -->
+        <!-- Temporal.io -->
+        <!-- io.temporal:temporal-spring-boot-starter is NOT in Spring BOM. Explicit version required. -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
-            <!-- CRITICAL FIX: Specified version to resolve build failure -->
             <version>1.22.3</version>
         </dependency>
-        
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-testing</artifactId>
@@ -75,26 +73,38 @@
             <version>9.3.5.0</version>
         </dependency>
 
-        <!-- Testing (Pinned by BOM) -->
+        <!-- Slack Client -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.12.0</version>
+        </dependency>
+
+        <!-- GitHub Client -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1</version>
+        </dependency>
+
+        <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
 
-        <!-- Cucumber for E2E/Regression Tests (Requires Version) -->
+        <!-- Cucumber -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
@@ -113,13 +123,6 @@
             <version>7.16.1</version>
             <scope>test</scope>
         </dependency>
-
-        <!-- Kafka/Legacy (If needed) -->
-        <!-- <dependency>
-            <groupId>org.springframework.kafka</groupId>
-            <artifactId>spring-kafka</artifactId>
-        </dependency> -->
-
     </dependencies>
 
     <build>
@@ -141,8 +144,8 @@
 
     <repositories>
         <repository>
-            <id>temporal-io</id>
-            <url>https://maven.temporal.io/</url>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
         </repository>
     </repositories>
 </project>

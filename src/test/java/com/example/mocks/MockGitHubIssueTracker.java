@@ -1,32 +1,29 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubIssueTracker;
-import com.example.domain.validation.model.ReportDefectCommand;
-import java.util.HashMap;
-import java.util.Map;
+
+import java.net.URI;
+import java.util.UUID;
 
 /**
- * Mock implementation of GitHubIssueTracker for testing.
- * Allows pre-programming responses without real network I/O.
+ * Mock Adapter for GitHub Issue Tracking.
+ * Returns deterministic data for testing.
  */
 public class MockGitHubIssueTracker implements GitHubIssueTracker {
 
-    private String fixedUrl = "https://github.com/bank-of-z/default-issue/1";
-    private boolean shouldFail = false;
-
-    public void setFixedUrl(String url) {
-        this.fixedUrl = url;
-    }
-
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
-    }
+    private URI lastCreatedUrl;
 
     @Override
-    public String createIssue(ReportDefectCommand cmd) {
-        if (shouldFail) {
-            return null; // Simulate failure or no link creation
-        }
-        return fixedUrl;
+    public GitHubIssueResponse createIssue(String repoUrl, String title, String body) {
+        // Simulate a GitHub API response with a deterministic fake URL based on input
+        String fakeId = UUID.randomUUID().toString();
+        // Construct a URL that looks real but contains our test data for easy assertion
+        this.lastCreatedUrl = URI.create(repoUrl + "/issues/" + fakeId);
+        
+        return new GitHubIssueResponse(lastCreatedUrl, "open", fakeId);
+    }
+
+    public URI getCreatedIssueUrl() {
+        return lastCreatedUrl;
     }
 }

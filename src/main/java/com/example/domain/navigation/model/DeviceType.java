@@ -1,10 +1,11 @@
 package com.example.domain.navigation.model;
 
 /**
- * Device type enumeration for UI adaptation.
+ * Represents the type of device used to access the screen.
+ * Determines the layout adaptation strategy (e.g., 3270 TN3270 vs Next.js).
  */
 public enum DeviceType {
-    DESKTOP,
-    MOBILE,
-    TN3270 // Legacy terminal type
+    WEB_DESKTOP,
+    WEB_MOBILE,
+    TERMINAL_3270
 }

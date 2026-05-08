@@ -7,56 +7,35 @@
     <version>3.2.0</version>
     <relativePath/>
   </parent>
-
   <groupId>com.example</groupId>
   <artifactId>bank-of-z</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>bank-of-z</name>
-  <description>Bank of Z: Core Modernization</description>
+  <name>Bank of Z Modernization</name>
+  <description>Bank-of-Z modernization Track B</description>
   <properties>
     <java.version>17</java.version>
     <cucumber.version>7.14.0</cucumber.version>
   </properties>
-
   <dependencies>
-    <!-- Spring Boot Starters -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter</artifactId>
     </dependency>
-    <!-- Explicitly adding data-jpa for DB2 integration mentioned in stack, though not strictly needed for unit tests -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
+      <groupId>com.ibm.db2</groupId>
+      <artifactId>jcc</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-security</artifactId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-validation</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-mongodb</artifactId>
-    </dependency>
-    
-    <!-- IBM DB2 Driver (Scope provided or runtime often used for proprietary drivers) -->
-    <!-- Note: The error mentioned flyway-db2 not found. The DB2 driver itself is usually proprietary. -->
-    <!-- We include the standard dependency if available, otherwise mock for tests. -->
-    <dependency>
-        <groupId>com.ibm.db2</groupId>
-        <artifactId>jcc</artifactId>
-        <scope>runtime</scope>
-    </dependency>
-
-    <!-- Cucumber (BDD) - Versions managed by Spring Boot Parent BOM? No, need explicit version for Cucumber usually -->
-    <!-- Spring Boot Parent BOM does NOT manage Cucumber. Explicit version required. -->
+    <!-- Cucumber Dependencies (BOM pinned groupId: io.cucumber) -->
     <dependency>
       <groupId>io.cucumber</groupId>
       <artifactId>cucumber-java</artifactId>
@@ -70,15 +49,14 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.junit.platform</groupId>
-      <artifactId>junit-platform-suite</artifactId>
+      <groupId>io.cucumber</groupId>
+      <artifactId>cucumber-spring</artifactId>
+      <version>${cucumber.version}</version>
       <scope>test</scope>
     </dependency>
-
-    <!-- Testing -->
     <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-suite</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -91,15 +69,14 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
+        <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <source>17</source>
-          <target>17</target>
+          <properties>
+            <configurationParameters>
+              cucumber.junit-platform.naming-strategy=long
+            </configurationParameters>
+          </properties>
         </configuration>
-      </plugin>
-      <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
     </plugins>
   </build>

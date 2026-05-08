@@ -1,30 +1,36 @@
 package com.example.domain.legacybridge.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.UUID;
 
 /**
- * Event emitted when a routing rule configuration is successfully updated.
+ * Event emitted when a routing rule is successfully updated.
  */
 public record RoutingRuleUpdatedEvent(
-        String eventId,
+        String type,
         String aggregateId,
         String ruleId,
-        String newTarget,
-        int newRuleVersion,
-        Instant effectiveDate,
+        String target,
+        int version,
         Instant occurredAt
 ) implements DomainEvent {
-    public RoutingRuleUpdatedEvent {
-        if (eventId == null) {
-            eventId = UUID.randomUUID().toString();
-        }
+
+    public RoutingRuleUpdatedEvent(String aggregateId, String ruleId, String target, int version, Instant occurredAt) {
+        this("routing.updated", aggregateId, ruleId, target, version, occurredAt);
     }
 
     @Override
     public String type() {
-        return "routing.updated";
+        return type;
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

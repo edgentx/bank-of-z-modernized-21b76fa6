@@ -6,39 +6,37 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages to verify content without network calls.
+ * Allows verification of the body content without a real network call.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class SentMessage {
-        public final String channel;
-        public final String body;
+    private final List<String> publishedBodies = new ArrayList<>();
+    private boolean shouldSucceed = true;
+    private String mockUrlBase = "http://github.com/mock/issues/";
 
-        public SentMessage(String channel, String body) {
-            this.channel = channel;
-            this.body = body;
-        }
+    public void setMockUrlBase(String url) {
+        this.mockUrlBase = url;
     }
 
-    private final List<SentMessage> messages = new ArrayList<>();
+    public void setShouldSucceed(boolean succeed) {
+        this.shouldSucceed = succeed;
+    }
+
+    public List<String> getPublishedBodies() {
+        return new ArrayList<>(publishedBodies);
+    }
 
     @Override
-    public void sendMessage(String channel, String body) {
-        // Record the interaction for assertion in tests
-        this.messages.add(new SentMessage(channel, body));
-    }
+    public NotificationResult publishDefect(String channel, String title, String defectId) {
+        if (!shouldSucceed) {
+            return new NotificationResult(false, null);
+        }
 
-    public List<SentMessage> getMessages() {
-        return new ArrayList<>(messages);
-    }
-
-    public void clear() {
-        messages.clear();
-    }
-
-    public boolean hasReceivedMessageContaining(String channel, String substring) {
-        return messages.stream()
-                .filter(m -> m.channel.equals(channel))
-                .anyMatch(m -> m.body.contains(substring));
+        // Simulate the body generation that the real worker would do
+        // This mimics the 'Actual Behavior' state where we verify the link
+        String body = String.format("Defect Reported: %s - ID: %s - GitHub: %s%s", title, defectId, mockUrlBase, defectId);
+        
+        publishedBodies.add(body);
+        return new NotificationResult(true, body);
     }
 }

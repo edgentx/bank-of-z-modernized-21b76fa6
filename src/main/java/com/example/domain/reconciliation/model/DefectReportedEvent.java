@@ -2,18 +2,27 @@ package com.example.domain.reconciliation.model;
 
 import com.example.domain.shared.DomainEvent;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
 /**
- * Event published when a defect report is successfully generated and posted.
+ * Domain event published when a defect is reported within the Reconciliation Batch aggregate.
  */
 public record DefectReportedEvent(
     String aggregateId,
-    String defectId,
-    String messageBody,
-    String postedUrl,
+    String sourceSystem,
+    BigDecimal discrepancyAmount,
+    String reason,
     Instant occurredAt
 ) implements DomainEvent {
+
+    public DefectReportedEvent {
+        if (aggregateId == null || aggregateId.isBlank()) {
+            throw new IllegalArgumentException("aggregateId cannot be null");
+        }
+    }
+
     @Override
     public String type() {
         return "DefectReported";
@@ -22,10 +31,5 @@ public record DefectReportedEvent(
     @Override
     public String aggregateId() {
         return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

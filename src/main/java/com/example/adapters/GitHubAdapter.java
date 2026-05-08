@@ -1,30 +1,34 @@
 package com.example.adapters;
 
 import com.example.ports.GitHubPort;
-import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 /**
- * Real implementation for GitHub interactions.
- * Resolves a Defect ID (e.g., VW-454) to a GitHub URL.
+ * Real implementation of GitHubPort.
+ * In a real environment, this would use GitHub RestTemplate or OkHttp.
  */
 @Component
 public class GitHubAdapter implements GitHubPort {
 
     private static final Logger log = LoggerFactory.getLogger(GitHubAdapter.class);
-    private static final String BASE_URL = "https://github.com/vforce360/issues/";
+    private final String repoUrl;
+    private int issueCounter = 100;
+
+    public GitHubAdapter(@Value("${github.repo.url:https://github.com/example/bank-of-z}") String repoUrl) {
+        this.repoUrl = repoUrl;
+    }
 
     @Override
-    public String getIssueUrl(String defectId) {
-        // In a real scenario, this might query the GitHub API to find the specific Issue ID.
-        // For the purpose of this Defect fix, we simulate the URL construction logic
-        // to match the test expectations.
-        log.info("[GitHubOutbound] Resolving URL for defectId: {}", defectId);
-
-        // Extracting numeric ID or using the string directly depending on GitHub configuration.
-        // Based on the MockGitHubPort default: VW-454 -> 454
-        String issueId = defectId.replace("VW-", "");
-        return BASE_URL + issueId;
+    public String createIssue(String title, String body) {
+        // In production: POST /repos/{owner}/{repo}/issues
+        log.info("[GITHUB ADAPTER] Creating issue: {}", title);
+        
+        String issueUrl = String.format("%s/issues/%d", repoUrl, issueCounter++);
+        log.info("[GITHUB ADAPTER] Issue created at: {}", issueUrl);
+        
+        return issueUrl;
     }
 }

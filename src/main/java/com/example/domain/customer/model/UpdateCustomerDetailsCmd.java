@@ -3,15 +3,11 @@ package com.example.domain.customer.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to update customer details.
- * Only fields present in the constructor are considered for update.
+ * Command to update personal details for an existing Customer.
  */
 public record UpdateCustomerDetailsCmd(
-  String customerId,
-  String fullName,
-  String email,
-  String sortCode,
-  String governmentId,
-  String dateOfBirth,
-  boolean hasActiveBankAccounts
+    String customerId,
+    String fullName,
+    String emailAddress,
+    String sortCode
 ) implements Command {}

@@ -1,35 +1,57 @@
 package com.example.adapters;
 
-import com.example.domain.validation.model.SlackNotificationPostedEvent;
+import com.example.domain.defect.model.ReportDefectCmd;
 import com.example.ports.SlackNotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Real implementation of the Slack Notification Port.
- * In a production environment, this would use the Slack Web API client.
- * For this story, it serves as the concrete implementation satisfying the adapter pattern.
+ * This adapter is responsible for formatting the Slack message payload
+ * ensuring the GitHub URL is present in the body.
  */
 @Component
-@ConditionalOnProperty(name = "app.adapter.slack.enabled", havingValue = "true", matchIfMissing = true)
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
     private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
+    private static final String CHANNEL = "#vforce360-issues";
 
     @Override
-    public void send(SlackNotificationPostedEvent event) {
-        // Placeholder for actual Slack API call logic.
-        // S-FB-1 primarily validates the Domain content generation (Aggregate logic),
-        // but the adapter structure is required by the prompt.
+    public void sendDefectNotification(ReportDefectCmd cmd, URI gitHubIssueUrl) {
+        if (cmd == null) {
+            throw new IllegalArgumentException("ReportDefectCmd cannot be null");
+        }
+        if (gitHubIssueUrl == null) {
+            throw new IllegalArgumentException("GitHub Issue URL cannot be null");
+        }
+
+        log.info("Sending defect notification for project: {}", cmd.projectId());
+
+        // Construct the Slack message body
+        // Fix for VW-454: Ensure the URL is explicitly appended to the body
+        StringBuilder body = new StringBuilder();
+        body.append("*Defect Reported*\n");
+        body.append("Project: ").append(cmd.projectId()).append("\n");
+        body.append("Title: ").append(cmd.title()).append("\n");
+        body.append("Description: ").append(cmd.description()).append("\n");
         
-        log.info("Sending Slack Notification to {}: {}", event.channel(), event.body());
+        // Critical Fix: Append the GitHub Issue URL
+        body.append("GitHub Issue: <").append(gitHubIssueUrl).append("|View Issue>\n");
+
+        // In a real scenario, this would use WebClient or SlackClient to POST to the API
+        // e.g., webClient.post().uri(slackWebhookUrl).body(payload).retrieve();
+        Map<String, Object> payload = Map.of(
+            "channel", CHANNEL,
+            "body", body.toString()
+        );
+
+        log.debug("Prepared Slack payload: {}", payload);
         
-        // Actual implementation would look like:
-        // slackClient.methods(chatPostMessage(req -> req
-        //     .channel(event.channel())
-        //     .text(event.body())
-        // ));
+        // Simulate sending or persisting the event (Async handling would happen here)
     }
 }

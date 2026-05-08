@@ -7,26 +7,33 @@ import com.example.domain.shared.UnknownCommandException;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 public class TellerSession extends AggregateRoot {
     private final String sessionId;
-    private Status status = Status.NONE;
-    private boolean authenticated = true;
-    private Instant lastActivityAt = Instant.now();
-    private String navigationState = "HOME";
-    private static final Duration SESSION_TIMEOUT = Duration.ofMinutes(15);
-
-    public enum Status { NONE, ACTIVE, ENDED }
+    private String tellerId;
+    private boolean authenticated;
+    private boolean active;
+    private Instant lastActivityAt;
+    private Instant sessionStart;
+    private Duration timeoutDuration;
 
     public TellerSession(String sessionId) {
         this.sessionId = sessionId;
+        this.timeoutDuration = Duration.ofMinutes(30); // Default timeout config
     }
 
     @Override
     public String id() {
         return sessionId;
+    }
+
+    public void init(String tellerId, Instant startTime) {
+        this.tellerId = tellerId;
+        this.sessionStart = startTime;
+        this.lastActivityAt = startTime;
+        this.authenticated = true;
+        this.active = true;
     }
 
     @Override
@@ -38,39 +45,54 @@ public class TellerSession extends AggregateRoot {
     }
 
     private List<DomainEvent> endSession(EndSessionCmd cmd) {
-        // Invariant: Authentication
-        if (!authenticated) {
-            throw new IllegalStateException("A teller must be authenticated to initiate a session.");
+        // Invariant: A teller must be authenticated to initiate a session.
+        // (Interpreted as: Only an authenticated teller can end their own session)
+        if (!authenticated || !cmd.tellerId().equals(this.tellerId)) {
+            throw new IllegalStateException("Teller must be authenticated to end the session.");
         }
 
-        // Invariant: Inactivity Timeout
-        // Check if the provided command time OR the current last activity pushes it over the limit.
-        // Assuming the command carries the current time context or we use 'now'.
-        // Using the 'lastActivityAt' recorded in the aggregate vs 'now'.
-        Instant now = cmd.occurredAt();
-        if (Duration.between(lastActivityAt, now).compareTo(SESSION_TIMEOUT) > 0) {
-            throw new IllegalStateException("Sessions must timeout after a configured period of inactivity.");
+        // Invariant: Sessions must timeout after a configured period of inactivity.
+        if (hasTimedOut(Instant.now())) {
+            throw new IllegalStateException("Session has timed out due to inactivity.");
         }
 
-        // Invariant: Navigation State consistency (Mock validation)
-        // Valid state typically starts with "HOME", "MENU", etc.
-        // Let's assume any state starting with "INVALID_" is a violation for the test.
-        if (navigationState != null && navigationState.startsWith("INVALID_")) {
-            throw new IllegalStateException("Navigation state must accurately reflect the current operational context.");
+        // Invariant: Navigation state must accurately reflect the current operational context.
+        // (Interpreted as: Cannot end a session that isn't active)
+        if (!active) {
+            throw new IllegalStateException("Session is not active and cannot be ended.");
         }
 
-        if (status == Status.ENDED) {
-             throw new IllegalStateException("Session already ended.");
-        }
-
-        SessionEndedEvent event = new SessionEndedEvent(sessionId, now);
-        this.status = Status.ENDED;
-        this.navigationState = null; // Clear sensitive state
+        SessionEndedEvent event = new SessionEndedEvent(this.id(), this.sessionId, Instant.now());
+        this.active = false;
+        this.authenticated = false;
         addEvent(event);
         incrementVersion();
         return List.of(event);
     }
 
-    // Getters for testing/reflection setup if needed, though package-private is usually fine for tests in same structure
-    public Status getStatus() { return status; }
+    public void markTimedOut() {
+        this.active = false;
+        this.authenticated = false;
+    }
+
+    private boolean hasTimedOut(Instant now) {
+        return Duration.between(lastActivityAt, now).compareTo(timeoutDuration) > 0;
+    }
+
+    // Setters for test state manipulation
+    public void setAuthenticated(boolean authenticated) {
+        this.authenticated = authenticated;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public void setLastActivityAt(Instant lastActivityAt) {
+        this.lastActivityAt = lastActivityAt;
+    }
+    
+    public void setTellerId(String tellerId) {
+        this.tellerId = tellerId;
+    }
 }

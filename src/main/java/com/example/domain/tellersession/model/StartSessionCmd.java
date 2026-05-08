@@ -1,17 +1,22 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
-import java.time.Instant;
+import java.util.Objects;
 
 /**
- * Command to initiate a new teller session.
- * Story S-18: Implement StartSessionCmd on TellerSession.
+ * Command to initiate a teller session.
+ * Ensures the teller is authenticated and assigned to a specific terminal.
  */
-public record StartSessionCmd(
-    String sessionId,
-    String tellerId,
-    String terminalId,
-    boolean isAuthenticated,
-    Instant authenticationTime,
-    String operationalContext
-) implements Command {}
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {
+    public StartSessionCmd {
+        if (sessionId == null || sessionId.isBlank()) {
+            throw new IllegalArgumentException("sessionId cannot be null or blank");
+        }
+        if (tellerId == null || tellerId.isBlank()) {
+            throw new IllegalArgumentException("tellerId cannot be null or blank");
+        }
+        if (terminalId == null || terminalId.isBlank()) {
+            throw new IllegalArgumentException("terminalId cannot be null or blank");
+        }
+    }
+}

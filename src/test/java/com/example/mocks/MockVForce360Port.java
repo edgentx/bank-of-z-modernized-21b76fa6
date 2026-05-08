@@ -1,29 +1,40 @@
 package com.example.mocks;
 
 import com.example.ports.VForce360Port;
-import java.util.Map;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock implementation of VForce360Port for unit testing.
- * Simulates creation of a GitHub issue and returns a predictable URL.
+ * Mock implementation of VForce360Port for testing.
+ * Captures reported bodies to verify content without external I/O.
  */
 public class MockVForce360Port implements VForce360Port {
 
-    private String nextIssueUrl = "https://github.com/mock-repo/issues/1";
-    private int callCount = 0;
+    private final List<Report> capturedReports = new ArrayList<>();
 
     @Override
-    public Map<String, String> reportDefect(String projectId, String title, String description, String severity) {
-        callCount++;
-        // Simulate external service returning a link to the created ticket
-        Map<String, String> response = new HashMap<>();
-        response.put("id", "GH-" + callCount);
-        response.put("url", this.nextIssueUrl + "?id=" + callCount); 
-        return response;
+    public boolean reportDefect(String defectId, String body) {
+        // Store the interaction for verification
+        capturedReports.add(new Report(defectId, body));
+        return true;
     }
 
-    public void setNextIssueUrl(String url) {
-        this.nextIssueUrl = url;
+    /**
+     * Returns the list of all reports made to this mock.
+     */
+    public List<Report> getCapturedReports() {
+        return capturedReports;
     }
+
+    /**
+     * Clears the captured history.
+     */
+    public void clear() {
+        capturedReports.clear();
+    }
+
+    /**
+     * Value object representing a single report request.
+     */
+    public record Report(String defectId, String body) {}
 }

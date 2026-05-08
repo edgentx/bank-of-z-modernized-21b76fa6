@@ -5,17 +5,13 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 
 /**
- * Event emitted when a teller session is terminated.
+ * Event emitted when a teller session is ended.
+ * Story: S-20.
  */
 public record SessionEndedEvent(
         String aggregateId,
-        String tellerId,
         Instant occurredAt
 ) implements DomainEvent {
-    public SessionEndedEvent {
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
-        if (tellerId == null) throw new IllegalArgumentException("tellerId required");
-    }
 
     @Override
     public String type() {
@@ -23,12 +19,12 @@ public record SessionEndedEvent(
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

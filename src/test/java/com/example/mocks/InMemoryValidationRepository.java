@@ -1,43 +1,26 @@
 package com.example.mocks;
 
-import com.example.domain.validation.model.ValidationAggregate;
-import com.example.domain.validation.repository.ValidationRepository;
-import org.springframework.stereotype.Component;
+import com.example.domain.validation.model.DefectReportAggregate;
+import com.example.domain.validation.port.GitHubIssuePort;
+import com.example.domain.validation.port.SlackNotificationPort;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 
 /**
- * Mock adapter for ValidationRepository.
- * Uses in-memory Map to simulate persistence without external DB.
+ * In-memory repository for Validation aggregates.
+ * This is a mock adapter as per the rules.
  */
-public class InMemoryValidationRepository implements ValidationRepository {
+public class InMemoryValidationRepository {
+    private final Map<String, DefectReportAggregate> store = new HashMap<>();
 
-    private final Map<String, ValidationAggregate> store = new HashMap<>();
-
-    @Override
-    public ValidationRepository save(ValidationAggregate aggregate) {
+    public void save(DefectReportAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
-        return this;
     }
 
-    @Override
-    public Optional<ValidationAggregate> findById(String id) {
-        return Optional.ofNullable(store.get(id));
-    }
-
-    @Override
-    public ValidationAggregate create() {
-        String id = UUID.randomUUID().toString();
-        ValidationAggregate aggregate = new ValidationAggregate(id);
-        store.put(id, aggregate);
-        return aggregate;
-    }
-
-    // Helper for test cleanup if needed
-    public void clear() {
-        store.clear();
+    public DefectReportAggregate load(String defectId, GitHubIssuePort gitHubPort, SlackNotificationPort slackPort) {
+        // For test simplicity, we might return a new instance or a stored one.
+        // This allows us to test command execution on a fresh aggregate.
+        return new DefectReportAggregate(defectId, gitHubPort, slackPort);
     }
 }

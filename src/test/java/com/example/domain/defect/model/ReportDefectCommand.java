@@ -4,10 +4,11 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to report a defect.
+ * Part of the Domain Layer.
  */
 public record ReportDefectCommand(
-    String defectId,
-    String issueId,     // e.g., "VW-454"
-    String githubUrl,   // e.g., "https://github.com/..."
-    String summary
+        String defectId,
+        String issueId,
+        String githubUrl,
+        String summary
 ) implements Command {}

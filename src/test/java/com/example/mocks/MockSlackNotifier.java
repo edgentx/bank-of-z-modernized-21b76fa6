@@ -5,30 +5,38 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotifier.
- * Captures messages sent to Slack to allow assertions in tests.
+ * Mock adapter for SlackNotifier.
+ * Captures messages in memory for testing without external I/O.
  */
 public class MockSlackNotifier implements SlackNotifier {
+    public static class Message {
+        public final String channel;
+        public final String body;
 
-    private final List<String> messages = new ArrayList<>();
+        public Message(String channel, String body) {
+            this.channel = channel;
+            this.body = body;
+        }
+    }
+
+    private final List<Message> messages = new ArrayList<>();
 
     @Override
-    public void send(String message) {
-        messages.add(message);
+    public void send(String channel, String messageBody) {
+        // Capture message for verification
+        this.messages.add(new Message(channel, messageBody));
     }
 
-    public String getLastMessage() {
-        if (messages.isEmpty()) {
-            return null;
-        }
-        return messages.get(messages.size() - 1);
-    }
-
-    public List<String> getAllMessages() {
-        return messages;
+    public List<Message> getMessages() {
+        return new ArrayList<>(messages);
     }
 
     public void clear() {
         messages.clear();
+    }
+
+    public boolean hasReceivedMessageContaining(String substring) {
+        return messages.stream()
+            .anyMatch(m -> m.body.contains(substring));
     }
 }

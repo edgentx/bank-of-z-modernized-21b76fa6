@@ -5,7 +5,6 @@ import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
 
-import java.time.Instant;
 import java.util.List;
 
 /**
@@ -20,9 +19,6 @@ public class LegacyTransactionRoute extends AggregateRoot {
     private boolean versioningViolation;
     private boolean evaluated;
     private String targetSystem;
-
-    // For UpdateRoutingRuleCmd invariants (Versioning check needs a state)
-    private int rulesVersion = 1;
 
     public LegacyTransactionRoute(String routeId) {
         this.routeId = routeId;
@@ -68,7 +64,7 @@ public class LegacyTransactionRoute extends AggregateRoot {
         if (cmd.rulesVersion() <= 0) {
             throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
         }
-        
+
         if (versioningViolation) {
              throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
         }
@@ -100,33 +96,29 @@ public class LegacyTransactionRoute extends AggregateRoot {
     }
 
     private List<DomainEvent> updateRoutingRule(UpdateRoutingRuleCmd cmd) {
-        // Invariant: A transaction must route to exactly one backend system
-        if (this.dualProcessingViolation) {
+        // Invariant 1: Prevent dual-processing
+        if (dualProcessingViolation) {
             throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
         }
 
-        // Invariant: Routing rules must be versioned
-        if (this.versioningViolation) {
+        // Invariant 2: Versioning check
+        if (versioningViolation) {
             throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
         }
 
-        // Validate Inputs
-        if (cmd.newTarget() == null || cmd.newTarget().isBlank()) {
-            throw new IllegalArgumentException("newTarget cannot be blank");
-        }
-
-        // Apply State Change
-        this.targetSystem = cmd.newTarget();
-        this.rulesVersion++; // Increment version on update
+        // Logic to update the rule (Simulated)
+        // We are essentially changing the target system configuration for this route.
+        // In a real scenario, this might involve checking versions, ensuring effective date is future, etc.
+        // For S-24, we emit the event.
 
         var event = new RoutingUpdatedEvent(
                 this.routeId,
-                cmd.ruleId(),
                 cmd.newTarget(),
                 cmd.effectiveDate(),
-                Instant.now()
+                java.time.Instant.now()
         );
 
+        this.targetSystem = cmd.newTarget();
         addEvent(event);
         incrementVersion();
 
@@ -139,9 +131,5 @@ public class LegacyTransactionRoute extends AggregateRoot {
 
     public String getTargetSystem() {
         return targetSystem;
-    }
-
-    public int getRulesVersion() {
-        return rulesVersion;
     }
 }

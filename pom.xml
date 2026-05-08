@@ -1,7 +1,3 @@
-<!-- The prompt strictly requires Java/Spring, but requested pytest. 
-     This is a project update file structure. 
-     Since the project is Java (Maven), we add JUnit 5 and Mockito dependencies. 
-     The actual test code below will use JUnit 5 to match the Java stack requirements. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -28,14 +24,25 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
         
-        <!-- BOM-pinned dependencies (no version needed) -->
+        <!-- Temporal (Temporal is NOT in Spring Boot BOM) -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-sdk</artifactId>
+            <version>1.22.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-testing</artifactId>
+            <version>1.22.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

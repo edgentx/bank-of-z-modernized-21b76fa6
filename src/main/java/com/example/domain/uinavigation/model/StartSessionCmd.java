@@ -2,9 +2,5 @@ package com.example.domain.uinavigation.model;
 
 import com.example.domain.shared.Command;
 
-/**
- * Command to initiate a teller session.
- * S-18: user-interface-navigation
- */
-public record StartSessionCmd(String sessionId, String tellerId, String terminalId, boolean isAuthenticated) implements Command {
+public record StartSessionCmd(String aggregateId, String tellerId, String terminalId) implements Command {
 }

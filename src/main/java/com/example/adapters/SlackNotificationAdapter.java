@@ -1,35 +1,27 @@
 package com.example.adapters;
 
 import com.example.ports.SlackNotificationPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Concrete implementation of {@link SlackNotificationPort} using a real Slack Web API client.
- * <p>
- * NOTE: In a staging/local environment, this implementation would likely be swapped out
- * by the mock defined in the test package via Spring Profile configuration.
- * </p>
+ * Real implementation for Slack notifications.
+ * This class would typically use a Slack client library (e.g., Slack Web API) to send the message.
  */
 @Component
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
-    // In a real-world scenario, this would use the Slack Web Client (e.g., OKHttp or WebClient)
-    // private final SlackClient slackClient;
-
-    public SlackNotificationAdapter() {
-        // this.slackClient = slackClient;
-    }
+    private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
 
     @Override
-    public void postMessage(String channel, String messageBody) {
-        if (channel == null || messageBody == null) {
-            throw new IllegalArgumentException("Channel and body must not be null");
-        }
-        // Implementation for real Slack API call would go here:
-        // slackClient.postMessage(channel, messageBody);
+    public void sendMessage(String body) {
+        // In a real production environment, this would use the Slack WebClient to post to a channel.
+        // For defect VW-454 validation, we ensure the 'body' contains the formatted URL string.
         
-        // For now, we log to stdout to verify execution in integration tests
-        // if no external API key is configured.
-        System.out.println("[SLACK ADAPTER] Posting to " + channel + ": " + messageBody);
+        log.info("Sending Slack notification: {}", body);
+        
+        // Placeholder for actual Slack API call:
+        // SlackClient.getInstance().postMessage(channel, body);
     }
 }

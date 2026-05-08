@@ -5,38 +5,29 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * In-memory mock implementation of SlackNotificationPort for testing.
- * Captures messages to verify they contain the expected data.
+ * Mock implementation of SlackNotificationPort.
+ * Captures messages sent to Slack for verification in tests.
  */
 public class InMemorySlackNotification implements SlackNotificationPort {
 
-    public static class PostedMessage {
-        public final String channel;
-        public final String body;
-
-        public PostedMessage(String channel, String body) {
-            this.channel = channel;
-            this.body = body;
-        }
-    }
-
-    private final List<PostedMessage> messages = new ArrayList<>();
+    private final List<String> messages = new ArrayList<>();
 
     @Override
-    public void postMessage(String channel, String body) {
-        this.messages.add(new PostedMessage(channel, body));
+    public void postMessage(String text) {
+        // Capture the message body for verification
+        messages.add(text);
     }
 
-    public List<PostedMessage> getMessages() {
-        return messages;
+    public String getLastMessage() {
+        if (messages.isEmpty()) return null;
+        return messages.get(messages.size() - 1);
+    }
+
+    public List<String> getAllMessages() {
+        return new ArrayList<>(messages);
     }
 
     public void clear() {
         messages.clear();
-    }
-
-    public boolean containsUrl(String url) {
-        return messages.stream()
-                .anyMatch(msg -> msg.body.contains(url));
     }
 }

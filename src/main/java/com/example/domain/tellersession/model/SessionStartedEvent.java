@@ -6,32 +6,20 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event published when a teller session is successfully started.
+ * Event emitted when a Teller Session is started.
  */
 public record SessionStartedEvent(
-    String eventId,
-    String sessionId,
+    String aggregateId,
     String tellerId,
     String terminalId,
     Instant occurredAt
 ) implements DomainEvent {
-
-    public SessionStartedEvent(String sessionId, String tellerId, String terminalId, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), sessionId, tellerId, terminalId, occurredAt);
+    public SessionStartedEvent {
+        // Validation if needed
     }
 
     @Override
     public String type() {
         return "session.started";
-    }
-
-    @Override
-    public String aggregateId() {
-        return sessionId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

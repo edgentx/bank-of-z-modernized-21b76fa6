@@ -1,30 +1,19 @@
 package com.example.ports;
 
+import java.util.Map;
+
 /**
- * Port interface for sending Slack Notifications.
- * Abstracts the Slack Web API.
+ * Port interface for sending notifications to Slack.
+ * Used to mock the external Slack API in tests.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends a formatted message to a channel.
-     * @param message The message payload.
+     * Sends a notification payload to a configured Slack channel.
+     *
+     * @param payload A map representing the JSON body to be sent to Slack.
+     *                Expected keys: "text" (String body)
+     * @return true if sending was successful, false otherwise.
      */
-    void sendNotification(SlackMessage message);
-
-    /**
-     * Simple DTO for the message payload.
-     */
-    class SlackMessage {
-        private final String channel;
-        private final String body;
-
-        public SlackMessage(String channel, String body) {
-            this.channel = channel;
-            this.body = body;
-        }
-
-        public String getChannel() { return channel; }
-        public String getBody() { return body; }
-    }
+    boolean sendNotification(Map<String, Object> payload);
 }

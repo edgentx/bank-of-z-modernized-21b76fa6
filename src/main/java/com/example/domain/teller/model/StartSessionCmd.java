@@ -3,15 +3,16 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to start a teller session.
- * @param tellerId The ID of the teller.
- * @param terminalId The ID of the terminal.
- * @param isAuthenticated Authentication status.
- * @param initialContext The starting navigation context.
+ * Command to initiate a new teller session.
+ * Requires a valid teller ID (authenticated user) and a terminal ID (physical location).
  */
-public record StartSessionCmd(
-    String tellerId,
-    String terminalId,
-    boolean isAuthenticated,
-    String initialContext
-) implements Command {}
+public record StartSessionCmd(String tellerId, String terminalId) implements Command {
+    public StartSessionCmd {
+        if (tellerId == null || tellerId.isBlank()) {
+            throw new IllegalArgumentException("tellerId cannot be null or blank");
+        }
+        if (terminalId == null || terminalId.isBlank()) {
+            throw new IllegalArgumentException("terminalId cannot be null or blank");
+        }
+    }
+}

@@ -7,6 +7,7 @@ import java.util.UUID;
 
 /**
  * Event emitted when a teller session is successfully started.
+ * Context: S-18 StartSessionCmd on TellerSession.
  */
 public record SessionStartedEvent(
     String aggregateId,
@@ -16,13 +17,14 @@ public record SessionStartedEvent(
 ) implements DomainEvent {
 
     public SessionStartedEvent {
+        // Basic validation for sanity, though invariants are enforced by the Aggregate.
         if (aggregateId == null || aggregateId.isBlank()) {
             throw new IllegalArgumentException("aggregateId cannot be null");
         }
-        // Ensure occurredAt is not null, default to now if needed
-        if (occurredAt == null) {
-            occurredAt = Instant.now();
-        }
+    }
+
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId) {
+        this(aggregateId, tellerId, terminalId, Instant.now());
     }
 
     @Override

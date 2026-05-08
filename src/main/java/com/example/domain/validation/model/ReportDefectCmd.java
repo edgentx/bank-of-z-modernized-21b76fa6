@@ -1,16 +1,15 @@
 package com.example.domain.validation.model;
 
 import com.example.domain.shared.Command;
-import java.util.Map;
 
 /**
- * Command to report a defect via the temporal-worker.
- * Part of VW-454 fix: ensuring GitHub URL is propagated to Slack body.
+ * Command to report a defect identified in the VForce360 system.
+ * Used as input to the ReportDefectAggregate.
  */
 public record ReportDefectCmd(
     String defectId,
+    String storyId,
     String title,
-    String description,
-    String githubUrl,
-    Map<String, Object> metadata
+    String severity,
+    String component
 ) implements Command {}

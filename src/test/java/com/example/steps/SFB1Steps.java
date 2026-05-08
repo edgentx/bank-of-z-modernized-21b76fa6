@@ -1,63 +1,59 @@
 package com.example.steps;
 
-import com.example.ports.VForce360Port;
-import com.example.mocks.MockVForce360Adapter;
+import com.example.domain.validation.model.ReportDefectCmd;
+import com.example.domain.validation.model.ValidationAggregate;
+import com.example.domain.validation.repository.ValidationRepository;
+import com.example.mocks.InMemoryValidationRepository;
+import com.example.mocks.MockSlackNotificationPort;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.springframework.beans.factory.annotation.Autowired;
-
+import io.cucumber.java.en.Then;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Steps for S-FB-1: Validating VForce360 Slack Body content.
- * TDD Red Phase: Validates that defect reporting injects the GitHub URL into the Slack payload.
+ * Cucumber Steps for Story S-FB-1: Validating VW-454.
+ * Simulates the temporal-worker exec flow.
  */
 public class SFB1Steps {
 
-    @Autowired
-    private VForce360Port vForce360Port; // Will be injected as MockVForce360Adapter
+    private ValidationRepository repository = new InMemoryValidationRepository();
+    private MockSlackNotificationPort slackPort = new MockSlackNotificationPort();
+    private Exception capturedException;
+    private String defectId;
 
-    private String capturedUrl;
-    private String capturedTitle;
-    private Exception executionException;
-
-    @Given("a GitHub issue URL {string}")
-    public void aGitHubIssueURL(String url) {
-        this.capturedUrl = url;
+    @Given("a defect report is triggered via temporal-worker exec")
+    public void a_defect_report_is_triggered_via_temporal_worker_exec() {
+        // Initialize the aggregate
+        ValidationAggregate aggregate = repository.create();
+        this.defectId = aggregate.id();
     }
 
-    @Given("a defect title {string}")
-    public void aDefectTitle(String title) {
-        this.capturedTitle = title;
-    }
-
-    @When("the defect is reported via Temporal workflow")
-    public void theDefectIsReportedViaTemporalWorkflow() {
+    @When("the defect report contains a valid GitHub URL")
+    public void the_defect_report_contains_a_valid_github_url() {
         try {
-            // This simulates the Temporal worker invoking the port
-            vForce360Port.reportDefect(capturedTitle, capturedUrl);
+            ValidationAggregate aggregate = repository.findById(defectId).orElseThrow();
+            String githubUrl = "https://github.com/egdcrypto/bank-of-z/issues/454";
+            ReportDefectCmd cmd = new ReportDefectCmd(defectId, "Validation failed", githubUrl);
+            
+            // Execute command
+            aggregate.execute(cmd);
+            repository.save(aggregate);
+
+            // Trigger notification (simulating the workflow)
+            aggregate.uncommittedEvents().forEach(event -> {
+                if (event instanceof com.example.domain.validation.model.DefectReportedEvent e) {
+                    slackPort.notify(e);
+                }
+            });
         } catch (Exception e) {
-            this.executionException = e;
+            this.capturedException = e;
         }
     }
 
-    @Then("the Slack body should contain the GitHub issue link")
-    public void theSlackBodyShouldContainTheGitHubIssueLink() {
-        assertNull(executionException, "Workflow execution should not throw exception");
-
-        if (vForce360Port instanceof MockVForce360Adapter mock) {
-            var messages = mock.getSentMessages();
-            assertFalse(messages.isEmpty(), "Slack message should have been sent");
-
-            var sent = messages.get(0);
-            assertEquals(capturedTitle, sent.title, "Title should match");
-            
-            // Critical validation for VW-454: Ensure the URL is present in the body
-            assertTrue(sent.body.contains(capturedUrl), 
-                "Slack body must contain GitHub URL [" + capturedUrl + "]. Actual body: " + sent.body);
-        } else {
-            throw new IllegalStateException("Test configuration error: Expected MockVForce360Adapter");
-        }
+    @Then("the Slack body includes the GitHub issue link")
+    public void the_slack_body_includes_the_github_issue_link() {
+        assertNull(capturedException, "Should not have thrown an exception");
+        assertTrue(slackPort.wasUrlIncludedInLastMessage("https://github.com/egdcrypto/bank-of-z/issues/454"),
+            "Slack body should contain the GitHub URL");
     }
 }

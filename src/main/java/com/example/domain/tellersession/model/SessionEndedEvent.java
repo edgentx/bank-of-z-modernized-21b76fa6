@@ -14,4 +14,9 @@ public record SessionEndedEvent(String aggregateId, Instant occurredAt) implemen
     public String aggregateId() {
         return aggregateId;
     }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
 }

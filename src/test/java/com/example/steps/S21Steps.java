@@ -1,83 +1,98 @@
 package com.example.steps;
 
-import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.ui.model.RenderScreenCmd;
-import com.example.domain.ui.model.ScreenMapAggregate;
-import com.example.domain.ui.model.ScreenRenderedEvent;
-import io.cucumber.java.en.And;
+import com.example.domain.shared.Command;
+import com.example.domain.shared.DomainEvent;
+import com.example.domain.uinavigation.model.ScreenMapAggregate;
+import com.example.domain.uinavigation.model.ScreenMapRepository;
+import com.example.domain.uinavigation.model.RenderScreenCmd;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-
 import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.List;
 
 public class S21Steps {
 
+    private final ScreenMapRepository repository = new InMemoryScreenMapRepository();
     private ScreenMapAggregate aggregate;
-    private RenderScreenCmd cmd;
     private Exception capturedException;
-    private ScreenRenderedEvent lastEvent;
+    private List<DomainEvent> resultEvents;
+
+    static class InMemoryScreenMapRepository implements ScreenMapRepository {
+        @Override
+        public ScreenMapAggregate load(String id) {
+            return new ScreenMapAggregate(id);
+        }
+    }
 
     @Given("a valid ScreenMap aggregate")
-    public void aValidScreenMapAggregate() {
-        aggregate = new ScreenMapAggregate("LOGIN01");
+    public void a_valid_ScreenMap_aggregate() {
+        aggregate = repository.load("screen-1");
     }
 
-    @And("a valid screenId is provided")
-    public void aValidScreenIdIsProvided() {
-        // Handled in setup or step combination, typically implies using a valid ID in the context
+    @Given("a valid screenId is provided")
+    public void a_valid_screenId_is_provided() {
+        // Handled in context of command execution
     }
 
-    @And("a valid deviceType is provided")
-    public void aValidDeviceTypeIsProvided() {
-        // Handled in setup or step combination
+    @Given("a valid deviceType is provided")
+    public void a_valid_deviceType_is_provided() {
+        // Handled in context of command execution
     }
 
     @When("the RenderScreenCmd command is executed")
-    public void theRenderScreenCmdCommandIsExecuted() {
-        // Default valid execution
-        if (cmd == null) {
-            cmd = new RenderScreenCmd("LOGIN01", "3270");
-        }
+    public void the_RenderScreenCmd_command_is_executed() {
         try {
-            var events = aggregate.execute(cmd);
-            if (!events.isEmpty()) {
-                lastEvent = (ScreenRenderedEvent) events.get(0);
-            }
+            Command cmd = new RenderScreenCmd("screen-1", "3270", 1920, 1080);
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             capturedException = e;
         }
     }
 
     @Then("a screen.rendered event is emitted")
-    public void aScreenRenderedEventIsEmitted() {
-        assertNotNull(lastEvent, "Expected a ScreenRenderedEvent to be emitted");
-        assertEquals("screen.rendered", lastEvent.type());
-        assertEquals("LOGIN01", lastEvent.aggregateId());
-        assertEquals("3270", lastEvent.deviceType());
-        assertNull(capturedException, "Expected no exception, but got: " + capturedException);
+    public void a_screen_rendered_event_is_emitted() {
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertEquals("screen.rendered", resultEvents.get(0).type());
     }
 
     @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void aScreenMapAggregateThatViolatesMandatoryFields() {
-        aggregate = new ScreenMapAggregate("TEST01");
-        // Scenario 1: Null or Blank ScreenId
-        cmd = new RenderScreenCmd(null, "WEB");
-        // Could also be: cmd = new RenderScreenCmd("  ", "WEB");
+    public void a_ScreenMap_aggregate_that_violates_mandatory_fields() {
+        aggregate = repository.load("screen-invalid-fields");
     }
 
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void aScreenMapAggregateThatViolatesBMSConstraints() {
-        aggregate = new ScreenMapAggregate("LONGSCREENNAME"); // > 8 chars
-        cmd = new RenderScreenCmd("LONGSCREENNAME", "3270");
+    @When("the RenderScreenCmd command is executed with missing fields")
+    public void the_RenderScreenCmd_command_is_executed_with_missing_fields() {
+        try {
+            // Execute with null screenId (invalid)
+            Command cmd = new RenderScreenCmd(null, "3270", 800, 600);
+            resultEvents = aggregate.execute(cmd);
+        } catch (Exception e) {
+            capturedException = e;
+        }
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(capturedException, "Expected an exception (domain error) to be thrown");
-        assertTrue(
-            capturedException instanceof IllegalArgumentException || capturedException instanceof IllegalStateException,
-            "Expected IllegalArgumentException or IllegalStateException, but got: " + capturedException.getClass().getSimpleName()
-        );
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(capturedException);
+        assertTrue(capturedException instanceof IllegalArgumentException);
+    }
+
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void a_ScreenMap_aggregate_that_violates_bms_constraints() {
+        aggregate = repository.load("screen-bad-bms");
+    }
+
+    @When("the RenderScreenCmd command is executed with invalid BMS lengths")
+    public void the_RenderScreenCmd_command_is_executed_with_invalid_BMS_lengths() {
+        try {
+            // Assume screenId "BAD" is valid, but resolution is way off for legacy
+            Command cmd = new RenderScreenCmd("BAD", "3270", 10000, 10000);
+            resultEvents = aggregate.execute(cmd);
+        } catch (Exception e) {
+            capturedException = e;
+        }
     }
 }

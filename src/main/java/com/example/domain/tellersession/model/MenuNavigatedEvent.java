@@ -5,21 +5,16 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Domain event emitted when a teller successfully navigates to a new menu.
- */
 public record MenuNavigatedEvent(
-    String eventId,
-    String aggregateId,
-    String menuId,
-    String action,
-    Instant occurredAt
+        String eventId,
+        String aggregateId,
+        String menuId,
+        String action,
+        Instant occurredAt
 ) implements DomainEvent {
-
     public MenuNavigatedEvent {
-        Objects.requireNonNull(eventId, "eventId cannot be null");
-        Objects.requireNonNull(aggregateId, "aggregateId cannot be null");
-        Objects.requireNonNull(occurredAt, "occurredAt cannot be null");
+        if (eventId == null) eventId = UUID.randomUUID().toString();
+        if (occurredAt == null) occurredAt = Instant.now();
     }
 
     public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {

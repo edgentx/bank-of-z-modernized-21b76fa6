@@ -3,18 +3,12 @@ package com.example.domain.defect.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Map;
 
-public record DefectReportedEvent(
-    String aggregateId,
-    String title,
-    String description,
-    String severity,
-    Instant occurredAt
-) implements DomainEvent {
+public record DefectReportedEvent(String aggregateId, String projectId, String title, String description, String githubIssueUrl, Map<String, String> metadata, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
-        return "DefectReportedEvent";
+        return "DefectReported";
     }
 
     @Override

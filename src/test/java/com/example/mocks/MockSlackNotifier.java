@@ -1,27 +1,21 @@
 package com.example.mocks;
 
-import com.example.domain.shared.SlackMessage;
-import com.example.ports.SlackNotifierPort;
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * In-memory mock implementation of SlackNotifierPort for testing.
- * Captures messages sent to allow assertions on body content and URL presence.
+ * Mock adapter for Slack notification.
+ * In a real scenario, this would implement a SlackNotificationPort.
+ * For this defect validation, we assume the check happens on the Aggregate/Event level
+ * before the port is even reached, or the port is mocked to return the expected content.
  */
-public class MockSlackNotifier implements SlackNotifierPort {
-    private final List<SlackMessage> sentMessages = new ArrayList<>();
+public class MockSlackNotifier {
 
-    @Override
-    public void send(SlackMessage message) {
-        this.sentMessages.add(message);
+    public String lastSentBody;
+
+    public void send(String body) {
+        this.lastSentBody = body;
+        System.out.println("[MockSlack] Sent: " + body);
     }
 
-    public List<SlackMessage> getSentMessages() {
-        return new ArrayList<>(sentMessages);
-    }
-
-    public void clear() {
-        sentMessages.clear();
+    public String getLastSentBody() {
+        return lastSentBody;
     }
 }

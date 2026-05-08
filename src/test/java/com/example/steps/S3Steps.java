@@ -1,163 +1,121 @@
 package com.example.steps;
 
 import com.example.domain.customer.model.CustomerAggregate;
+import com.example.domain.customer.model.CustomerDetailsUpdatedEvent;
+import com.example.domain.customer.model.EnrollCustomerCmd;
 import com.example.domain.customer.model.UpdateCustomerDetailsCmd;
 import com.example.domain.shared.DomainException;
+import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+
+import java.time.Instant;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class S3Steps {
 
     private CustomerAggregate customer;
-    private UpdateCustomerDetailsCmd cmd;
+    private String customerId;
+    private String email;
+    private String sortCode;
+    private String fullName;
+    private String govId;
+    private Instant dob;
+    private boolean hasActiveAccounts;
+
+    private List<DomainEvent> resultEvents;
     private Exception caughtException;
 
-    // Helper to setup a valid base customer
-    private void setupValidCustomer() {
-        customer = new CustomerAggregate("cust-123");
-        customer.enrollDirectly("cust-123", "John Doe", "john.doe@example.com", "GOV123");
-    }
-
     @Given("a valid Customer aggregate")
-    public void aValidCustomerAggregate() {
-        setupValidCustomer();
+    public void a_valid_Customer_aggregate() {
+        customerId = "cust-123";
+        customer = new CustomerAggregate(customerId);
+        // Enroll the customer first to make it valid
+        customer.execute(new EnrollCustomerCmd(customerId, "Original Name", "original@example.com", "GOV123"));
+        customer.clearEvents(); // Clear enrollment events to isolate Update command events
     }
 
     @And("a valid customerId is provided")
-    public void aValidCustomerIdIsProvided() {
-        // customerId is handled in the When step construction
+    public void a_valid_customerId_is_provided() {
+        customerId = "cust-123";
     }
 
     @And("a valid emailAddress is provided")
-    public void aValidEmailAddressIsProvided() {
-        // emailAddress is handled in the When step construction
+    public void a_valid_emailAddress_is_provided() {
+        email = "new.email@example.com";
     }
 
     @And("a valid sortCode is provided")
-    public void aValidSortCodeIsProvided() {
-        // sortCode is handled in the When step construction
+    public void a_valid_sortCode_is_provided() {
+        sortCode = "123456";
     }
 
     @When("the UpdateCustomerDetailsCmd command is executed")
-    public void theUpdateCustomerDetailsCmdCommandIsExecuted() {
+    public void the_UpdateCustomerDetailsCmd_command_is_executed() {
+        // Defaults for a successful update if not overridden by violation context
+        if (fullName == null) fullName = "Updated Name";
+        if (dob == null) dob = Instant.now().minusSeconds(100000);
+        if (govId == null) govId = "GOV123";
+        if (email == null) email = "valid@example.com";
+        
+        UpdateCustomerDetailsCmd cmd = new UpdateCustomerDetailsCmd(
+            customerId, fullName, email, sortCode, govId, dob, hasActiveAccounts
+        );
+        
         try {
-            // Scenario 1 defaults
-            String fullName = "John Doe";
-            String email = "john.doe@example.com";
-            String govId = "GOV123";
-            String dob = "1990-01-01";
-            String sortCode = "123456";
-
-            cmd = new UpdateCustomerDetailsCmd(customer.id(), fullName, email, govId, dob, sortCode);
-            customer.execute(cmd);
+            resultEvents = customer.execute(cmd);
         } catch (Exception e) {
             caughtException = e;
         }
     }
 
     @Then("a customer.details.updated event is emitted")
-    public void aCustomerDetailsUpdatedEventIsEmitted() {
-        assertNull(caughtException, "Should not have thrown an exception");
-        assertFalse(customer.uncommittedEvents().isEmpty(), "Should have uncommitted events");
-        assertEquals("customer.details.updated", customer.uncommittedEvents().get(0).type());
+    public void a_customer_details_updated_event_is_emitted() {
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof CustomerDetailsUpdatedEvent);
+        
+        CustomerDetailsUpdatedEvent event = (CustomerDetailsUpdatedEvent) resultEvents.get(0);
+        assertEquals("customer.details.updated", event.type());
+        assertEquals(customerId, event.aggregateId());
+        assertEquals(fullName, event.fullName());
+        assertEquals(email, event.emailAddress());
+        assertEquals(sortCode, event.sortCode());
     }
 
-    // --- Negative Scenarios ---
+    // --- Failure Scenarios ---
 
     @Given("a Customer aggregate that violates: A customer must have a valid, unique email address and government-issued ID.")
-    public void aCustomerAggregateThatViolatesEmailAndGovId() {
-        setupValidCustomer();
+    public void a_Customer_aggregate_that_violates_email_and_gov_id() {
+        // Setup valid aggregate first
+        a_valid_Customer_aggregate();
+        a_valid_customerId_is_provided();
+        // Set invalid data for the specific violation
+        this.email = "invalid-email"; // Missing @
     }
 
     @Given("a Customer aggregate that violates: Customer name and date of birth cannot be empty.")
-    public void aCustomerAggregateThatViolatesNameAndDob() {
-        setupValidCustomer();
+    public void a_Customer_aggregate_that_violates_name_and_dob() {
+        a_valid_Customer_aggregate();
+        a_valid_customerId_is_provided();
+        this.fullName = ""; // Empty name
+        this.dob = null; // Missing DOB
     }
 
     @Given("a Customer aggregate that violates: A customer cannot be deleted if they own active bank accounts.")
-    public void aCustomerAggregateThatViolatesActiveAccounts() {
-        setupValidCustomer();
-        customer.setHasActiveAccounts(true);
-    }
-
-    // We can reuse the When clause, but we need to inject bad data based on the Given context.
-    // Since Cucumber executes steps sequentially, we can assume context or just overload the When behavior.
-    // However, standard practice is to use specific Whens or context injection.
-    // Given the constraints, I will assume the 'When' step needs to be flexible or I will add specific Whens for the negative cases.
-    // To be safe and compile successfully with the single When defined in the feature, I'll update the When implementation to handle context.
-    
-    // Actually, looking at the feature, the 'When' line is identical for all scenarios. 
-    // I will assume the 'Given' steps setup the state, and the 'When' step implementation needs to be smart enough
-    // OR (more likely for this exercise) I will check the state of the aggregate in the When step to decide what command to send.
-    // BUT, the Command parameters are what causes the error. 
-    // Let's look at the specific error messages to drive the command data.
-
-    // To resolve this without over-engineering the step logic:
-    // I will implement the When step to check specific conditions or use a default 'bad' command if the aggregate is in a specific 'violation' state.
-    
-    // Scenario 2: Bad Email/GovId
-    // Scenario 3: Bad Name/Dob
-    // Scenario 4: Active Accounts (This is an aggregate state check, not a command field check).
-
-    // Let's refine the When step logic to handle these cases based on the setup state.
-    
-    public static class ScenarioContext {
-        public static String scenarioType = "";
-    }
-
-    @Given("a Customer aggregate that violates: A customer must have a valid, unique email address and government-issued ID.")
-    public void setupInvalidEmailGovIdScenario() {
-        ScenarioContext.scenarioType = "INVALID_EMAIL_GOV";
-        setupValidCustomer();
-    }
-
-    @Given("a Customer aggregate that violates: Customer name and date of birth cannot be empty.")
-    public void setupInvalidNameDobScenario() {
-        ScenarioContext.scenarioType = "INVALID_NAME_DOB";
-        setupValidCustomer();
-    }
-
-    @Given("a Customer aggregate that violates: A customer cannot be deleted if they own active bank accounts.")
-    public void setupActiveAccountsScenario() {
-        ScenarioContext.scenarioType = "ACTIVE_ACCOUNTS";
-        setupValidCustomer();
-        customer.setHasActiveAccounts(true);
-    }
-
-    @When("the UpdateCustomerDetailsCmd command is executed")
-    public void executeCommand() {
-        try {
-            String id = customer.id();
-            String name = "John Doe";
-            String email = "john.doe@example.com";
-            String govId = "GOV123";
-            String dob = "1990-01-01";
-            String sortCode = "123456";
-
-            if ("INVALID_EMAIL_GOV".equals(ScenarioContext.scenarioType)) {
-                email = "invalid-email"; // triggers domain error
-            } else if ("INVALID_NAME_DOB".equals(ScenarioContext.scenarioType)) {
-                name = ""; // triggers domain error
-                dob = "";
-            }
-            // ACTIVE_ACCOUNTS relies on aggregate state, set in Given
-
-            cmd = new UpdateCustomerDetailsCmd(id, name, email, govId, dob, sortCode);
-            customer.execute(cmd);
-        } catch (Exception e) {
-            caughtException = e;
-        } finally {
-            ScenarioContext.scenarioType = ""; // reset
-        }
+    public void a_Customer_aggregate_that_violates_active_accounts() {
+        a_valid_Customer_aggregate();
+        a_valid_customerId_is_provided();
+        this.hasActiveAccounts = true; // Has active accounts
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(caughtException, "Expected a domain exception");
-        assertTrue(caughtException instanceof DomainException, "Expected DomainException");
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(caughtException, "Expected an exception to be thrown");
+        assertTrue(caughtException instanceof DomainException, "Expected DomainException, got " + caughtException.getClass().getSimpleName());
     }
 }

@@ -2,34 +2,21 @@ package com.example.mocks;
 
 import com.example.ports.GitHubPort;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * Mock adapter for GitHub interactions.
- * Records calls and returns predictable URLs for testing.
+ * Mock implementation of GitHubPort for testing.
+ * Returns a predictable URL.
  */
 public class MockGitHubPort implements GitHubPort {
 
-    private final List<Call> calls = new ArrayList<>();
-    private String mockUrlPrefix = "https://github.com/mock-org/issues/";
-    private int callCount = 0;
+    private final String mockUrlBase;
+
+    public MockGitHubPort(String mockUrlBase) {
+        this.mockUrlBase = mockUrlBase;
+    }
 
     @Override
     public String createIssue(String title, String body) {
-        calls.add(new Call(title, body));
-        callCount++;
-        return mockUrlPrefix + callCount;
+        // Simulate GitHub returning a valid URL
+        return mockUrlBase + "/issue/" + System.currentTimeMillis();
     }
-
-    public List<Call> getCalls() {
-        return calls;
-    }
-
-    public void reset() {
-        calls.clear();
-        callCount = 0;
-    }
-
-    public record Call(String title, String body) {}
 }

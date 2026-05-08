@@ -6,23 +6,23 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.1</version>
+        <version>3.2.0</version>
         <relativePath/>
     </parent>
     
     <groupId>com.example</groupId>
     <artifactId>bank-of-z</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>Bank of Z</name>
-    <description>Bank-of-Z modernization Track B</description>
+    <name>bank-of-z</name>
+    <description>Bank of Z Modernization Project</description>
     
     <properties>
         <java.version>17</java.version>
-        <flyway.version>10.0.1</flyway.version>
+        <flyway.version>9.22.3</flyway.version>
     </properties>
     
     <dependencies>
-        <!-- Spring Boot Dependencies -->
+        <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -44,16 +44,21 @@
             <artifactId>spring-boot-starter-integration</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework.batch</groupId>
-            <artifactId>spring-batch-core</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-batch</artifactId>
         </dependency>
-        
-        <!-- Database Dependencies -->
+
+        <!-- Database Drivers & DB2 Connect -->
+        <!-- Pinned explicitly to avoid version mismatch with legacy DB2 mainframes -->
         <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
+            <groupId>com.ibm.db2</groupId>
+            <artifactId>jcc</artifactId>
+            <version>11.5.8.0</version>
         </dependency>
+
+        <!-- Flyway for DB2 -->
+        <!-- Note: Spring Boot BOM pins flyway-core, but NOT flyway-database-* modules. -->
+        <!-- We must pin the version explicitly to match the core version. -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -63,42 +68,73 @@
             <artifactId>flyway-db2</artifactId>
             <version>${flyway.version}</version>
         </dependency>
-        
-        <!-- IBM MQ / z/OS Connect -->
+
+        <!-- Legacy Integration -->
         <dependency>
             <groupId>com.ibm.mq</groupId>
-            <artifactId>com.ibm.mq.allclient</artifactId>
-            <version>9.3.5.0</version>
+            <artifactId>mq-jms-spring-boot-starter</artifactId>
+            <version>3.0.4</version>
         </dependency>
-        
+
         <!-- Observability -->
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-tracing-bridge-otel</artifactId>
-            <version>1.2.2</version>
+            <version>1.2.0</version>
         </dependency>
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <version>1.36.0</version>
+            <version>1.34.1</version>
         </dependency>
-        
-        <!-- Testing (BDD) -->
+
+        <!-- Storage -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>8.5.7</version>
+        </dependency>
+
+        <!-- Redis -->
+        <dependency>
+            <groupId>io.lettuce</groupId>
+            <artifactId>lettuce-core</artifactId>
+            <version>6.3.0.RELEASE</version>
+        </dependency>
+
+        <!-- Utilities -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+
+        <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
-            <version>7.15.0</version>
+            <version>7.14.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>7.15.0</version>
+            <version>7.14.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-spring</artifactId>
+            <version>7.14.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

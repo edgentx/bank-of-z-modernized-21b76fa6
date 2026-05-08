@@ -1,15 +1,9 @@
 package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
-import java.util.UUID;
 
 /**
- * Command to initiate a new Teller Session.
- * (Record implementation for immutable data carrier).
+ * Command to initiate a Teller Session.
+ * Context: S-18 Implement StartSessionCmd on TellerSession.
  */
-public record StartSessionCmd(
-    String tellerId,
-    String terminalId,
-    String authToken,
-    String sessionId
-) implements Command {}
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {}

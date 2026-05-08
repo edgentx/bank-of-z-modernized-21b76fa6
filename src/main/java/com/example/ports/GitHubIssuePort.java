@@ -1,16 +1,17 @@
 package com.example.ports;
 
-import com.example.domain.shared.ReportDefectCommand;
-
 /**
- * Port interface for interacting with GitHub Issues API.
- * Used by the workflow adapter to create tickets.
+ * Port for creating GitHub issues.
+ * Used to generate the tracking URL for the defect report.
  */
 public interface GitHubIssuePort {
+
     /**
-     * Creates an issue in GitHub.
-     * @param cmd Defect details.
-     * @return The URL of the created issue.
+     * Creates a new issue in the repository.
+     *
+     * @param title The title of the issue
+     * @param body The description of the issue
+     * @return The HTML URL of the created issue (e.g., "https://github.com/org/repo/issues/123")
      */
-    String createIssue(ReportDefectCommand cmd);
+    String createIssue(String title, String body);
 }

@@ -1,9 +1,7 @@
 package com.example.ports;
 
-/**
- * Port for sending Slack notifications.
- * Used by tests to mock Slack interaction.
- */
+import java.util.concurrent.CompletableFuture;
+
 public interface SlackPort {
-    void sendMessage(String channel, String body);
+    CompletableFuture<Void> sendMessage(String channel, String message);
 }

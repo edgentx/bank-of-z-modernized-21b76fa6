@@ -1,46 +1,35 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
- * In-memory mock implementation of SlackNotificationPort for testing.
- * Captures messages posted to Slack for assertion.
+ * Mock adapter for Slack notifications.
+ * Captures the message body for verification by the test framework.
  */
 public class InMemorySlackNotificationPort implements SlackNotificationPort {
 
-    private final List<PostedMessage> messages = new ArrayList<>();
-
-    public static record PostedMessage(String channel, String body) {}
+    private String lastMessageBody;
+    private String lastChannel;
+    private int callCount = 0;
 
     @Override
-    public void postMessage(String channel, String messageBody) {
-        // Basic validation mirroring a real implementation
-        if (channel == null || channel.isBlank()) {
-            throw new IllegalArgumentException("channel cannot be null or empty");
-        }
-        if (messageBody == null || messageBody.isBlank()) {
-            throw new IllegalArgumentException("messageBody cannot be null or empty");
-        }
-
-        messages.add(new PostedMessage(channel, messageBody));
+    public boolean postMessage(String channel, String messageBody) {
+        this.lastChannel = channel;
+        this.lastMessageBody = messageBody;
+        this.callCount++;
+        // Simulate success
+        return true;
     }
 
-    public List<PostedMessage> getMessages() {
-        return List.copyOf(messages);
+    public String getLastMessageBody() {
+        return lastMessageBody;
     }
 
-    public void clear() {
-        messages.clear();
+    public String getLastChannel() {
+        return lastChannel;
     }
 
-    /**
-     * Helper method to verify if a specific URL was posted in any message to a specific channel.
-     */
-    public boolean wasUrlPostedToChannel(String channel, String url) {
-        return messages.stream()
-            .filter(m -> m.channel().equals(channel))
-            .anyMatch(m -> m.body().contains(url));
+    public int getCallCount() {
+        return callCount;
     }
 }

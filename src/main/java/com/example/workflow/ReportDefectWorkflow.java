@@ -1,17 +1,20 @@
 package com.example.workflow;
 
+import io.temporal.workflow.WorkflowInterface;
+import io.temporal.workflow.WorkflowMethod;
+
 /**
- * Workflow interface for reporting defects.
- * Temporal requires an interface for the Workflow stub.
+ * Temporal Workflow interface for reporting defects.
+ * Orchestrates the validation process and Slack notification.
  */
+@WorkflowInterface
 public interface ReportDefectWorkflow {
 
     /**
-     * Reports a defect by creating a GitHub issue and notifying Slack.
+     * Executes the defect reporting process.
      *
-     * @param title The title of the defect
-     * @param body  The description of the defect
-     * @return The URL of the created GitHub issue
+     * @param command The command containing defect details.
      */
-    String report(String title, String body);
+    @WorkflowMethod
+    void execute(ReportDefectCommand command);
 }

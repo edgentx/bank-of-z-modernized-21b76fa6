@@ -8,7 +8,7 @@ import org.springframework.context.annotation.ComponentScan;
  * Main Spring Boot Application entry point.
  */
 @SpringBootApplication
-@ComponentScan(basePackages = {"com.example.domain", "com.example.application", "com.example.ports", "com.example.adapters"})
+@ComponentScan(basePackages = {"com.example"})
 public class Application {
 
     public static void main(String[] args) {

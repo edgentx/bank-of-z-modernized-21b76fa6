@@ -1,23 +1,25 @@
 Feature: Implement StartSessionCmd on TellerSession (user-interface-navigation)
 
-  Scenario: Successfully execute StartSessionCmd
-    Given a valid TellerSession aggregate
-    And a valid tellerId is provided
-    And a valid terminalId is provided
-    When the StartSessionCmd command is executed
-    Then a session.started event is emitted
+  Feature: StartSessionCmd
 
-  Scenario: StartSessionCmd rejected — A teller must be authenticated to initiate a session.
-    Given a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.
-    When the StartSessionCmd command is executed
-    Then the command is rejected with a domain error
+    Scenario: Successfully execute StartSessionCmd
+      Given a valid TellerSession aggregate
+      And a valid tellerId is provided
+      And a valid terminalId is provided
+      When the StartSessionCmd command is executed
+      Then a session.started event is emitted
 
-  Scenario: StartSessionCmd rejected — Sessions must timeout after a configured period of inactivity.
-    Given a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.
-    When the StartSessionCmd command is executed
-    Then the command is rejected with a domain error
+    Scenario: StartSessionCmd rejected — A teller must be authenticated to initiate a session.
+      Given a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.
+      When the StartSessionCmd command is executed
+      Then the command is rejected with a domain error
 
-  Scenario: StartSessionCmd rejected — Navigation state must accurately reflect the current operational context.
-    Given a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.
-    When the StartSessionCmd command is executed
-    Then the command is rejected with a domain error
+    Scenario: StartSessionCmd rejected — Sessions must timeout after a configured period of inactivity.
+      Given a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.
+      When the StartSessionCmd command is executed
+      Then the command is rejected with a domain error
+
+    Scenario: StartSessionCmd rejected — Navigation state must accurately reflect the current operational context.
+      Given a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.
+      When the StartSessionCmd command is executed
+      Then the command is rejected with a domain error

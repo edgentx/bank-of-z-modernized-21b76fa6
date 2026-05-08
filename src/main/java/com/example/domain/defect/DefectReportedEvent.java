@@ -1,31 +1,29 @@
 package com.example.domain.defect;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Map;
 
 /**
- * Domain event emitted when a defect is successfully reported to GitHub and Slack.
+ * Event emitted when a defect is reported. Migrated to POJO to support Java 11.
  */
-public record DefectReportedEvent(
-        String aggregateId,
-        String githubIssueUrl,
-        Instant occurredAt
-) implements DomainEvent {
+public class DefectReportedEvent implements DomainEvent {
+    private final String aggregateId;
+    private final String type = "DefectReported";
+    private final Instant occurredAt;
+    private final String githubUrl;
 
-    @Override
-    public String type() {
-        return "DefectReported";
+    public DefectReportedEvent(String aggregateId, String githubUrl, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.githubUrl = githubUrl;
+        this.occurredAt = occurredAt;
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
+    public String type() { return type; }
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
+    public String aggregateId() { return aggregateId; }
+    @Override
+    public Instant occurredAt() { return occurredAt; }
+    public String getGithubUrl() { return githubUrl; }
 }

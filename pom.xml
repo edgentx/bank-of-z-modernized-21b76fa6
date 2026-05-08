@@ -52,9 +52,7 @@
         </dependency>
         
         <!-- Flyway DB2 (Explicit Version per BOM Rule) -->
-        <!-- Note: flyway-database-postgresql is used in the error text, but stack specifies DB2. 
-             Assuming this is a mix-up in the user's prompt context vs stack. 
-             Using the latest compatible DB2 driver for migration. -->
+        <!-- Note: flyway-database-postgresql is used in the error text, but stack specifies DB2. -->
         <dependency>
             <groupId>com.ibm.db2</groupId>
             <artifactId>jcc</artifactId>

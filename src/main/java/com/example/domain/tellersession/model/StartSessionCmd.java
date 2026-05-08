@@ -1,19 +1,19 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
-
 import java.time.Instant;
+import java.util.Objects;
 
-/**
- * Command to start a teller session.
- * S-18
- */
 public record StartSessionCmd(
         String sessionId,
         String tellerId,
         String terminalId,
-        boolean isAuthenticated,
-        String navigationState,
-        Instant lastActivityAt
+        Instant sessionTimeoutAt
 ) implements Command {
+    public StartSessionCmd {
+        Objects.requireNonNull(sessionId);
+        Objects.requireNonNull(tellerId);
+        Objects.requireNonNull(terminalId);
+        Objects.requireNonNull(sessionTimeoutAt);
+    }
 }

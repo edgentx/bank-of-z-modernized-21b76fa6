@@ -4,26 +4,33 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
+
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Aggregate Root for User Interface / Screen Maps.
- * Handles the rendering logic for specific screens based on device types.
- * ID: S-21
+ * ScreenMap Aggregate.
+ * Handles the presentation layout logic for the Bank of Z modernization effort.
  */
 public class ScreenMap extends AggregateRoot {
 
-    private final String screenMapId;
+    private final String id;
+    private String currentScreenId;
+    private String currentDeviceType;
 
-    public ScreenMap(String screenMapId) {
-        this.screenMapId = screenMapId;
+    // BMS Constraints (Legacy 3270)
+    private static final int MAX_FIELD_LENGTH = 80; // Typical BMS line length constraint for transition period
+
+    public ScreenMap(String id) {
+        this.id = id;
     }
 
     @Override
     public String id() {
-        return screenMapId;
+        return id;
     }
 
     @Override
@@ -35,7 +42,7 @@ public class ScreenMap extends AggregateRoot {
     }
 
     private List<DomainEvent> handleRenderScreen(RenderScreenCmd cmd) {
-        // Scenario: All mandatory input fields must be validated before screen submission
+        // 1. Validate mandatory inputs
         if (cmd.screenId() == null || cmd.screenId().isBlank()) {
             throw new IllegalArgumentException("screenId is mandatory");
         }
@@ -43,33 +50,55 @@ public class ScreenMap extends AggregateRoot {
             throw new IllegalArgumentException("deviceType is mandatory");
         }
 
-        // Scenario: Field lengths must strictly adhere to legacy BMS constraints
-        // Assuming legacy BMS screen names cannot exceed 8 characters (3270 standard)
-        if (cmd.screenId().length() > 8) {
-            throw new IllegalArgumentException("screenId violates legacy BMS length constraints (max 8 chars)");
+        // 2. Validate Legacy BMS Constraints (Field Lengths)
+        // Assuming the command might contain fields to be rendered or metadata that exceeds limits.
+        // For this aggregate, we validate that the identifiers fit within the legacy buffer constraints.
+        if (cmd.screenId().length() > MAX_FIELD_LENGTH) {
+            throw new IllegalArgumentException("Field length violation: screenId exceeds legacy BMS constraint of " + MAX_FIELD_LENGTH);
+        }
+        if (cmd.deviceType().length() > MAX_FIELD_LENGTH) {
+            throw new IllegalArgumentException("Field length violation: deviceType exceeds legacy BMS constraint of " + MAX_FIELD_LENGTH);
         }
 
-        // Check input data constraints if provided
-        if (cmd.inputData() != null) {
-            for (Map.Entry<String, String> entry : cmd.inputData().entrySet()) {
-                // Example constraint: field values max 50 chars
-                if (entry.getValue() != null && entry.getValue().length() > 50) {
-                    throw new IllegalArgumentException("Field value length exceeds legacy BMS constraints");
-                }
-            }
-        }
+        // 3. Generate Layout
+        Map<String, Object> layout = generateLayout(cmd.screenId(), cmd.deviceType());
 
-        var event = new ScreenRenderedEvent(
-            "screen.rendered",
-            this.screenMapId,
+        // 4. Apply Event
+        ScreenRenderedEvent event = new ScreenRenderedEvent(
+            java.util.UUID.randomUUID().toString(), // eventId
+            "ScreenRenderedEvent",
+            this.id,
+            Instant.now(),
             cmd.screenId(),
             cmd.deviceType(),
-            cmd.inputData(),
-            Instant.now()
+            layout
         );
+
+        this.currentScreenId = cmd.screenId();
+        this.currentDeviceType = cmd.deviceType();
 
         addEvent(event);
         incrementVersion();
         return List.of(event);
     }
+
+    private Map<String, Object> generateLayout(String screenId, String deviceType) {
+        Map<String, Object> layout = new HashMap<>();
+        layout.put("screenId", screenId);
+        layout.put("deviceType", deviceType);
+        layout.put("timestamp", Instant.now().toString());
+        
+        // Stubbed layout logic based on device type
+        if ("3270".equalsIgnoreCase(deviceType)) {
+            layout.put("format", "text-plain");
+            layout.put("width", 80);
+            layout.put("depth", 24);
+        } else {
+            layout.put("format", "json");
+        }
+        return layout;
+    }
+
+    public String getCurrentScreenId() { return currentScreenId; }
+    public String getCurrentDeviceType() { return currentDeviceType; }
 }

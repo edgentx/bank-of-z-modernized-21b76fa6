@@ -1,13 +1,9 @@
 package com.example.infrastructure.adapters.github;
 
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
-/**
- * Feign Client for interacting with GitHub Issues API.
- * BOM pinned groupIds verified.
- */
 @FeignClient(name = "githubIssueClient", url = "https://api.github.com")
 public interface GitHubIssueClient {
 

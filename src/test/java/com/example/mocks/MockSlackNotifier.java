@@ -1,22 +1,25 @@
 package com.example.mocks;
 
-import com.example.ports.SlackNotifier;
-import java.util.ArrayList;
-import java.util.List;
+import com.example.ports.SlackNotifierPort;
 
 /**
- * Mock implementation of SlackNotifier for testing.
+ * Mock implementation of SlackNotifierPort.
+ * Stores the last body for verification in tests.
  */
-public class MockSlackNotifier implements SlackNotifier {
+public class MockSlackNotifier implements SlackNotifierPort {
 
-    public final List<String> messages = new ArrayList<>();
+    private String lastBody;
 
     @Override
-    public void sendNotification(String message) {
-        messages.add(message);
+    public void sendNotification(String channel, String body) {
+        if (channel == null || body == null) {
+            throw new IllegalArgumentException("Channel and Body must not be null");
+        }
+        this.lastBody = body;
+        // Simulate success
     }
 
-    public String getLastMessage() {
-        return messages.get(messages.size() - 1);
+    public String getLastBody() {
+        return lastBody;
     }
 }

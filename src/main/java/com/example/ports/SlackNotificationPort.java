@@ -2,8 +2,15 @@ package com.example.ports;
 
 /**
  * Port interface for sending Slack notifications.
- * Adapters must implement this to interact with the actual Slack Webhook API.
+ * Abstraction used to allow mocking in tests without real I/O.
  */
 public interface SlackNotificationPort {
-    void notify(String message);
+
+    /**
+     * Sends a notification payload to Slack.
+     *
+     * @param payload The JSON payload to send.
+     * @return true if sending was successful, false otherwise.
+     */
+    boolean send(String payload);
 }

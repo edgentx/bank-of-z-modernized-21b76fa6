@@ -1,18 +1,15 @@
 package com.example.ports;
 
-import java.util.Optional;
-
 /**
  * Port for interacting with GitHub issues.
- * Used to retrieve metadata like URLs for reported defects.
  */
 public interface GitHubPort {
 
     /**
-     * Retrieves the URL for a specific issue ID.
+     * Generates the full URL for the specific defect ID.
      *
-     * @param issueId The unique identifier for the issue (e.g., VW-454).
-     * @return An Optional containing the URL string, or empty if not found.
+     * @param defectId The ID (e.g., "VW-454")
+     * @return The full URL string
      */
-    Optional<String> getIssueUrl(String issueId);
+    String getIssueUrl(String defectId);
 }

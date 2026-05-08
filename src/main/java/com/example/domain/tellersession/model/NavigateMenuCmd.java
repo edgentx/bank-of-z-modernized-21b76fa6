@@ -3,7 +3,10 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command for a teller to navigate to a specific menu screen.
- * Part of User Interface Navigation (S-19).
+ * Command to navigate the teller terminal UI to a specific menu.
  */
-public record NavigateMenuCmd(String sessionId, String menuId, String action) implements Command {}
+public record NavigateMenuCmd(
+    String sessionId,
+    String menuId,
+    String action
+) implements Command {}

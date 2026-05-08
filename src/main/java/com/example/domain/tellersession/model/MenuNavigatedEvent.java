@@ -3,29 +3,25 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Objects;
 
 /**
- * Event emitted when a teller successfully navigates to a new menu context.
+ * Event emitted when a Teller successfully navigates to a new menu.
  */
-public record MenuNavigatedEvent(
-        String eventId,
-        String aggregateId,
-        String sessionId,
-        String menuId,
-        String action,
-        Instant occurredAt
-) implements DomainEvent {
+public class MenuNavigatedEvent implements DomainEvent {
 
-    public MenuNavigatedEvent(String aggregateId, String sessionId, String menuId, String action, Instant occurredAt) {
-        this(
-                UUID.randomUUID().toString(),
-                aggregateId,
-                sessionId,
-                menuId,
-                action,
-                occurredAt
-        );
+    private final String aggregateId;
+    private final String fromMenuId;
+    private final String toMenuId;
+    private final String action;
+    private final Instant occurredAt;
+
+    public MenuNavigatedEvent(String aggregateId, String fromMenuId, String toMenuId, String action, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.fromMenuId = fromMenuId;
+        this.toMenuId = toMenuId;
+        this.action = action;
+        this.occurredAt = occurredAt;
     }
 
     @Override
@@ -41,5 +37,17 @@ public record MenuNavigatedEvent(
     @Override
     public Instant occurredAt() {
         return occurredAt;
+    }
+
+    public String fromMenuId() {
+        return fromMenuId;
+    }
+
+    public String toMenuId() {
+        return toMenuId;
+    }
+
+    public String action() {
+        return action;
     }
 }

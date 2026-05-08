@@ -1,12 +1,15 @@
 package com.example.domain.defect.model;
 
+import com.example.domain.shared.Command;
+
 /**
- * Command object representing a request to report a defect.
- * Used as input to the DefectReportingService.
+ * Command to trigger the defect reporting workflow.
+ * This is the input for the Temporal activity/worker.
  */
 public record ReportDefectCommand(
-    String projectId,
-    String title,
-    String description,
-    String githubUrl
-) {}
+        String defectId,
+        String title,
+        String description,
+        String severity,
+        String projectId
+) implements Command {}

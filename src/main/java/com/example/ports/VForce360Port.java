@@ -1,16 +1,16 @@
 package com.example.ports;
 
-import java.util.Map;
-
 /**
- * Interface for VForce360 integrations (Slack, Jira/GitHub issue tracking).
- * Real implementation connects to external APIs; Mocks used for testing.
+ * Port interface for VForce360 integrations (e.g., Slack notifications).
+ * Implemented by adapters using real HTTP clients, and by mocks in tests.
  */
 public interface VForce360Port {
 
     /**
-     * Reports a defect to the tracking system.
-     * Expected to return a Map containing the generated issue details (URL, ID, etc.).
+     * Reports a defect to the VForce360 system via Temporal/Slack workflow.
+     *
+     * @param defectTitle The title of the defect (e.g. issue ID)
+     * @param githubUrl   The URL to the GitHub issue being reported
      */
-    Map<String, String> reportDefect(String projectId, String title, String description, String severity);
+    void reportDefect(String defectTitle, String githubUrl);
 }

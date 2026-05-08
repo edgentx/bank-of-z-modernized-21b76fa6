@@ -9,13 +9,11 @@ public record SessionStartedEvent(
         String aggregateId,
         String tellerId,
         String terminalId,
-        Instant occurredOn
+        Instant occurredAt
 ) implements DomainEvent {
+
     public SessionStartedEvent {
-        Objects.requireNonNull(aggregateId);
-        Objects.requireNonNull(tellerId);
-        Objects.requireNonNull(terminalId);
-        Objects.requireNonNull(occurredOn);
+        // Basic validation if needed
     }
 
     @Override
@@ -24,7 +22,12 @@ public record SessionStartedEvent(
     }
 
     @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
     public Instant occurredAt() {
-        return occurredOn;
+        return occurredAt;
     }
 }

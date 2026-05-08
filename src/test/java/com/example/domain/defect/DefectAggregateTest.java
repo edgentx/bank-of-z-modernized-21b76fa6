@@ -1,76 +1,56 @@
 package com.example.domain.defect;
 
-import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.DefectReportedEvent;
-import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.UnknownCommandException;
+import com.example.mocks.CapturingSlackNotifier;
+import com.example.mocks.FakeGitHubPort;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackNotifier;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit tests for DefectAggregate.
- * Validates the domain logic independent of external dependencies.
+ * Unit test for DefectAggregate to ensure command handling logic.
  */
-class DefectAggregateTest {
+public class DefectAggregateTest {
 
     @Test
-    void shouldCreateDefectReportedEventWhenCommandValid() {
-        // Given
-        var id = "defect-123";
-        var aggregate = new DefectAggregate(id);
-        var cmd = new ReportDefectCmd(
-                id,
-                "VW-454 Validation",
-                "LOW",
-                "validation",
-                "GitHub URL missing from Slack body"
-        );
+    public void testReportDefectGeneratesEventAndTriggersSlack() {
+        // Arrange
+        String id = "DEF-123";
+        GitHubPort fakeGithub = new FakeGitHubPort();
+        CapturingSlackNotifier mockSlack = new CapturingSlackNotifier();
+        
+        DefectAggregate aggregate = new DefectAggregate(id, fakeGithub, mockSlack);
+        ReportDefectCommand cmd = new ReportDefectCommand(id, "Test Failure", "Body details");
 
-        // When
-        List<DomainEvent> events = aggregate.execute(cmd);
+        // Act
+        var events = aggregate.execute(cmd);
 
-        // Then
-        assertThat(events).hasSize(1);
-        assertThat(events.get(0)).isInstanceOf(DefectReportedEvent.class);
+        // Assert Domain Event
+        assertEquals(1, events.size());
+        assertTrue(events.get(0) instanceof DefectReportedEvent);
+        
+        DefectReportedEvent event = (DefectReportedEvent) events.get(0);
+        assertEquals(id, event.aggregateId());
+        assertNotNull(event.githubIssueUrl());
+        assertFalse(event.githubIssueUrl().isBlank());
 
-        var event = (DefectReportedEvent) events.get(0);
-        assertThat(event.aggregateId()).isEqualTo(id);
-        assertThat(event.severity()).isEqualTo("LOW");
-        assertThat(event.gitHubIssueUrl()).isNotEmpty(); // The critical field for S-FB-1
+        // Assert Side Effects
+        assertEquals(1, mockSlack.getCapturedNotifications().size());
+        assertEquals(event.githubIssueUrl(), mockSlack.getCapturedNotifications().get(0).githubUrl);
     }
 
     @Test
-    void shouldStoreGitHubUrlInAggregateState() {
-        // Given
-        var id = "defect-456";
-        var aggregate = new DefectAggregate(id);
-        var cmd = new ReportDefectCmd(id, "Test", "HIGH", "comp", "Desc");
+    public void testUnknownCommandThrowsException() {
+        // Arrange
+        String id = "DEF-404";
+        GitHubPort fakeGithub = new FakeGitHubPort();
+        SlackNotifier mockSlack = new CapturingSlackNotifier();
+        DefectAggregate aggregate = new DefectAggregate(id, fakeGithub, mockSlack);
 
-        // When
-        aggregate.execute(cmd);
-
-        // Then
-        assertThat(aggregate.getGitHubIssueUrl()).isNotNull();
-        assertThat(aggregate.getGitHubIssueUrl()).contains("github.com");
-    }
-
-    @Test
-    void shouldThrowExceptionForUnknownCommand() {
-        // Given
-        var aggregate = new DefectAggregate("x");
-        var unknownCmd = new Object() {}; // Not a registered command type
-
-        // Expectation (This test actually validates the framework wrapper usually, but here we check the aggregate logic)
-        // Since execute takes Command interface, we need an instance of Command that isn't ReportDefectCmd.
-        // We'll mock a Command implementation.
-        Command badCmd = () -> "Unknown";
-
-        assertThrows(com.example.domain.shared.UnknownCommandException.class, () -> {
-            aggregate.execute(badCmd);
+        // Act & Assert
+        assertThrows(UnknownCommandException.class, () -> {
+            aggregate.execute(new Object() {}); // Invalid command
         });
     }
 }

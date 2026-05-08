@@ -1,11 +1,12 @@
 package com.example.domain.navigation.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
 import java.util.Map;
 
 public record ScreenInputValidatedEvent(
-    String screenId,
+    String aggregateId,
     Map<String, String> inputFields,
     Instant occurredAt
 ) implements DomainEvent {
@@ -16,7 +17,7 @@ public record ScreenInputValidatedEvent(
 
     @Override
     public String aggregateId() {
-        return screenId;
+        return aggregateId;
     }
 
     @Override

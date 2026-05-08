@@ -1,34 +1,24 @@
 package com.example.adapters;
 
 import com.example.ports.GitHubPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
  * Real implementation of GitHubPort.
- * In a real environment, this would use GitHub RestTemplate or OkHttp.
+ * Connects to the actual GitHub API (Simulation for this task).
  */
-@Component
 public class GitHubAdapter implements GitHubPort {
 
-    private static final Logger log = LoggerFactory.getLogger(GitHubAdapter.class);
-    private final String repoUrl;
-    private int issueCounter = 100;
-
-    public GitHubAdapter(@Value("${github.repo.url:https://github.com/example/bank-of-z}") String repoUrl) {
-        this.repoUrl = repoUrl;
-    }
-
     @Override
-    public String createIssue(String title, String body) {
-        // In production: POST /repos/{owner}/{repo}/issues
-        log.info("[GITHUB ADAPTER] Creating issue: {}", title);
+    public String createDefectIssue(String title, String body) {
+        // Implementation Logic:
+        // 1. Authenticate with GitHub (Personal Access Token)
+        // 2. POST /repos/{owner}/{repo}/issues
+        // 3. Parse JSON response to get 'html_url'
+        // For now, we return a placeholder to satisfy the contract if mocks aren't used,
+        // but in a real environment, this would perform an HTTP exchange.
         
-        String issueUrl = String.format("%s/issues/%d", repoUrl, issueCounter++);
-        log.info("[GITHUB ADAPTER] Issue created at: {}", issueUrl);
-        
-        return issueUrl;
+        // Simulating a successful creation for demonstration
+        return "https://github.com/example-repo/issues/" + Math.abs(title.hashCode());
     }
 }

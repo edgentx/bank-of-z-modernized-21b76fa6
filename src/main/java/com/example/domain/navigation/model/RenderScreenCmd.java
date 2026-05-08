@@ -2,10 +2,13 @@ package com.example.domain.navigation.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.Set;
+import java.util.List;
 
 /**
- * Command to request the rendering of a specific screen adapted to a device type.
+ * Command to render a specific screen layout adapted for a user's device.
  */
-public record RenderScreenCmd(String screenId, String deviceType) implements Command {
-}
+public record RenderScreenCmd(
+    String screenMapId,
+    String screenId,
+    DeviceType deviceType
+) implements Command {}

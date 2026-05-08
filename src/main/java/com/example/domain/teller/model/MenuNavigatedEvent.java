@@ -11,15 +11,22 @@ public record MenuNavigatedEvent(
     String action,
     Instant occurredAt
 ) implements DomainEvent {
-    public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.menuId = menuId;
-        this.action = action;
-        this.occurredAt = occurredAt;
+    public MenuNavigatedEvent {
+        // Defensive validation if needed, though records enforce types
     }
 
     @Override
     public String type() {
         return "menu.navigated";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

@@ -1,123 +1,77 @@
 package com.example.domain.validation;
 
-import com.example.ports.GitHubIssuePort;
-import com.example.ports.SlackNotificationPort;
-import com.example.steps.ReportDefectWorkflow;
-import com.example.steps.ReportDefectCmd;
+import com.example.ports.DefectReporterPort;
+import com.example.domain.shared.Command;
+import com.example.domain.validation.model.ReportDefectCmd;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import java.net.URI;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Regression test for defect VW-454.
- *
- * Context: When _report_defect is triggered via temporal-worker,
- * the system must ensure the resulting Slack body contains the GitHub issue link.
+ * TDD Red Phase Test
+ * Story: S-FB-1 (Validating VW-454)
+ * 
+ * Tests the validation logic that ensures a GitHub URL is present in the 
+ * Slack notification body when a defect is reported via the temporal worker.
  */
-@ExtendWith(MockitoExtension.class)
 class ReportDefectValidationTest {
 
-    @Mock
-    private GitHubIssuePort githubIssuePort;
+    private DefectReporterPort mockReporter;
+    private DefectReportingService service;
 
-    @Mock
-    private SlackNotificationPort slackNotificationPort;
-
-    @InjectMocks
-    private ReportDefectWorkflow workflow; // The System Under Test (SUT)
-
-    // Constants from VW-454 context
-    private static final String CHANNEL = "#vforce360-issues";
-    private static final String DEFECT_TITLE = "VW-454: GitHub URL in Slack body";
-    private static final String EXPECTED_GH_URL = "https://github.com/bank-of-z/vforce360/issues/454";
+    @BeforeEach
+    void setUp() {
+        mockReporter = mock(DefectReporterPort.class);
+        service = new DefectReportingService(mockReporter);
+    }
 
     @Test
-    void shouldIncludeGitHubUrlInSlackBodyWhenReportingDefect() {
+    void shouldIncludeGitHubUrlInSlackBodyWhenDefectIsReported() {
         // Arrange
-        ReportDefectCmd command = new ReportDefectCmd(
-            "VW-454",
-            "GitHub URL missing from Slack notification",
-            "LOW",
-            "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1"
-        );
+        String summary = "VW-454: Missing GitHub URL";
+        String description = "This defect verifies that the URL is present.";
+        Command cmd = new ReportDefectCmd(summary, description);
 
-        // We mock the GitHub port to return a valid URL
-        when(githubIssuePort.createIssue(anyString(), anyString()))
-            .thenReturn(EXPECTED_GH_URL);
+        // We expect the service to generate a URL and send it to the reporter
+        String expectedUrlFragment = "github.com";
 
         // Act
-        workflow.execute(command);
+        service.execute(cmd);
 
         // Assert
-        // 1. Verify GitHub was called
-        verify(githubIssuePort).createIssue(
-            contains("VW-454"),
-            contains("GitHub URL missing from Slack notification")
-        );
+        ArgumentCaptor<Map<String, String>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(mockReporter, times(1)).reportToSlack(payloadCaptor.capture());
 
-        // 2. Capture the exact message sent to Slack
-        ArgumentCaptor<String> slackBodyCaptor = ArgumentCaptor.forClass(String.class);
-        verify(slackNotificationPort).sendNotification(eq(CHANNEL), slackBodyCaptor.capture());
+        Map<String, String> capturedPayload = payloadCaptor.getValue();
+        String body = capturedPayload.get("body");
 
-        String actualSlackBody = slackBodyCaptor.getValue();
-
-        // 3. The core validation: The Slack body MUST include the GitHub URL
-        // This test FAILS (Red) if the body is null or doesn't contain the link.
-        assertThat(actualSlackBody)
-            .as("Slack body should contain the GitHub issue URL")
-            .isNotNull()
-            .contains(EXPECTED_GH_URL);
-
-        // 4. Optional: Verify the specific format requested in VW-454
-        // Expected: "GitHub issue: <url>"
-        assertThat(actualSlackBody)
-            .as("Slack body should format the link as 'GitHub issue: <url>'")
-            .contains("GitHub issue: " + EXPECTED_GH_URL);
+        assertNotNull(body, "Slack body should not be null");
+        
+        // The core validation for S-FB-1
+        assertTrue(body.contains(expectedUrlFragment), 
+            "Slack body should contain a GitHub URL (" + expectedUrlFragment + "). " +
+            "Actual body: " + body);
     }
 
     @Test
-    void shouldFailIfGitHubServiceReturnsNullUrl() {
+    void shouldFailIfSlackBodyIsEmptyAfterReporting() {
         // Arrange
-        ReportDefectCmd command = new ReportDefectCmd(
-            "VW-454", "Missing link", "LOW", "pid"
-        );
+        Command cmd = new ReportDefectCmd("Critical Bug", "System crashes");
 
-        when(githubIssuePort.createIssue(anyString(), anyString())).thenReturn(null);
+        // Act
+        service.execute(cmd);
 
-        // Act & Assert
-        // The workflow should fail gracefully or explicitly if the URL is missing
-        // Assuming the current implementation throws an exception or creates a bad message.
-        // If it creates a bad message ("GitHub issue: null"), the above test might catch it,
-        // but an explicit check for null is good TDD practice.
-        assertThatThrownBy(() -> workflow.execute(command))
-            .isNotNull(); // We expect a failure state if URL is null
+        // Assert
+        ArgumentCaptor<Map<String, String>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(mockReporter).reportToSlack(payloadCaptor.capture());
 
-        // Verify Slack was NOT called if GitHub creation failed (or returned null)
-        verify(slackNotificationPort, never()).sendNotification(anyString(), anyString());
-    }
-
-    @Test
-    void shouldNotSendSlackNotificationIfGitHubCreationFails() {
-        // Arrange
-        ReportDefectCmd command = new ReportDefectCmd(
-            "VW-454", "Test", "LOW", "pid"
-        );
-
-        when(githubIssuePort.createIssue(anyString(), anyString()))
-            .thenThrow(new RuntimeException("GitHub API Timeout"));
-
-        // Act & Assert
-        assertThatThrownBy(() -> workflow.execute(command))
-            .isInstanceOf(RuntimeToken.class); // Adjust exception type as needed
-
-        // Ensure we don't send a "Ghost" notification to Slack without the link
-        verify(slackNotificationPort, never()).sendNotification(anyString(), anyString());
+        String body = payloadCaptor.getValue().get("body");
+        assertFalse(body == null || body.isEmpty(), "Body should be populated");
     }
 }

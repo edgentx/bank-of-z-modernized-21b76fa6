@@ -1,16 +1,15 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasses;
-import org.junit.platform.suite.api.Suite;
+import io.cucumber.junit.Cucumber;
+import io.cucumber.junit.CucumberOptions;
+import org.junit.runner.RunWith;
 
-/**
- * Test Suite for VW-454 Regression.
- * Groups the Cucumber steps for execution.
- */
-@Suite
-@IncludeEngines("cucumber")
-@SelectClasses(VW454Steps.class)
+@RunWith(Cucumber.class)
+@CucumberOptions(
+    features = {"features/VW-454.feature"},
+    glue = {"com.example.steps"},
+    plugin = {"pretty", "html:target/cucumber-report/VW-454.html"}
+)
 public class VW454TestSuite {
-    // Suite class to run the tests
+    // JUnit Runner configuration for Cucumber
 }

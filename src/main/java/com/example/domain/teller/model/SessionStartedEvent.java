@@ -4,8 +4,11 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
-// Helper event to set up the aggregate state for testing
-public record SessionStartedEvent(String sessionId, String tellerId, String terminalId, Instant occurredAt) implements DomainEvent {
+/**
+ * Event representing the start of a teller session.
+ * Used to hydrate the aggregate for testing invariants like auth and timeout.
+ */
+public record SessionStartedEvent(String aggregateId, String tellerId, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
         return "session.started";
@@ -13,6 +16,11 @@ public record SessionStartedEvent(String sessionId, String tellerId, String term
 
     @Override
     public String aggregateId() {
-        return sessionId;
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

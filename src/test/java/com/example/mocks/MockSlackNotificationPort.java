@@ -5,42 +5,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Records sent messages to allow assertions on their content.
+ * Mock adapter for Slack Notification.
+ * Records sent messages to verify content in tests without real I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class SentMessage {
-        public final String channel;
-        public final String body;
-
-        public SentMessage(String channel, String body) {
-            this.channel = channel;
-            this.body = body;
-        }
-    }
-
-    private final List<SentMessage> messages = new ArrayList<>();
-    private boolean shouldFail = false;
+    private final List<String> sentMessages = new ArrayList<>();
 
     @Override
-    public boolean sendMessage(String channel, String body) {
-        if (shouldFail) {
-            return false;
+    public void send(String messageBody) {
+        // Prevent null payloads which might cause NPEs in the real implementation
+        if (messageBody == null) {
+            throw new IllegalArgumentException("Slack message body cannot be null");
         }
-        messages.add(new SentMessage(channel, body));
-        return true;
+        this.sentMessages.add(messageBody);
     }
 
-    public List<SentMessage> getMessages() {
-        return messages;
+    public List<String> getSentMessages() {
+        return new ArrayList<>(sentMessages);
     }
 
     public void clear() {
-        messages.clear();
-    }
-
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
+        sentMessages.clear();
     }
 }

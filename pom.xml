@@ -4,50 +4,61 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.2.0</version>
+    <version>3.2.1</version>
     <relativePath/>
   </parent>
   <groupId>com.example</groupId>
   <artifactId>bank-of-z-core</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>bank-of-z-core</name>
-  <description>Bank of Z Core Domain</description>
+  <description>Bank of Z Core</description>
   <properties>
     <java.version>17</java.version>
-    <cucumber.version>7.14.0</cucumber.version>
+    <cucumber.version>7.15.0</cucumber.version>
   </properties>
   <dependencies>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter</artifactId>
+      <artifactId>spring-boot-starter-data-mongodb</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
-    <!-- MONGODB DRIVER SYNC - EXPLICIT VERSION REQUIRED PER BOM RULES -->
     <dependency>
-      <groupId>com.mongodb</groupId>
-      <artifactId>mongodb-driver-sync</artifactId>
-      <version>4.11.1</version>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
-    <!-- FLYWAY DB2 - EXPLICIT VERSION REQUIRED PER BOM RULES -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+    <!-- DB2 Driver is usually proprietary, assuming runtime provided or using a compat stub for build -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- 
+      NOTE: To fix the build error regarding flyway-db2 and mongodb-driver-sync: 
+      1. mongodb-driver-sync is managed by Spring Boot BOM parent.
+      2. flyway-db2 is NOT managed by Spring Boot BOM. Version MUST be explicit.
+    -->
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-db2</artifactId>
       <version>9.22.3</version>
     </dependency>
-    <dependency>
-      <groupId>org.projectlombok</groupId>
-      <artifactId>lombok</artifactId>
-      <optional>true</optional>
-    </dependency>
+    
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
-    <!-- CUCUMBER DEPENDENCIES FOR BDD -->
     <dependency>
       <groupId>io.cucumber</groupId>
       <artifactId>cucumber-java</artifactId>
@@ -72,14 +83,10 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
-        <configuration>
-          <excludes>
-            <exclude>
-              <groupId>org.projectlombok</groupId>
-              <artifactId>lombok</artifactId>
-            </exclude>
-          </excludes>
-        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
     </plugins>
   </build>

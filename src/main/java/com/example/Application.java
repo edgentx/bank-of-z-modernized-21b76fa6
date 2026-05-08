@@ -1,35 +1,18 @@
 package com.example;
 
-import com.example.adapters.GitHubAdapter;
-import com.example.adapters.SlackAdapter;
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackPort;
-import com.example.service.ValidationService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 
+/**
+ * Main Application Entry Point.
+ * BANK S-10/S-11/S-12 — Bank-of-Z modernization Track B.
+ */
 @SpringBootApplication
+@ComponentScan(basePackages = {"com.example.domain", "com.example.adapters", "com.example.ports"})
 public class Application {
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
-    }
-
-    @Bean
-    public GitHubPort gitHubPort() {
-        // In production, use the real adapter.
-        return new GitHubAdapter();
-    }
-
-    @Bean
-    public SlackPort slackPort() {
-        // In production, use the real adapter.
-        return new SlackAdapter();
-    }
-
-    @Bean
-    public ValidationService validationService(GitHubPort gitHubPort, SlackPort slackPort) {
-        return new ValidationService(gitHubPort, slackPort);
     }
 }

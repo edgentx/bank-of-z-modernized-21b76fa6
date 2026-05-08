@@ -4,8 +4,6 @@ import com.example.domain.shared.Command;
 import java.util.Map;
 
 /**
- * Command to validate user input against a specific ScreenMap definition.
- * Validates presence of mandatory fields and adherence to legacy BMS length constraints.
+ * Command to validate user input for a specific screen.
  */
-public record ValidateScreenInputCmd(String screenId, Map<String, String> inputFields) implements Command {
-}
+public record ValidateScreenInputCmd(String screenId, Map<String, String> inputFields) implements Command {}

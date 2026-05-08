@@ -5,25 +5,28 @@ import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
 import java.time.Instant;
+import java.time.Duration;
 import java.util.List;
 
+/**
+ * TellerSession aggregate.
+ * S-19: Implement NavigateMenuCmd.
+ */
 public class TellerSession extends AggregateRoot {
 
     private final String sessionId;
-    private String tellerId;
-    private String currentMenuId;
     private boolean authenticated;
+    private Instant lastActivityAt;
+    private String currentMenuId;
     private boolean active;
-    private boolean timedOut;
-    private boolean validNavigationState;
 
-    public TellerSession(String sessionId, String tellerId) {
+    // Configuration for session timeout
+    private static final Duration SESSION_TIMEOUT = Duration.ofMinutes(30);
+
+    public TellerSession(String sessionId) {
         this.sessionId = sessionId;
-        this.tellerId = tellerId;
-        this.authenticated = false;
-        this.active = false;
-        this.timedOut = false;
-        this.validNavigationState = true; // Assume valid initially
+        this.lastActivityAt = Instant.now();
+        this.active = true;
     }
 
     @Override
@@ -34,61 +37,68 @@ public class TellerSession extends AggregateRoot {
     @Override
     public List<DomainEvent> execute(Command cmd) {
         if (cmd instanceof NavigateMenuCmd c) {
-            return navigate(c);
+            return handleNavigateMenu(c);
         }
         throw new UnknownCommandException(cmd);
     }
 
-    private List<DomainEvent> navigate(NavigateMenuCmd cmd) {
+    private List<DomainEvent> handleNavigateMenu(NavigateMenuCmd cmd) {
         // Invariant: A teller must be authenticated to initiate a session.
         if (!authenticated) {
-            throw new IllegalStateException("Teller must be authenticated to perform navigation.");
+            throw new IllegalStateException("A teller must be authenticated to initiate a session.");
         }
 
         // Invariant: Sessions must timeout after a configured period of inactivity.
-        if (timedOut) {
-            throw new IllegalStateException("Session has timed out due to inactivity.");
+        if (Instant.now().isAfter(lastActivityAt.plus(SESSION_TIMEOUT))) {
+            throw new IllegalStateException("Sessions must timeout after a configured period of inactivity.");
         }
 
         // Invariant: Navigation state must accurately reflect the current operational context.
-        if (!validNavigationState) {
-            throw new IllegalStateException("Navigation state is invalid for the current operational context.");
+        // For this story, we assume valid navigation means strictly moving to a new context.
+        if (cmd.menuId().equals(this.currentMenuId)) {
+            throw new IllegalArgumentException("Navigation state must accurately reflect the current operational context (duplicate navigation).");
         }
 
-        // Validate inputs
-        if (cmd.menuId() == null || cmd.menuId().isBlank()) {
-            throw new IllegalArgumentException("menuId is required");
-        }
-
-        var event = new MenuNavigatedEvent(sessionId, cmd.menuId(), cmd.action(), Instant.now());
+        // Apply state change
+        String previousMenuId = this.currentMenuId;
         this.currentMenuId = cmd.menuId();
+        this.lastActivityAt = Instant.now();
+
+        MenuNavigatedEvent event = new MenuNavigatedEvent(
+            sessionId,
+            previousMenuId,
+            cmd.menuId(),
+            Instant.now()
+        );
+
         addEvent(event);
         incrementVersion();
         return List.of(event);
     }
 
-    // Domain helper methods for testing state manipulation
-    public void authenticate(String tellerId) {
+    // Getters for testing and state hydration
+    public boolean isAuthenticated() {
+        return authenticated;
+    }
+
+    public void markAuthenticated() {
         this.authenticated = true;
     }
 
-    public void activate() {
-        this.active = true;
+    public Instant getLastActivityAt() {
+        return lastActivityAt;
     }
 
-    public void simulateTimeout() {
-        this.timedOut = true;
-    }
-
-    public void markNavigationInvalid() {
-        this.validNavigationState = false;
+    // Used to simulate timeout in testing
+    public void setLastActivityAt(Instant time) {
+        this.lastActivityAt = time;
     }
 
     public String getCurrentMenuId() {
         return currentMenuId;
     }
 
-    public boolean isAuthenticated() {
-        return authenticated;
+    public void setCurrentMenuId(String menuId) {
+        this.currentMenuId = menuId;
     }
 }

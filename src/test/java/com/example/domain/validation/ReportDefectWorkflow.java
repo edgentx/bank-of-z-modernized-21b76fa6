@@ -4,11 +4,8 @@ import com.example.ports.GitHubPort;
 import com.example.ports.SlackNotificationPort;
 
 /**
- * Placeholder class for the System Under Test (SUT).
- * In the TDD Red phase, this class exists to cause compilation failures
- * or to prove the tests fail against a null/stub implementation.
- * 
- * Implementation is intentionally missing or stubbed.
+ * Workflow orchestrator for reporting defects.
+ * Responsibility: Create a GitHub issue and notify Slack with the resulting URL.
  */
 public class ReportDefectWorkflow {
 
@@ -20,14 +17,25 @@ public class ReportDefectWorkflow {
         this.slack = slack;
     }
 
+    /**
+     * Executes the defect reporting workflow.
+     * 1. Creates an issue on GitHub.
+     * 2. Sends a Slack notification containing the GitHub URL.
+     *
+     * @param title The defect title.
+     * @param description The defect description.
+     */
     public void report(String title, String description) {
-        // MISSING IMPLEMENTATION:
-        // 1. Call gitHub.createIssue(title, description)
-        // 2. Retrieve URL
-        // 3. Format Slack body with URL
-        // 4. Call slack.send(body)
-        
-        // Leaving this empty ensures the test fails (RED phase) until implemented.
-        throw new UnsupportedOperationException("Not implemented yet");
+        String issueUrl = gitHub.createIssue(title, description);
+        String slackBody = formatMessage(title, issueUrl);
+        slack.send(slackBody);
+    }
+
+    private String formatMessage(String title, String url) {
+        return String.format(
+            "Defect Reported: %s%nGitHub Issue: %s",
+            title,
+            url
+        );
     }
 }

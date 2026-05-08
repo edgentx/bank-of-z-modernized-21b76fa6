@@ -1,50 +1,27 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to Slack for verification.
+ * Mock adapter for Slack notifications.
+ * Captures messages to verify content during tests (TDD Red/Green phase).
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class SentMessage {
-        public final String channel;
-        public final String body;
+    public final List<Message> messages = new ArrayList<>();
 
-        public SentMessage(String channel, String body) {
-            this.channel = channel;
-            this.body = body;
-        }
-    }
-
-    private final List<SentMessage> messages = new ArrayList<>();
-    private boolean simulateFailure = false;
+    public record Message(String channel, String body) {}
 
     @Override
-    public boolean postMessage(String channel, String messageBody) {
-        if (simulateFailure) return false;
-        this.messages.add(new SentMessage(channel, messageBody));
-        return true;
+    public void sendMessage(String channel, String body) {
+        messages.add(new Message(channel, body));
     }
 
-    public List<SentMessage> getMessages() {
-        return messages;
-    }
-
-    public void reset() {
-        messages.clear();
-        simulateFailure = false;
-    }
-
-    public void setSimulateFailure(boolean simulateFailure) {
-        this.simulateFailure = simulateFailure;
-    }
-
-    public SentMessage getLastMessage() {
-        if (messages.isEmpty()) return null;
-        return messages.get(messages.size() - 1);
+    public boolean receivedMessageContaining(String text) {
+        return messages.stream()
+                .anyMatch(msg -> msg.body().contains(text));
     }
 }

@@ -5,23 +5,48 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotificationPort for testing purposes.
- * Captures messages sent to Slack to allow verification in tests.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Captures messages sent to "Slack" for assertion in tests.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> sentMessages = new ArrayList<>();
+    public static class SlackMessage {
+        public final String channel;
+        public final String body;
+
+        public SlackMessage(String channel, String body) {
+            this.channel = channel;
+            this.body = body;
+        }
+    }
+
+    private final List<SlackMessage> messages = new ArrayList<>();
+    private boolean shouldFail = false;
+
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
+    }
 
     @Override
-    public void sendNotification(String messageBody) {
-        sentMessages.add(messageBody);
+    public boolean postMessage(String channel, String body) {
+        if (shouldFail) {
+            return false;
+        }
+        messages.add(new SlackMessage(channel, body));
+        return true;
     }
 
-    public List<String> getSentMessages() {
-        return new ArrayList<>(sentMessages);
+    public List<SlackMessage> getMessages() {
+        return messages;
     }
 
-    public void clear() {
-        sentMessages.clear();
+    public boolean lastMessageContains(String text) {
+        if (messages.isEmpty()) return false;
+        return messages.get(messages.size() - 1).body.contains(text);
+    }
+
+    public void reset() {
+        messages.clear();
+        shouldFail = false;
     }
 }

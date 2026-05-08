@@ -3,31 +3,27 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
-public record TellerSessionMenuNavigatedEvent(
-        String aggregateId,
-        String menuId,
-        String action,
-        Instant occurredAt
-) implements DomainEvent {
+public class TellerSessionMenuNavigatedEvent implements DomainEvent {
+    private final String aggregateId;
+    private final String menuId;
+    private final String action;
+    private final Instant occurredAt;
 
-    public TellerSessionMenuNavigatedEvent {
-        // Validate nulls if necessary, though record handles it
+    public TellerSessionMenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.menuId = menuId;
+        this.action = action;
+        this.occurredAt = occurredAt;
     }
 
     @Override
-    public String type() {
-        return "teller.session.menu.navigated";
-    }
-
+    public String type() { return "menu.navigated"; }
     @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
+    public String aggregateId() { return aggregateId; }
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
+    public Instant occurredAt() { return occurredAt; }
+
+    public String getMenuId() { return menuId; }
+    public String getAction() { return action; }
 }

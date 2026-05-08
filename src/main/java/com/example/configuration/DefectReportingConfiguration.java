@@ -1,26 +1,30 @@
 package com.example.configuration;
 
 import com.example.domain.shared.SlackMessageValidator;
-import com.example.ports.SlackNotificationPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import com.example.adapters.WebhookSlackNotificationAdapter;
 
-/**
- * Configuration for Defect Reporting components.
- * Wires the ports and adapters together.
- */
 @Configuration
 public class DefectReportingConfiguration {
 
     @Bean
     public SlackMessageValidator slackMessageValidator() {
-        // Basic validator ensuring non-empty and URL presence
-        return message -> message != null && !message.isBlank() && message.contains("http");
+        return new SlackMessageValidatorImpl();
     }
 
-    @Bean
-    public SlackNotificationPort slackNotificationPort(SlackMessageValidator validator) {
-        return new WebhookSlackNotificationAdapter(validator);
+    // Implementation of the interface to be used as a Bean
+    public static class SlackMessageValidatorImpl implements SlackMessageValidator {
+        @Override
+        public void validate(String slackBody, String githubUrl) {
+            if (slackBody == null) {
+                throw new IllegalArgumentException("Slack body cannot be null");
+            }
+            if (githubUrl == null) {
+                throw new IllegalArgumentException("GitHub URL cannot be null");
+            }
+            if (!slackBody.contains(githubUrl)) {
+                throw new IllegalStateException("Slack body must include GitHub URL: " + githubUrl);
+            }
+        }
     }
 }

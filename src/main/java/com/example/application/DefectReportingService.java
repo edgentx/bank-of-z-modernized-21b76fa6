@@ -1,62 +1,52 @@
 package com.example.application;
 
-import com.example.domain.defect.DefectReportedEvent;
-import com.example.domain.defect.ReportDefectCommand;
-import com.example.domain.shared.Command;
-import com.example.domain.shared.DomainEvent;
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.domain.reporting.model.DefectAggregate;
+import com.example.domain.reporting.model.ReportDefectCmd;
+import com.example.ports.DefectRepositoryPort;
+import com.example.ports.SlackNotificationPort;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 /**
- * Application Service for handling Defect Reporting.
- * Orchestrates the creation of a GitHub issue and subsequent Slack notification.
+ * Application Service orchestrating the defect reporting workflow.
+ * This handles the 'Temporal-worker exec' simulation logic.
  */
 @Service
 public class DefectReportingService {
 
-    private static final Logger logger = LoggerFactory.getLogger(DefectReportingService.class);
+    private final DefectRepositoryPort repository;
+    private final SlackNotificationPort slackNotificationPort;
 
-    private final GitHubPort githubPort;
-    private final SlackPort slackPort;
-
-    public DefectReportingService(GitHubPort githubPort, SlackPort slackPort) {
-        this.githubPort = githubPort;
-        this.slackPort = slackPort;
+    public DefectReportingService(DefectRepositoryPort repository, SlackNotificationPort slackNotificationPort) {
+        this.repository = repository;
+        this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Main entry point for Temporal Workflow/Activity or REST Controller.
+     * Handle the report_defect command.
+     * 1. Execute Aggregate logic (Validation + State Change)
+     * 2. Persist event
+     * 3. Trigger Notification (Slack) including GitHub URL
      */
-    public void handle(ReportDefectCommand command) {
-        logger.info("Handling defect report: {}", command.aggregateId());
+    public void reportDefect(ReportDefectCmd cmd) {
+        DefectAggregate aggregate = new DefectAggregate(cmd.defectId());
+        var events = aggregate.execute(cmd);
 
-        // 1. Create GitHub Issue
-        String githubUrl = githubPort.createIssue(command.summary(), command.description());
+        if (!events.isEmpty()) {
+            // Repository call (Temporal or DB)
+            repository.recordDefect(cmd.defectId(), cmd);
 
-        // 2. Emit Domain Event (Typically would go to an EventStore, here we simulate emission)
-        DefectReportedEvent event = new DefectReportedEvent(
-            command.aggregateId(),
-            githubUrl,
-            java.time.Instant.now()
+            // Slack Notification Call
+            var event = events.get(0);
+            String slackBody = formatSlackBody(event.getGithubUrl(), cmd.severity());
+            slackNotificationPort.postMessage("#vforce360-issues", slackBody);
+        }
+    }
+
+    private String formatSlackBody(String url, String severity) {
+        return String.format(
+            "Defect Reported (Severity: %s)\nGitHub Issue: %s",
+            severity != null ? severity : "LOW",
+            url
         );
-        logger.info("Event emitted: {} with URL: {}", event.type(), event.getGithubUrl());
-
-        // 3. Notify Slack
-        String messageBody = String.format(
-            "Defect Reported: %s\nGitHub Issue: %s",
-            command.summary(),
-            githubUrl
-        );
-        // Using channel from metadata if available, else default
-        String channel = "#vforce360-issues"; 
-        
-        slackPort.sendNotification(channel, messageBody);
-        
-        logger.info("Slack notification sent to {} with URL {}", channel, githubUrl);
     }
 }

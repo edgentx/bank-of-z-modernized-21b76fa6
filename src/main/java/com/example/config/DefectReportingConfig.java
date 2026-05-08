@@ -1,30 +1,30 @@
 package com.example.config;
 
-import com.example.adapters.GitHubIssueAdapter;
+import com.example.adapters.GithubIssueAdapter;
 import com.example.adapters.SlackNotificationAdapter;
-import com.example.ports.GitHubIssuePort;
+import com.example.ports.GithubIssuePort;
 import com.example.ports.SlackNotificationPort;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 /**
- * Configuration class for the Defect Reporting context.
- * <p>
- * Wires the real adapters to the ports. This ensures that the production code
- * uses the concrete implementations provided in the adapters package, while tests
- * can override these beans with the Mock versions defined in the test scope.
- * </p>
+ * Configuration class for Dependency Injection.
+ * Maps the interfaces (Ports) to their concrete implementations (Adapters).
+ * 
+ * Note: In a real production environment, we might use @Profile("prod") to switch
+ * between Mock adapters (for local dev) and Real adapters (for prod).
  */
-@Configuration
 public class DefectReportingConfig {
 
-    @Bean
-    public SlackNotificationPort slackNotificationPort() {
-        return new SlackNotificationAdapter();
-    }
-
-    @Bean
-    public GitHubIssuePort gitHubIssuePort() {
-        return new GitHubIssueAdapter();
-    }
+    // Uncomment if using real adapters directly via component scan
+    // @Bean
+    // public SlackNotificationPort slackNotificationPort() {
+    //     return new SlackNotificationAdapter();
+    // }
+    
+    // @Bean
+    // public GithubIssuePort githubIssuePort() {
+    //     return new GithubIssueAdapter();
+    // }
 }

@@ -1,4 +1,3 @@
-<!-- Update to pom.xml: Adding Mockito and JUnit 5 for testing -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
@@ -8,12 +7,26 @@
         <version>3.2.0</version>
         <relativePath/>
     </parent>
-    <!-- ... existing GAV ... -->
+    
+    <groupId>com.example</groupId>
+    <artifactId>defect-validation</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <name>Defect Validation</name>
+    <description>S-FB-1: Validating VW-454</description>
+    
+    <properties>
+        <java.version>17</java.version>
+    </properties>
+
     <dependencies>
-        <!-- Spring Boot Starters (implied from existing stack) -->
+        <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
         
         <!-- Test Dependencies -->
@@ -23,7 +36,7 @@
             <scope>test</scope>
         </dependency>
         
-        <!-- Explicit Mockito for MockAdapter pattern -->
+        <!-- Explicit Mockito -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
@@ -35,4 +48,13 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>

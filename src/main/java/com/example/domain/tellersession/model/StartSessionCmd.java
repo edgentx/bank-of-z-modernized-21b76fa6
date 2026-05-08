@@ -4,7 +4,7 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to initiate a teller session.
- * Immutable record carrying the necessary identifiers.
+ * Assumes the teller has been authenticated via the TellerTerminal AuthZ pathway.
  */
 public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {
     public StartSessionCmd {

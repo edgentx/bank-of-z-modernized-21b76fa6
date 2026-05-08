@@ -1,16 +1,15 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.ConfigurationParameter;
-import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasspathResource;
-import org.junit.platform.suite.api.Suite;
+import io.cucumber.junit.Cucumber;
+import io.cucumber.junit.CucumberOptions;
+import org.junit.runner.RunWith;
 
-import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
-
-@Suite
-@IncludeEngines("cucumber")
-@SelectClasspathResource("features")
-@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
+@RunWith(Cucumber.class)
+@CucumberOptions(
+    features = "../../features/S-FB-1.feature",
+    glue = {"com.example.steps"},
+    plugin = {"pretty", "html:target/cucumber"}
+)
 public class SFB1TestSuite {
-    // This suite runs the specific feature file for S-FB-1
+    // Test Suite Entry Point
 }

@@ -4,7 +4,6 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-
 import java.time.Instant;
 import java.util.List;
 
@@ -14,13 +13,13 @@ public class LegacyTransactionRoute extends AggregateRoot {
     private String currentPayload;
     private boolean evaluated;
     private int currentRuleVersion;
-    
-    // New state for UpdateRoutingRuleCmd
-    private boolean isDualProcessingViolation;
+
+    // Test state flags for invariants
+    private transient boolean violateDualProcessing = false;
+    private transient boolean violateVersioning = false;
 
     public LegacyTransactionRoute(String routeId) {
         this.routeId = routeId;
-        this.isDualProcessingViolation = false;
     }
 
     @Override
@@ -46,7 +45,6 @@ public class LegacyTransactionRoute extends AggregateRoot {
         }
 
         // Invariant: A transaction must route to exactly one backend system (no dual processing)
-        // Simulated here by checking the dualProcessingAttempt flag on the command
         if (cmd.dualProcessingAttempt()) {
             throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
         }
@@ -82,46 +80,56 @@ public class LegacyTransactionRoute extends AggregateRoot {
     }
 
     private List<DomainEvent> updateRoutingRule(UpdateRoutingRuleCmd cmd) {
-        // Invariant: A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.
-        if (this.isDualProcessingViolation) {
+        // Invariant Check: Single Backend System
+        if (violateDualProcessing) {
             throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
         }
 
-        // Invariant: Routing rules must be versioned to allow safe rollback.
-        if (cmd.newVersion() <= 0) {
-            throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
+        // Invariant Check: Versioning
+        if (violateVersioning || cmd.ruleVersion() <= 0) {
+            throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
+        }
+
+        // Validation
+        if (cmd.ruleId() == null || cmd.ruleId().isBlank()) {
+            throw new IllegalArgumentException("ruleId cannot be blank");
+        }
+        if (cmd.newTarget() == null || cmd.newTarget().isBlank()) {
+            throw new IllegalArgumentException("newTarget cannot be blank");
         }
 
         var event = new RoutingUpdatedEvent(
-            cmd.routeId(),
-            cmd.ruleId(),
-            cmd.newTarget(),
-            cmd.effectiveDate(),
-            cmd.newVersion(),
-            Instant.now()
+                cmd.routeId(),
+                cmd.ruleId(),
+                cmd.newTarget(),
+                cmd.ruleVersion(),
+                Instant.now()
         );
 
-        this.currentRuleVersion = cmd.newVersion();
-        // Update internal state to reflect the new target to maintain consistency if queried immediately
-        // this.currentTargetSystem = cmd.newTarget(); // Assuming we add this field eventually
-        
+        // Apply state changes
+        this.currentRuleVersion = cmd.ruleVersion();
+        this.evaluated = true;
+        this.currentPayload = "Updated Target: " + cmd.newTarget();
+
         addEvent(event);
         incrementVersion();
         return List.of(event);
     }
 
     private String determineTargetSystem(String transactionType) {
-        // Mock logic for determining target system
-        // e.g. if feature flag 'use-modern' is true, route to VForce360, else Legacy
         return transactionType.startsWith("MODERN_") ? "VForce360" : "CICS";
     }
 
     public boolean isEvaluated() { return evaluated; }
     public String getCurrentTransactionType() { return currentTransactionType; }
     public int getCurrentRuleVersion() { return currentRuleVersion; }
-    
-    // Test utility to simulate invariant violation state
-    public void markDualProcessingViolation() {
-        this.isDualProcessingViolation = true;
+
+    // Test helper methods
+    public void setViolationDualProcessing(boolean violation) {
+        this.violateDualProcessing = violation;
+    }
+
+    public void setViolationVersioning(boolean violation) {
+        this.violateVersioning = violation;
     }
 }

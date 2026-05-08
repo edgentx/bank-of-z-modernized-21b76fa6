@@ -1,15 +1,16 @@
 package com.example.ports;
 
+import java.util.Map;
+
 /**
- * Port interface for VForce360 external operations.
- * Used to generate GitHub issue URLs.
+ * Interface for VForce360 integrations (Slack, Jira/GitHub issue tracking).
+ * Real implementation connects to external APIs; Mocks used for testing.
  */
 public interface VForce360Port {
-    
+
     /**
-     * Creates a GitHub issue via VForce360 and returns the URL.
-     * @param defectTitle The title of the defect.
-     * @return The URL string of the created issue.
+     * Reports a defect to the tracking system.
+     * Expected to return a Map containing the generated issue details (URL, ID, etc.).
      */
-    String reportDefect(String defectTitle);
+    Map<String, String> reportDefect(String projectId, String title, String description, String severity);
 }

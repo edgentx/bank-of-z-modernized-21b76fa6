@@ -3,30 +3,23 @@ package com.example.mocks;
 import com.example.ports.SlackPort;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * Mock implementation of SlackPort for testing.
- * Captures messages to allow verification in tests.
  */
 public class MockSlackPort implements SlackPort {
-
-    private final List<String> sentMessages = new ArrayList<>();
+    public final List<String> sentMessages = new ArrayList<>();
+    public String lastChannel;
 
     @Override
-    public void sendMessage(String messageBody) {
-        sentMessages.add(messageBody);
+    public void sendNotification(String channel, String messageBody) {
+        this.lastChannel = channel;
+        this.sentMessages.add(messageBody);
     }
 
-    public void verifyMessageContains(String substring) {
-        boolean found = sentMessages.stream()
-            .anyMatch(msg -> msg.contains(substring));
-        if (!found) {
-            throw new AssertionError("Expected message to contain: " + substring + ", but got: " + sentMessages);
-        }
-    }
-
-    public void clear() {
-        sentMessages.clear();
+    public boolean wasUrlSentTo(String expectedUrl, String channel) {
+        return sentMessages.stream()
+                .filter(msg -> msg.contains(expectedUrl))
+                .anyMatch(msg -> channel.equals(this.lastChannel));
     }
 }

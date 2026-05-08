@@ -2,15 +2,16 @@ package com.example.domain.account.model;
 
 import com.example.domain.shared.Command;
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.Instant;
 
 /**
- * Command to generate a new statement.
+ * Command to generate a new account statement.
  * S-8: Implement GenerateStatementCmd on Statement.
  */
 public record GenerateStatementCmd(
-    String statementId,
-    String accountNumber,
-    LocalDate periodEnd,
-    BigDecimal openingBalance
+        String statementId,
+        String accountNumber,
+        Instant periodEnd,
+        BigDecimal openingBalance,
+        BigDecimal closingBalance
 ) implements Command {}

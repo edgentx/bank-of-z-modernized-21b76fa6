@@ -3,12 +3,24 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
-/**
- * Event for S-19: MenuNavigatedEvent.
- * Emitted when a teller successfully navigates the interface.
- */
-public record MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) implements DomainEvent {
+public record MenuNavigatedEvent(
+        String eventId,
+        String sessionId,
+        String menuId,
+        String action,
+        Instant occurredAt
+) implements DomainEvent {
+    public MenuNavigatedEvent {
+        if (eventId == null) eventId = UUID.randomUUID().toString();
+        if (occurredAt == null) occurredAt = Instant.now();
+    }
+
+    public MenuNavigatedEvent(String sessionId, String menuId, String action, Instant occurredAt) {
+        this(null, sessionId, menuId, action, occurredAt);
+    }
+
     @Override
     public String type() {
         return "menu.navigated";
@@ -16,7 +28,7 @@ public record MenuNavigatedEvent(String aggregateId, String menuId, String actio
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return sessionId;
     }
 
     @Override

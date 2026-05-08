@@ -4,22 +4,28 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 
-public class RoutingEvaluatedEvent implements DomainEvent {
-    private final String aggregateId;
-    private final String transactionType;
-    private final String targetSystem;
-    private final String payload;
-    private final int ruleVersion;
-    private final Instant occurredAt;
-
-    public RoutingEvaluatedEvent(String aggregateId, String transactionType, String targetSystem, String payload, int ruleVersion, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.transactionType = transactionType;
-        this.targetSystem = targetSystem;
-        this.payload = payload;
-        this.ruleVersion = ruleVersion;
-        this.occurredAt = occurredAt;
+/**
+ * Domain event emitted when routing rules have been successfully evaluated.
+ * Indicates the target system (e.g., MODERN or LEGACY) and the rule version used.
+ */
+public record RoutingEvaluatedEvent(
+        String aggregateId,
+        String transactionType,
+        String targetSystem, // e.g., "MODERN", "LEGACY"
+        int ruleVersion,
+        Map<String, Object> context,
+        Instant occurredAt
+) implements DomainEvent {
+    public RoutingEvaluatedEvent {
+        // Ensure immutability and basic validation
+        if (aggregateId == null || aggregateId.isBlank()) {
+            throw new IllegalArgumentException("aggregateId cannot be null");
+        }
+        if (occurredAt == null) {
+            occurredAt = Instant.now();
+        }
     }
 
     @Override
@@ -35,21 +41,5 @@ public class RoutingEvaluatedEvent implements DomainEvent {
     @Override
     public Instant occurredAt() {
         return occurredAt;
-    }
-
-    public String transactionType() {
-        return transactionType;
-    }
-
-    public String targetSystem() {
-        return targetSystem;
-    }
-
-    public String payload() {
-        return payload;
-    }
-
-    public int ruleVersion() {
-        return ruleVersion;
     }
 }

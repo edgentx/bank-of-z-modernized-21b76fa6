@@ -1,38 +1,41 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Stores messages in memory to verify payloads without calling Slack.
+ * Captures messages in memory to verify content without network calls.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class PostedMessage {
-        public final String channel;
-        public final String body;
+    public final List<Message> messages = new ArrayList<>();
 
-        public PostedMessage(String channel, String body) {
-            this.channel = channel;
-            this.body = body;
-        }
-    }
-
-    private final List<PostedMessage> messages = new ArrayList<>();
+    public record Message(String channel, String body) {}
 
     @Override
-    public void postMessage(String channel, String body) {
-        // Capture the message for verification in tests
-        this.messages.add(new PostedMessage(channel, body));
-    }
-
-    public List<PostedMessage> getMessages() {
-        return new ArrayList<>(messages);
+    public boolean postMessage(String channel, String body) {
+        messages.add(new Message(channel, body));
+        return true;
     }
 
     public void clear() {
         messages.clear();
+    }
+
+    public boolean hasReceivedMessageContaining(String channel, String substring) {
+        return messages.stream()
+            .filter(m -> m.channel().equals(channel))
+            .anyMatch(m -> m.body().contains(substring));
+    }
+
+    public String getLastBodyForChannel(String channel) {
+        return messages.stream()
+            .filter(m -> m.channel().equals(channel))
+            .reduce((a, b) -> b)
+            .orElseThrow(() -> new AssertionError("No messages found for channel: " + channel))
+            .body();
     }
 }

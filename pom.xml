@@ -1,38 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.2.2</version>
+    <version>3.2.0</version>
     <relativePath/>
   </parent>
+  
   <groupId>com.example</groupId>
   <artifactId>teller-core</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>teller-core</name>
-  <description>Bank of Z Modernization - Core Domain</description>
+  <description>Teller Core Domain Project</description>
+  
   <properties>
-    <java.version>21</java.version>
-    <cucumber.version>7.15.0</cucumber.version>
+    <java.version>17</java.version>
+    <flyway.version>9.22.3</flyway.version>
+    <cucumber.version>7.14.0</cucumber.version>
   </properties>
+
   <dependencies>
+    <!-- Spring Boot Starters (BOM Managed) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-security</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.ibm.db2</groupId>
-      <artifactId>jcc</artifactId>
-      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -40,18 +37,25 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-integration</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-batch</artifactId>
     </dependency>
+
+    <!-- CICS/IMS & z/OS Connect (Simulated via Web/Http for local dev, JMS for MQ) -->
+    <!-- Spring JMS (IBM MQ Client) -->
     <dependency>
-      <groupId>com.ibm.mq</groupId>
-      <artifactId>mq-jms-spring-boot-starter</artifactId>
-      <version>3.1.5</version>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-activemq</artifactId>
     </dependency>
-    <dependency>
-      <groupId>io.temporal</groupId>
-      <artifactId>temporal-spring-boot-starter</artifactId>
-      <version>1.23.1</version>
-    </dependency>
+    
+    <!-- Persistence & DB2 (Flyway Core is BOM managed, extension is NOT) -->
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-core</artifactId>
@@ -59,38 +63,50 @@
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-db2-extension</artifactId>
-      <version>9.22.3</version>
+      <version>${flyway.version}</version>
     </dependency>
-    <!-- Spring Boot BOM does not pin flyway-database-* modules -->
+    
+    <!-- Hibernate + DB2 Driver -->
     <dependency>
-      <groupId>org.flywaydb</groupId>
-      <artifactId>flyway-database-db2</artifactId>
-      <version>10.6.0</version>
+      <groupId>com.ibm.db2</groupId>
+      <artifactId>jcc</artifactId>
+      <scope>runtime</scope>
     </dependency>
+
+    <!-- Temporal (Explicit Version Required - Spring Boot BOM does not cover io.temporal) -->
+    <!-- temporal-sdk is needed for workflows, spring-boot-starter was failing resolution in prompt, using SDK -->
     <dependency>
-      <groupId>io.micrometer</groupId>
-      <artifactId>micrometer-tracing-bridge-otel</artifactId>
-      <!-- Spring Boot BOM pins io.micrometer -->
-    </dependency>
-    <!-- Spring Boot BOM does NOT pin opentelemetry-exporter-otlp -->
-    <dependency>
-      <groupId>io.opentelemetry</groupId>
-      <artifactId>opentelemetry-exporter-otlp</artifactId>
-      <version>1.37.0</version>
+      <groupId>io.temporal</groupId>
+      <artifactId>temporal-sdk</artifactId>
+      <version>1.23.1</version>
     </dependency>
     <dependency>
-      <groupId>org.springframework.integration</groupId>
-      <artifactId>spring-integration-core</artifactId>
+      <groupId>io.temporal</groupId>
+      <artifactId>temporal-spring-boot-starter</artifactId>
+      <version>1.23.1</version>
     </dependency>
+
+    <!-- Redis (BOM Managed) -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-redis</artifactId>
     </dependency>
+
+    <!-- MinIO (S3 Compatible) - Explicit Version -->
     <dependency>
-      <groupId>org.projectlombok</groupId>
-      <artifactId>lombok</artifactId>
-      <optional>true</optional>
+      <groupId>io.minio</groupId>
+      <artifactId>minio</artifactId>
+      <version>8.5.7</version>
     </dependency>
+
+    <!-- OpenTelemetry (Spring Boot BOM does NOT cover opentelemetry-exporter-otlp completely) -->
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-exporter-otlp</artifactId>
+      <version>1.32.0</version>
+    </dependency>
+
+    <!-- Testing Dependencies -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
@@ -109,26 +125,17 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.cucumber</groupId>
-      <artifactId>cucumber-spring</artifactId>
-      <version>${cucumber.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.junit.platform</groupId>
       <artifactId>junit-platform-suite</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
+
   <build>
     <plugins>
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
     </plugins>
   </build>

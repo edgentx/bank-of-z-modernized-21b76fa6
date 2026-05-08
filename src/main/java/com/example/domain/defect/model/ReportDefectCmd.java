@@ -2,4 +2,8 @@ package com.example.domain.defect.model;
 
 import com.example.domain.shared.Command;
 
-public record ReportDefectCmd(String defectId, String summary, String githubIssueUrl) implements Command {}
+/**
+ * Command to report a defect.
+ * This serves as the input for the defect reporting workflow.
+ */
+public record ReportDefectCmd(String title, String description) implements Command {}

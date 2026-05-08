@@ -1,21 +1,28 @@
 package com.example.steps;
 
+import com.example.application.DefectWorkflowImpl;
 import com.example.domain.shared.ReportDefectCmd;
 import com.example.mocks.MockSlackNotificationPort;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Steps for validating VW-454: GitHub URL in Slack body.
+ * Updated to wire the actual Spring components instead of manual simulation.
  */
+@SpringBootTest
 public class VW454Steps {
 
     @Autowired
     private MockSlackNotificationPort mockSlack;
+
+    @Autowired
+    private DefectWorkflowImpl defectWorkflow;
 
     private ReportDefectCmd currentCommand;
     private RuntimeException executionException;
@@ -37,13 +44,9 @@ public class VW454Steps {
 
     @When("the report_defect workflow is executed")
     public void the_report_defect_workflow_is_executed() {
-        // In a real Spring/Temporal env, this would invoke the WorkflowStub.
-        // For Red Phase, we simulate the logic manually or trigger the handler.
-        // Here we simulate the expected side-effect directly to validate the mock setup.
         try {
-            // Simulating the Handler logic that SHOULD exist:
-            String slackPayload = constructSlackPayload(currentCommand);
-            mockSlack.send(slackPayload);
+            // Execute the actual Spring Bean logic
+            defectWorkflow.reportDefect(currentCommand);
         } catch (Exception e) {
             this.executionException = new RuntimeException(e);
         }
@@ -51,30 +54,24 @@ public class VW454Steps {
 
     @Then("the Slack notification body includes the GitHub issue URL")
     public void the_slack_notification_body_includes_the_github_issue_url() {
+        assertNull(executionException, "Workflow should not throw exception");
+        
         var payloads = mockSlack.getSentPayloads();
         assertFalse(payloads.isEmpty(), "Slack should have received a notification");
 
         String payload = payloads.get(0);
         
         // The Acceptance Criteria: "Slack body includes GitHub issue: <url>"
-        // We expect a formatted URL in the text.
+        // Check for the formatted Slack link format <url|id>
         assertTrue(
             payload.contains("https://github.com") || payload.contains("<http"), 
             "Slack payload should contain a GitHub URL or link format. Received: " + payload
         );
         
-        // Check for specific formatting expected by the 'fix'
-        // e.g. <https://github.com/org/project/issues/454|VW-454>
+        // Verify the specific defect ID is present
         assertTrue(
             payload.contains("VW-454"),
             "Slack payload should reference the defect ID VW-454."
         );
-    }
-
-    // Temporary helper to simulate the actual code we want to test (Red Phase)
-    private String constructSlackPayload(ReportDefectCmd cmd) {
-        // This logic represents what the 'Real' handler will do.
-        // If this logic was missing, the test would fail (Red).
-        return "Defect Reported: " + cmd.title() + ". See <https://github.com/example/issues/" + cmd.defectId() + "|" + cmd.defectId() + ">";
     }
 }

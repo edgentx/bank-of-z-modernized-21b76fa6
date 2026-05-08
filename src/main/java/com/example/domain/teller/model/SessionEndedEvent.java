@@ -5,18 +5,13 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Domain event emitted when a Teller Session is ended.
- */
-public class SessionEndedEvent implements DomainEvent {
-    private final String eventId;
-    private final String aggregateId;
-    private final Instant occurredAt;
-
-    public SessionEndedEvent(String aggregateId, Instant occurredAt) {
-        this.eventId = UUID.randomUUID().toString();
-        this.aggregateId = aggregateId;
-        this.occurredAt = occurredAt;
+public record SessionEndedEvent(
+        String aggregateId,
+        Instant occurredAt
+) implements DomainEvent {
+    public SessionEndedEvent {
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId cannot be null");
+        if (occurredAt == null) occurredAt = Instant.now();
     }
 
     @Override
@@ -32,9 +27,5 @@ public class SessionEndedEvent implements DomainEvent {
     @Override
     public Instant occurredAt() {
         return occurredAt;
-    }
-
-    public String eventId() {
-        return eventId;
     }
 }

@@ -6,8 +6,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Domain event emitted when a Teller Session is successfully started.
- * Used in S-18.
+ * Event emitted when a Teller successfully starts a session.
  */
 public record SessionStartedEvent(
         String aggregateId,
@@ -16,10 +15,20 @@ public record SessionStartedEvent(
         Instant occurredAt
 ) implements DomainEvent {
 
-    @Override
-    public String type() {
-        return "session.started";
+    public SessionStartedEvent {
+        // Defensive validation
+        if (aggregateId == null || aggregateId.isBlank()) {
+            throw new IllegalArgumentException("aggregateId required");
+        }
     }
 
-    // Constructor helper or validation could go here
+    @Override
+    public String type() {
+        return "SessionStartedEvent";
+    }
+
+    // Factory method to ensure consistent IDs if needed, though constructor usually suffices
+    public static SessionStartedEvent create(String sessionId, String tellerId, String terminalId) {
+        return new SessionStartedEvent(sessionId, tellerId, terminalId, Instant.now());
+    }
 }

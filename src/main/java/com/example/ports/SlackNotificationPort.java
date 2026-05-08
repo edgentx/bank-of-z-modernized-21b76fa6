@@ -1,16 +1,15 @@
 package com.example.ports;
 
-import java.util.Map;
-
 /**
- * Port for sending Slack notifications.
- * Used to decouple the domain from the actual Slack implementation.
+ * Port interface for sending notifications to Slack.
+ * Used by the Workflow/Activity layer to decouple from the actual Slack client.
  */
 public interface SlackNotificationPort {
+
     /**
-     * Sends a notification to Slack.
-     * @param body The message body.
-     * @param attachments Metadata (e.g., GitHub URL, Defect ID).
+     * Sends a message to a configured Slack channel.
+     *
+     * @param message The formatted message body.
      */
-    void sendNotification(String body, Map<String, String> attachments);
+    void sendMessage(String message);
 }

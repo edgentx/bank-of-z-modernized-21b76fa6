@@ -1,28 +1,16 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
-
-import java.time.Instant;
+import java.util.Objects;
 
 /**
- * Command to initiate a teller session.
- * Immutable record carrying the necessary data to start a session.
+ * Command to initiate a teller session on a specific terminal.
+ * Implies successful authentication has occurred upstream.
  */
-public record StartSessionCmd(
-        String sessionId,
-        String tellerId,
-        String terminalId,
-        boolean authenticated,
-        String navigationState,
-        Instant requestedAt
-) implements Command {
-
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {
     public StartSessionCmd {
-        if (sessionId == null || sessionId.isBlank()) {
-            throw new IllegalArgumentException("sessionId cannot be null or blank");
-        }
-        if (requestedAt == null) {
-            requestedAt = Instant.now();
-        }
+        Objects.requireNonNull(sessionId, "sessionId cannot be null");
+        Objects.requireNonNull(tellerId, "tellerId cannot be null");
+        Objects.requireNonNull(terminalId, "terminalId cannot be null");
     }
 }

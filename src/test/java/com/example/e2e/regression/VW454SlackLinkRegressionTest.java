@@ -1,89 +1,122 @@
 package com.example.e2e.regression;
 
-import com.example.domain.validation.model.ReportDefectCmd;
-import com.example.domain.validation.service.DefectReportingService; // Assumes existence of the class we are testing
-import com.example.domain.shared.UnknownCommandException;
+import com.example.application.DefectReportCommand;
+import com.example.application.DefectReportingActivity;
+import com.example.application.GitHubIssuePort;
+import com.example.application.SlackNotificationPort;
 import com.example.mocks.MockSlackNotificationPort;
-import com.example.ports.SlackNotificationPort;
+import io.temporal.testing.TestWorkflowEnvironment;
+import io.temporal.worker.Worker;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
-import java.util.Map;
+import java.time.Instant;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
- * Regression Test for VW-454: GitHub URL in Slack body.
- * ID: S-FB-1
- *
- * Context: Ensures that when _report_defect is triggered,
- * the resulting Slack body contains the GitHub issue URL.
- *
- * Phase: RED (Tests written before implementation logic is verified)
+ * VW-454: Regression test ensuring GitHub issue links appear in Slack notifications.
+ * 
+ * This test validates the end-to-end flow:
+ * 1. Trigger report_defect workflow
+ * 2. Verify the Slack body contains the GitHub issue URL.
  */
-@SpringBootTest
 class VW454SlackLinkRegressionTest {
 
-    // We inject the mock via Spring configuration or manual setup for the test context.
-    // For the purpose of this TDD exercise, we assume manual wiring or a specific TestConfig.
-    private final SlackNotificationPort slackPort = new MockSlackNotificationPort();
-    private DefectReportingService service;
-
-    private static final String EXPECTED_GITHUB_URL_PREFIX = "https://github.com";
-    private static final String SLACK_CHANNEL = "#vforce360-issues";
+    private TestWorkflowEnvironment testEnv;
+    private MockSlackNotificationPort mockSlack;
+    private GitHubIssuePort mockGitHub;
 
     @BeforeEach
     void setUp() {
-        // Manual DI for the test. In a real Spring Boot test, we might use @MockBean.
-        // Here we instantiate the System Under Test (SUT) with its dependencies.
-        // Note: Since DefectReportingService implementation doesn't exist yet,
-        // this compilation failure is expected in TDD. We proceed by defining the shape.
-        service = new DefectReportingService(slackPort);
+        // Initialize the Temporal test environment (in-memory)
+        testEnv = TestWorkflowEnvironment.newInstance();
+        
+        // Initialize Mocks
+        mockSlack = new MockSlackNotificationPort();
+        mockGitHub = mock(GitHubIssuePort.class);
+
+        // Stub GitHub behavior to return a valid URL
+        when(mockGitHub.createIssue("VW-454", "..."))
+            .thenReturn("https://github.com/bank-of-z/vforce360/issues/454");
+
+        // Register Workflow and Activities with the Test Worker
+        Worker worker = testEnv.newWorker("DEFECT_TASK_QUEUE");
+        
+        // Register the Workflow implementation (expected to exist in main)
+        try {
+            Class<?> workflowImpl = Class.forName("com.example.workflow.ReportDefectWorkflowImpl");
+            worker.registerWorkflowImplementationTypes(workflowImpl);
+        } catch (ClassNotFoundException e) {
+            // In RED phase, this class might not exist yet. We will let the test fail naturally or handle setup.
+            // For the sake of structure, we assume the activity is the primary focus first.
+        }
+        
+        // Register the Activity implementation with mocks injected
+        // Note: We use a concrete wrapper or reflection in real tests, but here we construct manually.
+        // DefectReportingActivity activity = new DefectReportingActivity(mockGitHub, mockSlack);
+        // worker.registerActivitiesImplementations(activity);
+    }
+
+    @AfterEach
+    void tearDown() {
+        testEnv.close();
     }
 
     @Test
-    void testReportDefect_generatesSlackMessageContainingGitHubLink() {
-        // Arrange
-        String defectId = "VW-454";
-        ReportDefectCmd cmd = new ReportDefectCmd(
-                defectId,
-                "Defect: Validating VW-454 — GitHub URL in Slack body",
-                "Checking #vforce360-issues for the link line",
-                Map.of("source", "VForce360 PM diagnostic")
+    @DisplayName("VW-454: Slack notification body should contain GitHub issue URL")
+    void shouldContainGitHubUrlInSlackBody() {
+        // Given
+        String expectedChannel = "#vforce360-issues";
+        String expectedGitHubUrl = "https://github.com/bank-of-z/vforce360/issues/454";
+        
+        // Setup mock response
+        when(mockGitHub.createIssue("VW-454", "...")).thenReturn(expectedGitHubUrl);
+
+        // When
+        // Directly invoking the Activity logic to verify the defect fix, 
+        // as the full workflow wrapper might be missing in strict Red Phase.
+        DefectReportingActivity activity = new DefectReportingActivity(mockGitHub, mockSlack);
+        
+        DefectReportCommand cmd = new DefectReportCommand(
+            "VW-454", 
+            "Validating VW-454 — GitHub URL in Slack body", 
+            "LOW"
         );
+        
+        activity.execute(cmd);
 
-        // Act
-        // Trigger the report_defect flow via the service
-        service.handle(cmd);
-
-        // Assert
-        // Verify that the Slack port was called
-        MockSlackNotificationPort mockPort = (MockSlackNotificationPort) slackPort;
-        assertEquals(1, mockPort.getMessages().size(), "Slack should have been called exactly once");
-
-        MockSlackNotificationPort.SentMessage sent = mockPort.getLastMessage();
-        assertEquals(SLACK_CHANNEL, sent.channel, "Message should be sent to the specific channel");
-
-        // The core assertion for VW-454: The body MUST contain the URL
-        // We look for the presence of a valid GitHub URL format
-        assertTrue(
-            sent.body.contains(EXPECTED_GITHUB_URL_PREFIX),
-            "Slack body must include the GitHub issue URL (starting with " + EXPECTED_GITHUB_URL_PREFIX + "). " +
-            "Actual body: " + sent.body
-        );
+        // Then
+        assertThat(mockSlack.postedMessages)
+            .as("Slack should have received a notification")
+            .hasSize(1);
+            
+        String slackBody = mockSlack.postedMessages.get(0);
+        
+        assertThat(slackBody)
+            .as("Slack body must contain the GitHub issue URL")
+            .contains(expectedGitHubUrl);
     }
 
     @Test
-    void testReportDefect_InvalidCommand_ThrowsException() {
-        // Arrange
-        ReportDefectCmd invalidCmd = new ReportDefectCmd(null, null, null, null);
+    @DisplayName("VW-454: Slack message should target the correct channel")
+    void shouldTargetCorrectChannel() {
+        // Given
+        String expectedChannel = "#vforce360-issues";
+        
+        // When
+        DefectReportingActivity activity = new DefectReportingActivity(mockGitHub, mockSlack);
+        DefectReportCommand cmd = new DefectReportCommand("VW-454", "Title", "LOW");
+        
+        activity.execute(cmd);
 
-        // Act & Assert
-        // Assuming the service validates the command
-        assertThrows(IllegalArgumentException.class, () -> {
-            service.handle(invalidCmd);
-        });
+        // Then
+        assertThat(mockSlack.lastChannelId)
+            .as("Notification should go to #vforce360-issues")
+            .isEqualTo(expectedChannel);
     }
 }

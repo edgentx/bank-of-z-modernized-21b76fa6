@@ -2,48 +2,30 @@ package com.example.workers;
 
 import com.example.ports.GitHubPort;
 import com.example.ports.SlackPort;
-import io.temporal.activity.Activity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 /**
  * Implementation of the ReportDefectActivity.
- * This is where the integration logic lives.
+ * Delegates logic to the domain ports (adapters).
  */
+@Component
 public class ReportDefectActivityImpl implements ReportDefectActivity {
 
-    private static final Logger log = LoggerFactory.getLogger(ReportDefectActivityImpl.class);
-
-    private final GitHubPort gitHubPort;
+    private final GitHubPort githubPort;
     private final SlackPort slackPort;
 
-    public ReportDefectActivityImpl(GitHubPort gitHubPort, SlackPort slackPort) {
-        this.gitHubPort = gitHubPort;
+    public ReportDefectActivityImpl(GitHubPort githubPort, SlackPort slackPort) {
+        this.githubPort = githubPort;
         this.slackPort = slackPort;
     }
 
     @Override
-    public String reportDefect(String summary, String description, String slackChannel) {
-        log.info("Executing defect report for: {}", summary);
+    public String createGitHubIssue(String title, String description, String component) {
+        return githubPort.createIssue(title, description, component);
+    }
 
-        // 1. Create GitHub Issue
-        String issueUrl = gitHubPort.createIssue(summary, description)
-                .orElseThrow(() -> new IllegalStateException("Failed to create GitHub issue"));
-
-        // 2. Compose Slack Body
-        // This is the fix for VW-454: ensuring the URL is present in the payload
-        String messageBody = String.format(
-                "New defect reported: %s\nGitHub Issue: %s",
-                summary, issueUrl
-        );
-
-        // 3. Send Notification
-        boolean sent = slackPort.postMessage(slackChannel, messageBody);
-        
-        if (!sent) {
-            throw new IllegalStateException("Failed to send Slack notification");
-        }
-
-        return issueUrl;
+    @Override
+    public void sendSlackNotification(String channel, String messageBody) {
+        slackPort.sendMessage(channel, messageBody);
     }
 }

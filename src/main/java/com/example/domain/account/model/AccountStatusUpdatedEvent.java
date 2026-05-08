@@ -2,15 +2,13 @@ package com.example.domain.account.model;
 
 import com.example.domain.shared.DomainEvent;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 
 public record AccountStatusUpdatedEvent(
-    String aggregateId,
-    String accountNumber,
-    AccountStatus oldStatus,
-    AccountStatus newStatus,
-    Instant occurredAt
+        String aggregateId,
+        String oldStatus,
+        String newStatus,
+        Instant occurredAt
 ) implements DomainEvent {
 
     @Override

@@ -1,50 +1,32 @@
 package com.example.application;
 
-import com.example.domain.shared.Command;
-import com.example.domain.slack.ports.SlackNotifierPort;
-import com.example.domain.vforce.ports.VForce360Port;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 import io.temporal.spring.boot.ActivityImpl;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * Temporal Activity definition for Defect Reporting.
- * Wraps the port interfaces for VForce360 and Slack.
+ * Activity Interface for Defect Reporting operations (Slack, GitHub, etc.).
+ * This interface defines the contract between the Temporal Workflow and the actual business logic.
  */
 @ActivityInterface
 public interface DefectReportingActivity {
 
+    /**
+     * Posts a message to Slack with the provided body.
+     * @param channel The Slack channel ID or name.
+     * @param body The message body content.
+     * @return true if posting was successful.
+     */
     @ActivityMethod
-    String reportToVForce360(String details);
+    boolean postToSlack(String channel, String body);
 
+    /**
+     * Creates an issue on GitHub and returns the URL.
+     * @param title The issue title.
+     * @param body The issue body.
+     * @return The HTML URL of the created issue.
+     */
     @ActivityMethod
-    void notifySlack(String message);
-
-    @Component
-    @ActivityImpl(taskQueue = "DEFECT_TASK_QUEUE")
-    class DefectReportingActivityImpl implements DefectReportingActivity {
-
-        private final VForce360Port vForce360Port;
-        private final SlackNotifierPort slackNotifierPort;
-
-        @Autowired
-        public DefectReportingActivityImpl(VForce360Port vForce360Port, SlackNotifierPort slackNotifierPort) {
-            this.vForce360Port = vForce360Port;
-            this.slackNotifierPort = slackNotifierPort;
-        }
-
-        @Override
-        public String reportToVForce360(String details) {
-            // We map the string details to the Command interface expected by the domain port
-            // For this defect fix, we pass a dummy command or adapt the string.
-            return vForce360Port.reportDefect(new Command() {});
-        }
-
-        @Override
-        public void notifySlack(String message) {
-            slackNotifierPort.sendNotification(message);
-        }
-    }
+    String createGitHubIssue(String title, String body);
 }

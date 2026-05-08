@@ -9,8 +9,9 @@ public class InMemoryDefectRepository implements DefectRepository {
     private final Map<String, DefectAggregate> store = new HashMap<>();
 
     @Override
-    public void save(DefectAggregate aggregate) {
+    public DefectAggregate save(DefectAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
+        return aggregate;
     }
 
     @Override

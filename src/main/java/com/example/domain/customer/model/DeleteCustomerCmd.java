@@ -4,6 +4,6 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to delete a customer.
- * Records the intent to mark a customer as deleted.
+ * Contract: The aggregate must verify the customer is valid and has no active accounts.
  */
 public record DeleteCustomerCmd(String customerId) implements Command {}

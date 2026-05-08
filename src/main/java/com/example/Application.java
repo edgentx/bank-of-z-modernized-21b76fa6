@@ -5,17 +5,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 /**
- * Main Application Entry Point.
- * Scans domain, ports, and adapters.
+ * Main Spring Boot Application entry point.
+ * Bank of Z Modernization.
  */
 @SpringBootApplication
-@ComponentScan(basePackages = {
-        "com.example.domain",
-        "com.example.ports",
-        "com.example.adapters"
-})
+@ComponentScan(basePackages = {"com.example"})
 public class Application {
-
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }

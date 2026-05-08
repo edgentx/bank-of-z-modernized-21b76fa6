@@ -6,38 +6,32 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to 'Slack' to verify content without external I/O.
+ * Captures messages posted to Slack to verify content and formatting.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class SentMessage {
+    public static class PostedMessage {
         public final String channel;
         public final String body;
 
-        public SentMessage(String channel, String body) {
+        public PostedMessage(String channel, String body) {
             this.channel = channel;
             this.body = body;
         }
     }
 
-    private final List<SentMessage> messages = new ArrayList<>();
+    private final List<PostedMessage> postedMessages = new ArrayList<>();
 
     @Override
-    public void sendMessage(String channel, String messageBody) {
-        System.out.println("[MockSlack] Sending to " + channel + ": " + messageBody);
-        this.messages.add(new SentMessage(channel, messageBody));
+    public void postMessage(String channel, String body) {
+        this.postedMessages.add(new PostedMessage(channel, body));
     }
 
-    public List<SentMessage> getMessages() {
-        return messages;
+    public List<PostedMessage> getPostedMessages() {
+        return postedMessages;
     }
 
     public void clear() {
-        messages.clear();
-    }
-
-    public SentMessage getLastMessage() {
-        if (messages.isEmpty()) return null;
-        return messages.get(messages.size() - 1);
+        postedMessages.clear();
     }
 }

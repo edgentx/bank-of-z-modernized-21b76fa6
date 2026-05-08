@@ -2,15 +2,12 @@ package com.example.domain.validation;
 
 import com.example.domain.shared.Command;
 
-import java.util.Map;
-
 /**
- * Command to report a defect (VW-454 scenario).
- * Triggered via Temporal-worker exec.
+ * Command to report a defect.
+ * Contains the necessary context to generate the Slack notification.
  */
 public record ReportDefectCommand(
         String defectId,
-        String title,
-        String description,
-        String projectId
+        String githubUrl,
+        String targetChannel
 ) implements Command {}

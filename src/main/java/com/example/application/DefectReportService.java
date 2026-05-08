@@ -1,54 +1,65 @@
 package com.example.application;
 
+import com.example.domain.defect.DefectReportedEvent;
+import com.example.domain.defect.ReportDefectCommand;
 import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.ports.GitHubIssuePort;
 import com.example.ports.SlackNotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Application Service handling the defect reporting workflow.
- * Orchestrates the Aggregate and the Notification Port.
+ * Orchestrates the Aggregate execution and handles the side-effects (Slack, GitHub).
  */
-@Service
 public class DefectReportService {
 
-    private static final Logger logger = LoggerFactory.getLogger(DefectReportService.class);
+    private static final Logger log = LoggerFactory.getLogger(DefectReportService.class);
+    private final GitHubIssuePort gitHubIssuePort;
     private final SlackNotificationPort slackNotificationPort;
-    private static final String TARGET_CHANNEL = "#vforce360-issues";
 
-    // Constructor injection (Spring Boot pattern)
-    public DefectReportService(SlackNotificationPort slackNotificationPort) {
+    public DefectReportService(GitHubIssuePort gitHubIssuePort, SlackNotificationPort slackNotificationPort) {
+        this.gitHubIssuePort = gitHubIssuePort;
         this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Executes the defect reporting logic.
-     * Corresponds to the 'report_defect via temporal-worker exec' trigger.
+     * Entry point for the temporal workflow/activity.
      */
-    public void reportDefect(ReportDefectCmd cmd) {
-        // 1. Process via Domain Aggregate
-        DefectAggregate aggregate = new DefectAggregate(cmd.defectId());
-        var events = aggregate.execute(cmd);
+    public void handle(ReportDefectCommand cmd) {
+        // 1. Execute Domain Logic
+        DefectAggregate aggregate = new DefectAggregate("defect-" + cmd.defectId());
+        List<DefectReportedEvent> events = aggregate.execute(cmd);
 
-        // 2. Handle side effects (Slack Notification)
-        events.forEach(event -> {
-            if (event instanceof com.example.domain.defect.model.DefectReportedEvent reportedEvent) {
-                publishToSlack(reportedEvent);
-            }
-        });
+        // 2. Process Events (Side Effects)
+        for (DefectReportedEvent event : events) {
+            publishNotification(event);
+        }
     }
 
-    private void publishToSlack(com.example.domain.defect.model.DefectReportedEvent event) {
-        // Format the message body adhering to the VW-454 fix requirements
-        String messageBody = String.format(
-            "Defect Reported: %s\nGitHub Issue: <%s|View Details>",
-            event.defectId(),
-            event.githubUrl()
-        );
+    private void publishNotification(DefectReportedEvent event) {
+        String slackBody = buildMessageBody(event.defectId());
+        slackNotificationPort.sendMessage(event.targetChannel(), slackBody);
+        log.info("Published defect report for {} to channel {}", event.defectId(), event.targetChannel());
+    }
 
-        logger.info("Posting defect notification to Slack channel {}: {}", TARGET_CHANNEL, event.defectId());
-        slackNotificationPort.postMessage(TARGET_CHANNEL, messageBody);
+    private String buildMessageBody(String defectId) {
+        Optional<String> urlOpt = gitHubIssuePort.getIssueUrl(defectId);
+
+        if (urlOpt.isPresent()) {
+            return String.format(
+                    "Defect Detected: %s\nGitHub Issue: %s",
+                    defectId,
+                    urlOpt.get()
+            );
+        } else {
+            return String.format(
+                    "Defect Detected: %s\nGitHub Issue: URL not found (check integration)",
+                    defectId
+            );
+        }
     }
 }

@@ -8,6 +8,5 @@ public record GenerateStatementCmd(
     String statementId,
     String accountNumber,
     LocalDate periodEnd,
-    BigDecimal openingBalance,
-    BigDecimal closingBalance
+    BigDecimal openingBalance
 ) implements Command {}

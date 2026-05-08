@@ -1,14 +1,18 @@
 package com.example.ports;
 
+import java.util.List;
+
 /**
- * Port for sending notifications to Slack.
- * Used by Temporal workflows to alert on defect reports.
+ * Port interface for Slack notifications.
  */
 public interface SlackPort {
+
     /**
-     * Sends a message to the configured Slack channel.
+     * Sends a notification message to a Slack channel.
      *
-     * @param message The formatted message body.
+     * @param channelId The target channel ID
+     * @param messageBlocks The formatted message blocks (Slack Kit format)
+     * @return true if sending was acknowledged, false otherwise
      */
-    void sendMessage(String message);
+    boolean sendMessage(String channelId, List<String> messageBlocks);
 }

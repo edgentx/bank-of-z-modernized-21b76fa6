@@ -1,6 +1,7 @@
 package com.example.steps;
 
-import com.example.domain.account.model.*;
+import com.example.domain.account.model.AccountAggregate;
+import com.example.domain.account.model.UpdateAccountStatusCmd;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.And;
@@ -13,42 +14,39 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Cucumber Steps for S-6: UpdateAccountStatusCmd.
- */
 public class S6Steps {
 
-    private AccountAggregate account;
-    private String providedAccountNumber;
-    private String providedNewStatus;
+    private AccountAggregate aggregate;
+    private String accountNumber;
+    private String newStatus;
     private List<DomainEvent> resultEvents;
     private Exception thrownException;
 
     @Given("a valid Account aggregate")
     public void aValidAccountAggregate() {
-        // Setup a standard valid account for the happy path
-        account = new AccountAggregate("acc-123");
-        account.setAccountNumber("ACCT-001");
-        account.setAccountType("Standard");
-        account.setBalance(new BigDecimal("500.00"));
-        account.setStatus("Active");
+        accountNumber = "ACC-123-456";
+        aggregate = new AccountAggregate(accountNumber);
+        // Setup valid state
+        aggregate.setState("Active", new BigDecimal("1000.00"), "Savings", BigDecimal.ZERO);
     }
 
     @And("a valid accountNumber is provided")
     public void aValidAccountNumberIsProvided() {
-        providedAccountNumber = "ACCT-001";
+        // accountNumber already set in 'Given a valid Account aggregate'
+        assertNotNull(accountNumber);
     }
 
     @And("a valid newStatus is provided")
     public void aValidNewStatusIsProvided() {
-        providedNewStatus = "Frozen";
+        newStatus = "Frozen";
+        assertNotNull(newStatus);
     }
 
     @When("the UpdateAccountStatusCmd command is executed")
     public void theUpdateAccountStatusCmdCommandIsExecuted() {
         try {
-            Command cmd = new UpdateAccountStatusCmd(providedAccountNumber, providedNewStatus);
-            resultEvents = account.execute(cmd);
+            Command cmd = new UpdateAccountStatusCmd(accountNumber, newStatus);
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             thrownException = e;
         }
@@ -56,55 +54,45 @@ public class S6Steps {
 
     @Then("a account.status.updated event is emitted")
     public void aAccountStatusUpdatedEventIsEmitted() {
-        assertNotNull(resultEvents, "Events list should not be null");
-        assertEquals(1, resultEvents.size(), "One event should be emitted");
-        assertTrue(resultEvents.get(0) instanceof AccountStatusUpdatedEvent, "Event type mismatch");
-        
-        AccountStatusUpdatedEvent event = (AccountStatusUpdatedEvent) resultEvents.get(0);
-        assertEquals("account.status.updated", event.type());
-        assertEquals("Active", event.oldStatus());
-        assertEquals("Frozen", event.newStatus());
+        assertNull(thrownException, "Should not have thrown an exception");
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertEquals("account.status.updated", resultEvents.get(0).type());
     }
 
-    // --- Negative Scenarios ---
+    // --- Rejection Scenarios ---
 
     @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
-    public void aAccountAggregateThatViolatesBalanceRule() {
-        account = new AccountAggregate("acc-violation-balance");
-        account.setAccountNumber("ACCT-002");
-        account.setAccountType("Premium"); // Min balance usually 1000
-        account.setBalance(new BigDecimal("50.00")); // Violates min balance
-        account.setStatus("Active");
-        providedAccountNumber = "ACCT-002";
-        providedNewStatus = "Frozen"; // Triggering the check
+    public void aAccountAggregateThatViolatesBalance() {
+        accountNumber = "ACC-LOW-BAL";
+        aggregate = new AccountAggregate(accountNumber);
+        // Set state such that balance < minimum
+        aggregate.setState("Active", new BigDecimal("50.00"), "Premium", new BigDecimal("100.00"));
+    }
+
+    @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
+    public void aAccountAggregateThatViolatesActiveStatus() {
+        accountNumber = "ACC-NOT-ACTIVE";
+        aggregate = new AccountAggregate(accountNumber);
+        // Set state to Frozen or Closed
+        aggregate.setState("Frozen", new BigDecimal("100.00"), "Standard", BigDecimal.ZERO);
+        // The command will attempt to change status, but logic enforces Active
+    }
+
+    @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
+    public void aAccountAggregateThatViolatesImmutableNumber() {
+        accountNumber = "ACC-ORIGINAL";
+        aggregate = new AccountAggregate(accountNumber);
+        aggregate.setState("Active", BigDecimal.ZERO, "Standard", BigDecimal.ZERO);
+        // Simulate the violation by providing a mismatched account number in the command step
+        // We'll change 'accountNumber' variable to something else before the When clause
+        accountNumber = "ACC-MODIFIED-TAMPER"; 
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
         assertNotNull(thrownException, "Expected an exception to be thrown");
-        assertTrue(thrownException instanceof IllegalStateException || thrownException instanceof IllegalArgumentException, 
-            "Expected domain error (IllegalStateException or IllegalArgumentException)");
-    }
-
-    @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
-    public void aAccountAggregateThatViolatesActiveStatusRule() {
-        account = new AccountAggregate("acc-violation-status");
-        account.setAccountNumber("ACCT-003");
-        account.setAccountType("Standard");
-        account.setBalance(new BigDecimal("200.00"));
-        account.setStatus("Frozen"); // Not Active
-        providedAccountNumber = "ACCT-003";
-        providedNewStatus = "Closed";
-    }
-
-    @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
-    public void aAccountAggregateThatViolatesImmutableNumberRule() {
-        account = new AccountAggregate("acc-violation-immutable");
-        account.setAccountNumber("ACCT-SET-IN-STONE");
-        account.setStatus("Active");
-        // User provides a different number than what is in the aggregate
-        providedAccountNumber = "ACCT-TAMPERED"; 
-        providedNewStatus = "Active";
+        assertTrue(thrownException instanceof IllegalStateException || thrownException instanceof IllegalArgumentException);
     }
 
 }

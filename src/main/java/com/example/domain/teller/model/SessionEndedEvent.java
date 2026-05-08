@@ -3,14 +3,14 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
-public record SessionEndedEvent(
-    String aggregateId,
-    Instant occurredAt
-) implements DomainEvent {
-    public SessionEndedEvent(String aggregateId) {
-        this(aggregateId, Instant.now());
+public class SessionEndedEvent implements DomainEvent {
+    private final String aggregateId;
+    private final Instant occurredAt;
+
+    public SessionEndedEvent(String aggregateId, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.occurredAt = occurredAt;
     }
 
     @Override
@@ -19,12 +19,12 @@ public record SessionEndedEvent(
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

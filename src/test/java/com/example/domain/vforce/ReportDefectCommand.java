@@ -1,9 +1,12 @@
 package com.example.domain.vforce;
 
 import com.example.domain.shared.Command;
+import java.util.Map;
 
-/**
- * Command to report a defect to VForce360.
- * Represents the payload entering the system via the Temporal worker.
- */
-public record ReportDefectCommand(String defectId, String summary) implements Command {}
+public record ReportDefectCommand(
+    String defectId,
+    String title,
+    String severity,
+    String projectId,
+    Map<String, String> context
+) implements Command {}

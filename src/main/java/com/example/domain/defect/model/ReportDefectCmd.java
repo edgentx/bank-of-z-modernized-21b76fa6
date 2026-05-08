@@ -4,11 +4,12 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to report a defect.
+ * Triggered by Temporal workflow or external API.
  */
 public record ReportDefectCmd(
         String defectId,
         String title,
-        String description,
-        String githubUrl,
-        String channel
+        String severity,
+        String component,
+        String description
 ) implements Command {}

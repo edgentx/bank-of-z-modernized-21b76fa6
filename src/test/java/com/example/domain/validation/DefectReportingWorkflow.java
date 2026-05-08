@@ -4,11 +4,8 @@ import com.example.ports.GitHubPort;
 import com.example.ports.SlackNotificationPort;
 
 /**
- * Implementation placeholder for the workflow being tested.
- * In TDD Red phase, this is usually a stub that fails or returns hardcoded data,
- * but here we define the interface to allow the test to compile and run against the mocks.
- *
- * The actual implementation logic will be filled in to make tests Green.
+ * Workflow implementation for reporting defects from VForce360 to GitHub and notifying Slack.
+ * This orchestrates the interaction between the external GitHub and Slack systems.
  */
 public class DefectReportingWorkflow {
 
@@ -20,19 +17,22 @@ public class DefectReportingWorkflow {
         this.slack = slack;
     }
 
+    /**
+     * Executes the defect reporting process.
+     * 1. Creates an issue on GitHub.
+     * 2. Notifies the specified Slack channel with the details including the GitHub URL.
+     *
+     * @param title   The title of the defect.
+     * @param details The description/details of the defect.
+     * @param channel The target Slack channel.
+     */
     public void executeReportDefect(String title, String details, String channel) {
         // Step 1: Create GitHub Issue
-        // This currently uses the mock which returns a dummy URL.
         String issueUrl = github.createIssue(title, details);
 
         // Step 2: Notify Slack
-        // Defect VW-454: The URL must be present in the body.
-        // Current stub implementation sends a body without the URL, causing the test to fail.
-        String slackBody = "Defect reported: " + title;
-        
-        // Note: Intentionally failing implementation for Red Phase.
-        // To pass, we would need to append issueUrl to slackBody.
-        // slackBody += "\nView issue: " + issueUrl;
+        // Fix for VW-454: Ensure the URL is included in the body.
+        String slackBody = "Defect reported: " + title + "\nView issue: " + issueUrl;
 
         slack.sendMessage(channel, slackBody);
     }

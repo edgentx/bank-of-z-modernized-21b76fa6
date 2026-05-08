@@ -1,14 +1,15 @@
 package com.example.steps;
 
 import org.springframework.boot.test.context.SpringBootTest;
-import io.cucumber.spring.CucumberContextConfiguration;
+import org.springframework.context.annotation.Import;
+import com.example.mocks.MockVForce360NotificationPortConfiguration;
 
 /**
- * Standard Spring Boot Test configuration for Cucumber.
- * Ensures the application context is loaded for dependency injection.
+ * Base configuration for Cucumber tests.
+ * Ensures Spring context is loaded with Mocks.
  */
-@CucumberContextConfiguration
 @SpringBootTest
+@Import(MockVForce360NotificationPortConfiguration.class)
 public class CucumberSpringConfiguration {
-    // Configuration class to bootstrap Spring context for Cucumber tests
+    // This empty class is used to load the Spring Context for Cucumber
 }

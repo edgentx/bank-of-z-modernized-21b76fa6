@@ -4,23 +4,22 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-import com.example.ports.SlackNotificationPort;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
 /**
- * Reconciliation aggregate responsible for handling reporting commands.
- * Implements S-FB-1 logic to format and post defect details to Slack.
+ * Aggregate for handling Reconciliation Batches.
+ * Handles defect reporting logic required for S-FB-1.
  */
 public class ReconciliationBatch extends AggregateRoot {
 
     private final String batchId;
-    private final SlackNotificationPort slackNotificationPort;
+    private boolean defectReported;
 
-    public ReconciliationBatch(String batchId, SlackNotificationPort slackNotificationPort) {
+    public ReconciliationBatch(String batchId) {
         this.batchId = batchId;
-        this.slackNotificationPort = slackNotificationPort;
     }
 
     @Override
@@ -30,56 +29,36 @@ public class ReconciliationBatch extends AggregateRoot {
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof ReportDefectCmd c) {
-            return handleReportDefect(c);
+        if (cmd instanceof ReportDefectCommand c) {
+            return reportDefect(c);
         }
         throw new UnknownCommandException(cmd);
     }
 
-    private List<DomainEvent> handleReportDefect(ReportDefectCmd cmd) {
-        // Validation logic required by S-FB-1
-        if (cmd.defectId() == null || cmd.defectId().isBlank()) {
-            throw new IllegalArgumentException("defectId cannot be null");
+    private List<DomainEvent> reportDefect(ReportDefectCommand cmd) {
+        if (defectReported) {
+            throw new IllegalStateException("Defect already reported for batch: " + cmd.batchId());
+        }
+        // Validation logic
+        if (cmd.batchId() == null || cmd.batchId().isBlank()) {
+            throw new IllegalArgumentException("batchId required");
+        }
+        if (cmd.discrepancyAmount() == null) {
+            throw new IllegalArgumentException("discrepancyAmount required");
         }
 
-        // Logic to format GitHub URL based on Defect ID (e.g., VW-454 -> 454)
-        String issueNumber = extractIssueNumber(cmd.defectId());
-        String githubUrl = "https://github.com/tech-debt/project/issues/" + issueNumber;
-
-        // Construct Slack Body
-        String messageBody = String.format(
-                "Defect Reported: %s | Project: %s | Severity: %s | Details: %s",
-                cmd.title(), cmd.projectId(), cmd.severity(), githubUrl
+        // Create event
+        var event = new DefectReportedEvent(
+            cmd.batchId(),
+            cmd.sourceSystem(),
+            cmd.discrepancyAmount(),
+            cmd.reason(),
+            Instant.now()
         );
 
-        // Execute Side Effect: Send Notification
-        // Using the port to ensure we don't couple to real Slack in tests
-        slackNotificationPort.sendMessage("#vforce360-issues", messageBody);
-
-        // Create Domain Event
-        DefectReportedEvent event = new DefectReportedEvent(
-                this.batchId,
-                cmd.defectId(),
-                messageBody,
-                githubUrl,
-                Instant.now()
-        );
-
+        this.defectReported = true;
         addEvent(event);
         incrementVersion();
-
         return List.of(event);
-    }
-
-    /**
-     * Extracts the numeric ID from a defect ID like 'VW-454'.
-     * If format is unexpected, returns the raw ID to prevent failure.
-     */
-    private String extractIssueNumber(String defectId) {
-        if (defectId.contains("-")) {
-            String[] parts = defectId.split("-");
-            return parts[parts.length - 1];
-        }
-        return defectId;
     }
 }

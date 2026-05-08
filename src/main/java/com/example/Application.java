@@ -1,9 +1,7 @@
 package com.example;
 
-import com.example.adapters.DefectReportTemporalAdapter;
-import com.example.adapters.SlackAdapter;
-import com.example.ports.DefectReportPort;
-import com.example.ports.SlackPort;
+import com.example.adapters.SlackNotificationAdapter;
+import com.example.ports.SlackNotificationPort;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -15,16 +13,12 @@ public class Application {
         SpringApplication.run(Application.class, args);
     }
 
-    // Explicitly defining the Port and Adapter beans for clarity and dependency injection
-    // in the TDD context. Real-world usage might rely on @ComponentScan.
-
+    /**
+     * Production configuration for Slack notifications.
+     * Replaced by MockSlackNotificationPort in test context.
+     */
     @Bean
-    public SlackPort slackPort() {
-        return new SlackAdapter();
-    }
-
-    @Bean
-    public DefectReportPort defectReportPort(SlackPort slackPort) {
-        return new DefectReportTemporalAdapter(slackPort);
+    public SlackNotificationPort slackNotificationPort() {
+        return new SlackNotificationAdapter();
     }
 }

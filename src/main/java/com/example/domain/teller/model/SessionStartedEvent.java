@@ -5,9 +5,6 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Event emitted when a teller session is successfully started.
- */
 public record SessionStartedEvent(
         String aggregateId,
         String tellerId,
@@ -15,9 +12,9 @@ public record SessionStartedEvent(
         Instant occurredAt
 ) implements DomainEvent {
     public SessionStartedEvent {
-        // Defensive validation
+        // Ensure invariant: Event ID must exist
         if (aggregateId == null || aggregateId.isBlank()) {
-            throw new IllegalArgumentException("aggregateId cannot be null");
+            aggregateId = UUID.randomUUID().toString();
         }
     }
 

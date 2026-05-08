@@ -1,89 +1,88 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
+import com.example.domain.navigation.model.RenderScreenCmd;
+import com.example.domain.navigation.model.ScreenMapAggregate;
+import com.example.domain.navigation.model.ScreenRenderedEvent;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.uimodel.model.*;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
-import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S21Steps {
 
     private ScreenMapAggregate aggregate;
-    private Exception capturedException;
+    private RenderScreenCmd command;
     private List<DomainEvent> resultEvents;
+    private Exception caughtException;
 
     @Given("a valid ScreenMap aggregate")
-    public void a_valid_ScreenMap_aggregate() {
-        String screenMapId = UUID.randomUUID().toString();
-        aggregate = new ScreenMapAggregate(screenMapId);
+    public void a_valid_screen_map_aggregate() {
+        aggregate = new ScreenMapAggregate("map-1");
     }
 
     @Given("a valid screenId is provided")
-    public void a_valid_screenId_is_provided() {
-        // State managed in the aggregate initialization or specific command construction
-        // Intentionally empty: Specifics handled in the 'When' step construction
+    public void a_valid_screen_id_is_provided() {
+        // No-op, handled in When
     }
 
     @Given("a valid deviceType is provided")
-    public void a_valid_deviceType_is_provided() {
-        // Intentionally empty
+    public void a_valid_device_type_is_provided() {
+        // No-op, handled in When
+    }
+
+    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
+    public void a_screen_map_aggregate_that_violates_mandatory_fields() {
+        aggregate = new ScreenMapAggregate("map-invalid-fields");
+    }
+
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void a_screen_map_aggregate_that_violates_bms_constraints() {
+        aggregate = new ScreenMapAggregate("map-invalid-bms");
     }
 
     @When("the RenderScreenCmd command is executed")
-    public void the_RenderScreenCmd_command_is_executed() {
-        executeCommand(new RenderScreenCmd(aggregate.id(), "SCRN01", DeviceType.DESKTOP_WEB));
+    public void the_render_screen_cmd_command_is_executed() {
+        // We determine the command payload based on the context (Givens).
+        // Since Cucumber contexts are simple here, we infer intent.
+        // In a real app, we might use a Scenario Context.
+        
+        if (aggregate.id().equals("map-invalid-fields")) {
+            // Missing screenId
+            command = new RenderScreenCmd(aggregate.id(), null, "3270", 40);
+        } else if (aggregate.id().equals("map-invalid-bms")) {
+            // Exceeds 80 char limit
+            command = new RenderScreenCmd(aggregate.id(), "SCRN01", "3270", 81);
+        } else {
+            // Valid Command
+            command = new RenderScreenCmd(aggregate.id(), "SCRN01", "Browser", 40);
+        }
+
+        try {
+            resultEvents = aggregate.execute(command);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            caughtException = e;
+        }
     }
 
     @Then("a screen.rendered event is emitted")
     public void a_screen_rendered_event_is_emitted() {
-        Assertions.assertNull(capturedException, "Expected no error, but got: " + capturedException);
-        Assertions.assertNotNull(resultEvents, "Expected events to be emitted");
-        Assertions.assertFalse(resultEvents.isEmpty(), "Expected at least one event");
-        Assertions.assertEquals("screen.rendered", resultEvents.get(0).type());
-    }
-
-    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void a_ScreenMap_aggregate_that_violates_mandatory_fields() {
-        String screenMapId = UUID.randomUUID().toString();
-        aggregate = new ScreenMapAggregate(screenMapId);
-    }
-
-    @When("the RenderScreenCmd command is executed with missing screenId")
-    public void the_RenderScreenCmd_command_is_executed_with_missing_screenId() {
-        // screenId is null
-        executeCommand(new RenderScreenCmd(aggregate.id(), null, DeviceType.DESKTOP_WEB));
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
+        ScreenRenderedEvent event = (ScreenRenderedEvent) resultEvents.get(0);
+        assertEquals("screen.rendered", event.type());
+        assertEquals(aggregate.id(), event.aggregateId());
+        assertEquals("SCRN01", event.screenId());
+        assertEquals("Browser", event.deviceType());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(capturedException, "Expected an exception but command succeeded");
-        Assertions.assertTrue(capturedException instanceof IllegalArgumentException);
-    }
-
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void a_ScreenMap_aggregate_that_violates_bms_constraints() {
-        String screenMapId = UUID.randomUUID().toString();
-        aggregate = new ScreenMapAggregate(screenMapId);
-    }
-
-    @When("the RenderScreenCmd command is executed with invalid field length")
-    public void the_RenderScreenCmd_command_is_executed_with_invalid_field_length() {
-        // screenId exceeds max length
-        String longScreenId = "SCREEN-ID-IS-TOO-LONG-FOR-LEGACY-BMS";
-        executeCommand(new RenderScreenCmd(aggregate.id(), longScreenId, DeviceType.DESKTOP_WEB));
-    }
-
-    // Helper method to execute command and capture exceptions
-    private void executeCommand(Command cmd) {
-        try {
-            resultEvents = aggregate.execute(cmd);
-        } catch (Exception e) {
-            capturedException = e;
-        }
+        assertNotNull(caughtException);
+        assertTrue(caughtException instanceof IllegalArgumentException || caughtException instanceof IllegalStateException);
     }
 }

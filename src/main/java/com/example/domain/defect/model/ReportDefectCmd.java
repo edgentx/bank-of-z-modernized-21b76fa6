@@ -2,4 +2,12 @@ package com.example.domain.defect.model;
 
 import com.example.domain.shared.Command;
 
-public record ReportDefectCmd(String defectId, String title, String severity) implements Command {}
+public record ReportDefectCmd(
+    String defectId,
+    String title,
+    String description,
+    String severity,
+    String component,
+    String projectId,
+    String githubUrl
+) implements Command {}

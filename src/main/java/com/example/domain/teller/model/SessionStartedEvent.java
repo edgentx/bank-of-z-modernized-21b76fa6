@@ -7,19 +7,19 @@ import java.util.UUID;
 
 /**
  * Event emitted when a Teller Session is successfully started.
+ * S-18: Implement StartSessionCmd
  */
-public record SessionStartedEvent(
-        String aggregateId,
-        String tellerId,
-        String terminalId,
-        Instant occurredAt
-) implements DomainEvent {
+public class SessionStartedEvent implements DomainEvent {
+    private final String aggregateId;
+    private final String tellerId;
+    private final String terminalId;
+    private final Instant occurredAt;
 
-    public SessionStartedEvent {
-        // Basic defensive checks
-        if (aggregateId == null || aggregateId.isBlank()) {
-            throw new IllegalArgumentException("aggregateId cannot be null");
-        }
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.tellerId = tellerId;
+        this.terminalId = terminalId;
+        this.occurredAt = occurredAt;
     }
 
     @Override
@@ -28,12 +28,15 @@ public record SessionStartedEvent(
     }
 
     @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
     public Instant occurredAt() {
         return occurredAt;
     }
 
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
+    public String tellerId() { return tellerId; }
+    public String terminalId() { return terminalId; }
 }

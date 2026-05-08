@@ -1,22 +1,31 @@
 package com.example.mocks;
 
-import com.example.domain.notification.model.NotificationAggregate;
-import com.example.domain.notification.repository.NotificationRepository;
+import com.example.domain.notification.NotificationService;
+import java.util.ArrayList;
+import java.util.List;
 
-import java.util.HashMap;
-    import java.util.Map;
-import java.util.Optional;
-
-public class InMemoryNotificationRepository implements NotificationRepository {
-    private final Map<String, NotificationAggregate> store = new HashMap<>();
+/**
+ * Mock adapter for NotificationService.
+ * Captures generated Slack bodies to verify behavior without real I/O.
+ */
+public class InMemoryNotificationRepository extends NotificationService {
+    private final List<String> sentMessages = new ArrayList<>();
 
     @Override
-    public void save(NotificationAggregate aggregate) {
-        store.put(aggregate.id(), aggregate);
+    public void reportDefect(String title, String description) {
+        // Capture the generated body
+        String body = generateSlackBody(title, description);
+        sentMessages.add(body);
     }
 
-    @Override
-    public Optional<NotificationAggregate> findById(String id) {
-        return Optional.ofNullable(store.get(id));
+    public List<String> getSentMessages() {
+        return new ArrayList<>(sentMessages);
+    }
+
+    public boolean wasGithubLinkIncluded() {
+        if (sentMessages.isEmpty()) return false;
+        // Check the most recent message
+        String lastMessage = sentMessages.get(sentMessages.size() - 1);
+        return lastMessage.contains("http"); // Simplistic check for URL
     }
 }

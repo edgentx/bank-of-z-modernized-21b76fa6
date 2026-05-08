@@ -2,21 +2,17 @@ package com.example.mocks;
 
 import com.example.ports.GitHubClient;
 
-/**
- * Mock implementation of GitHubClient for testing.
- * Allows controlled simulation of GitHub URL generation success/failure.
- */
 public class MockGitHubClient implements GitHubClient {
-
-    private String mockUrl;
-
-    public void setMockIssueUrl(String url) {
-        this.mockUrl = url;
-    }
+    private String nextIssueUrl = "https://github.com/fake/issues/1";
+    public boolean createIssueCalled = false;
 
     @Override
-    public String createIssueUrl(String referenceTag) {
-        // Return the pre-configured mock string
-        return this.mockUrl;
+    public String createIssue(String repo, String title, String body) {
+        createIssueCalled = true;
+        return nextIssueUrl;
+    }
+
+    public void setNextIssueUrl(String url) {
+        this.nextIssueUrl = url;
     }
 }

@@ -6,9 +6,9 @@ import java.util.Optional;
 
 /**
  * Repository interface for LegacyTransactionRoute aggregates.
- * Maps to the concrete class name used in the domain package.
  */
 public interface LegacyTransactionRouteRepository {
-    LegacyTransactionRoute save(LegacyTransactionRoute aggregate);
-    Optional<LegacyTransactionRoute> findById(String routeId);
+    void save(LegacyTransactionRoute aggregate); // Note: Changed return type to void to match Aggregate usage pattern usually, but interface must match impl.
+    LegacyTransactionRoute saveAndReturn(LegacyTransactionRoute aggregate);
+    Optional<LegacyTransactionRoute> findById(String id);
 }

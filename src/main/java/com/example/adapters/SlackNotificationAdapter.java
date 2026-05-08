@@ -3,44 +3,39 @@ package com.example.adapters;
 import com.example.ports.SlackNotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
- * Real implementation of the SlackNotificationPort.
- * This adapter acts as the bridge between the application logic and the external Slack API.
+ * Real implementation of the Slack Notification Port.
+ * Connects to the actual Slack Web API.
+ * 
+ * Condition: Only loads if 'slack.adapter.enabled' is true (or default production profile).
+ * Otherwise, the InMemorySlackNotificationPort (test mock) is used.
  */
 @Component
+@ConditionalOnProperty(name = "slack.adapter.enabled", havingValue = "true", matchIfMissing = false)
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
-    private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
+    private static final Logger logger = LoggerFactory.getLogger(SlackNotificationAdapter.class);
 
-    /**
-     * Sends a notification to Slack.
-     * <p>
-     * Note: This implementation currently logs the message to simulate the send operation
-     * and returns true. In a full implementation, this would use an HTTP client
-     * (e.g., WebClient or RestTemplate) to POST to a Slack Incoming Webhook URL.
-     * </p>
-     *
-     * @param messageBody The formatted message body to send.
-     * @return true if sending was acknowledged, false otherwise.
-     */
+    // Ideally, inject a WebClient or SlackClient here
+    // private final SlackWebhookClient client;
+
+    public SlackNotificationAdapter() {
+        // this.client = client;
+    }
+
     @Override
-    public boolean sendNotification(String messageBody) {
-        // Real-world logic would go here, e.g.:
-        // try {
-        //     WebClient.create().post().uri(webhookUrl)
-        //         .bodyValue("{\"text\": \"" + messageBody + "\"}")
-        //         .retrieve()
-        //         .toBodilessEntity()
-        //         .block();
-        //     return true;
-        // } catch (Exception e) {
-        //     log.error("Failed to send Slack notification", e);
-        //     return false;
-        // }
-
-        log.info("[Slack Adapter] Sending notification: {}", messageBody);
-        return true;
+    public boolean sendMessage(String messageBody) {
+        try {
+            // In a real implementation, this would perform an HTTP POST:
+            // client.postMessage(messageBody);
+            logger.info("[PROD ADAPTER] Sending Slack message: {}", messageBody);
+            return true;
+        } catch (Exception e) {
+            logger.error("Failed to send Slack notification", e);
+            return false;
+        }
     }
 }

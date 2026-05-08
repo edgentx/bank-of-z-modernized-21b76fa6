@@ -1,46 +1,71 @@
 package com.example.domain.teller.model;
 
-import com.example.domain.tellersession.model.TellerSessionAggregate;
-import com.example.domain.shared.Aggregate;
-
+import com.example.domain.shared.*;
 import java.time.Instant;
-import java.util.UUID;
+import java.util.List;
 
 /**
- * Legacy Wrapper / facade for the TellerSessionAggregate.
- * S-18: Exposes the domain logic via legacy-compatible method names.
+ * TellerSession Aggregate
+ * Handles teller terminal authentication and session lifecycle.
  */
-public class TellerSession {
-    private final TellerSessionAggregate aggregate;
+public class TellerSession extends AggregateRoot {
 
-    public TellerSession() {
-        this.aggregate = new TellerSessionAggregate(UUID.randomUUID().toString());
+  private final String sessionId;
+  private String currentTellerId;
+  private String currentTerminalId;
+  private boolean active;
+
+  public TellerSession(String sessionId) {
+    this.sessionId = sessionId;
+    this.active = false;
+  }
+
+  @Override
+  public String id() {
+    return sessionId;
+  }
+
+  @Override
+  public List<DomainEvent> execute(Command cmd) {
+    if (cmd instanceof StartSessionCmd c) {
+      return startSession(c);
+    }
+    throw new UnknownCommandException(cmd);
+  }
+
+  private List<DomainEvent> startSession(StartSessionCmd cmd) {
+    // Invariant: Teller must be authenticated (represented by valid ID)
+    if (cmd.tellerId() == null || cmd.tellerId().isBlank()) {
+      throw new IllegalArgumentException("tellerId required for authentication");
     }
 
-    public TellerSession(TellerSessionAggregate aggregate) {
-        this.aggregate = aggregate;
+    // Invariant: Operational context (terminal) must be valid and active
+    // (modeled here as non-blank terminalId)
+    if (cmd.terminalId() == null || cmd.terminalId().isBlank()) {
+      throw new IllegalArgumentException("terminalId required for operational context");
     }
 
-    public String getId() {
-        return aggregate.id();
+    // Invariant: Session state transitions
+    if (this.active) {
+      throw new IllegalStateException("Session already started. Navigation state mismatch.");
     }
 
-    public boolean isActive() {
-        return aggregate.isActive();
-    }
+    var event = new SessionStartedEvent(id(), cmd.tellerId(), cmd.terminalId(), Instant.now());
+    
+    this.currentTellerId = cmd.tellerId();
+    this.currentTerminalId = cmd.terminalId();
+    this.active = true;
 
-    public void markAuthenticated() {
-        aggregate.markAuthenticated();
-    }
+    addEvent(event);
+    incrementVersion();
+    return List.of(event);
+  }
 
-    public void startSession(String tellerId, String terminalId) {
-        // Bridge legacy method to new Command pattern
-        var cmd = new com.example.domain.tellersession.model.StartSessionCmd(aggregate.id(), tellerId, terminalId);
-        aggregate.execute(cmd);
-    }
+  public boolean isActive() {
+    return active;
+  }
 
-    // Expose underlying aggregate for repository persistence
-    public TellerSessionAggregate getAggregate() {
-        return aggregate;
-    }
+  public String getCurrentTellerId() {
+    return currentTellerId;
+  }
 }

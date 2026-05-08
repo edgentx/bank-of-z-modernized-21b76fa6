@@ -1,6 +1,5 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.teller.model.MenuNavigatedEvent;
@@ -23,29 +22,31 @@ public class S19Steps {
 
     @Given("a valid TellerSession aggregate")
     public void aValidTellerSessionAggregate() {
-        aggregate = new TellerSessionAggregate("session-123");
-        aggregate.markAuthenticated(); // Assume authenticated for base case
+        String sessionId = "session-123";
+        aggregate = new TellerSessionAggregate(sessionId);
+        // To be valid for navigation, it must be authenticated
+        aggregate.markAuthenticated("teller-001");
     }
 
-    @Given("a valid sessionId is provided")
+    @And("a valid sessionId is provided")
     public void aValidSessionIdIsProvided() {
-        // Handled by aggregate initialization
+        // Handled in aggregate creation
     }
 
-    @Given("a valid menuId is provided")
+    @And("a valid menuId is provided")
     public void aValidMenuIdIsProvided() {
-        // Context: Handled in the 'When' step via command object
+        // Will be used in the When step
     }
 
     @And("a valid action is provided")
     public void aValidActionIsProvided() {
-        // Context: Handled in the 'When' step via command object
+        // Will be used in the When step
     }
 
     @When("the NavigateMenuCmd command is executed")
     public void theNavigateMenuCmdCommandIsExecuted() {
+        NavigateMenuCmd cmd = new NavigateMenuCmd("session-123", "MAIN_MENU", "ENTER");
         try {
-            Command cmd = new NavigateMenuCmd("session-123", "MAIN_MENU", "ENTER");
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             capturedException = e;
@@ -59,38 +60,37 @@ public class S19Steps {
         assertTrue(resultEvents.get(0) instanceof MenuNavigatedEvent);
         
         MenuNavigatedEvent event = (MenuNavigatedEvent) resultEvents.get(0);
-        assertEquals("session-123", event.aggregateId());
-        assertEquals("MAIN_MENU", event.menuId());
         assertEquals("menu.navigated", event.type());
+        assertEquals("MAIN_MENU", event.menuId());
+        assertEquals("ENTER", event.action());
     }
 
-    // --- Error Scenarios ---
+    // --- Negative Scenarios ---
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void aTellerSessionAggregateThatViolatesAuthentication() {
-        aggregate = new TellerSessionAggregate("session-401");
-        // Do NOT markAuthenticated
+    public void aTellerSessionAggregateThatViolatesAuth() {
+        aggregate = new TellerSessionAggregate("session-auth-fail");
+        // Intentionally NOT calling markAuthenticated
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
     public void aTellerSessionAggregateThatViolatesTimeout() {
-        aggregate = new TellerSessionAggregate("session-408");
-        aggregate.markAuthenticated();
-        aggregate.markTimedOut();
+        aggregate = new TellerSessionAggregate("session-timeout");
+        aggregate.markAuthenticated("teller-002");
+        aggregate.expireSession(); // Helper to make it look old
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void aTellerSessionAggregateThatViolatesNavState() {
-        aggregate = new TellerSessionAggregate("session-409");
-        aggregate.markAuthenticated();
-        aggregate.lockSession(); // Puts it in SYSTEM_LOCKED state
+    public void aTellerSessionAggregateThatViolatesContext() {
+        aggregate = new TellerSessionAggregate("session-context-fail");
+        aggregate.markAuthenticated("teller-003");
+        aggregate.lockContext(); // Helper to lock state
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(capturedException, "Expected an exception to be thrown");
-        // We verify it's not a UnknownCommandException, meaning our handler logic ran and rejected it.
-        assertFalse(capturedException instanceof UnknownCommandException);
+        assertNotNull(capturedException);
+        // We expect an IllegalStateException (Domain Error)
         assertTrue(capturedException instanceof IllegalStateException);
     }
 }

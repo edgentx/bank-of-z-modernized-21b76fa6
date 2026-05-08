@@ -1,10 +1,10 @@
 package com.example.steps;
 
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.tellersession.model.SessionStartedEvent;
-import com.example.domain.tellersession.model.StartSessionCmd;
-import com.example.domain.tellersession.model.TellerSessionAggregate;
-import com.example.mocks.InMemoryTellerSessionRepository;
+import com.example.domain.teller.model.SessionStartedEvent;
+import com.example.domain.teller.model.StartSessionCmd;
+import com.example.domain.teller.model.TellerSessionAggregate;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -17,74 +17,75 @@ import static org.junit.jupiter.api.Assertions.*;
 public class S18Steps {
 
     private TellerSessionAggregate aggregate;
+    private StartSessionCmd command;
     private List<DomainEvent> resultEvents;
-    private Exception caughtException;
-    private String tellerId = "teller-123";
-    private String terminalId = "terminal-A";
-    private String authToken = "valid-token";
+    private Exception thrownException;
 
     @Given("a valid TellerSession aggregate")
-    public void aValidTellerSessionAggregate() {
-        aggregate = new TellerSessionAggregate("session-1");
+    public void a_valid_teller_session_aggregate() {
+        aggregate = new TellerSessionAggregate("session-123");
+        // Pre-authenticate for the valid path
+        aggregate.markAuthenticated();
     }
 
     @And("a valid tellerId is provided")
-    public void aValidTellerIdIsProvided() {
-        this.tellerId = "teller-123";
+    public void a_valid_teller_id_is_provided() {
+        // Handled in context setup, explicitly preparing state if necessary
     }
 
     @And("a valid terminalId is provided")
-    public void aValidTerminalIdIsProvided() {
-        this.terminalId = "terminal-A";
+    public void a_valid_terminal_id_is_provided() {
+        // Handled in context setup
     }
 
     @When("the StartSessionCmd command is executed")
-    public void theStartSessionCmdCommandIsExecuted() {
+    public void the_start_session_cmd_command_is_executed() {
         try {
-            StartSessionCmd cmd = new StartSessionCmd(tellerId, terminalId, authToken);
-            resultEvents = aggregate.execute(cmd);
+            // Default valid values for the happy path
+            String tId = "teller-01";
+            String termId = "term-01";
+            command = new StartSessionCmd("session-123", tId, termId);
+            resultEvents = aggregate.execute(command);
         } catch (Exception e) {
-            caughtException = e;
+            thrownException = e;
         }
     }
 
     @Then("a session.started event is emitted")
-    public void aSessionStartedEventIsEmitted() {
+    public void a_session_started_event_is_emitted() {
         assertNotNull(resultEvents);
         assertEquals(1, resultEvents.size());
         assertTrue(resultEvents.get(0) instanceof SessionStartedEvent);
         SessionStartedEvent event = (SessionStartedEvent) resultEvents.get(0);
         assertEquals("session.started", event.type());
+        assertEquals("session-123", event.aggregateId());
     }
 
+    // --- Rejection Scenarios ---
+
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void aTellerSessionAggregateThatViolatesAuthentication() {
-        aggregate = new TellerSessionAggregate("session-fail-auth");
-        this.authToken = null; // Simulate missing auth
+    public void a_teller_session_aggregate_that_violates_authentication() {
+        aggregate = new TellerSessionAggregate("session-auth-fail");
+        // Intentionally NOT calling markAuthenticated()
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void aTellerSessionAggregateThatViolatesTimeout() {
-        // In a real scenario, this might involve setting a stale timestamp
-        aggregate = new TellerSessionAggregate("session-fail-timeout");
-        this.authToken = "valid-token";
-        // For this test, we assume the command is valid but invariant enforcement logic (omitted for brevity in this specific step implementation)
-        // would trigger. Here we rely on the aggregate logic.
-        // Since the current aggregate implementation doesn't have a timestamp field to check staleness yet,
-        // we will pass this command successfully unless we manually inject invalid state.
-        // Let's assume the context provided implies the check happens, but if the aggregate is new, it passes.
+    public void a_teller_session_aggregate_that_violates_timeout() {
+        aggregate = new TellerSessionAggregate("session-timeout");
+        aggregate.markAuthenticated(); // Auth is valid
+        aggregate.markTimedOut(); // But the session is timed out
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void aTellerSessionAggregateThatViolatesNavState() {
-        aggregate = new TellerSessionAggregate("session-fail-nav");
-        this.authToken = "valid-token";
+    public void a_teller_session_aggregate_that_violates_navigation_state() {
+        aggregate = new TellerSessionAggregate("session-nav-bad");
+        aggregate.markAuthenticated();
+        aggregate.setNavigationState("TRANSACTION_IN_PROGRESS"); // Invalid state for start
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(caughtException);
-        // Check for specific exception types based on the scenario
-        assertTrue(caughtException instanceof IllegalArgumentException || caughtException instanceof IllegalStateException);
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(thrownException, "Expected an exception to be thrown");
+        assertTrue(thrownException instanceof IllegalStateException, "Expected IllegalStateException");
     }
 }

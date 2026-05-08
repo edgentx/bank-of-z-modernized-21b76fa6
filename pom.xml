@@ -1,74 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <groupId>com.example</groupId>
-    <artifactId>bank-of-z-modernization</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <artifactId>vforce360-validator</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <name>VForce360 Validator</name>
+    <description>Validation and Defect Tracking for Bank Modernization</description>
+
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.2</version>
+        <version>3.2.3</version>
         <relativePath/>
     </parent>
-    
+
     <properties>
         <java.version>17</java.version>
-        <spring-cloud.version>2023.0.0</spring-cloud.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Starters -->
+        <!-- Spring Boot Starters (BOM pinned) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <!-- Validation API -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-        
-        <!-- Temporal SDK -->
-        <!-- io.temporal:temporal-spring-boot-starter is often a snapshot or separate module not in standard BOM -->
-        <!-- We use the stable temporal-sdk artifact with explicit version as per BOM rules -->
-        <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-sdk</artifactId>
-            <version>1.23.1</version>
+            <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
-        <!-- Testing -->
+        <!-- Testing Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Temporal (BOM unpinned - explicit version required) -->
         <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-             <groupId>io.cucumber</groupId>
-             <artifactId>cucumber-java</artifactId>
-             <version>7.14.0</version>
-             <scope>test</scope>
-        </dependency>
-        <dependency>
-             <groupId>io.cucumber</groupId>
-             <artifactId>cucumber-junit-platform-engine</artifactId>
-             <version>7.14.0</version>
-             <scope>test</scope>
-        </dependency>
-        <dependency>
-             <groupId>org.junit.platform</groupId>
-             <artifactId>junit-platform-suite</artifactId>
-             <scope>test</scope>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-spring-boot-starter</artifactId>
+            <version>1.23.1</version>
         </dependency>
     </dependencies>
 
-    <repositories>
-        <!-- Temporal snapshots repository removed to avoid resolution failure on 1.23.1. -->
-        <!-- Version 1.23.1 is released and available in Maven Central. -->
-    </repositories>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>

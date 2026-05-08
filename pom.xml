@@ -46,7 +46,7 @@
             <version>1.22.0</version>
         </dependency>
 
-        <!-- JUnit 5 for Unit Tests (pytest equivalent in Java) -->
+        <!-- JUnit 5 for Unit Tests -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
@@ -94,8 +94,7 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-db2</artifactId>
-            <!-- CRITICAL FIX: Explicit version required as it's outside the standard BOM closed set for this specific artifact ID in older SB versions, or safe to pin for specific DB2 compatibility -->
-            <version>9.22.3</version> 
+            <version>9.22.3</version>
         </dependency>
         
     </dependencies>

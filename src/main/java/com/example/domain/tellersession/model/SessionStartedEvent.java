@@ -5,32 +5,11 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-public record SessionStartedEvent(
-        String aggregateId,
-        String tellerId,
-        String terminalId,
-        Instant startedAt
-) implements DomainEvent {
-
-    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant startedAt) {
-        this.aggregateId = aggregateId;
-        this.tellerId = tellerId;
-        this.terminalId = terminalId;
-        this.startedAt = startedAt;
+public record SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) implements DomainEvent {
+    public SessionStartedEvent {
+        if (aggregateId == null || aggregateId.isBlank()) throw new IllegalArgumentException("aggregateId required");
+        if (tellerId == null || tellerId.isBlank()) throw new IllegalArgumentException("tellerId required");
+        if (terminalId == null || terminalId.isBlank()) throw new IllegalArgumentException("terminalId required");
     }
-
-    @Override
-    public String type() {
-        return "session.started";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return startedAt;
-    }
+    @Override public String type() { return "tellersession.session.started"; }
 }

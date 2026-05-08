@@ -1,16 +1,16 @@
 package com.example.ports;
 
 /**
- * Port for sending Slack notifications.
- * Used by Temporal workflows and aggregates to push alerts to VForce360.
+ * Port interface for sending notifications to Slack.
+ * Used by the Temporal workflow to communicate results.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Posts a message to a configured Slack channel.
+     * Sends a message to a Slack channel.
      *
      * @param channel The target channel (e.g. "#vforce360-issues")
-     * @param body The formatted message body to send.
+     * @param body    The message body content
      */
-    void postMessage(String channel, String body);
+    void send(String channel, String body);
 }

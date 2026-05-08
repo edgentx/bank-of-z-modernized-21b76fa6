@@ -1,42 +1,29 @@
 package com.example.mocks;
 
-import com.example.ports.SlackNotifier;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock adapter for SlackNotifier.
- * Captures messages in memory for testing without external I/O.
+ * Mock adapter for Slack notifications.
+ * Used in tests to verify the body content without external calls.
  */
-public class MockSlackNotifier implements SlackNotifier {
-    public static class Message {
-        public final String channel;
-        public final String body;
+public class MockSlackNotifier {
+    private final List<String> sentBodies = new ArrayList<>();
 
-        public Message(String channel, String body) {
-            this.channel = channel;
-            this.body = body;
-        }
+    public void send(String body) {
+        sentBodies.add(body);
     }
 
-    private final List<Message> messages = new ArrayList<>();
-
-    @Override
-    public void send(String channel, String messageBody) {
-        // Capture message for verification
-        this.messages.add(new Message(channel, messageBody));
+    public String getLastBody() {
+        if (sentBodies.isEmpty()) return null;
+        return sentBodies.get(sentBodies.size() - 1);
     }
 
-    public List<Message> getMessages() {
-        return new ArrayList<>(messages);
+    public boolean containsUrl(String url) {
+        return sentBodies.stream().anyMatch(body -> body.contains(url));
     }
 
     public void clear() {
-        messages.clear();
-    }
-
-    public boolean hasReceivedMessageContaining(String substring) {
-        return messages.stream()
-            .anyMatch(m -> m.body.contains(substring));
+        sentBodies.clear();
     }
 }

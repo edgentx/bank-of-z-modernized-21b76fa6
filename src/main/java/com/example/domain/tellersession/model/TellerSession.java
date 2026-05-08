@@ -1,82 +1,75 @@
 package com.example.domain.tellersession.model;
 
-import com.example.domain.shared.AggregateRoot;
-import com.example.domain.shared.Command;
-import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.tellersession.command.NavigateMenuCmd;
-import com.example.domain.tellersession.event.MenuNavigatedEvent;
-
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 
-public class TellerSession extends AggregateRoot {
-    private final String sessionId;
-    private String tellerId;
-    private String currentMenuId;
-    private boolean authenticated = false;
-    private Instant lastActivityAt;
-    private Instant sessionStart;
-    private Duration timeoutDuration = Duration.ofMinutes(30);
+/**
+ * Value object/State holder for Teller Session specifics.
+ * Encapsulates the rules around session validity and operational state.
+ */
+public class TellerSession {
 
-    public TellerSession(String sessionId) {
-        this.sessionId = sessionId;
-        this.lastActivityAt = Instant.now();
-        this.sessionStart = Instant.now();
+    public enum SessionState {
+        ACTIVE, LOCKED, TRANSMITTING, IDLE
     }
 
-    @Override
-    public String id() {
-        return sessionId;
-    }
+    private final String tellerId;
+    private final SessionState state;
+    private final Instant lastActivityAt;
+    private final Duration inactivityTimeout;
 
-    @Override
-    public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof NavigateMenuCmd c) {
-            return navigate(c);
-        }
-        throw new UnknownCommandException(cmd);
-    }
-
-    private List<DomainEvent> navigate(NavigateMenuCmd cmd) {
-        // Invariant: A teller must be authenticated to initiate a session.
-        // Assuming navigation requires authentication.
-        if (!authenticated) {
-            throw new IllegalStateException("A teller must be authenticated to initiate a session.");
-        }
-
-        // Invariant: Sessions must timeout after a configured period of inactivity.
-        if (hasTimedOut()) {
-            throw new IllegalStateException("Sessions must timeout after a configured period of inactivity.");
-        }
-
-        // Invariant: Navigation state must accurately reflect the current operational context.
-        if (cmd.targetMenuId() == null || cmd.targetMenuId().isBlank()) {
-            throw new IllegalArgumentException("Navigation state must accurately reflect the current operational context: Invalid target menu.");
-        }
-
-        // Update State
-        this.currentMenuId = cmd.targetMenuId();
-        this.lastActivityAt = Instant.now();
-
-        var event = new MenuNavigatedEvent(sessionId, cmd.targetMenuId(), cmd.action(), Instant.now());
-        addEvent(event);
-        incrementVersion();
-        return List.of(event);
-    }
-
-    private boolean hasTimedOut() {
-        return Duration.between(lastActivityAt, Instant.now()).compareTo(timeoutDuration) > 0;
-    }
-
-    // Test Fixtures / Public Setters
-    public void markAuthenticated(String tellerId) {
+    public TellerSession(String tellerId, SessionState state, Instant lastActivityAt, Duration inactivityTimeout) {
         this.tellerId = tellerId;
-        this.authenticated = true;
+        this.state = state;
+        this.lastActivityAt = lastActivityAt;
+        this.inactivityTimeout = inactivityTimeout;
     }
 
-    public void markExpired() {
-        this.lastActivityAt = Instant.now().minus(timeoutDuration.plusSeconds(1));
+    public String getTellerId() {
+        return tellerId;
+    }
+
+    public SessionState getState() {
+        return state;
+    }
+
+    public Instant getLastActivityAt() {
+        return lastActivityAt;
+    }
+
+    public Duration getInactivityTimeout() {
+        return inactivityTimeout;
+    }
+
+    /**
+     * Checks if the session is currently valid based on auth and timeout rules.
+     */
+    public boolean isValid() {
+        return isAuthenticated() && !hasTimedOut();
+    }
+
+    /**
+     * Invariant: A teller must be authenticated.
+     */
+    public boolean isAuthenticated() {
+        return tellerId != null && !tellerId.isBlank();
+    }
+
+    /**
+     * Invariant: Sessions must timeout after a configured period of inactivity.
+     */
+    public boolean hasTimedOut() {
+        if (lastActivityAt == null || inactivityTimeout == null) return false;
+        Instant now = Instant.now(); // In a real system, this would likely be passed in (Clock)
+        Duration inactivePeriod = Duration.between(lastActivityAt, now);
+        return inactivePeriod.compareTo(inactivityTimeout) > 0;
+    }
+
+    /**
+     * Invariant: Navigation state must accurately reflect current operational context.
+     * Navigation is typically allowed only in ACTIVE or IDLE states, not LOCKED or TRANSMITTING.
+     */
+    public boolean allowsNavigation() {
+        return state == SessionState.ACTIVE || state == SessionState.IDLE;
     }
 }

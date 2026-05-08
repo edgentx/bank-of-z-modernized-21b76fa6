@@ -4,31 +4,45 @@ import com.example.domain.ports.GithubIssueTracker;
 import com.example.domain.ports.SlackNotifier;
 
 /**
- * Wrapper for the SUT (System Under Test).
- * Represents the Temporal Workflow logic orchestrating the reporting.
- * In a real test, this would be the Workflow class.
+ * Workflow responsible for reporting defects.
+ * Orchestrates the creation of a GitHub issue and subsequent notification via Slack.
+ * This class serves as the use case or service layer implementation.
  */
 public class DefectReportingWorkflow {
 
-    private final GithubIssueTracker github;
-    private final SlackNotifier slack;
+    private final GithubIssueTracker githubIssueTracker;
+    private final SlackNotifier slackNotifier;
 
-    public DefectReportingWorkflow(GithubIssueTracker github, SlackNotifier slack) {
-        this.github = github;
-        this.slack = slack;
+    /**
+     * Constructor for dependency injection.
+     *
+     * @param githubIssueTracker The port implementation for GitHub interactions.
+     * @param slackNotifier The port implementation for Slack notifications.
+     */
+    public DefectReportingWorkflow(GithubIssueTracker githubIssueTracker, SlackNotifier slackNotifier) {
+        this.githubIssueTracker = githubIssueTracker;
+        this.slackNotifier = slackNotifier;
     }
 
+    /**
+     * Reports a defect by creating an issue on GitHub and notifying Slack.
+     *
+     * @param title The title of the defect.
+     * @param description The description of the defect.
+     * @throws IllegalStateException if the GitHub URL is not returned or is empty.
+     */
     public void reportDefect(String title, String description) {
         // Step 1: Create Issue in GitHub
-        String githubUrl = github.createIssue(title, description);
+        String githubUrl = githubIssueTracker.createIssue(title, description);
 
+        // Step 2: Validate result
         if (githubUrl == null || githubUrl.isEmpty()) {
             throw new IllegalStateException("Failed to retrieve GitHub URL from Issue Tracker");
         }
 
-        // Step 2: Notify Slack with the GitHub URL included
-        // This is the specific logic path failing in VW-454
+        // Step 3: Notify Slack with the GitHub URL included
+        // Constructing the message body according to VW-454 requirements
         String messageBody = "Defect Reported: " + title + "\nGitHub Issue: " + githubUrl;
-        slack.sendNotification(messageBody);
+        slackNotifier.sendNotification(messageBody);
     }
 }

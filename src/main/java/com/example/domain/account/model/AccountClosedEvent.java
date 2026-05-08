@@ -5,16 +5,17 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-public class AccountClosedEvent implements DomainEvent {
-    private final String eventId = UUID.randomUUID().toString();
-    private final String aggregateId;
-    private final String accountNumber;
-    private final Instant occurredAt;
+public record AccountClosedEvent(
+    String aggregateId,
+    Instant occurredAt
+) implements DomainEvent {
+    public AccountClosedEvent {
+        // Ensure values are non-null
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId cannot be null");
+    }
 
-    public AccountClosedEvent(String aggregateId, String accountNumber, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.accountNumber = accountNumber;
-        this.occurredAt = occurredAt;
+    public AccountClosedEvent(String aggregateId) {
+        this(aggregateId, Instant.now());
     }
 
     @Override
@@ -30,9 +31,5 @@ public class AccountClosedEvent implements DomainEvent {
     @Override
     public Instant occurredAt() {
         return occurredAt;
-    }
-
-    public String getAccountNumber() {
-        return accountNumber;
     }
 }

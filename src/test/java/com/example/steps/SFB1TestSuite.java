@@ -1,10 +1,15 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.SelectClasses;
+import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
+/**
+ * Test Suite for S-FB-1.
+ * Runs the specific feature file for GitHub URL validation.
+ */
 @Suite
-@SelectClasses(VW454Steps.class)
+@IncludeEngines("cucumber")
+@SelectClasspathResource("com/example/steps/S-FB-1.feature")
 public class SFB1TestSuite {
-    // This suite runs the specific steps for Feature S-FB-1
 }

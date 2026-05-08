@@ -2,8 +2,4 @@ package com.example.domain.statement.model;
 
 import com.example.domain.shared.Command;
 
-/**
- * Command to export an existing statement to a specific format (e.g., PDF).
- */
-public record ExportStatementCmd(String statementId, String format) implements Command {
-}
+public record ExportStatementCmd(String statementId, String format) implements Command {}

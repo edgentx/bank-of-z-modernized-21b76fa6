@@ -1,29 +1,40 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
-import java.util.Optional;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Mock implementation of GitHubIssuePort for testing.
- * Allows configuring return values for issue creation.
+ * Simulates API responses without network calls.
  */
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private Optional<String> nextResult = Optional.empty();
-    private String lastTitle;
-    private String lastBody;
-
-    public void mockCreateIssueResult(String url) {
-        this.nextResult = Optional.ofNullable(url);
-    }
+    private final Map<String, String> issues = new HashMap<>();
+    private boolean shouldFail = false;
+    private String nextIssueUrl = "https://github.com/mock/repo/issues/1";
 
     @Override
-    public Optional<String> createIssue(String title, String body) {
-        this.lastTitle = title;
-        this.lastBody = body;
-        return nextResult;
+    public String createIssue(String title, String description) {
+        if (shouldFail) {
+            throw new RuntimeException("Simulated GitHub API failure");
+        }
+        String url = nextIssueUrl;
+        // Simulate auto-incrementing issue ID
+        String[] parts = url.split("/");
+        int id = Integer.parseInt(parts[parts.length - 1]);
+        nextIssueUrl = "https://github.com/mock/repo/issues/" + (id + 1);
+        
+        issues.put(title, url);
+        return url;
     }
 
-    public String getLastTitle() { return lastTitle; }
-    public String getLastBody() { return lastBody; }
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
+    }
+
+    public String getIssueUrl(String title) {
+        return issues.get(title);
+    }
 }

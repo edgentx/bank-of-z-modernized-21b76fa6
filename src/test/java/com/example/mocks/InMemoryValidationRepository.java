@@ -1,26 +1,27 @@
 package com.example.mocks;
 
-import com.example.domain.validation.model.DefectReportAggregate;
-import com.example.domain.validation.port.GitHubIssuePort;
-import com.example.domain.validation.port.SlackNotificationPort;
+import com.example.domain.validation.model.ValidationAggregate;
+import com.example.domain.validation.port.ValidationRepository;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
- * In-memory repository for Validation aggregates.
- * This is a mock adapter as per the rules.
+ * In-memory implementation of ValidationRepository for testing.
+ * adheres to the rule: Tests use mock implementations from mocks/.
  */
-public class InMemoryValidationRepository {
-    private final Map<String, DefectReportAggregate> store = new HashMap<>();
+public class InMemoryValidationRepository implements ValidationRepository {
 
-    public void save(DefectReportAggregate aggregate) {
+    private final Map<String, ValidationAggregate> store = new HashMap<>();
+
+    @Override
+    public void save(ValidationAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
     }
 
-    public DefectReportAggregate load(String defectId, GitHubIssuePort gitHubPort, SlackNotificationPort slackPort) {
-        // For test simplicity, we might return a new instance or a stored one.
-        // This allows us to test command execution on a fresh aggregate.
-        return new DefectReportAggregate(defectId, gitHubPort, slackPort);
+    @Override
+    public Optional<ValidationAggregate> findById(String id) {
+        return Optional.ofNullable(store.get(id));
     }
 }

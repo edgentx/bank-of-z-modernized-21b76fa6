@@ -1,22 +1,16 @@
 package com.example.ports;
 
 /**
- * Port for sending notifications to Slack.
- * Used by the Defect Reporting workflow.
+ * Port interface for sending Slack notifications.
+ * Used by the Temporal workflow logic to decouple from the specific implementation.
  */
 public interface SlackNotificationPort {
-
+    
     /**
-     * Posts a message to a specific channel.
+     * Sends a notification to the configured Slack channel.
      *
-     * @param channel The target Slack channel (e.g., "#vforce360-issues")
-     * @param body    The formatted message body
+     * @param messageBody The formatted message body to send.
+     * @return true if sending was acknowledged, false otherwise.
      */
-    void postMessage(String channel, String body);
-
-    /**
-     * Helper to validate a message before sending (implementation specific).
-     * This method is expected to throw if validation fails.
-     */
-    void validateAndPost(String channel, String body);
+    boolean sendNotification(String messageBody);
 }

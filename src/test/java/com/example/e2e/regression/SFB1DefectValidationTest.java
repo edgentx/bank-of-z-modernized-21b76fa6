@@ -2,125 +2,115 @@ package com.example.e2e.regression;
 
 import com.example.domain.validation.model.DefectReportedEvent;
 import com.example.domain.validation.model.ReportDefectCmd;
-import com.example.domain.shared.Aggregate;
-import com.example.mocks.MockGitHubPort;
+import com.example.domain.validation.model.ValidationAggregate;
 import com.example.mocks.MockSlackNotificationPort;
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackNotificationPort;
+import com.example.mocks.MockVForce360Port;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Regression test for Story S-FB-1.
- * Validates that when a defect is reported, the resulting Slack body
- * contains the link to the GitHub issue (VW-454).
- *
- * These tests are written in TDD Red phase. They WILL FAIL until
- * the ValidationAggregate is implemented to satisfy the behavior.
+ * Regression Test for Story S-FB-1: Validating VW-454 — GitHub URL in Slack body.
+ * 
+ * Context:
+ * - Trigger _report_defect via temporal-worker exec
+ * - Verify Slack body contains GitHub issue link
+ * 
+ * Expected Behavior:
+ * - Slack body includes GitHub issue: <url>
+ * 
+ * Actual Behavior (Prior to fix):
+ * - About to find out — checking #vforce360-issues for the link line
  */
-public class SFB1DefectValidationTest {
+class SFB1DefectValidationTest {
 
-    private MockGitHubPort mockGitHub;
+    private MockVForce360Port mockVForce360;
     private MockSlackNotificationPort mockSlack;
+    private ValidationAggregate aggregate;
+
+    private static final String TEST_DEFECT_ID = "VW-454";
+    private static final String TEST_TITLE = "Validating VW-454 — GitHub URL in Slack body";
 
     @BeforeEach
     void setUp() {
-        mockGitHub = new MockGitHubPort();
+        mockVForce360 = new MockVForce360Port();
         mockSlack = new MockSlackNotificationPort();
+        
+        // Set up the mock to return a specific URL
+        mockVForce360.setMockReturnUrl("https://github.com/bank-of-z/issues/454");
+
+        // Initialize the aggregate with mocks (Dependency Injection)
+        aggregate = new ValidationAggregate(TEST_DEFECT_ID, mockVForce360, mockSlack);
     }
 
     @Test
-    void testReportDefect_generatesEventWithGitHubUrl() {
-        // Given: A defect report command
-        String defectId = "S-FB-1";
-        ReportDefectCmd cmd = new ReportDefectCmd(
-            defectId,
-            "Fix: Validating VW-454",
-            "Slack body missing URL",
-            "LOW",
-            "validation",
-            "proj-123"
-        );
+    void testReportDefect_generatesSlackBodyContainingGitHubUrl() {
+        // Arrange
+        ReportDefectCmd cmd = new ReportDefectCmd(TEST_DEFECT_ID, TEST_TITLE);
 
-        // When: The aggregate processes the command
-        // Note: In the real implementation, this would be injected or resolved.
-        // For the purpose of the TDD test structure, we expect the Aggregate to handle the logic.
-        // We simulate the expected dependency logic here to assert the contract.
-        String expectedUrl = mockGitHub.createIssue(defectId, cmd.title(), cmd.description());
+        // Act
+        List<DefectReportedEvent> events = aggregate.execute(cmd);
 
-        // Then: The resulting event should contain the GitHub URL
-        // This assertion checks the contract logic we need to implement.
-        assertNotNull(expectedUrl);
-        assertTrue(expectedUrl.startsWith("https://github.com/bank-of-z/issues/"));
+        // Assert
+        assertFalse(events.isEmpty(), "Processing defect report should produce an event");
+        
+        // Verify VForce360 was called
+        assertTrue(mockVForce360.wasCalledWith(TEST_TITLE), "VForce360 port should be called with the defect title");
+        assertEquals(1, mockVForce360.getCallCount(), "VForce360 reportDefect should be called exactly once");
+
+        // Verify Slack was called
+        assertEquals(1, mockSlack.getCallCount(), "Slack notification should be sent exactly once");
+        
+        // CRITICAL ASSERTION: Verify the Slack body contains the expected GitHub URL format
+        // Acceptance Criteria: "Slack body includes GitHub issue: <url>"
+        boolean slackBodyContainsUrl = mockSlack.containsMessage("https://github.com/bank-of-z/issues/454");
+        assertTrue(slackBodyContainsUrl, "Slack body MUST contain the GitHub issue URL returned by VForce360");
+
+        // Verify the exact format expected by the user story
+        boolean slackBodyContainsLabel = mockSlack.containsMessage("GitHub issue:");
+        assertTrue(slackBodyContainsLabel, "Slack body MUST contain the label 'GitHub issue:'");
     }
 
     @Test
-    void testSlackNotificationBodyContainsGitHubUrl() {
-        // Given: A defect reported event
-        String defectId = "S-FB-1";
-        String expectedUrl = "https://github.com/bank-of-z/issues/" + defectId;
+    void testReportDefect_failsIfVForce360ReturnsNull() {
+        // Arrange
+        mockVForce360.setShouldFail(true); // Simulate VForce360 returning null
+        ReportDefectCmd cmd = new ReportDefectCmd(TEST_DEFECT_ID, TEST_TITLE);
 
-        DefectReportedEvent event = new DefectReportedEvent(
-            defectId,
-            "Fix: Validating VW-454",
-            "LOW",
-            expectedUrl,
-            Instant.now()
-        );
+        // Act & Assert
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+            aggregate.execute(cmd);
+        });
 
-        // When: The event is sent to the mock Slack adapter
-        mockSlack.sendNotification(event);
-
-        // Then: The mock should have captured the event
-        assertEquals(1, mockSlack.sentEvents.size());
-        DefectReportedEvent captured = mockSlack.sentEvents.get(0);
-
-        // And: The captured event must contain the valid GitHub URL (Acceptance Criteria)
-        assertNotNull(captured.githubIssueUrl(), "GitHub URL must not be null");
-        assertTrue(
-            captured.githubIssueUrl().contains("github.com"),
-            "GitHub URL must contain 'github.com'"
-        );
-        assertEquals(expectedUrl, captured.githubIssueUrl());
+        assertTrue(exception.getMessage().contains("Failed to generate GitHub URL"));
+        
+        // Verify Slack was NOT called if URL generation failed
+        assertEquals(0, mockSlack.getCallCount(), "Slack should NOT be called if VForce360 fails to generate URL");
     }
 
     @Test
-    void testEndToEndFlow_ReportDefectToSlack() {
-        // This test validates the full scenario described in VW-454:
-        // 1. Trigger _report_defect
-        // 2. Verify Slack body contains GitHub issue link
+    void testReportDefect_eventContainsCorrectPayload() {
+        // Arrange
+        String expectedUrl = "https://github.com/bank-of-z/issues/999";
+        mockVForce360.setMockReturnUrl(expectedUrl);
+        ReportDefectCmd cmd = new ReportDefectCmd("DEFECT-99", "Critical Failure");
 
-        // 1. Setup Command
-        String defectId = "VW-454";
-        ReportDefectCmd cmd = new ReportDefectCmd(
-            defectId,
-            "GitHub URL missing in Slack",
-            "URL validation failed",
-            "LOW",
-            "validation",
-            "proj-uuid"
-        );
-
-        // 2. Simulate Aggregate Logic (The implementation we will build)
-        // Expected: Aggregate calls GitHub Port -> gets URL -> creates Event with URL
-        String githubUrl = mockGitHub.createIssue(defectId, cmd.title(), cmd.description());
-        DefectReportedEvent event = new DefectReportedEvent(
-            defectId,
-            cmd.title(),
-            cmd.severity(),
-            githubUrl,
-            Instant.now()
-        );
-
-        // 3. Simulate Side Effect (Slack Notification)
-        mockSlack.sendNotification(event);
-
-        // 4. Verify (Red phase - will fail if logic is missing)
-        assertTrue(mockSlack.sentEvents.get(0).githubIssueUrl().startsWith("https://github.com"));
+        // Act
+        aggregate.execute(cmd);
+        
+        // In a real repository scenario, we'd fetch from the event store. 
+        // Here we check the uncommitted events on the aggregate.
+        List<DefectReportedEvent> events = aggregate.uncommittedEvents();
+        
+        assertFalse(events.isEmpty());
+        DefectReportedEvent event = events.get(0);
+        
+        assertEquals("DEFECT-99", event.aggregateId());
+        assertEquals("Critical Failure", event.title());
+        assertEquals(expectedUrl, event.githubUrl());
+        assertNotNull(event.occurredAt());
     }
 }

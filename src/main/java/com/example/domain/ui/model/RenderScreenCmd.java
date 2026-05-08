@@ -1,8 +1,11 @@
 package com.example.domain.ui.model;
 
 import com.example.domain.shared.Command;
+import java.util.Objects;
 
-/**
- * Command to render a specific screen layout for a target device.
- */
-public record RenderScreenCmd(String screenId, DeviceType deviceType) implements Command {}
+public record RenderScreenCmd(String screenId, String deviceType) implements Command {
+    public RenderScreenCmd {
+        Objects.requireNonNull(screenId, "screenId cannot be null");
+        Objects.requireNonNull(deviceType, "deviceType cannot be null");
+    }
+}

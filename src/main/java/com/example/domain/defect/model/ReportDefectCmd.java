@@ -2,16 +2,13 @@ package com.example.domain.defect.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.Map;
-
 /**
- * Command to report a defect via the VForce360 temporal workflow.
- * Corresponds to the story: Fix: Validating VW-454.
+ * Command to report a defect via VForce360.
+ * Triggered by Temporal or internal PM diagnostic conversation.
  */
 public record ReportDefectCmd(
         String defectId,
         String title,
         String description,
-        Map<String, String> metadata
-) implements Command {
-}
+        String severity
+) implements Command {}

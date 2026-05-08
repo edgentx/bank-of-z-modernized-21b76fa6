@@ -1,17 +1,17 @@
 package com.example.ports;
 
 /**
- * Port interface for reporting defects (e.g., creating GitHub issues).
- * This decouples the domain logic from the specific implementation of issue tracking.
+ * Port interface for reporting defects to external systems (e.g., Slack).
+ * Used by the Temporal workflow logic to decouple from specific implementations.
  */
 public interface DefectReporterPort {
 
     /**
-     * Records a defect report and returns the URL to the created issue.
+     * Reports a defect to the VForce360 Slack channel.
      *
-     * @param title   The title of the defect.
-     * @param details The details/body of the defect.
-     * @return The URL of the created GitHub issue.
+     * @param defectId The unique ID of the defect (e.g., "VW-454").
+     * @param githubUrl The URL of the GitHub issue created for this defect.
+     * @return true if the report was accepted, false otherwise.
      */
-    String reportDefect(String title, String details);
+    boolean reportDefect(String defectId, String githubUrl);
 }

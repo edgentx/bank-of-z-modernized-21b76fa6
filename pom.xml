@@ -15,6 +15,7 @@
     <properties>
         <java.version>17</java.version>
         <spring-cloud-aws.version>3.0.0</spring-cloud-aws.version>
+        <temporal.version>1.23.1</temporal.version>
     </properties>
 
     <dependencies>
@@ -27,24 +28,36 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
-        
-        <!-- Temporal (EXPLICIT version required as per instructions) -->
+
+        <!-- Temporal (EXPLICIT version required) -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>1.23.1</version>
-        </dependency>
-        <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-testing</artifactId>
-            <version>1.23.1</version>
-            <scope>test</scope>
+            <version>${temporal.version}</version>
         </dependency>
 
         <!-- Testing (Pinned by BOM) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>7.14.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit</artifactId>
+            <version>7.14.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-spring</artifactId>
+            <version>7.14.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -55,4 +68,13 @@
             <url>https://raw.githubusercontent.com/temporalio/sdk-java/master/dependency-uploads/</url>
         </repository>
     </repositories>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>

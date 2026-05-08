@@ -1,13 +1,18 @@
 package com.example.domain.defect;
 
 import com.example.domain.shared.DomainEvent;
-import java.time.Instant;
-import java.util.UUID;
 
+import java.time.Instant;
+
+/**
+ * Event emitted when a defect report is generated.
+ */
 public record DefectReportedEvent(
-    String defectId,
-    String githubIssueUrl,
-    Instant occurredAt
+        String aggregateId,
+        String defectId,
+        String targetChannel,
+        String messageBody,
+        Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
@@ -16,7 +21,7 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return defectId;
+        return aggregateId;
     }
 
     @Override

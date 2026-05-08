@@ -6,14 +6,9 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Event emitted when user input is successfully validated against screen map rules.
+ * Event emitted when screen input is successfully validated.
  */
-public record ScreenInputValidatedEvent(
-    String aggregateId,
-    Map<String, String> inputFields,
-    Instant occurredAt
-) implements DomainEvent {
-
+public record ScreenInputValidatedEvent(String screenId, Map<String, String> inputFields, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
         return "input.validated";
@@ -21,7 +16,7 @@ public record ScreenInputValidatedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return screenId;
     }
 
     @Override

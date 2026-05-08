@@ -5,7 +5,7 @@ import com.example.domain.defect.model.DefectAggregate;
 import java.util.Optional;
 
 /**
- * Port interface for Defect persistence.
+ * Repository interface for Defect aggregates.
  */
 public interface DefectRepository {
     void save(DefectAggregate aggregate);

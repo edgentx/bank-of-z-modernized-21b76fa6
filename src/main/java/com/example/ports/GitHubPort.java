@@ -1,23 +1,16 @@
 package com.example.ports;
 
 /**
- * Port interface for interacting with GitHub issues.
+ * Port for interacting with GitHub issues.
+ * Used by Temporal workflows to create and track defects.
  */
 public interface GitHubPort {
-
     /**
      * Creates a new issue in the repository.
      *
-     * @param title The issue title
-     * @param body  The issue body
-     * @return The HTML URL of the created issue
+     * @param title The title of the issue.
+     * @param body The body content of the issue.
+     * @return The HTML URL of the created issue.
      */
     String createIssue(String title, String body);
-
-    /**
-     * Retrieves the base URL for the GitHub repository.
-     *
-     * @return The base URL (e.g. "https://github.com/org/repo")
-     */
-    String getRepositoryUrl();
 }

@@ -2,12 +2,9 @@ package com.example.domain.defect.model;
 
 import com.example.domain.shared.Command;
 
-/**
- * Command to report a defect.
- * This triggers the workflow which eventually posts to Slack.
- */
 public record ReportDefectCmd(
     String defectId,
     String title,
-    String description
+    String description,
+    String githubUrl // The URL that should be present in the Slack body
 ) implements Command {}

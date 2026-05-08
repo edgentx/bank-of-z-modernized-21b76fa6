@@ -3,24 +3,18 @@ package com.example.mocks;
 import com.example.ports.GitHubIssuePort;
 
 /**
- * Mock adapter for GitHub Issues.
- * Returns predictable URLs and simulates success without API calls.
+ * Mock implementation of GitHubIssuePort.
+ * Returns predictable URLs for testing.
  */
 public class MockGitHubIssuePort implements GitHubIssuePort {
-    private String mockUrl = "https://github.com/fake-org/repo/issues/1";
-    private int callCount = 0;
+
+    private static final String BASE_URL = "https://github.com/mock-org/repo/issues/";
 
     @Override
-    public String createIssue(String title, String body) {
-        callCount++;
-        return mockUrl;
-    }
-
-    public void setMockUrl(String url) {
-        this.mockUrl = url;
-    }
-
-    public int getCallCount() {
-        return callCount;
+    public String generateIssueUrl(String issueId) {
+        if (issueId == null || issueId.isBlank()) {
+            throw new IllegalArgumentException("issueId cannot be null");
+        }
+        return BASE_URL + issueId;
     }
 }

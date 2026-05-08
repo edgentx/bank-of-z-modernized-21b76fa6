@@ -1,36 +1,30 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock implementation of the Slack port for testing.
- * Stores messages in memory to allow verification without real I/O.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Captures messages sent to verify the Slack body content.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final Map<String, String> sentMessages = new HashMap<>();
-    private boolean shouldFail = false;
+    private final List<String> sentMessages = new ArrayList<>();
+    private boolean shouldSucceed = true;
 
     @Override
-    public boolean sendMessage(String channel, String messageBody) {
-        if (shouldFail) {
-            return false;
-        }
-        sentMessages.put(channel, messageBody);
-        return true;
+    public boolean sendMessage(String message) {
+        sentMessages.add(message);
+        return shouldSucceed;
     }
 
-    @Override
-    public String getLastMessageBody(String channel) {
-        return sentMessages.get(channel);
+    public List<String> getSentMessages() {
+        return sentMessages;
     }
 
-    // Test utility methods
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
+    public void setShouldSucceed(boolean shouldSucceed) {
+        this.shouldSucceed = shouldSucceed;
     }
 
     public void clear() {

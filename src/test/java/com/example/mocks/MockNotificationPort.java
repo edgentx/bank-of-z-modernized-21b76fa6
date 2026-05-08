@@ -1,23 +1,39 @@
 package com.example.mocks;
 
-import com.example.domain.notification.model.NotificationAggregate;
 import com.example.ports.NotificationPort;
 
+/**
+ * Mock implementation of {@link com.example.ports.NotificationPort} for testing.
+ * Captures the last sent body for verification in tests.
+ */
 public class MockNotificationPort implements NotificationPort {
-    private boolean called = false;
-    private NotificationAggregate lastNotification;
+
+    private String lastBody;
+    private String lastSubject;
+    private String lastRecipient;
+    private boolean sendReturnValue = true;
 
     @Override
-    public void send(NotificationAggregate notification) {
-        this.called = true;
-        this.lastNotification = notification;
+    public boolean sendNotification(String recipient, String subject, String body) {
+        this.lastRecipient = recipient;
+        this.lastSubject = subject;
+        this.lastBody = body;
+        return sendReturnValue;
     }
 
-    public boolean isCalled() {
-        return called;
+    public String getLastBody() {
+        return lastBody;
     }
 
-    public NotificationAggregate getLastNotification() {
-        return lastNotification;
+    public String getLastSubject() {
+        return lastSubject;
+    }
+
+    public String getLastRecipient() {
+        return lastRecipient;
+    }
+
+    public void setSendReturnValue(boolean val) {
+        this.sendReturnValue = val;
     }
 }

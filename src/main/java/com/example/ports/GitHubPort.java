@@ -1,8 +1,8 @@
 package com.example.ports;
 
 /**
- * Port interface for retrieving GitHub issue metadata.
+ * Port interface for creating GitHub issues.
  */
 public interface GitHubPort {
-    String getIssueUrl(String issueId);
+    String createIssue(String repo, String title, String body);
 }

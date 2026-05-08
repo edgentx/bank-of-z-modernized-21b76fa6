@@ -7,20 +7,29 @@ import java.util.UUID;
 
 /**
  * Event emitted when a teller session is terminated.
- * S-20: User-Interface-Navigation
+ * ID: S-20
  */
 public record SessionEndedEvent(
-        String eventId,
-        String aggregateId,
-        String sessionId,
-        Instant occurredAt
+    String aggregateId,
+    Instant occurredAt
 ) implements DomainEvent {
-    public SessionEndedEvent(String aggregateId, String sessionId, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), aggregateId, sessionId, occurredAt);
+
+    public SessionEndedEvent(String aggregateId) {
+        this(aggregateId, Instant.now());
     }
 
     @Override
     public String type() {
         return "session.ended";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

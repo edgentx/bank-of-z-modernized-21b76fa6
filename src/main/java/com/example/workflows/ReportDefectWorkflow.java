@@ -1,16 +1,14 @@
 package com.example.workflows;
 
-import com.example.domain.validation.ReportDefectCmd;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
 
 /**
- * Temporal Workflow definition for reporting a defect.
- * Orchestrates GitHub Issue creation and Slack notification.
+ * Temporal Workflow Interface for reporting a defect.
  */
 @WorkflowInterface
 public interface ReportDefectWorkflow {
 
     @WorkflowMethod
-    void report(ReportDefectCmd cmd);
+    String execute(String summary, String description, String slackChannel);
 }

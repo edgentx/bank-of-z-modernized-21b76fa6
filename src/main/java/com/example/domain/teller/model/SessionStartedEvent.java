@@ -19,9 +19,4 @@ public record SessionStartedEvent(
     public String aggregateId() {
         return aggregateId;
     }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
 }

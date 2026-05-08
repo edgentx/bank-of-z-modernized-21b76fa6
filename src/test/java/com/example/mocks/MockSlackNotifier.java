@@ -5,20 +5,33 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotifier for testing.
- * Captures payloads sent to Slack so assertions can be made against them.
+ * Mock implementation of SlackNotifier for testing purposes.
+ * Records messages sent to allow verification in tests.
  */
 public class MockSlackNotifier implements SlackNotifier {
+    
+    public static class Message {
+        public final String channel;
+        public final String message;
 
-    public final List<SlackMessagePayload> receivedPayloads = new ArrayList<>();
+        public Message(String channel, String message) {
+            this.channel = channel;
+            this.message = message;
+        }
+    }
+
+    private final List<Message> sentMessages = new ArrayList<>();
 
     @Override
-    public void notify(SlackMessagePayload payload) {
-        // Store the payload in memory instead of making an HTTP call
-        receivedPayloads.add(payload);
+    public void send(String channel, String message) {
+        this.sentMessages.add(new Message(channel, message));
+    }
+
+    public List<Message> getSentMessages() {
+        return sentMessages;
     }
 
     public void clear() {
-        receivedPayloads.clear();
+        sentMessages.clear();
     }
 }

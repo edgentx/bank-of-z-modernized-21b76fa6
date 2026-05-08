@@ -4,7 +4,6 @@ import java.util.Optional;
 
 /**
  * Port for interacting with GitHub Issues.
- * Used by the VForce360 defect reporting workflow to file issues.
  */
 public interface GitHubIssuePort {
     /**

@@ -1,17 +1,18 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
-import java.util.Objects;
+import java.time.Instant;
 
 /**
- * Command to initiate a teller session.
- * Validated by TellerSession aggregate.
+ * Command to initiate a new Teller Session.
+ * Contains the necessary authentication and context data.
  */
-public record StartSessionCmd(String sessionId, String tellerId, String terminalId, boolean isAuthenticated) implements Command {
-
-    public StartSessionCmd {
-        Objects.requireNonNull(sessionId, "sessionId cannot be null");
-        // Note: Validation of tellerId/terminalId content is delegated to the aggregate logic
-        // or handled by the repository interface constraints. Here we ensure structural integrity.
-    }
+public record StartSessionCmd(
+        String sessionId,
+        String tellerId,
+        String terminalId,
+        boolean authenticated,
+        String initialContext,
+        Instant timestamp
+) implements Command {
 }

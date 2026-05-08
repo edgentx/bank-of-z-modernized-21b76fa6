@@ -6,6 +6,7 @@ import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -20,6 +21,7 @@ public class LegacyTransactionRoute extends AggregateRoot {
     private boolean versioningViolation;
     private boolean evaluated;
     private String targetSystem;
+    private int rulesVersion = 1; // Default valid version
 
     public LegacyTransactionRoute(String routeId) {
         this.routeId = routeId;
@@ -44,13 +46,17 @@ public class LegacyTransactionRoute extends AggregateRoot {
         this.versioningViolation = true;
     }
 
+    public void setRulesVersion(int version) {
+        this.rulesVersion = version;
+    }
+
     @Override
     public List<DomainEvent> execute(Command cmd) {
         if (cmd instanceof EvaluateRoutingCmd c) {
             return evaluateRouting(c);
         }
         if (cmd instanceof UpdateRoutingRuleCmd c) {
-            return updateRoutingRule(c);
+            return updateRule(c);
         }
         throw new UnknownCommandException(cmd);
     }
@@ -62,12 +68,12 @@ public class LegacyTransactionRoute extends AggregateRoot {
         }
 
         // Invariant 2: Versioning check
-        if (cmd.rulesVersion() <= 0) {
-            throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
-        }
-        
         if (versioningViolation) {
-             throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
+            throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
+        }
+
+        if (rulesVersion <= 0) {
+            throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
         }
 
         if (evaluated) {
@@ -96,32 +102,27 @@ public class LegacyTransactionRoute extends AggregateRoot {
         return List.of(event);
     }
 
-    private List<DomainEvent> updateRoutingRule(UpdateRoutingRuleCmd cmd) {
+    private List<DomainEvent> updateRule(UpdateRoutingRuleCmd cmd) {
         // Invariant 1: Prevent dual-processing
-        if (this.dualProcessingViolation) {
+        if (dualProcessingViolation) {
             throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
         }
 
         // Invariant 2: Versioning check
-        if (this.versioningViolation || cmd.ruleVersion() <= 0) {
-            throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
+        if (versioningViolation) {
+            throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
         }
 
-        // Validate Input
-        if (cmd.newTarget() == null || cmd.newTarget().isBlank()) {
-            throw new IllegalArgumentException("newTarget cannot be blank");
-        }
-
-        // Apply State Update
+        // Apply State Change
         this.targetSystem = cmd.newTarget();
+        this.evaluated = true; // Mark as processed to prevent double execution if necessary
 
-        // Create Event
-        var event = new RoutingUpdatedEvent(
-                this.routeId,
+        var event = new RuleUpdatedEvent(
+                cmd.routeId(),
                 cmd.ruleId(),
                 cmd.newTarget(),
-                cmd.ruleVersion(),
-                cmd.effectiveDate() != null ? cmd.effectiveDate() : Instant.now()
+                cmd.effectiveDate(),
+                Instant.now()
         );
 
         addEvent(event);

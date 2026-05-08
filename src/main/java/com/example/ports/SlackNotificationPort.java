@@ -1,23 +1,11 @@
 package com.example.ports;
 
+import com.example.domain.shared.Command;
+
 /**
  * Port for sending Slack notifications.
- * Used to abstract the external Slack API interaction.
+ * Implemented by infrastructure adapters.
  */
 public interface SlackNotificationPort {
-
-    /**
-     * Sends a notification to the configured Slack channel.
-     *
-     * @param message The formatted message body.
-     */
-    void send(String message);
-
-    /**
-     * Retrieves the last message sent to the mock channel.
-     * (Primarily used for verification in testing/verification scenarios)
-     *
-     * @return The last message string.
-     */
-    String getLastMessage();
+    void sendNotification(String messageBody);
 }

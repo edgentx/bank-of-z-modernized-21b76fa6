@@ -9,9 +9,10 @@ import java.util.Map;
  * Triggers validation and Slack notification workflow.
  */
 public record ReportDefectCmd(
-    String defectId,
-    String title,
-    String severity,
-    String component,
-    Map<String, String> context
-) implements Command {}
+        String defectId,
+        String title,
+        String severity,
+        String component,
+        Map<String, String> context
+) implements Command {
+}

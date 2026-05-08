@@ -1,36 +1,27 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Captures payloads sent to Slack to allow validation.
+ * Mock implementation of SlackNotificationPort for testing purposes.
+ * Captures messages sent to Slack to allow verification in tests.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> payloads = new ArrayList<>();
-    private boolean shouldThrowException = false;
+    private final List<String> sentMessages = new ArrayList<>();
 
     @Override
-    public void send(String payload) {
-        if (shouldThrowException) {
-            throw new IllegalArgumentException("Slack service unavailable");
-        }
-        payloads.add(payload);
+    public void sendNotification(String messageBody) {
+        sentMessages.add(messageBody);
     }
 
-    public List<String> getPayloads() {
-        return new ArrayList<>(payloads);
+    public List<String> getSentMessages() {
+        return new ArrayList<>(sentMessages);
     }
 
     public void clear() {
-        payloads.clear();
-    }
-
-    public void setShouldThrowException(boolean shouldThrowException) {
-        this.shouldThrowException = shouldThrowException;
+        sentMessages.clear();
     }
 }

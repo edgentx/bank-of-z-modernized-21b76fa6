@@ -1,23 +1,37 @@
 package com.example.adapters;
 
-import com.example.ports.SlackNotificationPort;
+import com.example.ports.VForce360NotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
 
 /**
- * Real implementation of the SlackNotificationPort.
- * In a production environment, this would make an HTTP call to the Slack Webhook.
- * For the scope of this fix, it logs the output and returns success.
+ * Real adapter for VForce360 notifications.
+ * Connects to Slack via HTTP API (simulated).
  */
-public class SlackNotificationAdapter implements SlackNotificationPort {
+@Component
+@ConditionalOnProperty(name = "app.slack.enabled", havingValue = "true", matchIfMissing = false)
+public class SlackNotificationAdapter implements VForce360NotificationPort {
 
-    private static final Logger logger = LoggerFactory.getLogger(SlackNotificationAdapter.class);
+    private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
 
     @Override
-    public boolean send(String messageBody) {
-        // Real-world implementation would use RestTemplate/WebClient to POST to a Slack Webhook URL.
-        // For this validation, we log and return true to simulate successful delivery.
-        logger.info("Slack notification sent: {}", messageBody);
-        return true;
+    public void publishDefect(String title, String description, String githubUrl) {
+        if (githubUrl == null || githubUrl.isBlank()) {
+            throw new IllegalArgumentException("GitHub URL cannot be null or blank");
+        }
+
+        // Implementation logic to send data to Slack
+        // In a real scenario, this would use Slack WebClient or RestTemplate
+        log.info("Publishing to Slack: {} | {} | GitHub: {}", title, description, githubUrl);
+        
+        // Simulate successful transmission
+        doSend(title, description, githubUrl);
+    }
+
+    private void doSend(String title, String description, String githubUrl) {
+        // Actual Slack API call logic would go here
+        // e.g. webClient.post()...
     }
 }

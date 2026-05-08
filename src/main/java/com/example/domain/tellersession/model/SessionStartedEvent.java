@@ -12,7 +12,10 @@ public record SessionStartedEvent(
         Instant occurredAt
 ) implements DomainEvent {
     public SessionStartedEvent {
-        // Ensure defaults or validation if necessary
+        // Ensure we have a valid aggregateId
+        if (aggregateId == null || aggregateId.isBlank()) {
+            aggregateId = UUID.randomUUID().toString();
+        }
     }
 
     @Override

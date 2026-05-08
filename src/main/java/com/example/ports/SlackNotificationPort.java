@@ -1,16 +1,17 @@
 package com.example.ports;
 
 /**
- * Port interface for Slack notifications.
- * Used by Temporal workflows to report defects without depending directly on the Slack SDK.
+ * Port for sending notifications to Slack.
+ * Used by defect reporting workflows.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Posts a defect report message to the configured Slack channel.
+     * Posts a message to a specific Slack channel.
      *
-     * @param defectTitle The title of the defect.
-     * @param body The formatted body of the message.
+     * @param channel The channel ID or name (e.g., "#vforce360-issues")
+     * @param message The message body content
+     * @throws com.example.domain.shared.UnknownCommandException if the post fails
      */
-    void postDefect(String defectTitle, String body);
+    void postMessage(String channel, String message);
 }

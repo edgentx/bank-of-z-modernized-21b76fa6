@@ -6,8 +6,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Implementation of DefectActivities.
- * This is where the defect reporting logic (GitHub + Slack) lives.
- * This is currently a STUB to satisfy compilation errors.
+ * Orchestrates the logic between GitHub and Slack.
  */
 @Component
 public class DefectActivitiesImpl implements DefectActivities {
@@ -26,7 +25,7 @@ public class DefectActivitiesImpl implements DefectActivities {
         String url = gitHubPort.createIssue(cmd.title(), cmd.description())
                 .orElseThrow(() -> new RuntimeException("Failed to create GitHub issue"));
 
-        // 2. Notify Slack (S-FB-1: Verify this contains the URL)
+        // 2. Notify Slack
         String message = "Defect Reported: " + cmd.title() + " - " + url;
         slackNotifier.sendNotification("#vforce360-issues", message);
 

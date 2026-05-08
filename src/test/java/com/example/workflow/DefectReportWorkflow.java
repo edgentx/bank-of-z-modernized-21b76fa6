@@ -1,6 +1,5 @@
 package com.example.workflow;
 
-import com.example.domain.reporting.model.DefectReportedEvent;
 import com.example.domain.reporting.model.ReportDefectCmd;
 import com.example.ports.GitHubIssuePort;
 import com.example.ports.SlackNotificationPort;
@@ -12,15 +11,15 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * Orchestrator logic for reporting a defect.
- * This mimics the Temporal workflow logic but in a testable Java form.
- * 
- * Implementation Placeholder: This class is intentionally empty/returning nulls or throwing errors
- * to force the RED phase of TDD. The tests above expect it to work.
+ * S-FB-1: Implements the logic to create a GitHub issue and notify Slack with the resulting URL.
  */
 public class DefectReportWorkflow {
 
     private final GitHubIssuePort githubPort;
     private final SlackNotificationPort slackPort;
+
+    // Standard channel for defect reporting according to VForce360 conventions
+    private static final String DEFAULT_CHANNEL = "#vforce360-issues";
 
     public DefectReportWorkflow(GitHubIssuePort githubPort, SlackNotificationPort slackPort) {
         this.githubPort = githubPort;
@@ -28,14 +27,38 @@ public class DefectReportWorkflow {
     }
 
     public CompletableFuture<Void> reportDefect(ReportDefectCmd cmd) {
-        // RED PHASE STUB
-        // This will cause the tests to fail because it doesn't do anything yet.
-        return CompletableFuture.completedFuture(null);
+        // 1. Prepare the request for GitHub
+        // Title format: [Defect ID] Severity: Description snippet
+        String title = String.format("[%s] %s: %s", cmd.defectId(), cmd.severity(), cmd.description());
+        IssueRequest issueRequest = new IssueRequest(title, cmd.description());
+
+        // 2. Call GitHub Adapter (Async)
+        return githubPort.createIssue(issueRequest)
+            .thenCompose(githubResponse -> {
+                // 3. Handle the response and build the Slack message
+                String slackBody = buildSlackBody(cmd, githubResponse);
+                SlackMessage slackMessage = new SlackMessage(DEFAULT_CHANNEL, slackBody);
+
+                // 4. Send Notification (Async)
+                return slackPort.sendNotification(slackMessage);
+            });
+    }
+
+    private String buildSlackBody(ReportDefectCmd cmd, IssueResponse response) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("*Defect Report Received*\n");
+        sb.append("*ID:* ").append(cmd.defectId()).append("\n");
+        sb.append("*Severity:* ").append(cmd.severity()).append("\n");
+        sb.append("*Description:* ").append(cmd.description()).append("\n");
         
-        // Intended implementation logic for Green Phase:
-        // 1. Call githubPort.createIssue(...)
-        // 2. Extract URL from response
-        // 3. Construct SlackMessage with URL in body
-        // 4. Call slackPort.sendNotification(...)
+        // CRITICAL FIX for S-FB-1: Ensure URL is present
+        if (response.url() != null && !response.url().isBlank()) {
+            sb.append("*GitHub Issue:* ").append(response.url()).append("\n");
+        } else {
+            // Fallback if URL generation failed (should not happen with valid integration)
+            sb.append("*GitHub Issue:* Link generation pending or failed.\n");
+        }
+        
+        return sb.toString();
     }
 }

@@ -1,18 +1,16 @@
 package com.example.ports;
 
-import com.example.domain.report_defect.model.ReportDefectCommand;
-
 /**
- * Port for sending notifications to Slack.
- * Used by the temporal-worker to report defects.
+ * Port for sending Slack notifications.
+ * Used by temporal workflows to report defects.
  */
 public interface SlackNotificationPort {
-
     /**
-     * Sends a defect report to the configured Slack channel.
+     * Sends a message to a Slack channel.
      *
-     * @param command the command containing the defect details
-     * @return the formatted message body that was (or would be) sent
+     * @param channel The target channel (e.g. "#vforce360-issues")
+     * @param body    The message body text.
+     * @return true if the message was successfully sent.
      */
-    String sendDefectNotification(ReportDefectCommand command);
+    boolean sendMessage(String channel, String body);
 }

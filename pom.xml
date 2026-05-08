@@ -9,32 +9,30 @@
         <version>3.2.3</version>
         <relativePath/>
     </parent>
-
+    
     <groupId>com.example</groupId>
     <artifactId>teller-core</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>teller-core</name>
-    <description>Teller Core Domain</description>
+    <description>Core Teller Domain</description>
+    
     <properties>
         <java.version>17</java.version>
         <cucumber.version>7.16.1</cucumber.version>
     </properties>
-
+    
     <dependencies>
-        <!-- Spring Boot Dependencies (Managed by BOM) -->
+        <!-- Spring Boot Starters (Managed by BOM) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
-
-        <!-- Temporal (Not in Spring Boot BOM - Explicit Version Required) -->
         <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>1.22.3</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
-
-        <!-- Cucumber (Not in Spring Boot BOM - Explicit Version Required) -->
+        
+        <!-- Cucumber (BDD Testing) -- explicit version required -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
@@ -48,28 +46,32 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-spring</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- JUnit Platform (Required by Cucumber Engine) -->
+        <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <!-- Testing (Managed by Spring Boot BOM) -->
+        
+        <!-- Standard Test Dependencies (Managed by BOM) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
-
+    
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>17</source>
-                    <target>17</target>
-                </configuration>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

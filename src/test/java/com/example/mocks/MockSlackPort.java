@@ -4,22 +4,17 @@ import com.example.ports.SlackPort;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Mock implementation of SlackPort for testing.
- * Captures messages sent during test execution.
- */
 public class MockSlackPort implements SlackPort {
-
-    public final List<Message> sentMessages = new ArrayList<>();
-
-    public record Message(String channelId, String body) {}
+    public List<String> channels = new ArrayList<>();
+    public List<String> messages = new ArrayList<>();
 
     @Override
-    public void sendMessage(String channelId, String messageBody) {
-        this.sentMessages.add(new Message(channelId, messageBody));
+    public void sendMessage(String channel, String text) {
+        channels.add(channel);
+        messages.add(text);
     }
 
-    public void reset() {
-        sentMessages.clear();
+    public String getLastMessage() {
+        return messages.get(messages.size() - 1);
     }
 }

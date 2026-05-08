@@ -8,8 +8,8 @@ import org.junit.runner.RunWith;
 @CucumberOptions(
     features = {"features/VW-454.feature"},
     glue = {"com.example.steps"},
-    plugin = {"pretty", "html:target/cucumber-report/VW-454.html"}
+    plugin = {"pretty", "html:target/cucumber-report/VW-454"}
 )
 public class VW454TestSuite {
-    // This class serves as the test runner for the specific feature file
+    // Test Suite configuration for VW-454
 }

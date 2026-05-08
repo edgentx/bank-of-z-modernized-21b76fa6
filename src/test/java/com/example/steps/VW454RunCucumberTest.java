@@ -1,16 +1,17 @@
 package com.example.steps;
 
-import io.cucumber.junit.platform.engine.Cucumber;
+import org.junit.platform.suite.api.Configuration;
 import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
-import org.junit.platform.suite.api.SuiteDisplayName;
 
-/**
- * JUnit 5 wrapper to run Cucumber features for VW-454.
- */
 @Suite
 @IncludeEngines("cucumber")
-@SuiteDisplayName("VW-454 Regression Tests")
+@SelectClasspathResource("com/example/steps")
+@Configuration(
+    features = "features/VW454.feature",
+    glue = "com.example.steps"
+)
 public class VW454RunCucumberTest {
-    // This class triggers the Cucumber runner via JUnit 5 Platform Suite
+    // JUnit 5 Suite wrapper to run Cucumber via Maven Surefire/JUnit Platform
 }

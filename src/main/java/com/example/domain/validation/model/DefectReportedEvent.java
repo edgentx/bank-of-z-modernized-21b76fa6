@@ -1,16 +1,13 @@
 package com.example.domain.validation.model;
 
 import com.example.domain.shared.DomainEvent;
-import java.time.Instant;
-import java.util.UUID;
 
-/**
- * Event published when a defect is reported.
- */
+import java.time.Instant;
+
 public record DefectReportedEvent(
     String aggregateId,
-    String defectId,
-    String githubIssueUrl,
+    String message,
+    String githubUrl,
     Instant occurredAt
 ) implements DomainEvent {
     @Override
@@ -20,11 +17,11 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId();
+        return aggregateId;
     }
 
     @Override
     public Instant occurredAt() {
-        return occurredAt();
+        return occurredAt;
     }
 }

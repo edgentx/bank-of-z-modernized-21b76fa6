@@ -1,31 +1,50 @@
 package com.example.workflows;
 
-import io.temporal.workflow.WorkflowInterface;
-import io.temporal.workflow.WorkflowMethod;
+import com.example.ports.GitHubClient;
+import com.example.ports.SlackNotifier;
+import io.temporal.workflow.Workflow;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Workflow implementation for reporting a defect.
- * Orchestrates creating a GitHub issue and notifying Slack.
+ * This is a stub to satisfy compilation in the Red phase.
+ * The logic to bridge GitHub and Slack is missing, causing the test to fail.
  */
 public class ReportDefectWorkflowImpl implements ReportDefectWorkflow {
 
-    private final ReportDefectActivities activities;
+    // In a real Spring Boot app, these would be @Autowired
+    private SlackNotifier slackNotifier;
+    private GitHubClient githubClient;
 
-    public ReportDefectWorkflowImpl() {
-        // Activities stub is initialized by Temporal via Worker.registerActivitiesImplementations
-        this.activities = io.temporal.workflow.Workflow.newActivityStub(ReportDefectActivities.class);
+    public void setSlackNotifier(SlackNotifier slackNotifier) {
+        this.slackNotifier = slackNotifier;
+    }
+
+    public void setGithubClient(GitHubClient githubClient) {
+        this.githubClient = githubClient;
     }
 
     @Override
-    public String reportDefect(String summary, String description) {
-        // 1. Create GitHub Issue
-        String githubUrl = activities.createGitHubIssue(summary, description);
+    public String reportDefect(String projectId, String title, String description) {
+        // Workflow Stub Implementation:
+        // 1. Ideally: Create GitHub Issue
+        // 2. Ideally: Send Slack Notification with the URL
+        // Current State: Does nothing or partial implementation, causing test failure.
 
-        // 2. Notify Slack with the GitHub URL
-        // Fix for S-FB-1: Ensuring the URL is included in the Slack body
-        String message = "Defect reported: " + summary + " " + githubUrl;
-        activities.notifySlack(message);
+        String issueUrl = "";
+        if (githubClient != null) {
+             issueUrl = githubClient.createIssue("bank-of-z/legacy-issues", title, description);
+        }
 
-        return githubUrl;
+        // Bug location (Red Phase): We send notification, but we DON'T include the URL in the body.
+        if (slackNotifier != null) {
+             Map<String, Object> attachment = new HashMap<>();
+             // Intentionally omitting issueUrl from the text body to reproduce the defect
+             slackNotifier.sendNotification("https://hooks.slack.com/test", "Defect Reported: " + title, attachment);
+        }
+
+        return "DEFECT-" + System.currentTimeMillis();
     }
 }

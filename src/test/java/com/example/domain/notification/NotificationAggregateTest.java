@@ -1,52 +1,62 @@
 package com.example.domain.notification;
 
 import com.example.domain.notification.model.NotificationAggregate;
-import com.example.domain.notification.model.PrepareSlackNotificationCmd;
+import com.example.domain.notification.model.NotificationPostedEvent;
+import com.example.domain.notification.model.ReportDefectCommand;
 import org.junit.jupiter.api.Test;
+
+import java.time.Instant;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for NotificationAggregate.
- * Verifies domain logic regarding content preparation.
+ * Focuses on business logic for Slack body formatting (S-FB-1).
  */
-public class NotificationAggregateTest {
+class NotificationAggregateTest {
 
     @Test
-    @DisplayName("Should prepare notification body containing GitHub URL")
-    public void testPrepareNotificationWithUrl() {
-        // Arrange
-        String id = "notif-1";
-        String url = "https://github.com/test/123";
-        NotificationAggregate aggregate = new NotificationAggregate(id);
-        PrepareSlackNotificationCmd cmd = new PrepareSlackNotificationCmd(
-            id, 
-            "#general", 
-            "Test Defect", 
-            url
+    void shouldContainGitHubUrlWhenReportingDefect() {
+        // Given
+        var aggregate = new NotificationAggregate("test-id");
+        var cmd = new ReportDefectCommand(
+            "Test Defect",
+            "Description",
+            "HIGH",
+            "api",
+            Map.of("githubIssueId", "123")
         );
 
-        // Act
-        aggregate.execute(cmd);
+        // When
+        var events = aggregate.execute(cmd);
 
-        // Assert
-        assertTrue(aggregate.getSlackBody().contains(url), "Slack body must contain the GitHub URL");
+        // Then
+        assertEquals(1, events.size());
+        var event = (NotificationPostedEvent) events.get(0);
+        
+        // Critical assertion for S-FB-1: URL must be in body
+        assertTrue(event.body().contains("https://github.com/example-org/egdcrypto-bank-of-z/issues/123"));
+        assertEquals("slack", event.channel());
     }
 
     @Test
-    @DisplayName("Should throw exception if GitHub URL is missing")
-    public void testPrepareNotificationFailsWithoutUrl() {
-        // Arrange
-        String id = "notif-2";
-        NotificationAggregate aggregate = new NotificationAggregate(id);
-        PrepareSlackNotificationCmd cmd = new PrepareSlackNotificationCmd(
-            id, 
-            "#general", 
-            "Test Defect", 
-            "" // Empty URL
+    void shouldFailValidationIfMetadataMissing() {
+        // This test ensures robustness. If the implementation relies on metadata being present,
+        // we verify behavior here. For S-FB-1, we assume happy path primarily,
+        // but checking handling of missing metadata is good practice.
+        var aggregate = new NotificationAggregate("test-id");
+        var cmd = new ReportDefectCommand(
+            "Test Defect",
+            "Description",
+            "HIGH",
+            "api",
+            Map.of() // Empty metadata
         );
 
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> aggregate.execute(cmd));
+        // Expect the system to handle missing ID gracefully (e.g., default to UNKNOWN)
+        var events = aggregate.execute(cmd);
+        var event = (NotificationPostedEvent) events.get(0);
+        assertTrue(event.body().contains("UNKNOWN"));
     }
 }

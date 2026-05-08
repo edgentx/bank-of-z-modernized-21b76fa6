@@ -1,33 +1,29 @@
 package com.example.mocks;
 
-import com.example.domain.defect.ports.NotificationService;
-
-import java.util.ArrayList;
-import java.util.List;
+import com.example.vforce.adapter.NotificationPort;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Mock implementation of NotificationService for testing.
- * Captures messages to memory to verify behavior without external I/O.
+ * Mock implementation of NotificationPort.
+ * Captures the last sent payload for assertions.
  */
-public class MockNotificationService implements NotificationService {
-    
-    public final List<String> sentMessages = new ArrayList<>();
-    private boolean shouldFail = false;
+public class MockNotificationService implements NotificationPort {
+
+    private Map<String, String> lastPayload;
+    public boolean notificationSent = false;
 
     @Override
-    public void sendDefectNotification(String content) {
-        if (shouldFail) {
-            throw new NotificationException("Mock failure triggered");
-        }
-        sentMessages.add(content);
+    public void sendNotification(Map<String, String> payload) {
+        this.lastPayload = new HashMap<>(payload);
+        this.notificationSent = true;
     }
 
-    public void reset() {
-        sentMessages.clear();
-        shouldFail = false;
+    public Map<String, String> getLastPayload() {
+        return lastPayload;
     }
 
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
+    public String getMessageBody() {
+        return lastPayload != null ? lastPayload.get("body") : null;
     }
 }

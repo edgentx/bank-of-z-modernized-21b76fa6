@@ -5,6 +5,5 @@ import com.example.domain.shared.Command;
 public record SendNotificationCmd(
     String notificationId,
     String channel,
-    String target,
-    String formattedBody
+    String body
 ) implements Command {}

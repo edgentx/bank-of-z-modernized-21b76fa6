@@ -3,10 +3,10 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
 /**
- * Domain event emitted when a Teller Session is successfully started.
+ * Event emitted when a teller session is successfully started.
+ * Used in S-18.
  */
 public record SessionStartedEvent(
     String aggregateId,
@@ -14,9 +14,6 @@ public record SessionStartedEvent(
     String terminalId,
     Instant occurredAt
 ) implements DomainEvent {
-    public SessionStartedEvent {
-        // Validate defaults if necessary, though records handle initialization
-    }
 
     @Override
     public String type() {
@@ -26,10 +23,5 @@ public record SessionStartedEvent(
     @Override
     public Instant occurredAt() {
         return occurredAt;
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
     }
 }

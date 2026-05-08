@@ -1,10 +1,8 @@
 package com.example.workflows;
 
-import com.example.workflows.ReportDefectActivity;
-
 /**
- * Synchronous implementation of ReportDefectWorkflow for testing purposes.
- * In production, Temporal generates the stub, but for unit tests we need a concrete class.
+ * Implementation of the ReportDefectWorkflow.
+ * Orchestrates the activity execution.
  */
 public class ReportDefectWorkflowImpl implements ReportDefectWorkflow {
 
@@ -16,7 +14,8 @@ public class ReportDefectWorkflowImpl implements ReportDefectWorkflow {
 
     @Override
     public String execute(String summary, String description, String slackChannel) {
-        // Direct call in tests. In real Temporal, this is wrapped in workflow logic.
+        // Workflow logic is straightforward here: execute the activity.
+        // In a more complex scenario, we might add retries, compensations, etc.
         return activity.reportDefect(summary, description, slackChannel);
     }
 }

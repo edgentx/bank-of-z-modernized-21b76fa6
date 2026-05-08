@@ -3,14 +3,9 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to initiate a teller session following successful authentication.
- * Corresponds to Story S-18.
+ * Command to initiate a new Teller Session.
+ * Record carrying the necessary context for the operation.
  */
-public record StartSessionCmd(
-    String sessionId,
-    String tellerId,
-    String terminalId,
-    boolean isAuthenticated,
-    boolean isTimedOut,
-    String navigationState
-) implements Command {}
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {
+    // Validation is performed by the Aggregate during execution
+}

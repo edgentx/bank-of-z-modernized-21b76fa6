@@ -1,4 +1,3 @@
-<!-- Updated POM with valid dependencies to resolve build errors -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -17,7 +16,6 @@
 
     <properties>
         <java.version>17</java.version>
-        <temporal.version>1.22.0</temporal.version>
         <flyway.version>9.22.3</flyway.version>
     </properties>
 
@@ -40,14 +38,14 @@
             <artifactId>spring-boot-starter-integration</artifactId>
         </dependency>
 
-        <!-- Temporal (Requires explicit version as it is not in Spring BOM) -->
+        <!-- Temporal -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>${temporal.version}</version>
+            <version>1.22.0</version>
         </dependency>
 
-        <!-- Flyway DB2 (Requires explicit version as it is not in Spring BOM) -->
+        <!-- Flyway DB2 -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -58,7 +56,7 @@
             <version>${flyway.version}</version>
         </dependency>
 
-        <!-- Testing Dependencies (Jupiter + Mockito) -->
+        <!-- Testing Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -81,6 +79,5 @@
             <id>central</id>
             <url>https://repo.maven.apache.org/maven2</url>
         </repository>
-        <!-- Temporal repo if needed for specific releases, usually central is enough -->
     </repositories>
 </project>

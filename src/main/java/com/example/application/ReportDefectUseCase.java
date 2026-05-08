@@ -5,7 +5,6 @@ import com.example.ports.SlackNotificationPort;
 /**
  * Use Case handling the business logic for reporting a defect.
  * Orchestrates the creation of the Slack message.
- * Implementation placeholder for TDD Red Phase.
  */
 public class ReportDefectUseCase {
 
@@ -16,9 +15,7 @@ public class ReportDefectUseCase {
     }
 
     public void execute(ReportDefectCommand cmd) {
-        // TODO: Implement logic to format the message with cmd.githubUrl()
-        // This placeholder simply sends the raw title to ensure compilation,
-        // causing the specific URL test to fail (Red Phase).
+        // Logic to format the message with cmd.githubUrl()
         String urlDisplay = (cmd.githubUrl() != null) ? cmd.githubUrl() : "URL: N/A";
         
         String messageBody = String.format(

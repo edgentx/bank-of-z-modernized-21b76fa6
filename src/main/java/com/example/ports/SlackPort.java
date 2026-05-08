@@ -1,12 +1,25 @@
 package com.example.ports;
 
+import com.example.domain.shared.Command;
+import java.util.concurrent.CompletableFuture;
+
 /**
- * Port interface for sending notifications to Slack.
+ * Port for sending Slack notifications.
+ * Abstraction for the actual Slack Web API client.
  */
 public interface SlackPort {
+
     /**
-     * Sends a message to the configured Slack channel.
-     * @param message The message body to send.
+     * Sends a message to a configured Slack channel.
+     *
+     * @param channel The Slack channel ID or name (e.g., "#vforce360-issues").
+     * @param messageBody The formatted body of the message.
+     * @return CompletableFuture indicating completion.
      */
-    void sendMessage(String message);
+    CompletableFuture<Void> sendMessage(String channel, String messageBody);
+
+    /**
+     * Retrieves the webhook URL or API endpoint being used (for testing/validation purposes).
+     */
+    String getEndpointUrl();
 }

@@ -2,16 +2,12 @@ package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
 
-/**
- * Command to initiate a teller session.
- * Contains flags to simulate domain state violations for testing invariants.
- */
+import java.time.Instant;
+
 public record StartSessionCmd(
-        String sessionId,
         String tellerId,
         String terminalId,
         boolean isAuthenticated,
-        boolean isTimedOut,
-        String navigationState
-) implements Command {
-}
+        Instant lastActivityAt,
+        String navigationContext
+) implements Command {}

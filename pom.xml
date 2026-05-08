@@ -9,53 +9,33 @@
         <version>3.2.0</version>
         <relativePath/>
     </parent>
+    
     <groupId>com.example</groupId>
     <artifactId>bank-teller-session</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
     <name>bank-teller-session</name>
-    <description>Bank Teller Session Domain</description>
+    <description>Bank Teller Session Domain (CICS/IMS Bridge)</description>
+    
     <properties>
-        <java.version>21</java.version>
-        <cucumber.version>7.15.0</cucumber.version>
+        <java.version>17</java.version>
+        <cucumber.version>7.14.0</cucumber.version>
     </properties>
+    
     <dependencies>
-        <!-- Spring Boot Starters -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
+        <!-- OpenTelemetry Distribution (Spring Boot BOM manages version) -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-integration</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-batch</artifactId>
-        </dependency>
-
-        <!-- Database Drivers -->
-        <dependency>
-            <groupId>com.ibm.db2</groupId>
-            <artifactId>jcc</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
-        <!-- IBM MQ (Assuming Spring BOM covers main libs, but explicit often safer for specific JMS providers) -->
-        <!-- Provided via IBM MQ Client installation usually, but assuming com.ibm.mq:mq-jms-spring-boot-starter if available or generic jms -->
-        <!-- Using placeholder for generic JMS + MQ dependencies if not in BOM, but assuming Spring Boot BOM covers core integration -->
-
+        
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

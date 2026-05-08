@@ -2,10 +2,13 @@ package com.example.domain.teller.repository;
 
 import com.example.domain.teller.model.TellerSessionAggregate;
 
+import java.util.Optional;
+
 /**
  * Repository interface for TellerSession aggregates.
  */
 public interface TellerSessionRepository {
-    void save(TellerSessionAggregate aggregate);
-    TellerSessionAggregate load(String sessionId);
+    TellerSessionAggregate save(TellerSessionAggregate aggregate);
+    Optional<TellerSessionAggregate> findById(String id);
+    // In-memory specific or testing specific helpers could be here, but we stick to contract.
 }

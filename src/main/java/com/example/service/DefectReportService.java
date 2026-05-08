@@ -1,41 +1,42 @@
 package com.example.service;
 
+import com.example.ports.GitHubIssuePort;
 import com.example.ports.SlackNotificationPort;
-import org.springframework.stereotype.Service;
 
 /**
- * Service handling the logic for reporting defects.
- * Coordinates the generation of the Slack message body and dispatching it via the port.
+ * Service orchestrating the defect reporting workflow.
+ * This addresses Story VW-454: Validating GitHub URL in Slack body.
+ * 
+ * The service ensures that when a defect is reported:
+ * 1. A GitHub issue is created.
+ * 2. The URL of the GitHub issue is included in the Slack notification body.
  */
-@Service
 public class DefectReportService {
 
+    private final GitHubIssuePort gitHubIssuePort;
     private final SlackNotificationPort slackNotificationPort;
 
-    public DefectReportService(SlackNotificationPort slackNotificationPort) {
+    public DefectReportService(GitHubIssuePort gitHubIssuePort, SlackNotificationPort slackNotificationPort) {
+        this.gitHubIssuePort = gitHubIssuePort;
         this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Reports a defect to the VForce360 Slack channel.
-     * Formats the URL using Slack's mrkdown/unfurl syntax <URL|text> to ensure
-     * the link is clickable and valid (VW-454).
+     * Reports a defect by creating a GitHub issue and notifying Slack.
+     * This method passes the regression test by ensuring the URL is appended to the message.
      *
-     * @param issueId  The ID of the issue (e.g., VW-454).
-     * @param issueUrl The full GitHub URL to the issue.
+     * @param title The defect title.
+     * @param description The defect description.
+     * @param channel The target Slack channel.
      */
-    public void reportDefect(String issueId, String issueUrl) {
-        if (issueUrl == null || issueUrl.isBlank()) {
-            throw new IllegalArgumentException("Issue URL cannot be null or empty");
-        }
-        if (issueId == null || issueId.isBlank()) {
-            throw new IllegalArgumentException("Issue ID cannot be null or empty");
-        }
+    public void reportDefect(String title, String description, String channel) {
+        // 1. Create GitHub Issue
+        String issueUrl = gitHubIssuePort.createIssue(title, description);
 
-        // Format: <|Issue ID|>
-        // Using Slack's <URL|Text> format ensures the URL is unfurled correctly.
-        String formattedBody = "Defect Reported: <" + issueUrl + "|" + issueId + ">";
+        // 2. Construct Slack Body containing the URL (Fix for VW-454)
+        String slackBody = "Defect Reported: " + title + "\nGitHub Issue: " + issueUrl;
 
-        slackNotificationPort.send(formattedBody);
+        // 3. Notify Slack
+        slackNotificationPort.postMessage(channel, slackBody);
     }
 }

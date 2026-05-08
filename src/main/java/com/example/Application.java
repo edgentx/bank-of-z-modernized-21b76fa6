@@ -1,30 +1,35 @@
 package com.example;
 
+import com.example.adapters.GitHubAdapter;
+import com.example.adapters.SlackAdapter;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackPort;
+import com.example.service.ValidationService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackNotificationPort;
-import com.example.services.DefectService;
-
-/**
- * Main Spring Boot Application for Bank of Z Modernization.
- */
 @SpringBootApplication
-@ComponentScan(basePackages = "com.example")
 public class Application {
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
 
-    /**
-     * Service to handle defect reporting logic (Orchestrates GitHub and Slack).
-     */
     @Bean
-    public DefectService defectService(GitHubPort githubPort, SlackNotificationPort slackPort) {
-        return new DefectService(githubPort, slackPort);
+    public GitHubPort gitHubPort() {
+        // In production, use the real adapter.
+        return new GitHubAdapter();
+    }
+
+    @Bean
+    public SlackPort slackPort() {
+        // In production, use the real adapter.
+        return new SlackAdapter();
+    }
+
+    @Bean
+    public ValidationService validationService(GitHubPort gitHubPort, SlackPort slackPort) {
+        return new ValidationService(gitHubPort, slackPort);
     }
 }

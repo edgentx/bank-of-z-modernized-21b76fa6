@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<!-- Updated POM with valid dependencies to resolve build errors -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -7,27 +7,22 @@
     <groupId>com.example</groupId>
     <artifactId>bank-of-z-modernization</artifactId>
     <version>1.0.0-SNAPSHOT</version>
-    <packaging>jar</packaging>
-
-    <name>bank-of-z-modernization</name>
-    <description>Bank of Z Modernization Project</description>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <!-- 3.2.x or 3.3.x works for Temporal 1.22.0 -->
-        <version>3.2.5</version>
+        <version>3.2.0</version>
         <relativePath/>
     </parent>
 
     <properties>
         <java.version>17</java.version>
         <temporal.version>1.22.0</temporal.version>
-        <flyway.version>10.0.1</flyway.version>
+        <flyway.version>9.22.3</flyway.version>
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Starters (BOM managed) -->
+        <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -38,10 +33,6 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-batch</artifactId>
         </dependency>
         <dependency>
@@ -49,21 +40,14 @@
             <artifactId>spring-boot-starter-integration</artifactId>
         </dependency>
 
-        <!-- Temporal (BOM unmanaged - requires explicit version) -->
+        <!-- Temporal (Requires explicit version as it is not in Spring BOM) -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
             <version>${temporal.version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-testing</artifactId>
-            <version>${temporal.version}</version>
-            <scope>test</scope>
-        </dependency>
 
-        <!-- Flyway DB2 (BOM unmanaged - requires explicit version) -->
-        <!-- Note: If DB2 is not in public repo, use local repo or replace with mock/stub -->
+        <!-- Flyway DB2 (Requires explicit version as it is not in Spring BOM) -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -74,15 +58,10 @@
             <version>${flyway.version}</version>
         </dependency>
 
-        <!-- Testing (BOM managed) -->
+        <!-- Testing Dependencies (Jupiter + Mockito) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -95,28 +74,13 @@
             <artifactId>mockito-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-suite</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>17</source>
-                    <target>17</target>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-
+    <repositories>
+        <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+        <!-- Temporal repo if needed for specific releases, usually central is enough -->
+    </repositories>
 </project>

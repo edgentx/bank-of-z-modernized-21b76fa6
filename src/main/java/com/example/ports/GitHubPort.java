@@ -1,7 +1,5 @@
 package com.example.ports;
 
-import java.util.Optional;
-
 /**
  * Port for interacting with GitHub issues/repositories.
  * Used to generate URLs or retrieve metadata.

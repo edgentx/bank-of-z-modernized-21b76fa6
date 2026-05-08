@@ -5,9 +5,16 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 
 /**
- * Event emitted when a teller successfully navigates to a new screen.
+ * Event emitted when a teller successfully navigates to a new menu.
  */
-public record MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) implements DomainEvent {
+public record MenuNavigatedEvent(
+        String aggregateId,
+        String previousMenuId,
+        String currentMenuId,
+        String action,
+        Instant occurredAt
+) implements DomainEvent {
+
     @Override
     public String type() {
         return "menu.navigated";

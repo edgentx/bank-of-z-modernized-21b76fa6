@@ -1,22 +1,27 @@
-package com.example.steps;
+package com.example.mocks;
 
-import com.example.ports.GitHubIssuePort;
+import com.example.infrastructure.adapters.github.GitHubIssueClient;
 
 /**
- * Mock adapter for GitHubIssuePort.
- * Returns a predefined URL to simulate successful issue creation.
+ * Mock implementation of GitHubIssueClient for testing.
+ * Returns predictable URLs without calling GitHub API.
  */
-public class MockGitHubIssueClient implements GitHubIssuePort {
+public class MockGitHubIssueClient implements GitHubIssueClient {
 
-    private String nextIssueUrl = "https://github.com/bank-of-z/issues/1";
+    private String mockUrlBase = "https://github.com/mock/repo/issues/";
+    private int callCount = 0;
 
     @Override
-    public String createIssue(String title, String body) {
-        System.out.println("[MockGitHub] Created issue: " + title + " -> " + nextIssueUrl);
-        return nextIssueUrl;
+    public String createIssue(IssueRequest request) {
+        callCount++;
+        return mockUrlBase + callCount;
     }
 
-    public void setNextIssueUrl(String url) {
-        this.nextIssueUrl = url;
+    public void setMockUrlBase(String base) {
+        this.mockUrlBase = base;
+    }
+
+    public int getCallCount() {
+        return callCount;
     }
 }

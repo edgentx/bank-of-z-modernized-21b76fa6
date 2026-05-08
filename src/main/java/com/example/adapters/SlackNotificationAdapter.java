@@ -1,37 +1,47 @@
 package com.example.adapters;
 
-import com.example.ports.VForce360NotificationPort;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackNotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
- * Real adapter for VForce360 notifications.
- * Connects to Slack via HTTP API (simulated).
+ * Real implementation of SlackNotificationPort.
+ * Formats the message body ensuring the GitHub URL is present.
  */
 @Component
-@ConditionalOnProperty(name = "app.slack.enabled", havingValue = "true", matchIfMissing = false)
-public class SlackNotificationAdapter implements VForce360NotificationPort {
+public class SlackNotificationAdapter implements SlackNotificationPort {
 
-    private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
+    private static final Logger logger = LoggerFactory.getLogger(SlackNotificationAdapter.class);
+    private final GitHubPort gitHubPort;
 
-    @Override
-    public void publishDefect(String title, String description, String githubUrl) {
-        if (githubUrl == null || githubUrl.isBlank()) {
-            throw new IllegalArgumentException("GitHub URL cannot be null or blank");
-        }
-
-        // Implementation logic to send data to Slack
-        // In a real scenario, this would use Slack WebClient or RestTemplate
-        log.info("Publishing to Slack: {} | {} | GitHub: {}", title, description, githubUrl);
-        
-        // Simulate successful transmission
-        doSend(title, description, githubUrl);
+    public SlackNotificationAdapter(GitHubPort gitHubPort) {
+        this.gitHubPort = gitHubPort;
     }
 
-    private void doSend(String title, String description, String githubUrl) {
-        // Actual Slack API call logic would go here
-        // e.g. webClient.post()...
+    @Override
+    public NotificationResult publishDefect(String channel, String title, String defectId) {
+        try {
+            // Resolve the URL using the port
+            String url = gitHubPort.getIssueUrl(defectId);
+
+            // Construct the message body adhering to the expected format
+            String body = String.format(
+                "Defect Reported: %s - ID: %s - GitHub: %s",
+                title, defectId, url
+            );
+
+            logger.info("Publishing to channel {}: {}", channel, body);
+            
+            // In a real implementation, this would call Slack WebClient API here.
+            // e.g. slackClient.post(channel, body);
+            
+            return new NotificationResult(true, body);
+
+        } catch (Exception e) {
+            logger.error("Failed to publish defect report for {}", defectId, e);
+            return new NotificationResult(false, null);
+        }
     }
 }

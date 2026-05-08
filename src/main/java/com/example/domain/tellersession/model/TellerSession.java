@@ -5,18 +5,41 @@ import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
 
+import java.time.Instant;
 import java.util.List;
 
+/**
+ * TellerSession Aggregate Root
+ * State transitions for User Interface Navigation.
+ */
 public class TellerSession extends AggregateRoot {
 
     private final String sessionId;
-    private boolean isAuthenticated = true; // Default true for valid sessions
-    private boolean isTimedOut = false;
-    private boolean isNavigationStateValid = true; // Default true for valid sessions
-    private boolean isActive = false;
+    private TellerSessionState state;
+    private Instant lastActivityAt;
+    private String tellerId;
+
+    public enum TellerSessionState {
+        ACTIVE,
+        UNAUTHENTICATED,
+        TIMED_OUT,
+        NAVIGATION_ERROR,
+        TERMINATED
+    }
 
     public TellerSession(String sessionId) {
         this.sessionId = sessionId;
+        // Default initialization for a valid active session for the test context
+        this.state = TellerSessionState.ACTIVE;
+        this.lastActivityAt = Instant.now();
+        this.tellerId = "SYSTEM_TELLER";
+    }
+
+    /**
+     * Test helper to simulate specific state conditions required by BDD scenarios
+     */
+    public void markState(TellerSessionState newState) {
+        this.state = newState;
     }
 
     @Override
@@ -26,54 +49,47 @@ public class TellerSession extends AggregateRoot {
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof EndSessionCmd c) {
-            return handleEndSession(c);
+        if (cmd instanceof EndSessionCmd) {
+            return endSession((EndSessionCmd) cmd);
         }
         throw new UnknownCommandException(cmd);
     }
 
-    private List<DomainEvent> handleEndSession(EndSessionCmd cmd) {
-        // Invariant: A teller must be authenticated to initiate a session.
-        // Context: The prompt says "EndSessionCmd rejected — A teller must be authenticated to initiate a session."
-        // This implies that ending a session requires authentication (integrity).
-        if (!isAuthenticated) {
-            throw new IllegalStateException("Teller must be authenticated to end session");
+    private List<DomainEvent> endSession(EndSessionCmd cmd) {
+        // Invariant: A teller must be authenticated
+        if (state == TellerSessionState.UNAUTHENTICATED) {
+            throw new IllegalStateException("Cannot end session: Teller is not authenticated.");
         }
 
-        // Invariant: Sessions must timeout after a configured period of inactivity.
-        if (isTimedOut) {
-            throw new IllegalStateException("Session already timed out");
+        // Invariant: Sessions must timeout after configured period (if already timed out, cannot transition normally)
+        if (state == TellerSessionState.TIMED_OUT) {
+            throw new IllegalStateException("Cannot end session: Session has already timed out.");
         }
 
-        // Invariant: Navigation state must accurately reflect the current operational context.
-        if (!isNavigationStateValid) {
-            throw new IllegalStateException("Navigation state invalid");
+        // Invariant: Navigation state must be valid
+        if (state == TellerSessionState.NAVIGATION_ERROR) {
+            throw new IllegalStateException("Cannot end session: Navigation state is invalid.");
         }
 
-        var event = new SessionEndedEvent(sessionId);
+        if (state == TellerSessionState.TERMINATED) {
+            throw new IllegalStateException("Session is already terminated.");
+        }
+
+        // Apply business logic
+        SessionEndedEvent event = new SessionEndedEvent(
+            this.sessionId,
+            this.tellerId != null ? this.tellerId : "UNKNOWN", // tellerId matches constructor String type
+            Instant.now()
+        );
+
+        this.state = TellerSessionState.TERMINATED;
         addEvent(event);
         incrementVersion();
-        this.isActive = false;
+
         return List.of(event);
     }
 
-    // --- Test Helper Methods (Setters to manipulate state for BDD testing) ---
-    // In a real system, state is built from events. For this isolated domain unit test,
-    // we allow direct state manipulation to simulate 'Given' clauses.
-
-    public void setAuthenticated(boolean authenticated) {
-        this.isAuthenticated = authenticated;
-    }
-
-    public void setTimedOut(boolean timedOut) {
-        this.isTimedOut = timedOut;
-    }
-
-    public void setNavigationStateValid(boolean valid) {
-        this.isNavigationStateValid = valid;
-    }
-
-    public boolean isActive() {
-        return isActive;
+    public TellerSessionState getState() {
+        return state;
     }
 }

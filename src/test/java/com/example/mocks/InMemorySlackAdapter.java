@@ -1,33 +1,37 @@
 package com.example.mocks;
 
-import com.example.ports.SlackPort;
+import com.example.ports.SlackNotificationPort;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackPort for testing.
- * Stores messages in memory for assertion.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Records messages sent to Slack so we can assert on their content.
  */
-public class InMemorySlackAdapter implements SlackPort {
+public class InMemorySlackAdapter implements SlackNotificationPort {
 
-    private final List<String> messages = new ArrayList<>();
+    private final List<Message> messages = new ArrayList<>();
 
-    @Override
-    public void sendMessage(String messageBody) {
-        // Simulate network latency or processing if needed
-        this.messages.add(messageBody);
+    public boolean wasCalled() {
+        return !messages.isEmpty();
     }
 
     public String getLastMessageBody() {
-        if (messages.isEmpty()) return "";
-        return messages.get(messages.size() - 1);
+        if (messages.isEmpty()) return null;
+        return messages.get(messages.size() - 1).body();
     }
 
-    public List<String> getAllMessages() {
-        return new ArrayList<>(messages);
+    public String getLastChannel() {
+        if (messages.isEmpty()) return null;
+        return messages.get(messages.size() - 1).channel();
     }
 
-    public void clear() {
-        messages.clear();
+    @Override
+    public boolean sendMessage(String channel, String body) {
+        messages.add(new Message(channel, body));
+        return true;
     }
+
+    private record Message(String channel, String body) {}
 }

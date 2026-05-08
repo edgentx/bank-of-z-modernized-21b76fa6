@@ -1,41 +1,30 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-import java.util.ArrayList;
-import java.util.List;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Mock implementation of SlackNotificationPort.
- * Captures messages sent to Slack for assertion in tests.
+ * Mock adapter for SlackNotificationPort.
+ * Stores messages in memory to verify the content and channel.
  */
 public class MockSlackNotification implements SlackNotificationPort {
 
-    public static class SentMessage {
-        public final String projectId;
-        public final String defectId;
-        public final String summary;
-        public final String description;
-
-        public SentMessage(String projectId, String defectId, String summary, String description) {
-            this.projectId = projectId;
-            this.defectId = defectId;
-            this.summary = summary;
-            this.description = description;
-        }
-    }
-
-    private final List<SentMessage> messages = new ArrayList<>();
+    private final Map<String, String> lastMessages = new HashMap<>();
 
     @Override
-    public void sendDefectReport(String projectId, String defectId, String summary, String description) {
-        messages.add(new SentMessage(projectId, defectId, summary, description));
+    public void sendMessage(String channel, String body) {
+        System.out.println("[MockSlackNotification] Sending to channel '" + channel + "': " + body);
+        lastMessages.put(channel, body);
     }
 
-    public List<SentMessage> getMessages() {
-        return messages;
+    @Override
+    public String getLastMessageBody(String channel) {
+        return lastMessages.get(channel);
     }
 
-    public void clear() {
-        messages.clear();
+    public void reset() {
+        lastMessages.clear();
     }
 }

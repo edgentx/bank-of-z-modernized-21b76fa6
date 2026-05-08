@@ -6,26 +6,18 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-public class AccountOpenedEvent implements DomainEvent {
-    private final String eventId;
-    private final String aggregateId;
-    private final String customerId;
-    private final String accountType;
-    private final BigDecimal initialDeposit;
-    private final String sortCode;
-    private final String accountNumber;
-    private final Instant occurredAt;
-
-    public AccountOpenedEvent(String aggregateId, String customerId, String accountType, BigDecimal initialDeposit, String sortCode, String accountNumber, Instant occurredAt) {
-        this.eventId = UUID.randomUUID().toString();
-        this.aggregateId = aggregateId;
-        this.customerId = customerId;
-        this.accountType = accountType;
-        this.initialDeposit = initialDeposit;
-        this.sortCode = sortCode;
-        this.accountNumber = accountNumber;
-        this.occurredAt = occurredAt;
-    }
+/**
+ * Event emitted when an account is successfully opened.
+ */
+public record AccountOpenedEvent(
+    String aggregateId,
+    String customerId,
+    String accountType,
+    String accountNumber,
+    String sortCode,
+    BigDecimal initialDeposit,
+    Instant occurredAt
+) implements DomainEvent {
 
     @Override
     public String type() {
@@ -41,10 +33,4 @@ public class AccountOpenedEvent implements DomainEvent {
     public Instant occurredAt() {
         return occurredAt;
     }
-
-    public String customerId() { return customerId; }
-    public String accountType() { return accountType; }
-    public BigDecimal initialDeposit() { return initialDeposit; }
-    public String sortCode() { return sortCode; }
-    public String accountNumber() { return accountNumber; }
 }

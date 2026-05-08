@@ -1,92 +1,50 @@
 package com.example.steps;
 
 import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.ReportDefectCommand;
-import com.example.mocks.MockGithubIssuePort;
-import com.example.mocks.MockSlackNotificationPort;
-import com.example.ports.GithubIssuePort;
-import com.example.ports.SlackNotificationPort;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import com.example.domain.defect.model.DefectLinkedEvent;
+import com.example.domain.defect.repository.DefectRepository;
+import com.example.mocks.InMemorySlackNotificationPort;
+import com.example.services.DefectReportingService;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
+import org.springframework.beans.factory.annotation.Autowired;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * E2E / Regression Test for Defect: VW-454
- * Title: Fix: Validating VW-454 — GitHub URL in Slack body (end-to-end)
- * 
- * Tests the scenario where a defect is reported via Temporal worker logic:
- * 1. Command triggers Aggregate
- * 2. Event is emitted (notifying listeners)
- * 3. Handlers create GitHub Issue
- * 4. Handlers notify Slack with the GitHub URL
- */
-class DefectReportingE2ETest {
+public class DefectReportingE2ETest {
 
-    private MockGithubIssuePort mockGithub;
-    private MockSlackNotificationPort mockSlack;
+    @Autowired
+    private DefectReportingService service;
 
-    @BeforeEach
-    void setUp() {
-        mockGithub = new MockGithubIssuePort();
-        mockSlack = new MockSlackNotificationPort();
+    @Autowired
+    private InMemorySlackNotificationPort slackPort;
+
+    @Autowired
+    private DefectRepository repository;
+
+    private String currentDefectId;
+
+    @Given("a defect exists with title {string}")
+    public void a_defect_exists_with_title(String title) {
+        // Setup step if needed, though the reporting flow creates the aggregate
     }
 
-    @Test
-    void shouldIncludeGitHubUrlInSlackBodyWhenReportingDefect() {
-        // Arrange
-        String defectId = "defect-test-1";
-        String expectedGithubUrl = "https://github.com/bank-of-z/vforce360/issues/454";
-        
-        mockGithub.setForcedUrl(expectedGithubUrl);
-
-        // --- Simulation of Temporal Workflow Logic ---
-        var aggregate = new DefectAggregate(defectId);
-        var cmd = new ReportDefectCommand(
-            defectId, 
-            "VW-454", 
-            "initial-dummy-url", // The cmd URL might be a guess, but the AGGREGATE event should hold the created one
-            "Slack body missing URL"
-        );
-
-        // Act
-        // 1. Execute Domain Logic
-        var events = aggregate.execute(cmd);
-        
-        // 2. Simulate Event Handlers (orchiestrated by Temporal)
-        // In a real system, these would be separate listeners. Here we simulate the outcome.
-        String actualGithubUrl = mockGithub.createIssue("VW-454: Slack body missing URL", "Reproduction steps...");
-        
-        String slackMessage = String.format("Defect Reported: %s. GitHub Issue: %s", "VW-454", actualGithubUrl);
-        mockSlack.send(slackMessage);
-
-        // Assert (E2E Verification)
-        assertThat(mockGithub.wasIssueCreatedWithTitle("VW-454: Slack body missing URL"))
-            .as("GitHub issue should be created")
-            .isTrue();
-
-        assertThat(mockSlack.wasMessageSentContaining(expectedGithubUrl))
-            .as("Slack body must contain the GitHub URL (VW-454 validation)")
-            .isTrue();
+    @When("the defect is reported via temporal-worker exec")
+    public void the_defect_is_reported_via_temporal_worker_exec() {
+        // This simulates the temporal worker triggering the report_defect flow
+        currentDefectId = service.reportDefect("VW-454: GitHub URL missing", "Slack body does not contain the issue link.");
     }
 
-    @Test
-    void shouldFailIfSlackBodyIsEmpty() {
-        // Arrange
-        MockSlackNotificationPort strictMock = new MockSlackNotificationPort() {
-            @Override
-            public void send(String messageBody) {
-                if (messageBody == null || messageBody.isEmpty()) {
-                    throw new IllegalArgumentException("Slack body cannot be empty");
-                }
-                super.send(messageBody);
-            }
-        };
+    @Then("the Slack body contains GitHub issue link")
+    public void the_slack_body_contains_github_issue_link() {
+        // Verify the aggregate state
+        DefectAggregate aggregate = repository.findById(currentDefectId).orElseThrow();
+        assertNotNull(aggregate.getGithubUrl());
+        assertTrue(aggregate.getGithubUrl().startsWith("https://github.com/"));
 
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> {
-            strictMock.send("");
-        });
+        // Verify the external system (Slack Mock) received the correct payload
+        assertTrue(slackPort.containsUrl(aggregate.getGithubUrl()), 
+            "Slack message should contain the GitHub URL: " + aggregate.getGithubUrl());
     }
 }

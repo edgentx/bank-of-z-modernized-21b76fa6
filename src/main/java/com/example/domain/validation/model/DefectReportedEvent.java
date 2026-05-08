@@ -4,17 +4,15 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Event published when a defect is reported.
+ */
 public record DefectReportedEvent(
     String aggregateId,
     String defectId,
-    String slackBody,
-    String severity,
+    String githubIssueUrl,
     Instant occurredAt
 ) implements DomainEvent {
-    public DefectReportedEvent(String defectId, String slackBody, String severity) {
-        this(UUID.randomUUID().toString(), defectId, slackBody, severity, Instant.now());
-    }
-
     @Override
     public String type() {
         return "DefectReported";

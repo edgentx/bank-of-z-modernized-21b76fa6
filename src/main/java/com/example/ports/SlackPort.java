@@ -1,19 +1,15 @@
 package com.example.ports;
 
-import java.util.List;
-
 /**
- * Port for sending notifications to Slack.
+ * Port interface for sending Slack notifications.
+ * Used to avoid dependencies on the real Slack client in unit tests.
  */
 public interface SlackPort {
 
-    record MessageField(String title, String value) {}
-
     /**
-     * Sends a message to a specific channel.
-     * @param channel The channel ID or name
-     * @param text The main text body
-     * @param fields Optional structured fields
+     * Sends a notification message to a configured Slack channel.
+     *
+     * @param message The body of the message to send.
      */
-    void sendMessage(String channel, String text, List<MessageField> fields);
+    void sendMessage(String message);
 }

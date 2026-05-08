@@ -1,57 +1,68 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <artifactId>egdcrypto-bank-of-z-modernized</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.2</version>
+        <version>3.2.0</version>
         <relativePath/>
     </parent>
 
-    <groupId>com.example</groupId>
-    <artifactId>egdcrypto-bank-of-z-modernized</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>egdcrypto-bank-of-z-modernized</name>
-    <description>Demo project for Spring Boot</description>
-
     <properties>
         <java.version>17</java.version>
-        <micrometer-tracing.version>1.2.3</micrometer-tracing.version>
-        <opentelemetry.version>1.36.0</opentelemetry.version>
+        <cucumber.version>7.14.0</cucumber.version>
     </properties>
 
     <dependencies>
+        <!-- Spring Boot Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <!-- Temporal Dependency -->
-        <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-sdk</artifactId>
-            <version>1.22.0</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
+            <artifactId>spring-boot-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Cloud OpenFeign (Required version specified as per rules) -->
         <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-testing</artifactId>
-            <version>1.22.0</version>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+            <version>4.1.0</version>
+        </dependency>
+
+        <!-- Cucumber for Testing -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit-platform-engine</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-spring</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- WireMock for HTTP Mocking -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-contract-verifier</artifactId>
+            <version>4.1.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -59,15 +70,11 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <excludes>
-                        <exclude>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                        </exclude>
-                    </excludes>
+                    <source>17</source>
+                    <target>17</target>
                 </configuration>
             </plugin>
         </plugins>

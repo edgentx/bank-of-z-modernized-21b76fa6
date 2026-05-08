@@ -1,12 +1,20 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasses;
-import org.junit.platform.suite.api.Suite;
+import io.cucumber.junit.Cucumber;
+import io.cucumber.junit.CucumberOptions;
+import org.junit.runner.RunWith;
 
-@Suite
-@IncludeEngines("cucumber")
-@SelectClasses({SFB1Steps.class})
+/**
+ * Test Runner for S-FB-1.
+ * This is the entry point for the JVM test execution.
+ */
+@RunWith(Cucumber.class)
+@CucumberOptions(
+    features = "../../features/S-FB-1.feature", // Path relative to class path target
+    glue = {"com.example.steps"},
+    plugin = {"pretty", "html:target/cucumber-report/S-FB-1"},
+    tags = "@S-FB-1" // Scoping to specific story
+)
 public class SFB1TestSuite {
-    // Cucumber JUnit 5 Suite configuration
+    // Test class body is empty; Cucumber handles execution via annotations
 }

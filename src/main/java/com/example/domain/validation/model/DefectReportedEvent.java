@@ -26,4 +26,11 @@ public record DefectReportedEvent(
     public Instant occurredAt() {
         return occurredAt;
     }
+
+    public String getIssueUrl() {
+        return issueUrl();
+    }
+    public String getDescription() {
+        return description();
+    }
 }

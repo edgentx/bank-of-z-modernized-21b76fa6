@@ -1,27 +1,22 @@
 package com.example.mocks;
 
-import com.example.domain.tellersession.model.TellerSession;
-import com.example.domain.tellersession.repository.TellerSessionRepository;
+import com.example.domain.tellerauth.model.TellerSessionAggregate;
+import com.example.domain.tellerauth.repository.TellerSessionRepository;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * In-memory implementation of TellerSessionRepository for testing.
- * S-20: Implement EndSessionCmd on TellerSession
- */
 public class InMemoryTellerSessionRepository implements TellerSessionRepository {
-
-    private final Map<String, TellerSession> store = new HashMap<>();
+    private final Map<String, TellerSessionAggregate> store = new HashMap<>();
 
     @Override
-    public void save(TellerSession session) {
-        store.put(session.id(), session);
+    public Optional<TellerSessionAggregate> findById(String id) {
+        return Optional.ofNullable(store.get(id));
     }
 
     @Override
-    public Optional<TellerSession> findById(String id) {
-        return Optional.ofNullable(store.get(id));
+    public void save(TellerSessionAggregate aggregate) {
+        store.put(aggregate.id(), aggregate);
     }
 }

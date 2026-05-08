@@ -1,55 +1,54 @@
 package com.example.domain.validation;
 
-import com.example.ports.GitHubPort;
 import com.example.ports.SlackNotificationPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Optional;
+import org.springframework.stereotype.Service;
 
 /**
- * Domain service for reporting defects.
- * Orchestrates creating a GitHub issue and notifying Slack.
+ * Service for handling defect reporting workflows.
+ * Coordinates the creation and dispatch of defect notifications.
  */
+@Service
 public class DefectReportService {
 
-    private static final Logger log = LoggerFactory.getLogger(DefectReportService.class);
-    private static final String SLACK_CHANNEL_SUFFIX = "-issues";
+    private final SlackNotificationPort slackNotificationPort;
 
-    private final GitHubPort gitHubPort;
-    private final SlackNotificationPort slackPort;
-
-    public DefectReportService(GitHubPort gitHubPort, SlackNotificationPort slackPort) {
-        this.gitHubPort = gitHubPort;
-        this.slackPort = slackPort;
+    // Constructor injection
+    public DefectReportService(SlackNotificationPort slackNotificationPort) {
+        this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Reports a defect by creating a GitHub issue and posting a notification to Slack.
+     * Reports a defect to the configured Slack channel.
+     * Generates the message body including the GitHub issue URL.
      *
-     * @param summary The summary/title of the defect.
-     * @param description The detailed description of the defect.
+     * @param defectId The ID of the defect (e.g., "VW-454")
+     * @param channel The target Slack channel.
      */
-    public void reportDefect(String summary, String description) {
-        log.info("Reporting defect: {}", summary);
-
-        // 1. Create GitHub Issue
-        Optional<String> issueUrl = gitHubPort.createIssue(summary, description);
-
-        // 2. Construct Slack Message
-        String slackMessage;
-        if (issueUrl.isPresent()) {
-            slackMessage = "Defect reported. GitHub issue: " + issueUrl.get();
-        } else {
-            slackMessage = "Defect reported (Failed to create GitHub issue)";
+    public void reportDefect(String defectId, String channel) {
+        if (defectId == null || defectId.isBlank()) {
+            throw new IllegalArgumentException("defectId cannot be null/blank");
+        }
+        if (channel == null || channel.isBlank()) {
+            throw new IllegalArgumentException("channel cannot be null/blank");
         }
 
-        // 3. Send Notification
-        // Channel is derived based on project context, here using a generic suffix
-        boolean sent = slackPort.postMessage(SLACK_CHANNEL_SUFFIX, slackMessage);
+        // VW-454: Construct the GitHub URL based on the defect ID
+        String issueNumber = extractIssueNumber(defectId);
+        String githubUrl = "https://github.com/example/bank-modernization/issues/" + issueNumber;
 
-        if (!sent) {
-            log.warn("Failed to send Slack notification for defect: {}", summary);
+        String messageBody = "Defect Reported: " + defectId + "\n" +
+                "GitHub Issue: " + githubUrl;
+
+        slackNotificationPort.sendNotification(channel, messageBody);
+    }
+
+    /**
+     * Helper to extract the numeric part from a defect ID like "VW-454".
+     */
+    private String extractIssueNumber(String defectId) {
+        if (defectId.contains("-")) {
+            return defectId.substring(defectId.lastIndexOf('-') + 1);
         }
+        return defectId;
     }
 }

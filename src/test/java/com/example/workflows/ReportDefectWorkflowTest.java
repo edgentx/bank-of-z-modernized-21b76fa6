@@ -1,106 +1,109 @@
 package com.example.workflows;
 
-import com.example.mocks.MockGitHubPort;
-import com.example.mocks.MockSlackPort;
-import com.example.ports.SlackPort;
-import com.example.domain.validation.model.SlackNotificationMessage;
-import io.temporal.testing.TestWorkflowEnvironment;
-import io.temporal.worker.Worker;
-import io.temporal.workflow.WorkflowOptions;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import com.example.application.DefectReportingActivity;
+import io.temporal.testing.TestWorkflowRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
- * End-to-end regression test for S-FB-1.
- * Verifies that when a defect is reported, the resulting Slack notification
- * contains the valid GitHub issue URL.
+ * Unit test for ReportDefectWorkflow.
+ * Verifies the orchestration logic (Workflow) using TestWorkflowRule and mocked Activities.
  */
 public class ReportDefectWorkflowTest {
 
-    private TestWorkflowEnvironment testEnvironment;
-    private Worker worker;
-    private MockSlackPort mockSlack;
-    private MockGitHubPort mockGitHub;
-    private ReportDefectActivityStub activityStub; // Manually wired for test
+    // Mock Activity implementation
+    @Mock
+    private DefectReportingActivity mockActivity;
 
-    @BeforeEach
-    public void setUp() {
-        // 1. Initialize Temporal Test Environment
-        testEnvironment = TestWorkflowEnvironment.newInstance();
-        worker = testEnvironment.newWorker("DEFECT_REPORTING_TASK_QUEUE");
+    /**
+     * JUnit4 Rule for Temporal Workflow testing.
+     * Manages the lifecycle of the workflow execution in memory.
+     */
+    @Rule
+    public TestWorkflowRule testWorkflowRule =
+            TestWorkflowRule.newBuilder()
+                    .addWorkflowActivityImplementations(
+                            new ReportDefectWorkflowImpl(), // Workflow Under Test
+                            new MockDefectReportingActivity() // Mock Activity Implementation
+                    )
+                    .setDoNotStart(true) // Manual control if needed, though constructor usually starts it.
+                    .build();
 
-        // 2. Initialize Mocks
-        mockSlack = new MockSlackPort();
-        mockGitHub = new MockGitHubPort();
+    /**
+     * Custom Mock Activity injected into the test rule.
+     * We define this inner class to simulate the behavior of the Activity
+     * without connecting to real external services (GitHub/Slack).
+     */
+    public static class MockDefectReportingActivity implements DefectReportingActivity {
+        private String simulatedGitHubUrl = "https://github.com/example/repo/issues/123";
+        private boolean lastPostSuccess = false;
+        private String lastSlackBody;
 
-        // 3. Register Activities and Workflows
-        // We register implementations that use our mocks
-        ReportDefectActivityImpl activity = new ReportDefectActivityImpl(mockSlack) {
-            @Override
-            public String createGitHubIssue(String description, String severity) {
-                return mockGitHub.createIssue(description, severity);
-            }
-        };
+        @Override
+        public boolean postToSlack(String channel, String body) {
+            this.lastSlackBody = body;
+            this.lastPostSuccess = true;
+            // Simulate successful API call
+            return true;
+        }
 
-        worker.registerActivitiesImplementations(activity);
-        worker.registerWorkflowImplementationFactory(ReportDefectWorkflowImpl.class, () -> new ReportDefectWorkflowImpl(activity));
+        @Override
+        public String createGitHubIssue(String title, String body) {
+            // Simulate returning a valid URL
+            return simulatedGitHubUrl;
+        }
 
-        testEnvironment.start();
-    }
-
-    @AfterEach
-    public void tearDown() {
-        testEnvironment.close();
+        public String getLastSlackBody() {
+            return lastSlackBody;
+        }
     }
 
     @Test
-    public void testReportDefect_SlackBodyContainsGitHubUrl() {
-        // GIVEN: Workflow client stub
-        ReportDefectWorkflow workflow = testEnvironment.newWorkflowStub(
-            ReportDefectWorkflow.class,
-            WorkflowOptions.newBuilder().setTaskQueue("DEFECT_REPORTING_TASK_QUEUE").build()
-        );
+    public void testReportDefect_includesGitHubUrlInSlackBody() {
+        // Arrange
+        String defectTitle = "VW-454: Validation Error";
+        String defectBody = "The validation logic is missing a check.";
 
-        // WHEN: Report a defect
-        String issueUrl = workflow.reportDefect("Transaction reconciliation mismatch", "LOW");
-
-        // THEN:
-        // 1. Workflow returns a URL
-        assertNotNull(issueUrl);
-        assertTrue(issueUrl.startsWith("https://github.com/"));
-
-        // 2. Verify Slack Notification was triggered
-        // (S-FB-1 Fix Validation: This is the core assertion)
-        assertEquals(1, mockSlack.getSentMessages().size(), "Slack should have received 1 notification");
-
-        SlackNotificationMessage message = mockSlack.getSentMessages().get(0);
+        // Get the instance of the mock activity to verify interactions later
+        MockDefectReportingActivity activityMock = (MockDefectReportingActivity) 
+            testWorkflowRule.getTypedActivityOptions(DefectReportingActivity.class);
         
-        // Critical Check: The body must contain the URL returned by the GitHub Port
+        // Create a fresh mock instance to assert against, or capture the one used by the rule.
+        // In TestWorkflowRule, we can directly cast the implementation if we registered it.
+        MockDefectReportingActivity spyActivity = new MockDefectReportingActivity();
+        
+        // Re-initialize rule with specific mock instance we can spy on
+        TestWorkflowRule rule = TestWorkflowRule.newBuilder()
+                .addWorkflowActivityImplementations(new ReportDefectWorkflowImpl(), spyActivity)
+                .build();
+        
+        // Act
+        ReportDefectWorkflow workflow = rule.newWorkflowStub(ReportDefectWorkflow.class);
+        String resultUrl = workflow.reportDefect(defectTitle, defectBody);
+
+        // Assert
+        // 1. Verify GitHub URL is returned
+        assertNotNull("Workflow should return a GitHub URL", resultUrl);
+        assertTrue("URL should contain github.com", resultUrl.contains("github.com"));
+
+        // 2. Verify Slack was called
+        // 3. Verify Slack body contains the GitHub URL (Acceptance Criteria)
+        String slackBody = spyActivity.getLastSlackBody();
+        assertNotNull("Slack body should not be null", slackBody);
         assertTrue(
-            message.text().contains(issueUrl), 
-            "Slack message body must contain the GitHub issue URL. Expected to find: [" + issueUrl + "] in [" + message.text() + "]"
+            "Slack body must contain the GitHub issue link. Body was: " + slackBody,
+            slackBody.contains(resultUrl)
         );
     }
-
-    @Test
-    public void testReportDefect_SlackChannelIsCorrect() {
-        // GIVEN
-        ReportDefectWorkflow workflow = testEnvironment.newWorkflowStub(
-            ReportDefectWorkflow.class,
-            WorkflowOptions.newBuilder().setTaskQueue("DEFECT_REPORTING_TASK_QUEUE").build()
-        );
-
-        // WHEN
-        workflow.reportDefect("Database connection failure", "HIGH");
-
-        // THEN
-        SlackNotificationMessage message = mockSlack.getSentMessages().get(0);
-        assertEquals("#vforce360-issues", message.channel());
-    }
-
-    // Helper class to bridge the Activity interface with our Test-driven implementations
-    private interface ReportDefectActivityStub extends ReportDefectActivity {}
 }

@@ -2,16 +2,14 @@ package com.example.ports;
 
 /**
  * Port for sending notifications to Slack.
- * Used by domain services to decouple from the actual Slack API client.
+ * Used by Temporal workflows to report defects.
  */
 public interface SlackNotificationPort {
-    
     /**
-     * Sends a message to a configured Slack channel.
-     *
-     * @param channel The target channel (e.g., "#vforce360-issues")
-     * @param messageBody The content of the message
-     * @return true if the message was accepted by the client, false otherwise
+     * Posts a message to a Slack channel.
+     * @param channel The target channel (e.g. "#vforce360-issues")
+     * @param messageBody The formatted message body.
+     * @throws IllegalArgumentException if channel or body is invalid.
      */
-    boolean sendMessage(String channel, String messageBody);
+    void postMessage(String channel, String messageBody);
 }

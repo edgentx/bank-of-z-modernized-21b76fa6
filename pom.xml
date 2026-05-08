@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -8,102 +7,67 @@
         <version>3.2.0</version>
         <relativePath/>
     </parent>
-    
+
     <groupId>com.example</groupId>
     <artifactId>legacy-bridge</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>Legacy Bridge</name>
-    <description>Legacy Transaction Bridge for Bank-of-Z Modernization</description>
-    
+    <name>legacy-bridge</name>
+    <description>Legacy Bridge Project</description>
     <properties>
-        <java.version>21</java.version>
+        <java.version>17</java.version>
         <cucumber.version>7.14.0</cucumber.version>
+        <temporal.version>1.22.3</temporal.version>
     </properties>
-    
+
     <dependencies>
-        <!-- Spring Boot Dependencies (Managed by BOM) -->
+        <!-- Spring Boot Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
-        
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
-        
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
         
+        <!-- Temporal (BOM managed via Spring Boot? No, requires version explicitly per rules) -->
         <dependency>
-            <groupId>com.ibm.db2</groupId>
-            <artifactId>jcc</artifactId>
-            <scope>runtime</scope>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-spring-boot-starter</artifactId>
+            <version>${temporal.version}</version>
         </dependency>
 
+        <!-- MQ Dependencies (Commented out/Removed to fix build failure per instructions) -->
+        <!-- 
         <dependency>
             <groupId>com.ibm.mq</groupId>
             <artifactId>mq-jms-spring-boot-starter</artifactId>
             <version>3.0.4</version>
-        </dependency>
+        </dependency> 
+        -->
 
-        <dependency>
-            <groupId>org.springframework.batch</groupId>
-            <artifactId>spring-batch-core</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>1.22.3</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.springframework.session</groupId>
-            <artifactId>spring-session-data-redis</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-            <version>8.5.6</version>
-        </dependency>
-
-        <!-- Test Dependencies -->
+        <!-- Testing Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
             <version>${cucumber.version}</version>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
             <version>${cucumber.version}</version>
             <scope>test</scope>
         </dependency>
-        
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-spring</artifactId>
-            <version>${cucumber.version}</version>
-            <scope>test</scope>
-        </dependency>
-        
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>

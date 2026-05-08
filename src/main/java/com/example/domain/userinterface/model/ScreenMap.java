@@ -4,31 +4,22 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * ScreenMap Aggregate.
- * Handles the rendering of screen layouts adapted for user devices.
+ * ScreenMap aggregate.
+ * Handles the logic for rendering user interface screens.
  */
 public class ScreenMap extends AggregateRoot {
 
     private final String screenMapId;
-    private String screenId;
-    private String deviceType;
-    private Map<String, String> layoutAttributes;
-
-    // Max field length adhering to legacy BMS constraints (e.g., 3270 buffer sizes)
-    private static final int MAX_SCREEN_ID_LENGTH = 8;
-    private static final int MAX_DEVICE_TYPE_LENGTH = 16;
+    private boolean active;
 
     public ScreenMap(String screenMapId) {
         this.screenMapId = screenMapId;
-        this.layoutAttributes = new HashMap<>();
+        this.active = true;
     }
 
     @Override
@@ -45,56 +36,32 @@ public class ScreenMap extends AggregateRoot {
     }
 
     private List<DomainEvent> renderScreen(RenderScreenCmd cmd) {
-        // 1. Validate Mandatories
+        // Invariant Check: Mandatory fields
         if (cmd.screenId() == null || cmd.screenId().isBlank()) {
-            throw new IllegalArgumentException("screenId is mandatory");
+            throw new IllegalArgumentException("screenId cannot be null or blank");
         }
         if (cmd.deviceType() == null || cmd.deviceType().isBlank()) {
-            throw new IllegalArgumentException("deviceType is mandatory");
+            throw new IllegalArgumentException("deviceType cannot be null or blank");
         }
 
-        // 2. Validate Legacy Constraints
-        if (cmd.screenId().length() > MAX_SCREEN_ID_LENGTH) {
-            throw new IllegalArgumentException("Field lengths must strictly adhere to legacy BMS constraints: screenId exceeds max length of " + MAX_SCREEN_ID_LENGTH);
-        }
-        if (cmd.deviceType().length() > MAX_DEVICE_TYPE_LENGTH) {
-            throw new IllegalArgumentException("Field lengths must strictly adhere to legacy BMS constraints: deviceType exceeds max length of " + MAX_DEVICE_TYPE_LENGTH);
+        // Invariant Check: Field Lengths (BMS Constraints)
+        // Assuming a standard constraint for ID lengths (e.g., max 10 chars for legacy 3270 fields)
+        if (cmd.screenId().length() > 10) {
+            throw new IllegalArgumentException("screenId length exceeds maximum BMS constraint of 10 characters");
         }
 
-        // 3. Apply Logic
-        this.screenId = cmd.screenId();
-        this.deviceType = cmd.deviceType();
-        // Simulate generation of presentation layout
-        this.layoutAttributes.put("format", resolveLayoutFormat(cmd.deviceType()));
-        this.layoutAttributes.put("timestamp", Instant.now().toString());
-
-        // 4. Create Event
-        // Fixing the compilation error by including all required arguments
-        ScreenRenderedEvent event = new ScreenRenderedEvent(
+        // If we reached here, invariants are satisfied.
+        // Create the event with the correct signature.
+        var event = new ScreenRenderedEvent(
             this.screenMapId,
-            this.screenId,
-            this.deviceType,
-            this.layoutAttributes,
+            cmd.screenId(),
+            cmd.deviceType(),
             Instant.now()
         );
 
-        addEvent(event);
-        incrementVersion();
+        this.addEvent(event);
+        this.incrementVersion();
+
         return List.of(event);
     }
-
-    private String resolveLayoutFormat(String deviceType) {
-        // Simple logic to determine layout based on device
-        if (deviceType.toUpperCase().contains("MOBILE")) {
-            return "RESPONSIVE_MOBILE";
-        } else if (deviceType.toUpperCase().contains("3270")) {
-            return "BMS_LEGACY_3270";
-        }
-        return "DESKTOP_WEB";
-    }
-
-    // Getters for testing/verification
-    public String getScreenId() { return screenId; }
-    public String getDeviceType() { return deviceType; }
-    public Map<String, String> getLayoutAttributes() { return layoutAttributes; }
 }

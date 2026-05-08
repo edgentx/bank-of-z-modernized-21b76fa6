@@ -4,7 +4,16 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
-public record SessionStartedEvent(String sessionId, String tellerId, String terminalId, Instant occurredAt) implements DomainEvent {
+/**
+ * Event emitted when a Teller Session is successfully started.
+ */
+public record SessionStartedEvent(
+    String aggregateId,
+    String tellerId,
+    String terminalId,
+    Instant occurredAt
+) implements DomainEvent {
+
     @Override
     public String type() {
         return "session.started";
@@ -12,7 +21,7 @@ public record SessionStartedEvent(String sessionId, String tellerId, String term
 
     @Override
     public String aggregateId() {
-        return sessionId;
+        return aggregateId;
     }
 
     @Override

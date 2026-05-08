@@ -1,37 +1,33 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock adapter for Slack notifications.
- * Stores messages in memory for test verification.
+ * In-memory mock implementation of SlackNotificationPort for testing.
+ * Captures messages posted to Slack for assertion.
  */
 public class InMemorySlackNotificationPort implements SlackNotificationPort {
 
-    public static class SentMessage {
-        public final String channelId;
-        public final String body;
+    private final List<PostedMessage> messages = new ArrayList<>();
 
-        public SentMessage(String channelId, String body) {
-            this.channelId = channelId;
-            this.body = body;
-        }
-    }
-
-    private final List<SentMessage> messages = new ArrayList<>();
-    private boolean simulateFailure = false;
+    public static record PostedMessage(String channel, String body) {}
 
     @Override
-    public boolean sendMessage(String channelId, String messageBody) {
-        if (simulateFailure) return false;
-        messages.add(new SentMessage(channelId, messageBody));
-        return true;
+    public void postMessage(String channel, String messageBody) {
+        // Basic validation mirroring a real implementation
+        if (channel == null || channel.isBlank()) {
+            throw new IllegalArgumentException("channel cannot be null or empty");
+        }
+        if (messageBody == null || messageBody.isBlank()) {
+            throw new IllegalArgumentException("messageBody cannot be null or empty");
+        }
+
+        messages.add(new PostedMessage(channel, messageBody));
     }
 
-    public List<SentMessage> getMessages() {
+    public List<PostedMessage> getMessages() {
         return List.copyOf(messages);
     }
 
@@ -39,7 +35,12 @@ public class InMemorySlackNotificationPort implements SlackNotificationPort {
         messages.clear();
     }
 
-    public void setSimulateFailure(boolean simulateFailure) {
-        this.simulateFailure = simulateFailure;
+    /**
+     * Helper method to verify if a specific URL was posted in any message to a specific channel.
+     */
+    public boolean wasUrlPostedToChannel(String channel, String url) {
+        return messages.stream()
+            .filter(m -> m.channel().equals(channel))
+            .anyMatch(m -> m.body().contains(url));
     }
 }

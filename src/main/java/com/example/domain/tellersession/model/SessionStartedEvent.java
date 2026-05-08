@@ -4,12 +4,7 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
-// Needed to reconstruct the aggregate state for testing scenarios (e.g. Timeout)
-public record SessionStartedEvent(
-    String aggregateId,
-    String tellerId,
-    Instant occurredAt
-) implements DomainEvent {
+public record SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
         return "session.started";

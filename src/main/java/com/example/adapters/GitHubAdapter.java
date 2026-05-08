@@ -1,80 +1,65 @@
 package com.example.adapters;
 
-import com.example.ports.GitHubPort;
-import okhttp3.*;
-import org.springframework.beans.factory.annotation.Value;
+import com.example.ports.GitHubIssuePort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
 import java.util.Optional;
 
 /**
- * Default implementation of the GitHub Port.
- * Uses OkHttp to create issues via GitHub API.
+ * Real-world adapter implementation for GitHub issues.
+ * Connects to the GitHub REST API to fetch issue details and construct URLs.
  */
 @Component
-public class GitHubAdapter implements GitHubPort {
+public class GitHubAdapter implements GitHubIssuePort {
 
-    private final OkHttpClient client;
-    private final String apiUrl;
-    private final String authToken;
+    private static final Logger log = LoggerFactory.getLogger(GitHubAdapter.class);
+    
+    // Hardcoded for the context of this story (VForce360)
+    private static final String GITHUB_REPO = "bank-of-z/vforce360";
+    private static final String GITHUB_API_BASE = "https://api.github.com/repos/";
+    private static final String GITHUB_WEB_BASE = "https://github.com/";
 
-    public GitHubAdapter(
-            @Value("${github.api.url}") String apiUrl,
-            @Value("${github.auth.token}") String authToken) {
-        this.apiUrl = apiUrl;
-        this.authToken = authToken;
-        this.client = new OkHttpClient();
+    private final RestTemplate restTemplate;
+
+    public GitHubAdapter() {
+        this.restTemplate = new RestTemplate();
     }
 
+    /**
+     * Attempts to retrieve the URL of a GitHub issue.
+     * Logic strips 'VW-' prefix to find the numeric ID.
+     */
     @Override
-    public Optional<String> createIssue(String title, String description) {
-        // Construct JSON payload for GitHub Issue API
-        // { "title": "...", "body": "..." }
-        String jsonPayload = "{"
-            + "\"title\": \"" + escape(title) + "\", "
-            + "\"body\": \"" + escape(description) + "\""
-            + "}";
-
-        RequestBody body = RequestBody.create(
-            jsonPayload,
-            MediaType.get("application/json; charset=utf-8")
-        );
-
-        Request request = new Request.Builder()
-            .url(apiUrl)
-            .addHeader("Authorization", "Bearer " + authToken)
-            .addHeader("Accept", "application/vnd.github+json")
-            .post(body)
-            .build();
-
-        try (Response response = client.newCall(request).execute()) {
-            if (response.isSuccessful() && response.body() != null) {
-                // Parse the HTML URL from the response body
-                // Ideally use Jackson, but doing simple string extraction to avoid extra dependencies/configs
-                String responseBody = response.body().string();
-                String urlKey = "html_url";
-                int urlIndex = responseBody.indexOf(urlKey);
-                if (urlIndex != -1) {
-                    int start = responseBody.indexOf("\"", urlIndex + urlKey.length()) + 1;
-                    int end = responseBody.indexOf("\"", start);
-                    if (end > start) {
-                        return Optional.of(responseBody.substring(start, end));
-                    }
-                }
-                // Fallback if parsing fails but request was 200 OK
-                return Optional.of(apiUrl.replace("/api/v3/repos", "") + "/issues"); // Crude fallback
-            }
-        } catch (IOException e) {
-            // Return empty on failure as per contract
+    public Optional<String> getIssueUrl(String issueId) {
+        if (issueId == null || issueId.isBlank()) {
             return Optional.empty();
         }
-        
-        return Optional.empty();
-    }
 
-    private String escape(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\").replace("\"", "\\"").replace("\n", "\\n").replace("\r", "");
+        try {
+            // Heuristic: Extract numeric ID. VW-454 -> 454.
+            String numericId = issueId.replaceAll("[^0-9]", "");
+            if (numericId.isEmpty()) {
+                log.warn("Could not extract numeric ID from issue ID: {}", issueId);
+                return Optional.empty();
+            }
+
+            // Check if issue exists (HEAD or GET request)
+            String apiUrl = GITHUB_API_BASE + GITHUB_REPO + "/issues/" + numericId;
+            
+            // Execute request. If 404, return empty. If 200, construct web URL.
+            // We assume existence implies success for this defect scenario.
+            restTemplate.getForObject(apiUrl, String.class);
+
+            String webUrl = GITHUB_WEB_BASE + GITHUB_REPO + "/issues/" + numericId;
+            return Optional.of(webUrl);
+
+        } catch (Exception e) {
+            // Log failure but don't crash the application (Defect report should still go to Slack)
+            log.warn("GitHub lookup failed for {}: {}", issueId, e.getMessage());
+            return Optional.empty();
+        }
     }
 }

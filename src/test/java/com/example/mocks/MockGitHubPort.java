@@ -1,32 +1,32 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
+import java.util.Optional;
 
+/**
+ * Mock implementation of GitHubPort for testing.
+ * Simulates GitHub API responses without network calls.
+ */
 public class MockGitHubPort implements GitHubPort {
 
-    private String baseUrlFormat = "https://github.com/example/bank/issues/%s";
+    private String nextIssueUrl = "https://github.com/example/repo/issues/1";
+    private boolean shouldFail = false;
 
     @Override
-    public String generateIssueUrl(String issueId) {
-        if (issueId == null || issueId.isBlank()) {
-            throw new IllegalArgumentException("Issue ID cannot be null");
+    public Optional<String> createIssue(String title, String body) {
+        if (shouldFail) {
+            return Optional.empty();
         }
-        // Simulating simple ID logic for testing: extract number if present, or use ID directly
-        String normalizedId = issueId.replace("VW-", "");
-        if (!normalizedId.matches("\\d+")) {
-             // If it's not just digits, we just append it for the mock to be generic
-             return "https://github.com/example/bank/issues/" + issueId;
-        }
-        return String.format(baseUrlFormat, normalizedId);
+        // Simulate returning a valid URL string
+        return Optional.of(nextIssueUrl);
     }
 
-    @Override
-    public String createIssue(String title, String description) {
-        // Returns a fake URL for the created issue
-        return "https://github.com/example/bank/issues/999";
+    // Configuration methods for the test
+    public void setNextIssueUrl(String url) {
+        this.nextIssueUrl = url;
     }
 
-    public void setBaseUrlFormat(String format) {
-        this.baseUrlFormat = format;
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
     }
 }

@@ -1,24 +1,26 @@
 package com.example.domain.tellersession.repository;
 
-import com.example.domain.shared.Aggregate;
 import com.example.domain.teller.repository.TellerSessionRepository;
-
+import com.example.domain.tellersession.model.TellerSessionAggregate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * In-memory implementation of TellerSessionRepository for testing.
+ */
 public class InMemoryTellerSessionRepository implements TellerSessionRepository {
 
-    private final Map<String, Aggregate> store = new HashMap<>();
+    private final Map<String, TellerSessionAggregate> store = new HashMap<>();
 
     @Override
-    public void save(Aggregate aggregate) {
+    public TellerSessionAggregate save(TellerSessionAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
+        return aggregate;
     }
 
     @Override
-    public Aggregate load(String id) {
-        return Optional.ofNullable(store.get(id))
-                .orElseThrow(() -> new IllegalArgumentException("No aggregate found for id: " + id));
+    public Optional<TellerSessionAggregate> findById(String id) {
+        return Optional.ofNullable(store.get(id));
     }
 }

@@ -4,34 +4,26 @@ import com.example.domain.vforce360.model.VForce360Aggregate;
 import com.example.domain.vforce360.repository.VForce360Repository;
 import org.springframework.stereotype.Repository;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
- * Real implementation of VForce360Repository using standard persistence patterns.
- * This class serves as the concrete implementation for the application runtime,
- // unlike the InMemoryVForce360Repository used in tests.
+ * In-memory implementation of VForce360Repository.
+ * Placeholder for the actual Postgres implementation.
  */
 @Repository
 public class PostgresVForce360Repository implements VForce360Repository {
 
-    @Override
-    public VForce360Aggregate save(VForce360Aggregate aggregate) {
-        // Real DB logic here (e.g., entityManager.persist/merge)
-        System.out.println("[PostgresRepo] Saving aggregate: " + aggregate.id());
-        return aggregate;
-    }
+    private final Map<String, VForce360Aggregate> store = new HashMap<>();
 
     @Override
     public Optional<VForce360Aggregate> findById(String id) {
-        // Real DB logic here
-        return Optional.empty(); // Simplified for fix
+        return Optional.ofNullable(store.get(id));
     }
 
     @Override
-    public VForce360Aggregate create() {
-        String id = UUID.randomUUID().toString();
-        System.out.println("[PostgresRepo] Creating new aggregate with ID: " + id);
-        return new VForce360Aggregate(id);
+    public void save(VForce360Aggregate aggregate) {
+        store.put(aggregate.id(), aggregate);
     }
 }

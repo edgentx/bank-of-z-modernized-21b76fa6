@@ -1,39 +1,21 @@
 package com.example.mocks;
 
 import com.example.ports.SlackPort;
+
+import java.util.concurrent.CompletableFuture;
 import java.util.ArrayList;
-import java.util.List;
+    import java.util.List;
 
-/**
- * Mock implementation of SlackPort for testing.
- * Captures messages to allow assertions on content.
- */
-public class MockSlackPort implements SlackPort {
-    private final List<String> postedMessages = new ArrayList<>();
-    private String lastChannelId;
+    public class MockSlackPort implements SlackPort {
+        public List<String> messages = new ArrayList<>();
 
-    @Override
-    public void postMessage(String channelId, String text) {
-        this.lastChannelId = channelId;
-        this.postedMessages.add(text);
+        @Override
+        public CompletableFuture<Void> sendMessage(String channel, String message) {
+            messages.add(message);
+            return CompletableFuture.completedFuture(null);
+        }
+
+        public boolean lastMessageContains(String text) {
+            return !messages.isEmpty() && messages.get(messages.size() - 1).contains(text);
+        }
     }
-
-    public String getLastMessageContent() {
-        if (postedMessages.isEmpty()) return null;
-        return postedMessages.get(postedMessages.size() - 1);
-    }
-
-    public String getLastChannelId() {
-        return lastChannelId;
-    }
-
-    public boolean messageContains(String substring) {
-        String content = getLastMessageContent();
-        return content != null && content.contains(substring);
-    }
-
-    public void reset() {
-        postedMessages.clear();
-        lastChannelId = null;
-    }
-}

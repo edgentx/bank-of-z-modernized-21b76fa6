@@ -1,22 +1,24 @@
-package com.example.steps;
+package com.example.mocks;
 
-import com.example.ports.SlackNotifierPort;
+import com.example.ports.SlackNotifier;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock adapter for SlackNotifierPort.
- * Stores the last message for assertion verification.
+ * Mock implementation of SlackNotifier for testing.
+ * Captures payloads sent to Slack so assertions can be made against them.
  */
-public class MockSlackNotifier implements SlackNotifierPort {
+public class MockSlackNotifier implements SlackNotifier {
 
-    private String lastMessageBody;
+    public final List<SlackMessagePayload> receivedPayloads = new ArrayList<>();
 
     @Override
-    public void sendNotification(String message) {
-        this.lastMessageBody = message;
-        System.out.println("[MockSlack] Sent: " + message);
+    public void notify(SlackMessagePayload payload) {
+        // Store the payload in memory instead of making an HTTP call
+        receivedPayloads.add(payload);
     }
 
-    public String getLastMessageBody() {
-        return lastMessageBody;
+    public void clear() {
+        receivedPayloads.clear();
     }
 }

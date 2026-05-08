@@ -1,17 +1,18 @@
 package com.example.ports;
 
+import com.example.domain.shared.Command;
+
 /**
  * Port interface for sending Slack notifications.
- * Used to decouple the domain logic from the specific Slack implementation.
+ * Adapters must implement this to bridge the domain with external infrastructure.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends a notification message to a configured Slack channel.
+     * Posts a defect report to the configured Slack channel.
      *
-     * @param channel The target channel (e.g. "#vforce360-issues").
-     * @param messageBody The content of the message.
-     * @return true if sending was considered successful, false otherwise.
+     * @param cmd The command triggering the report
+     * @return true if the notification was accepted by the external system
      */
-    boolean send(String channel, String messageBody);
+    boolean postDefect(Command cmd);
 }

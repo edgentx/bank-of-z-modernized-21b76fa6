@@ -1,37 +1,37 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures payloads to verify contents without external I/O.
+ * Captures sent messages to verify body formatting without real webhooks.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> receivedPayloads = new ArrayList<>();
+    private final List<String> sentMessages = new ArrayList<>();
+    private boolean shouldFail = false;
 
     @Override
-    public void sendNotification(String payload) {
-        // Simulate successful transmission by storing the payload
-        this.receivedPayloads.add(payload);
-    }
-
-    /**
-     * Retrieves the last payload received.
-     */
-    public String getLastPayload() {
-        if (receivedPayloads.isEmpty()) {
-            throw new IllegalStateException("No payloads received");
+    public void send(String messageBody) throws SlackNotificationException {
+        if (shouldFail) {
+            throw new SlackNotificationException("Simulated Slack API failure", new RuntimeException());
         }
-        return receivedPayloads.get(receivedPayloads.size() - 1);
+        sentMessages.add(messageBody);
     }
 
-    /**
-     * Clears the mock history.
-     */
-    public void clear() {
-        receivedPayloads.clear();
+    public List<String> getSentMessages() {
+        return sentMessages;
+    }
+
+    public void reset() {
+        sentMessages.clear();
+        shouldFail = false;
+    }
+
+    public void setShouldFail(boolean shouldFail) {
+        this.shouldFail = shouldFail;
     }
 }

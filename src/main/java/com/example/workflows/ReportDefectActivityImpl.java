@@ -1,33 +1,26 @@
 package com.example.workflows;
 
 import com.example.ports.SlackPort;
-import com.example.domain.validation.model.SlackNotificationMessage;
-import io.temporal.activity.Activity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * Activity implementation connecting to external services (GitHub, Slack).
+ * Implementation of the Temporal Activity interface.
+ * Delegates the actual Slack communication to the SlackAdapter via the SlackPort.
  */
 @Component
 public class ReportDefectActivityImpl implements ReportDefectActivity {
 
-    private final SlackPort slackPort;
+    private final SlackPort slackAdapter;
 
     @Autowired
-    public ReportDefectActivityImpl(SlackPort slackPort) {
-        this.slackPort = slackPort;
+    public ReportDefectActivityImpl(SlackPort slackAdapter) {
+        this.slackAdapter = slackAdapter;
     }
 
     @Override
-    public String createGitHubIssue(String description, String severity) {
-        // Simulate API call
-        Activity.sleep(100); // Simulate network latency
-        return "https://github.com/example-bank/z/issues/1";
-    }
-
-    @Override
-    public void notifySlack(String text) {
-        slackPort.sendNotification(SlackNotificationMessage.of("#vforce360-issues", text));
+    public String reportDefectToSlack(String message, String githubUrl) {
+        // Delegate to the port implementation
+        return slackAdapter.postDefectNotification(message, githubUrl);
     }
 }

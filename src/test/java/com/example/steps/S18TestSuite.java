@@ -8,6 +8,4 @@ import org.junit.platform.suite.api.Suite;
 @IncludeEngines("cucumber")
 @SelectClasspathResource("features/S-18.feature")
 public class S18TestSuite {
-    // This empty class is required for JUnit 5 + Cucumber integration
-    // to discover and run the feature file using the S18Steps glue.
 }

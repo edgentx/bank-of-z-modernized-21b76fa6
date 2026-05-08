@@ -2,46 +2,30 @@ package com.example.domain.uimodel.command;
 
 import com.example.domain.shared.Command;
 
-import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
-public class StartSessionCmd implements Command {
-    private final String sessionId;
-    private final String tellerId;
-    private final String terminalId;
-    private final boolean authenticated;
-    private final NavContext context;
-    private final Instant requestedAt;
-    private final long timeoutSeconds;
+/**
+ * Command to initiate a new Teller Session.
+ * <p>
+ * This command is issued after the Teller successfully authenticates via the
+ * Spring Security AuthZ pathway (CICS/IMS dual).
+ */
+public record StartSessionCmd(
+        String sessionId,
+        String tellerId,
+        String terminalId,
+        boolean isAuthenticated // AuthZ Token validation result
+) implements Command {
 
-    public StartSessionCmd(String sessionId, String tellerId, String terminalId, boolean authenticated, NavContext context, Instant requestedAt, long timeoutSeconds) {
-        this.sessionId = sessionId;
-        this.tellerId = tellerId;
-        this.terminalId = terminalId;
-        this.authenticated = authenticated;
-        this.context = context;
-        this.requestedAt = requestedAt;
-        this.timeoutSeconds = timeoutSeconds;
-    }
-
-    public String sessionId() { return sessionId; }
-    public String tellerId() { return tellerId; }
-    public String terminalId() { return terminalId; }
-    public boolean isAuthenticated() { return authenticated; }
-    public NavContext getContext() { return context; }
-    public Instant getRequestedAt() { return requestedAt; }
-    public long getTimeoutSeconds() { return timeoutSeconds; }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        StartSessionCmd that = (StartSessionCmd) o;
-        return authenticated == that.authenticated && timeoutSeconds == that.timeoutSeconds && Objects.equals(sessionId, that.sessionId) && Objects.equals(tellerId, that.tellerId) && Objects.equals(terminalId, that.terminalId) && Objects.equals(context, that.context) && Objects.equals(requestedAt, that.requestedAt);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(sessionId, tellerId, terminalId, authenticated, context, requestedAt, timeoutSeconds);
+    public StartSessionCmd {
+        if (sessionId == null || sessionId.isBlank()) {
+            sessionId = UUID.randomUUID().toString();
+        }
+        if (tellerId == null || tellerId.isBlank()) {
+            throw new IllegalArgumentException("tellerId cannot be null or blank");
+        }
+        if (terminalId == null || terminalId.isBlank()) {
+            throw new IllegalArgumentException("terminalId cannot be null or blank");
+        }
     }
 }

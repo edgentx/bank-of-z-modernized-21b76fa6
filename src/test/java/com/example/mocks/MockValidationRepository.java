@@ -10,13 +10,16 @@ public class MockValidationRepository implements ValidationRepository {
     private final Map<String, ValidationAggregate> store = new HashMap<>();
 
     @Override
-    public ValidationAggregate save(ValidationAggregate aggregate) {
+    public void save(ValidationAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
-        return aggregate;
     }
 
     @Override
     public Optional<ValidationAggregate> findById(String id) {
         return Optional.ofNullable(store.get(id));
+    }
+
+    public void clear() {
+        store.clear();
     }
 }

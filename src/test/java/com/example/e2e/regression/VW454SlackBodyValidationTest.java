@@ -1,106 +1,105 @@
 package com.example.e2e.regression;
 
-import com.example.domain.shared.Command;
-import com.example.domain.defect.DefectReportedEvent;
-import com.example.mocks.MockGitHubIssueAdapter;
-import com.example.mocks.MockVForce360NotificationAdapter;
-import com.example.ports.GitHubIssuePort;
-import com.example.ports.VForce360NotificationPort;
-import org.junit.jupiter.api.BeforeEach;
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.ReportDefectCmd;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * E2E Regression Test for Story S-FB-1 / VW-454.
- * <p>
- * Scenario: When a defect is reported via the temporal-worker, the resulting
- * notification payload must contain the GitHub Issue URL.
- * <p>
- * This test is currently in the RED phase: The application logic to generate
- * the {@link DefectReportedEvent} with the URL is missing or incomplete.
+ * Regression test for VW-454: GitHub URL in Slack body (end-to-end)
+ * 
+ * This test verifies that when a defect is reported via the temporal-worker,
+ * the resulting Slack body contains the GitHub issue link.
+ * 
+ * Reproduction Steps:
+ * 1. Trigger _report_defect via temporal-worker exec
+ * 2. Verify Slack body contains GitHub issue link
+ * 
+ * Expected Behavior:
+ * Slack body includes GitHub issue: <url>
  */
 public class VW454SlackBodyValidationTest {
-
-    // --- Mocks (Adapters) ---
-    private final GitHubIssuePort githubAdapter = new MockGitHubIssueAdapter();
-    private final VForce360NotificationPort vforceAdapter = new MockVForce360NotificationAdapter();
-
-    // --- System Under Test ---
-    // We assume a service/handler exists that coordinates this flow.
-    // For TDD Red phase, we define the Command and expected behavior here.
-    private ReportDefectCommand cmd;
-
-    @BeforeEach
-    void setUp() {
-        cmd = new ReportDefectCommand("VW-454", "GitHub URL missing in Slack body");
-    }
-
+    
     @Test
-    void shouldContainGitHubUrlInEventPayload() {
-        // WHEN: The defect report command is executed
-        // (In real implementation, this would invoke the Aggregate/Workflow)
-        // For now, we simulate the expected outcome logic to define the contract.
-        
-        // Simulate the workflow:
-        // 1. Report Defect (Temporal)
-        String correlationId = vforceAdapter.reportDefect(cmd.defectId(), cmd.summary());
-        assertNotNull(correlationId, "VForce360 should acknowledge the report");
-
-        // 2. Create GitHub Issue
-        String githubUrl = githubAdapter.createIssue(cmd.summary(), "Defect: " + cmd.summary()).toString();
-
-        // 3. Expected Result: The Domain Event emitted should carry this URL
-        DefectReportedEvent expectedEvent = new DefectReportedEvent(
-                cmd.defectId(),
-                cmd.defectId(),
-                githubUrl
-        );
-
-        // THEN: Verify the contract
-        // This assertion represents the E2E check: does the event leading to Slack contain the URL?
-        assertTrue(
-                expectedEvent.getGithubUrl().isPresent(),
-                "CRITICAL FAIL: DefectReportedEvent must contain a non-null GitHub URL for Slack integration."
-        );
-
-        assertTrue(
-                expectedEvent.getGithubUrl().get().startsWith("http"),
-                "CRITICAL FAIL: GitHub URL must be a valid HTTP link."
-        );
-    }
-
-    @Test
-    void shouldValidateRegressionScenarioVW454() {
-        // GIVEN: The specific defect scenario VW-454
+    public void testDefectReportedEventContainsGitHubUrl() {
+        // Given
         String defectId = "VW-454";
-
-        // WHEN: Executing the report workflow
-        // (Simulating the Aggregate's emit logic)
-        MockGitHubIssueAdapter mockGithub = new MockGitHubIssueAdapter();
-        String generatedUrl = mockGithub.createIssue("VW-454 Regression", "...").toString();
-
-        DefectReportedEvent event = new DefectReportedEvent("aggregate-123", defectId, generatedUrl);
-
-        // THEN: Verify the URL is propagated correctly to the 'Slack Body' equivalent (Event Payload)
-        // This tests the 'Actual Behavior' vs 'Expected Behavior' from the story description.
-        String bodyContent = "GitHub Issue: " + event.githubUrl(); // Simulating how Slack body might be built
-
-        assertTrue(
-                bodyContent.contains("github.com"),
-                "Regression check failed: Link missing from Slack body equivalent."
+        String title = "Validating VW-454 — GitHub URL in Slack body";
+        String description = "Defect reported by user.";
+        String severity = "LOW";
+        String component = "validation";
+        String projectId = "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1";
+        
+        DefectAggregate aggregate = new DefectAggregate(defectId);
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            defectId, title, description, severity, component, projectId
         );
         
-        assertFalse(
-                bodyContent.contains("<url>"),
-                "Regression check failed: URL was not replaced with a real link."
-        );
+        // When - Trigger _report_defect via temporal-worker exec
+        var events = aggregate.execute(cmd);
+        
+        // Then - Verify Slack body contains GitHub issue link
+        assertThat(events).hasSize(1);
+        var event = events.get(0);
+        
+        // The GitHub URL should be present in the event
+        assertThat(event.githubUrl()).isNotNull();
+        assertThat(event.githubUrl()).isNotEmpty();
+        
+        // The URL should be a valid GitHub issue URL format
+        assertThat(event.githubUrl()).contains("github.com");
+        assertThat(event.githubUrl()).contains("/issues/");
+        
+        // The URL should contain the defect ID
+        assertThat(event.githubUrl()).contains(defectId);
+        
+        // The Slack body would be constructed from this event
+        // and would include: "GitHub issue: " + event.githubUrl()
+        String slackBody = buildSlackBody(event);
+        assertThat(slackBody).contains("GitHub issue:");
+        assertThat(slackBody).contains(event.githubUrl());
     }
-
-    // --- Inner Classes defining Domain Contracts (Expected to exist/implemented) ---
-
-    public record ReportDefectCommand(String defectId, String summary) implements Command {}
-
+    
+    @Test
+    public void testSlackBodyFormatIncludesGitHubUrl() {
+        // Given
+        String defectId = "VW-454";
+        String expectedUrl = "https://github.com/example/issues/" + defectId;
+        
+        DefectAggregate aggregate = new DefectAggregate(defectId);
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            defectId,
+            "Validating VW-454 — GitHub URL in Slack body",
+            "Defect reported by user.",
+            "LOW",
+            "validation",
+            "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1"
+        );
+        
+        // When
+        var events = aggregate.execute(cmd);
+        var event = events.get(0);
+        
+        // Then
+        String slackBody = buildSlackBody(event);
+        
+        // Verify the expected format: "GitHub issue: <url>"
+        assertThat(slackBody).containsPattern("GitHub issue:\s*" + expectedUrl);
+    }
+    
+    /**
+     * Helper method to build a Slack body from the DefectReportedEvent.
+     * This simulates what the temporal-worker would do when sending the notification.
+     */
+    private String buildSlackBody(com.example.domain.defect.model.DefectReportedEvent event) {
+        StringBuilder body = new StringBuilder();
+        body.append("*Defect Reported*\n");
+        body.append("*Title:* ").append(event.title()).append("\n");
+        body.append("*Severity:* ").append(event.severity()).append("\n");
+        body.append("*Component:* ").append(event.component()).append("\n");
+        body.append("*Description:* ").append(event.description()).append("\n");
+        body.append("GitHub issue: ").append(event.githubUrl());
+        return body.toString();
+    }
 }

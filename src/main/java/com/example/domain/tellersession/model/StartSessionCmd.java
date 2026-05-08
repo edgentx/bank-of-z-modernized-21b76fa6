@@ -1,15 +1,17 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
+import java.time.Duration;
 
 /**
  * Command to initiate a teller session.
- * Story S-18
+ * AC: S-18
  */
 public record StartSessionCmd(
     String sessionId,
     String tellerId,
     String terminalId,
-    String operationalContext,
-    boolean authenticated
+    String sourceChannelId,
+    String currentContext,
+    Duration timeout
 ) implements Command {}

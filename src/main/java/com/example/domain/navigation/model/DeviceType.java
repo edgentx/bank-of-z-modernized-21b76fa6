@@ -1,11 +1,10 @@
 package com.example.domain.navigation.model;
 
 /**
- * Supported device types for UI rendering.
+ * Device type enumeration for UI adaptation.
  */
 public enum DeviceType {
     DESKTOP,
-    TABLET,
     MOBILE,
-    TERMINAL_3270
+    TN3270 // Legacy terminal type
 }

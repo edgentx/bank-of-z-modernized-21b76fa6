@@ -1,28 +1,49 @@
 package com.example.mocks;
 
-import com.example.ports.GitHubClientPort;
-import org.springframework.stereotype.Component;
+import com.example.ports.GitHubPort;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock adapter for GitHubClientPort.
- * Returns configurable data without calling the real GitHub API.
+ * Mock implementation of GitHubPort for testing.
+ * Allows setting expectations on the created URL and verifying interactions.
  */
-@Component
-public class MockGitHubClient implements GitHubClientPort {
+public class MockGitHubClient implements GitHubPort {
+    private final List<String> createdTitles = new ArrayList<>();
+    private final List<String> createdBodies = new ArrayList<>();
+    private String stubbedUrl;
+    private boolean shouldFail = false;
 
-    private String mockUrl = "https://github.com/example/bank-of-z/issues/1";
-
-    public void setMockIssueUrl(String url) {
-        this.mockUrl = url;
+    public void setStubbedUrl(String url) {
+        this.stubbedUrl = url;
     }
 
-    public String getMockIssueUrl() {
-        return mockUrl;
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
     }
 
     @Override
-    public String getIssueUrl(String issueId) {
-        // Return the configured mock URL
-        return mockUrl;
+    public String createDefect(String title, String body) {
+        if (shouldFail) {
+            throw new RuntimeException("GitHub Service Unavailable");
+        }
+        createdTitles.add(title);
+        createdBodies.add(body);
+        // Return a stable URL for testing if stubbed, otherwise a default
+        return stubbedUrl != null ? stubbedUrl : "https://github.com/example/repo/issues/1";
+    }
+
+    public boolean wasCalledWithTitle(String title) {
+        return createdTitles.contains(title);
+    }
+    
+    public boolean wasCalled() {
+        return !createdTitles.isEmpty();
+    }
+    
+    public void reset() {
+        createdTitles.clear();
+        createdBodies.clear();
+        this.stubbedUrl = null;
     }
 }

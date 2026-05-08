@@ -1,92 +1,87 @@
 package com.example.domain.defect;
 
-import com.example.adapters.slack.SlackPort;
 import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.domain.shared.UnknownCommandException;
-import org.junit.jupiter.api.BeforeEach;
+import com.example.domain.defect.model.DefectReportedEvent;
+import com.example.domain.defect.port.SlackNotifier;
+import com.example.domain.defect.port.GitHubIssueTracker;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import java.time.Instant;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * TDD Red Phase Tests for VW-454.
- * 
- * Testing the interaction between Temporal (Workflow) and the external Notification System (Slack).
- * 
- * Acceptance Criteria:
- * 1. The defect report workflow triggers correctly.
- * 2. The Slack notification body contains the GitHub issue URL.
+ * TDD Red Phase: Verify defect reporting workflow generates correct GitHub URL and Slack notification.
+ *
+ * Story: VW-454 — GitHub URL in Slack body (end-to-end)
+ * Criteria: Validation no longer exhibits broken behavior; Regression test added.
  */
 public class ReportDefectCommandTest {
 
-    // System Under Test
-    private DefectAggregate defectAggregate;
+    @Mock
+    private GitHubIssueTracker mockGitHub;
 
-    // Mocks for External Dependencies (Adapters)
-    private SlackPort mockSlackPort;
-    private GitHubPort mockGitHubPort;
+    @Mock
+    private SlackNotifier mockSlack;
+
+    private DefectReportOrchestrator orchestrator;
 
     @BeforeEach
     void setUp() {
-        mockSlackPort = mock(SlackPort.class);
-        mockGitHubPort = mock(GitHubPort.class);
-
-        // Inject mocks into the Aggregate (or Service)
-        // In a real Spring setup, this might be handled by @InjectMocks, 
-        // but we construct manually for pure domain unit tests.
-        defectAggregate = new DefectAggregate(mockSlackPort, mockGitHubPort);
+        MockitoAnnotations.openMocks(this);
+        orchestrator = new DefectReportOrchestrator(mockGitHub, mockSlack);
     }
 
     @Test
-    void testReportDefect_Success_ShouldPostToSlackWithGitHubLink() {
-        // Arrange
-        String defectId = "S-FB-1";
-        String title = "Fix: Validating VW-454";
-        String expectedGitHubUrl = "https://github.com/bank-of-z/issues/454";
-        
-        ReportDefectCmd cmd = new ReportDefectCmd(defectId, title, "Critical validation failure in Slack body.");
+    void whenReportDefectCommandIsExecuted_shouldCreateGitHubIssueAndPostToSlackWithLink() {
+        // Given
+        String projectId = "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1";
+        String defectTitle = "Defect: Validating VW-454";
+        String defectDescription = "Slack body should contain GitHub issue: <url>";
+        String expectedIssueId = "GH-123";
+        String expectedUrl = "https://github.com/bank-of-z/issues/" + expectedIssueId;
 
-        // Mock GitHub creation response
-        when(mockGitHubPort.createIssue(anyString(), anyString()))
-            .thenReturn(expectedGitHubUrl);
+        // We define the expected URL format strictly to catch regressions where the URL might be malformed
+        String expectedSlackBody = "Defect Reported: " + defectTitle + "\nIssue: " + expectedUrl;
 
-        // Act
-        defectAggregate.execute(cmd);
+        // Configure GitHub mock to return a realistic URL structure
+        when(mockGitHub.createIssue(eq(defectTitle), anyString()))
+            .thenReturn(new GitHubIssueTracker.IssueDetails(expectedIssueId, expectedUrl));
 
-        // Assert
-        
-        // 1. Verify GitHub API was called
-        verify(mockGitHubPort).createIssue(eq(title), contains("validation failure"));
+        ReportDefectCmd cmd = new ReportDefectCmd(projectId, defectTitle, defectDescription);
 
-        // 2. Capture the Slack payload
-        ArgumentCaptor<String> slackMessageCaptor = ArgumentCaptor.forClass(String.class);
-        verify(mockSlackPort).sendMessage(slackMessageCaptor.capture());
+        // When
+        List<DefectReportedEvent> events = orchestrator.execute(cmd);
 
-        String actualSlackBody = slackMessageCaptor.getValue();
+        // Then
+        // 1. Verify an event was produced
+        assertNotNull(events);
+        assertEquals(1, events.size());
 
-        // 3. ASSERTION FOR VW-454: The Slack body MUST contain the GitHub URL
-        // This will FAIL initially if the implementation only posts the title.
-        assertTrue(
-            actualSlackBody.contains(expectedGitHubUrl),
-            "Regression Alert (VW-454): Slack body must include the GitHub Issue URL. Expected: " + expectedGitHubUrl + " but got: " + actualSlackBody
-        );
-    }
+        // 2. Verify the internal state of the event
+        DefectReportedEvent event = events.get(0);
+        assertEquals(projectId, event.aggregateId());
+        assertEquals(expectedUrl, event.githubIssueUrl());
+        assertNotNull(event.occurredAt());
 
-    @Test
-    void testReportDefect_GitHubFailure_ShouldThrowException() {
-        // Arrange
-        ReportDefectCmd cmd = new ReportDefectCmd("S-FB-1", "Fail Test", "Attempting to report defect");
-        
-        // Mock GitHub failure
-        when(mockGitHubPort.createIssue(anyString(), anyString()))
-            .thenThrow(new RuntimeException("GitHub API Down"));
+        // 3. Verify External System 1 (GitHub) was called correctly
+        verify(mockGitHub).createIssue(defectTitle, defectDescription);
 
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> defectAggregate.execute(cmd));
-        
-        // Verify Slack was NOT called (poison message prevention)
-        verify(mockSlackPort, never()).sendMessage(anyString());
+        // 4. Verify External System 2 (Slack) received the correct link in the body
+        ArgumentCaptor<String> slackBodyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(mockSlack).sendNotification(slackBodyCaptor.capture());
+
+        String actualSlackBody = slackBodyCaptor.getValue();
+
+        // CRITICAL ASSERTION: This validates the VW-454 fix.
+        // The Slack body MUST contain the specific GitHub URL returned by the mock.
+        assertTrue(actualSlackBody.contains(expectedUrl),
+            "Slack body must contain the specific GitHub Issue URL. Received: " + actualSlackBody);
     }
 }

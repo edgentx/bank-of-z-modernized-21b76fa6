@@ -1,22 +1,38 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
-
-import static org.mockito.Mockito.mock;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock configuration for SlackNotificationPort.
- * This allows us to use Mockito to spy/sty interactions without real network calls.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Captures messages in memory to verify output without calling the real API.
  */
-@TestConfiguration
-public class MockSlackNotificationPort {
+public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    @Bean
-    @Primary
-    public SlackNotificationPort slackNotificationPort() {
-        return mock(SlackNotificationPort.class);
+    public static final class SentMessage {
+        public final String channel;
+        public final String body;
+
+        public SentMessage(String channel, String body) {
+            this.channel = channel;
+            this.body = body;
+        }
+    }
+
+    private final List<SentMessage> messages = new ArrayList<>();
+
+    @Override
+    public void sendNotification(String channel, String messageBody) {
+        // Capture the call
+        this.messages.add(new SentMessage(channel, messageBody));
+    }
+
+    public List<SentMessage> getMessages() {
+        return new ArrayList<>(messages);
+    }
+
+    public void clear() {
+        messages.clear();
     }
 }

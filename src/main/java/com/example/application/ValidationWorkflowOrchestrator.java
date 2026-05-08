@@ -1,85 +1,53 @@
 package com.example.application;
 
-import com.example.domain.validation.model.DefectReportedEvent;
-import com.example.domain.validation.model.ReportDefectCommand;
-import com.example.domain.validation.model.ValidationAggregate;
-import com.example.ports.GitHubIssueTrackerPort;
-import com.example.ports.SlackNotifierPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
+import com.example.domain.validation.model.*;
+import com.example.domain.validation.repository.ValidationRepository;
+import com.example.domain.slack.SlackMessage;
+import com.example.ports.SlackNotifier;
 
 /**
- * Application Service / Orchestrator for the Validation Workflow.
- * Implements S-FB-1 logic:
- * 1. Receives command.
- * 2. Executes Aggregate.
- * 3. Calls GitHub Adapter.
- * 4. Calls Slack Adapter with GitHub URL.
+ * Orchestrator for the Validation Workflow (Temporal Worker).
+ * Handles the logic for reporting defects and notifying Slack.
  */
-@Service
 public class ValidationWorkflowOrchestrator {
 
-    private static final Logger log = LoggerFactory.getLogger(ValidationWorkflowOrchestrator.class);
-    private final GitHubIssueTrackerPort githubPort;
-    private final SlackNotifierPort slackPort;
+    private final ValidationRepository validationRepository;
+    private final SlackNotifier slackNotifier;
 
-    public ValidationWorkflowOrchestrator(GitHubIssueTrackerPort githubPort, SlackNotifierPort slackPort) {
-        this.githubPort = githubPort;
-        this.slackPort = slackPort;
+    public ValidationWorkflowOrchestrator(ValidationRepository validationRepository, SlackNotifier slackNotifier) {
+        this.validationRepository = validationRepository;
+        this.slackNotifier = slackNotifier;
     }
 
     /**
-     * Handles the ReportDefectCommand workflow.
+     * Report a defect, create a GitHub issue (simulated), and notify Slack.
+     * 
+     * @param validationId The ID of the validation check that failed.
+     * @param defectId The ID of the defect report.
+     * @param githubIssueUrl The URL of the created GitHub issue.
      */
-    public DefectReportedEvent handleReportDefect(ValidationAggregate aggregate, ReportDefectCommand cmd) {
-        // 1. Execute Domain Logic
-        var events = aggregate.execute(cmd);
-        if (events.isEmpty()) {
-            throw new IllegalStateException("Aggregate did not produce an event");
-        }
-        
-        // In a strict ES architecture, we'd persist the event here.
-        // For this defect fix, we focus on the Integration flow.
-        
-        // 2. External Interaction: GitHub
-        String issueUrl;
-        try {
-            issueUrl = githubPort.createIssue(cmd.title(), cmd.description());
-            log.info("GitHub issue created: {}", issueUrl);
-        } catch (Exception e) {
-            log.error("Failed to create GitHub issue", e);
-            // Depending on requirements, we might fail the workflow or post a failure notice to Slack.
-            // For S-FB-1, we assume the GitHub creation is successful as per the Happy Path.
-            throw new RuntimeException("Failed to report defect to GitHub", e);
+    public void reportDefect(String validationId, String defectId, String githubIssueUrl) {
+        if (githubIssueUrl == null || githubIssueUrl.isBlank()) {
+            throw new IllegalArgumentException("GitHub Issue URL cannot be blank");
         }
 
-        // 3. External Interaction: Slack
-        // Requirement: Slack body includes GitHub issue URL.
-        String slackChannel = "#vforce360-issues";
-        String slackBody = String.format(
-            "Defect Reported: %s\nSeverity: %s\nGitHub Issue: %s",
-            cmd.title(), cmd.severity(), issueUrl
+        // 1. Load or create Aggregate
+        ValidationAggregate aggregate = validationRepository.findById(validationId)
+            .orElse(new ValidationAggregate(validationId));
+
+        // 2. Execute Domain Logic
+        aggregate.execute(new ReportDefectCmd(validationId, defectId));
+        aggregate.execute(new LinkGitHubIssueCmd(validationId, githubIssueUrl));
+
+        // 3. Persist
+        validationRepository.save(aggregate);
+
+        // 4. Notify Slack
+        String messageBody = String.format(
+            "Defect Reported: %s for Validation: %s. GitHub Issue: %s",
+            defectId, validationId, githubIssueUrl
         );
-
-        try {
-            slackPort.postMessage(slackChannel, slackBody);
-            log.info("Slack notification sent to {}", slackChannel);
-        } catch (Exception e) {
-            log.error("Failed to post to Slack", e);
-            // If Slack fails, we still have the GitHub URL, so we might consider the defect "reported".
-            // But for the purpose of S-FB-1, we want to ensure the link IS in the body.
-        }
-
-        // 4. Return Enriched Event
-        // Note: The aggregate event might have a placeholder URL. 
-        // We return a version with the actual confirmed URL for downstream consumers if necessary.
-        return new DefectReportedEvent(
-            aggregate.id(),
-            cmd.defectId(),
-            issueUrl,
-            slackChannel,
-            java.time.Instant.now()
-        );
+        
+        slackNotifier.send(new SlackMessage("#vforce360-issues", messageBody));
     }
 }

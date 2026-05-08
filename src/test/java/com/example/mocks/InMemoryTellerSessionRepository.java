@@ -1,14 +1,13 @@
 package com.example.mocks;
 
-import com.example.domain.teller.model.TellerSessionAggregate;
-import com.example.domain.teller.repository.TellerSessionRepository;
+import com.example.domain.uimodel.model.TellerSessionAggregate;
+import com.example.domain.uimodel.repository.TellerSessionRepository;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class InMemoryTellerSessionRepository implements TellerSessionRepository {
-
-    private final Map<String, TellerSessionAggregate> store = new HashMap<>();
+    private final Map<String, TellerSessionAggregate> store = new ConcurrentHashMap<>();
 
     @Override
     public TellerSessionAggregate save(TellerSessionAggregate aggregate) {
@@ -17,7 +16,7 @@ public class InMemoryTellerSessionRepository implements TellerSessionRepository 
     }
 
     @Override
-    public TellerSessionAggregate findById(String id) {
-        return store.get(id);
+    public TellerSessionAggregate findById(String sessionId) {
+        return store.get(sessionId);
     }
 }

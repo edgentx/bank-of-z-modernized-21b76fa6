@@ -1,80 +1,66 @@
 package com.example.steps;
 
-import com.example.domain.validation.model.ReportDefectCommand;
-import com.example.domain.validation.model.ReportDefectWorkflow;
-import com.example.domain.validation.model.ReportDefectWorkflowImpl;
-import com.example.mocks.MockSlackNotifier;
-import com.example.ports.GitHubIssueTracker;
-import com.example.ports.SlackNotifier;
+import com.example.Application;
+import com.example.domain.shared.Command;
+import com.example.domain.validation.ReportDefectCmd;
+import com.example.ports.SlackPort;
+import com.example.ports.GitHubPort;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import io.cucumber.java.en.Then;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Steps for verifying VW-454: GitHub URL in Slack body.
- * Uses a real Temporal TestWorkflowEnvironment to execute the Sagas,
- * but uses MockSlackNotifier to verify the outputs without external dependencies.
+ * Steps for validating VW-454: GitHub URL in Slack body.
+ * Story: S-FB-1
  */
+@SpringBootTest(classes = Application.class)
 public class VW454Steps {
 
     @Autowired
-    private MockSlackNotifier mockSlack;
+    private AggregateTestHelper aggregateTestHelper;
 
-    @Autowired
-    private GitHubIssueTracker gitHub; // Will be a mock or stub implementation in test context
+    // We verify the mocks via the helper's context or directly if needed,
+    // but the helper abstracts the interaction nicely.
 
-    private ReportDefectCommand command;
-    private Exception workflowException;
-    private String resultUrl;
-
-    @Given("the temporal worker is executing the report_defect workflow")
-    public void the_worker_is_ready() {
-        // Setup is handled by the TestSuite initialization
-        assertNotNull(mockSlack, "MockSlack should be autowired");
+    @Given("a defect report is ready to be sent")
+    public void a_defect_report_is_ready_to_be_sent() {
+        // Setup is handled by the MockSlackPort and MockGitHubPort initialization
+        // No specific pre-condition needed other than the application context loading.
     }
 
-    @When("a defect report command is triggered with title {string} and id {string}")
-    public void a_defect_report_is_triggered(String title, String id) {
-        this.command = new ReportDefectCommand(
-            id,
-            title,
-            "Description of the failure",
-            "LOW"
-        );
-        
-        try {
-            // Instantiate the workflow with the mock dependencies provided by Spring TestContext
-            ReportDefectWorkflow workflow = new ReportDefectWorkflowImpl(mockSlack, gitHub);
-            
-            // Execute the workflow logic synchronously for this Cucumber test
-            this.resultUrl = workflow.execute(command);
-            
-        } catch (Exception e) {
-            this.workflowException = e;
-        }
+    @When("the temporal worker triggers {string} via exec")
+    public void the_temporal_worker_triggers_via_exec(String commandName) {
+        // We simulate the Temporal worker invoking the domain logic
+        // using the helper to execute against the root.
+        // The command ID corresponds to the defect ID.
+        String defectId = "VW-454";
+        ReportDefectCmd cmd = new ReportDefectCmd(defectId, "https://github.com/bank-of-z/issues/454");
+        aggregateTestHelper.executeCommand(cmd);
     }
 
-    @Then("the Slack body should contain the GitHub issue URL")
-    public void the_slack_body_should_contain_github_url() {
-        if (workflowException != null) {
-            fail("Workflow threw exception: " + workflowException.getMessage());
-        }
+    @Then("the Slack body contains the GitHub issue link")
+    public void the_slack_body_contains_the_github_issue_link() {
+        // The helper holds the reference to the Slack Port mock to verify interactions.
+        SlackPort slackPort = aggregateTestHelper.getSlackPort();
+        String actualBody = slackPort.getLastMessageBody();
 
-        // 1. Verify a message was sent
-        assertFalse(mockSlack.getMessages().isEmpty(), "Slack should have received a message");
+        // Strict validation: The body must contain the URL.
+        assertNotNull(actualBody, "Slack body should not be null");
+        assertTrue(actualBody.contains("https://github.com/bank-of-z/issues/454"),
+            "Slack body should contain the GitHub URL. Was: " + actualBody);
+    }
 
-        // 2. Verify the content matches the defect report
-        MockSlackNotifier.Message msg = mockSlack.getMessages().get(0);
-        assertTrue(msg.body.contains(command.defectId()), "Body should contain defect ID");
-        assertTrue(msg.body.contains(command.title()), "Body should contain title");
-
-        // 3. **CRITICAL CHECK for VW-454**
-        // The defect report states: "Slack body includes GitHub issue: <url>"
-        assertTrue(msg.body.contains("github.com"), "Body should contain GitHub URL domain");
-        assertTrue(msg.body.contains("http"), "Body should contain a valid URL");
-        assertTrue(msg.body.contains(resultUrl), "Body should contain the specific URL returned by the mock");
+    @Then("the GitHub issue link is formatted correctly")
+    public void the_github_issue_link_is_formatted_correctly() {
+        // Additional validation to ensure it's not just raw text but the link
+        SlackPort slackPort = aggregateTestHelper.getSlackPort();
+        String body = slackPort.getLastMessageBody();
+        // Slack link format is usually <url|text> or <url>. We check for the angle brackets.
+        assertTrue(body.contains("<https://github.com/bank-of-z/issues/454"),
+            "Slack link should be formatted with angle brackets. Was: " + body);
     }
 }

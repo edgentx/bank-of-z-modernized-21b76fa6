@@ -1,27 +1,30 @@
 package com.example.adapters;
 
 import com.example.ports.GitHubIssuePort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * Real implementation of GitHubIssuePort.
- * This would use WebClient or Octokit to post to the real GitHub API.
+ * Real implementation of the GitHubIssuePort.
+ * Constructs URLs based on a configured base GitHub URL.
  */
 @Component
 public class GitHubIssueAdapter implements GitHubIssuePort {
 
-    private static final Logger log = LoggerFactory.getLogger(GitHubIssueAdapter.class);
+    private final String baseUrl;
+
+    public GitHubIssueAdapter(@Value("${github.base-url:https://github.com/mock-org/repo/issues}") String baseUrl) {
+        this.baseUrl = baseUrl;
+    }
 
     @Override
-    public String createIssue(String title, String body) {
-        // Implementation for Real GitHub API
-        // Example: WebClient.post()...
-        log.info("[REAL ADAPTER] Creating GitHub Issue: {}", title);
-        
-        // Return a dummy URL or the real one from the response.
-        // For the structure, we return a placeholder as we can't hit the real API in this context.
-        return "https://github.com/real-org/repo/issues/1";
+    public String generateIssueUrl(String issueId) {
+        if (issueId == null || issueId.isBlank()) {
+            throw new IllegalArgumentException("issueId cannot be null");
+        }
+        // Ensure the base URL doesn't end with a slash to avoid double slashes,
+        // or handle it gracefully. Based on the mock behavior, we expect a clean URL.
+        String cleanBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        return cleanBase + "/" + issueId;
     }
 }

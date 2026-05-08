@@ -1,14 +1,14 @@
 package com.example.steps;
 
-import org.junit.jupiter.api.Test;
+import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectClasspathResource;
+import org.junit.platform.suite.api.Suite;
 
 /**
- * Placeholder to satisfy existing structure if needed,
- * though VW454TestSuite is the specific runner for this story.
+ * Placeholder to maintain existing structure.
+ * Actual execution would use a standard Cucumber/JUnit runner configuration.
  */
-public class S10RunCucumberTest {
-    @Test
-    public void contextLoads() {
-        // Context load test
-    }
-}
+@Suite
+@IncludeEngines("cucumber")
+@SelectClasspathResource("features")
+public class S10RunCucumberTest {}

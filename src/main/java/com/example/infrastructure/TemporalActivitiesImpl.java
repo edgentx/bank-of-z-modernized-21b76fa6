@@ -1,25 +1,34 @@
 package com.example.infrastructure;
 
 import com.example.domain.shared.SlackMessageValidator;
-import io.temporal.spring.boot.ActivityImpl;
-import org.springframework.stereotype.Component;
+import io.temporal.activity.Activity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Component
-@ActivityImpl(taskQueue = "DefectTaskQueue")
-public class TemporalActivitiesImpl {
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
-    private final SlackMessageValidator validator;
+public class TemporalActivitiesImpl implements TemporalActivities {
 
-    public TemporalActivitiesImpl(SlackMessageValidator validator) {
-        this.validator = validator;
+    private static final Logger log = LoggerFactory.getLogger(TemporalActivitiesImpl.class);
+
+    private final SlackMessageValidator slackMessageValidator;
+
+    public TemporalActivitiesImpl(SlackMessageValidator slackMessageValidator) {
+        this.slackMessageValidator = slackMessageValidator;
     }
 
-    public String generateSlackBody(String title, String url) {
-        // Logic included to ensure the URL is in the body
-        return "Defect: " + title + " - Link: <" + url + ">";
-    }
+    @Override
+    public String postToSlack(String message) {
+        log.info("Activity: posting to Slack. Message content: {}", message);
 
-    public void sendSlackNotification(String message) {
-        // Actual Slack integration would go here
+        // Validation: Ensure the message contains the GitHub URL as per VW-454 requirements
+        if (!slackMessageValidator.containsGitHubIssueUrl(message)) {
+            Activity.raiseError("Invalid Slack Message: Missing GitHub Issue URL");
+        }
+
+        // Mock Slack API call success
+        return "SLACK-OK-" + Instant.now().atZone(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_INSTANT);
     }
 }

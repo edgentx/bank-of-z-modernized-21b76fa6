@@ -11,8 +11,8 @@ public record SessionStartedEvent(
         String terminalId,
         Instant occurredAt
 ) implements DomainEvent {
-    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId) {
-        this(aggregateId, tellerId, terminalId, Instant.now());
+    public SessionStartedEvent {
+        // Ensure immutability and valid defaults
     }
 
     @Override

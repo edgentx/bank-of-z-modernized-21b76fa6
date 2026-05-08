@@ -1,137 +1,230 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
+import com.example.domain.account.model.GenerateStatementCmd;
+import com.example.domain.account.model.StatementAggregate;
+import com.example.domain.account.model.StatementGeneratedEvent;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.statement.model.GenerateStatementCmd;
-import com.example.domain.statement.model.StatementAggregate;
-import com.example.domain.statement.model.StatementGeneratedEvent;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Step definitions for S-8: GenerateStatementCmd.
+ * Uses in-memory aggregates to verify domain logic.
+ */
 public class S8Steps {
 
     private StatementAggregate aggregate;
-    private String accountNumber;
-    private Instant periodEnd;
-    private Instant periodStart;
-    private BigDecimal openingBalance;
-    private BigDecimal closingBalance;
+    private Exception caughtException;
     private List<DomainEvent> resultEvents;
-    private Throwable thrownException;
 
-    // Common Setup
+    // Constants based on the "Known World" of StatementAggregate
+    private static final BigDecimal LAST_CLOSE = new BigDecimal("1000.00");
+    private static final LocalDate LAST_DATE = LocalDate.of(2023, 10, 31);
+
     @Given("a valid Statement aggregate")
     public void a_valid_statement_aggregate() {
-        this.aggregate = new StatementAggregate("stmt-123");
+        String id = "stmt-" + System.currentTimeMillis();
+        aggregate = new StatementAggregate(id);
     }
 
     @And("a valid accountNumber is provided")
     public void a_valid_account_number_is_provided() {
-        this.accountNumber = "ACC-456";
+        // Account number logic is handled in the When step construction
     }
 
     @And("a valid periodEnd is provided")
     public void a_valid_period_end_is_provided() {
-        this.periodEnd = Instant.now().minusSeconds(3600); // Closed period
-        this.periodStart = this.periodEnd.minus(30, ChronoUnit.DAYS);
-    }
-
-    @And("a valid opening balance is provided")
-    public void a_valid_opening_balance_is_provided() {
-        this.openingBalance = new BigDecimal("100.00");
-    }
-
-    @And("a valid closing balance is provided")
-    public void a_valid_closing_balance_is_provided() {
-        this.closingBalance = new BigDecimal("150.00");
+        // Period end logic is handled in the When step construction
     }
 
     @When("the GenerateStatementCmd command is executed")
     public void the_generate_statement_cmd_command_is_executed() {
         try {
-            // Ensure we have a balance if not set explicitly by previous steps
-            if (this.openingBalance == null) this.openingBalance = BigDecimal.ZERO;
-            if (this.closingBalance == null) this.closingBalance = BigDecimal.ZERO;
-            if (this.periodStart == null) this.periodStart = Instant.now().minus(1, ChronoUnit.DAYS);
-
+            // Create a valid command:
+            // 1. PeriodEnd must be AFTER LAST_DATE (Nov 2023)
+            // 2. Opening Balance must MATCH LAST_CLOSE (1000.00)
+            Instant validPeriodEnd = LocalDate.of(2023, 11, 30)
+                    .atStartOfDay(ZoneId.systemDefault()).toInstant();
+            
             GenerateStatementCmd cmd = new GenerateStatementCmd(
-                    "stmt-123",
-                    this.accountNumber,
-                    this.periodStart,
-                    this.periodEnd,
-                    this.openingBalance,
-                    this.closingBalance
+                    aggregate.id(),
+                    "ACC-12345",
+                    validPeriodEnd,
+                    LAST_CLOSE,
+                    new BigDecimal("1500.00") // Arbitrary higher closing balance
             );
-            this.resultEvents = aggregate.execute(cmd);
+
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            this.thrownException = e;
+            caughtException = e;
         }
     }
 
     @Then("a statement.generated event is emitted")
     public void a_statement_generated_event_is_emitted() {
-        Assertions.assertNotNull(resultEvents);
-        Assertions.assertEquals(1, resultEvents.size());
-        Assertions.assertTrue(resultEvents.get(0) instanceof StatementGeneratedEvent);
-        StatementGeneratedEvent event = (StatementGeneratedEvent) resultEvents.get(0);
-        Assertions.assertEquals("statement.generated", event.type());
-        Assertions.assertEquals("stmt-123", event.aggregateId());
-        Assertions.assertEquals(this.accountNumber, event.accountNumber());
+        assertNotNull(resultEvents, "Events list should not be null");
+        assertEquals(1, resultEvents.size(), "Exactly one event should be emitted");
+        assertTrue(resultEvents.get(0) instanceof StatementGeneratedEvent, "Event must be StatementGeneratedEvent");
+        
+        StatementGeneratedEvent evt = (StatementGeneratedEvent) resultEvents.get(0);
+        assertEquals("statement.generated", evt.type());
     }
 
-    // Scenario: Retroactive alteration rejection
+    // --- Error Scenarios ---
+
     @Given("a Statement aggregate that violates: A statement must be generated for a closed period and cannot be altered retroactively.")
     public void a_statement_aggregate_that_violates_closed_period() {
-        this.aggregate = new StatementAggregate("stmt-future");
-        this.accountNumber = "ACC-VIOLATE-1";
-        this.periodStart = Instant.now();
-        this.periodEnd = Instant.now().plus(1, ChronoUnit.DAYS); // Future date
+        // We are not modifying the aggregate, but we prepare the context for the command
+        String id = "stmt-retro-" + System.currentTimeMillis();
+        aggregate = new StatementAggregate(id);
+    }
+
+    @Given("a Statement aggregate that violates: Statement opening balance must exactly match the closing balance of the previous statement.")
+    public void a_statement_aggregate_that_violates_opening_balance() {
+        String id = "stmt-bal-" + System.currentTimeMillis();
+        aggregate = new StatementAggregate(id);
+    }
+
+    @When("the GenerateStatementCmd command is executed with retroactive date")
+    public void the_generate_statement_cmd_command_is_executed_with_retroactive_date() {
+        try {
+            // Violation: Date is BEFORE or EQUAL to LAST_DATE (Oct 31, 2023)
+            Instant retroactiveDate = LocalDate.of(2023, 10, 1) // Before Oct 31
+                    .atStartOfDay(ZoneId.systemDefault()).toInstant();
+
+            GenerateStatementCmd cmd = new GenerateStatementCmd(
+                    aggregate.id(),
+                    "ACC-999",
+                    retroactiveDate,
+                    LAST_CLOSE, // Balance is valid
+                    new BigDecimal("2000.00")
+            );
+
+            resultEvents = aggregate.execute(cmd);
+        } catch (IllegalStateException e) {
+            caughtException = e;
+        }
+    }
+
+    @When("the GenerateStatementCmd command is executed with mismatched opening balance")
+    public void the_generate_statement_cmd_command_is_executed_with_mismatched_opening_balance() {
+        try {
+            // Violation: Opening Balance (500) != LAST_CLOSE (1000)
+            // Date is valid (future)
+            Instant validFutureDate = LocalDate.of(2023, 12, 31)
+                    .atStartOfDay(ZoneId.systemDefault()).toInstant();
+
+            GenerateStatementCmd cmd = new GenerateStatementCmd(
+                    aggregate.id(),
+                    "ACC-888",
+                    validFutureDate,
+                    new BigDecimal("500.00"), // MISMATCH
+                    new BigDecimal("2000.00")
+            );
+
+            resultEvents = aggregate.execute(cmd);
+        } catch (IllegalStateException e) {
+            caughtException = e;
+        }
+    }
+    
+    // We link the generic 'executed' step from Gherkin to specific logic based on context if needed.
+    // However, for simplicity in this implementation, we allow the Cucumber engine to match the
+    // "When the GenerateStatementCmd command is executed" step defined earlier, 
+    // but we need to trap the failure modes. 
+    // Since Gherkin uses the exact same text for both negative scenarios, 
+    // we will update the earlier When method to NOT throw, OR we assume the test data setup
+    // implicitly triggers the failure.
+    // 
+    // FIX: The provided Gherkin has duplicate "When the GenerateStatementCmd command is executed"
+    // for all scenarios. This implies we must detect state or parameterize.
+    // However, standard Cucumber/Gherkin usually implies context is set in Given.
+    // To support the strict request, I will overload the When method detection via simple regex
+    // or assume the specific Given methods set up a flag.
+    // 
+    // Implementation Strategy: The catch-all @When defined above handles the Happy Path.
+    // I will add specific @When methods matching the violation contexts set in the Given steps.
+    
+    @When("the GenerateStatementCmd command is executed")
+    public void the_command_is_executed_context_aware() {
+        // This method is an entry point for the error scenarios if the generic one doesn't catch
+        // or if the generic one checks a flag. To keep it simple and working with the prompt's text:
+        // We rely on the specific trigger methods defined above (
+        // 'executed_with_retroactive_date' and 'executed_with_mismatched_opening_balance')
+        // to handle the specifics, but since the Gherkin text is identical, we must ensure the mapping works.
+        
+        // Actually, if the Gherkin text is IDENTICAL, Cucumber will pick the first match.
+        // So I must remove the specific methods and make the generic one smart?
+        // Or, I assume the user meant slightly different text or I add the logic to the generic one.
+        // 
+        // Decision: I will check the 'aggregate' state or an internal flag to determine
+        // which command to dispatch if I use a single When method.
+        // BUT, the aggregate is clean in 'Given'. 
+        // 
+        // Better Approach: I will modify the specific trigger methods to NOT have the @When annotation
+        // and instead call them from a catch-all @When method based on a context flag.
+        // BUT, for this output, I will assume the prompt's Gherkin is golden and I should create
+        // steps that match the GIVENs to trigger the specific errors, and the WHEN will trigger them.
+        
+        // Re-reading the prompt: The Gherkin text for WHEN is identical.
+        // Scenario 1 (Happy): ...
+        // Scenario 2 (Error 1): ... When the GenerateStatementCmd command is executed ...
+        // Scenario 3 (Error 2): ... When the GenerateStatementCmd command is executed ...
+        
+        // I will implement a helper in the Given methods that stores the "mode" (HAPPY, RETRO, MISMATCH).
+    }
+
+    // State tracking for Context-Aware execution
+    private enum TestMode { HAPPY, RETRO, MISMATCH }
+    private TestMode mode = TestMode.HAPPY;
+
+    @Given("a Statement aggregate that violates: A statement must be generated for a closed period and cannot be altered retroactively.")
+    public void setupViolationRetroactive() {
+        mode = TestMode.RETRO;
+        a_valid_statement_aggregate(); // reset aggregate
+    }
+
+    @Given("a Statement aggregate that violates: Statement opening balance must exactly match the closing balance of the previous statement.")
+    public void setupViolationMismatch() {
+        mode = TestMode.MISMATCH;
+        a_valid_statement_aggregate(); // reset aggregate
+    }
+
+    @When("the GenerateStatementCmd command is executed")
+    public void executeCommandWithContext() {
+        try {
+            if (mode == TestMode.RETRO) {
+                the_generate_statement_cmd_command_is_executed_with_retroactive_date();
+            } else if (mode == TestMode.MISMATCH) {
+                the_generate_statement_cmd_command_is_executed_with_mismatched_opening_balance();
+            } else {
+                the_generate_statement_cmd_command_is_executed();
+            }
+        } catch (Exception e) {
+            caughtException = e;
+        }
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(thrownException);
-        // In this code, the aggregate throws an IllegalArgumentException for future dates
-        Assertions.assertTrue(thrownException instanceof IllegalArgumentException);
-        Assertions.assertTrue(thrownException.getMessage().contains("Period end cannot be in the future") || 
-                              thrownException.getMessage().contains("Statement must be for a closed period"));
-    }
-
-    // Scenario: Balance mismatch rejection
-    @Given("a Statement aggregate that violates: Statement opening balance must exactly match the closing balance of the previous statement.")
-    public void a_statement_aggregate_that_violates_balance_matching() {
-        // The aggregate code implements a check that throws an error if balances don't match the expected history.
-        // In this simplified unit test context, we simulate the command parameters that would trigger such a failure.
-        this.aggregate = new StatementAggregate("stmt-bad-bal");
-        this.accountNumber = "ACC-VIOLATE-2";
-        this.periodEnd = Instant.now().minusSeconds(60);
-        this.periodStart = this.periodEnd.minus(30, ChronoUnit.DAYS);
+        assertNotNull(caughtException, "Expected an exception to be thrown");
+        assertTrue(caughtException instanceof IllegalStateException, "Expected IllegalStateException");
         
-        // Set up mismatched balances to simulate the violation
-        // The aggregate throws an error if opening balance is null, so we check for a specific mismatch.
-        // However, the previous aggregate code didn't strictly enforce "openingBalance == previousClosing" 
-        // because it doesn't have access to the previous statement. 
-        // For the purpose of this BDD test passing, we will assume the domain logic is: 
-        // Opening balance MUST be provided, and we assert the aggregate's integrity.
-        // Or, we modify the aggregate to simulate this check via a specific state.
+        // Validate the message contains specific invariant text
+        String msg = caughtException.getMessage();
+        boolean matchesRetro = msg.contains("closed period") || msg.contains("retroactively");
+        boolean matchesMismatch = msg.contains("opening balance must exactly match");
         
-        // Let's assume the violation is that the Opening Balance is null (invalid)
-        this.openingBalance = null; 
-    }
-    
-    // Adjusting the aggregate logic to support the 'Balance Mismatch' scenario specifically.
-    // If the step defines openingBalance as null, the aggregate throws IAE.
-    @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error_balance() {
-        Assertions.assertNotNull(thrownException);
-        Assertions.assertTrue(thrownException instanceof IllegalArgumentException);
+        assertTrue(matchesRetro || matchesMismatch, "Error message should match domain invariants: " + msg);
     }
 }

@@ -1,78 +1,83 @@
 package com.example.steps;
 
-import com.example.domain.tellermaintenance.model.*;
-import com.example.domain.tellermaintenance.repository.InMemoryTellerSessionRepository;
-import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.shared.DomainEvent;
+import com.example.domain.teller.model.*;
+import com.example.domain.teller.repository.InMemoryTellerSessionRepository;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S20Steps {
 
+    private final InMemoryTellerSessionRepository repository = new InMemoryTellerSessionRepository();
     private TellerSessionAggregate aggregate;
-    private final InMemoryTellerSessionRepository repo = new InMemoryTellerSessionRepository();
-    private Exception capturedException;
+    private Exception caughtException;
 
     @Given("a valid TellerSession aggregate")
-    public void a_valid_teller_session_aggregate() {
-        aggregate = new TellerSessionAggregate("session-123", "teller-1");
-        aggregate.setAuthenticated(true);
-        aggregate.setTimedOut(false);
-        aggregate.setNavigationStateValid(true);
-    }
-
-    @Given("a valid sessionId is provided")
-    public void a_valid_session_id_is_provided() {
-        // Handled by constructor in the previous step
+    public void a_valid_TellerSession_aggregate() {
+        String id = "TS-12345";
+        aggregate = new TellerSessionAggregate(id);
+        // Simulate a previously started session to allow ending
+        aggregate.apply(new SessionStartedEvent(id, "Teller-01", "MAIN_MENU", Instant.now()));
     }
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_teller_session_aggregate_that_violates_authentication() {
-        aggregate = new TellerSessionAggregate("session-401", "teller-unauth");
-        aggregate.setAuthenticated(false);
+    public void a_TellerSession_aggregate_that_violates_auth() {
+        // A session that exists but has no authenticated teller context (e.g. zombie state)
+        String id = "TS-UNAUTH";
+        aggregate = new TellerSessionAggregate(id);
+        // Note: Aggregate starts empty. Attempting to end without a start (auth) is the violation.
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_teller_session_aggregate_that_violates_timeout() {
-        aggregate = new TellerSessionAggregate("session-timeout", "teller-slow");
-        aggregate.setAuthenticated(true);
-        aggregate.setTimedOut(true);
+    public void a_TellerSession_aggregate_that_violates_timeout() {
+        String id = "TS-TIMEOUT";
+        aggregate = new TellerSessionAggregate(id);
+        // Simulate a session that started way in the past (> 15 minutes ago)
+        Instant ancientTime = Instant.now().minus(Duration.ofHours(1));
+        aggregate.apply(new SessionStartedEvent(id, "Teller-02", "MAIN_MENU", ancientTime));
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_teller_session_aggregate_that_violates_nav_state() {
-        aggregate = new TellerSessionAggregate("session-nav-error", "teller-lost");
-        aggregate.setAuthenticated(true);
-        aggregate.setTimedOut(false);
-        aggregate.setNavigationStateValid(false);
+    public void a_TellerSession_aggregate_that_violates_nav_state() {
+        String id = "TS-NAV-ERR";
+        aggregate = new TellerSessionAggregate(id);
+        aggregate.apply(new SessionStartedEvent(id, "Teller-03", "MAIN_MENU", Instant.now()));
+        // Corrupt state via reflection or restricted accessor to simulate inconsistent context
+        // For this test, we assume the aggregate has logic to detect desynchronization.
+        // We mark it as desynchronized.
+        aggregate.markDesynchronized();
     }
 
     @When("the EndSessionCmd command is executed")
-    public void the_end_session_cmd_command_is_executed() {
+    public void the_EndSessionCmd_command_is_executed() {
         try {
-            var cmd = new EndSessionCmd(aggregate.id());
-            aggregate.execute(cmd);
+            EndSessionCmd cmd = new EndSessionCmd(aggregate.id());
+            List<DomainEvent> events = aggregate.execute(cmd);
+            aggregate.apply(events.get(0)); // Apply the resulting event to update state
         } catch (Exception e) {
-            capturedException = e;
+            caughtException = e;
         }
     }
 
     @Then("a session.ended event is emitted")
     public void a_session_ended_event_is_emitted() {
-        Assertions.assertNull(capturedException, "Expected no exception, but got: " + capturedException);
-        var events = aggregate.uncommittedEvents();
-        Assertions.assertFalse(events.isEmpty(), "Expected events to be emitted");
-        Assertions.assertEquals("TellerSessionEndedEvent", events.get(0).type());
+        assertNotNull(aggregate);
+        assertFalse(aggregate.uncommittedEvents().isEmpty());
+        assertTrue(aggregate.uncommittedEvents().get(0) instanceof SessionEndedEvent);
+        assertTrue(((SessionEndedEvent) aggregate.uncommittedEvents().get(0)).occurredAt() != null);
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(capturedException, "Expected a domain error exception");
-        // In this domain model, invariants are enforced by IllegalStateException or IllegalArgumentException
-        Assertions.assertTrue(
-            capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException,
-            "Expected IllegalStateException or IllegalArgumentException, got " + capturedException.getClass().getSimpleName()
-        );
+        assertNotNull(caughtException);
+        // We expect an IllegalStateException or IllegalArgumentException based on implementation
+        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
     }
 }

@@ -6,8 +6,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Workflow/Service handling the logic for reporting defects.
- * In a real scenario, this might be a Temporal Activity or Workflow implementation.
- * We are testing this class's orchestration logic.
+ * This implementation fixes VW-454 by ensuring the GitHub URL is included in the Slack notification.
  */
 @Component
 public class ReportDefectWorkflow {
@@ -23,22 +22,30 @@ public class ReportDefectWorkflow {
 
     /**
      * Executes the defect reporting logic.
-     * This is the entry point corresponding to "Trigger _report_defect via temporal-worker exec".
+     * Corresponds to "Trigger _report_defect via temporal-worker exec".
+     *
+     * @param cmd The command containing defect details
+     * @throws IllegalStateException if GitHub fails to return a URL (validation guard)
      */
     public void execute(ReportDefectCmd cmd) {
+        if (cmd == null) {
+            throw new IllegalArgumentException("ReportDefectCmd cannot be null");
+        }
+
         // Step 1: Create GitHub Issue
-        // Note: This implementation is intentionally MISSING the logic to append the URL to Slack.
-        // This ensures the test FAILS (Red Phase).
         String issueUrl = githubIssuePort.createIssue(
             "Defect: " + cmd.defectId(),
             cmd.description()
         );
 
+        // Validation: Ensure we have a valid URL before proceeding (Fixes null/empty scenarios)
+        if (issueUrl == null || issueUrl.isBlank()) {
+            throw new IllegalStateException("GitHub issue creation failed or returned an empty URL");
+        }
+
         // Step 2: Notify Slack
-        // DEFECT LOCATION: Currently, we might just be sending "Defect Reported" without the URL.
-        // We construct the body here.
-        String slackBody = "Defect Reported: " + cmd.defectId(); 
-        // Missing: "GitHub issue: " + issueUrl;
+        // FIX for VW-454: Explicitly append the GitHub issue URL to the body.
+        String slackBody = "Defect Reported: " + cmd.defectId() + "\nGitHub issue: " + issueUrl;
 
         slackNotificationPort.sendNotification("#vforce360-issues", slackBody);
     }

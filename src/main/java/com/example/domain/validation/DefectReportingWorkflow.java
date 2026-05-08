@@ -1,51 +1,58 @@
 package com.example.domain.validation;
 
-import com.example.ports.GitHubIssuePort;
+import com.example.domain.shared.Command;
+import com.example.domain.validation.model.ReportDefectCmd;
+import com.example.domain.validation.model.ReportDefectWithLinkCmd;
+import com.example.ports.GithubPort;
 import com.example.ports.SlackNotificationPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Service responsible for reporting defects to external systems.
- * Orchestrates the lookup of GitHub issue URLs and the posting of notifications to Slack.
- * <p>
- * This is the System Under Test (SUT) for the VW-454 regression.
- * It corrects the defect where the GitHub URL was omitted from the Slack message body.
- * </p>
+ * Service orchestrating the defect reporting workflow.
+ * Corresponds to the 'temporal-worker exec' mentioned in the defect report.
  */
 public class DefectReportingWorkflow {
 
-    private final SlackNotificationPort slackPort;
-    private final GitHubIssuePort githubPort;
+    private static final Logger log = LoggerFactory.getLogger(DefectReportingWorkflow.class);
 
-    /**
-     * Constructor for dependency injection.
-     *
-     * @param slackPort The port for Slack operations.
-     * @param githubPort The port for GitHub operations.
-     */
-    public DefectReportingWorkflow(SlackNotificationPort slackPort, GitHubIssuePort githubPort) {
-        this.slackPort = slackPort;
+    private final GithubPort githubPort;
+    private final SlackNotificationPort slackNotificationPort;
+
+    public DefectReportingWorkflow(GithubPort githubPort, SlackNotificationPort slackNotificationPort) {
         this.githubPort = githubPort;
+        this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Reports a defect by constructing a message containing the issue details and
-     * the direct GitHub URL, then posting it to the specified Slack channel.
+     * Executes the report defect workflow.
+     * 1. Creates GitHub Issue.
+     * 2. Posts notification to Slack with the issue URL.
      *
-     * @param channel     The target Slack channel (e.g., "#vforce360-issues").
-     * @param issueId     The unique identifier of the issue (e.g., "VW-454").
-     * @param description A human-readable description of the defect.
+     * @param cmd The initial command
+     * @throws IllegalStateException if the workflow fails
      */
-    public void reportDefect(String channel, String issueId, String description) {
-        // 1. Retrieve the specific URL for this issue from the GitHub port
-        String issueUrl = githubPort.getIssueUrl(issueId);
+    public void execute(ReportDefectCmd cmd) {
+        log.info("Executing defect report workflow for ID: {}", cmd.defectId());
 
-        // 2. Construct the message body including the URL
-        // This ensures the regression test VW-454 passes.
-        StringBuilder messageBody = new StringBuilder();
-        messageBody.append("Defect Reported: ").append(description).append("\n");
-        messageBody.append("GitHub Issue: <").append(issueUrl).append(">");
+        // 1. Create GitHub Issue
+        String url = githubPort.createIssue(cmd.title(), cmd.description());
+        log.info("GitHub issue created: {}", url);
 
-        // 3. Post the constructed message to Slack
-        slackPort.postMessage(channel, messageBody.toString());
+        // 2. Notify Slack
+        // We bundle the URL into a new command for the adapter
+        ReportDefectWithLinkCmd notificationCmd = new ReportDefectWithLinkCmd(
+            cmd.defectId(),
+            cmd.title(),
+            cmd.description(),
+            url
+        );
+
+        boolean success = slackNotificationPort.postDefect(notificationCmd);
+        if (!success) {
+            throw new IllegalStateException("Failed to post defect notification to Slack");
+        }
+        
+        log.info("Slack notification posted successfully for issue: {}", url);
     }
 }

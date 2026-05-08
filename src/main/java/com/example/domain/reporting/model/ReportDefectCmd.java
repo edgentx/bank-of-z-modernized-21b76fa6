@@ -1,11 +1,14 @@
 package com.example.domain.reporting.model;
 
 import com.example.domain.shared.Command;
-import java.util.Map;
 
+/**
+ * Command to report a defect discovered during reconciliation or manual checks.
+ * Corresponds to the temporal-worker exec trigger.
+ */
 public record ReportDefectCmd(
     String defectId,
-    String title,
     String description,
-    Map<String, String> metadata
+    String githubUrl,
+    String severity
 ) implements Command {}

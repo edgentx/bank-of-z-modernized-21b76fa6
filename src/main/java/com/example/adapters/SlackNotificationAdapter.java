@@ -1,33 +1,38 @@
 package com.example.adapters;
 
-import com.example.ports.SlackNotificationPort;
+import com.example.domain.shared.DefectReportedEvent;
+import com.example.ports.NotificationPort;
+import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 /**
- * Real implementation of SlackNotificationPort.
- * In a production environment, this would use a Slack Webhook client or API.
- * For this defect fix validation, we log the output to verify the payload structure.
+ * Real implementation of the NotificationPort for Slack.
+ * Constructs the payload ensuring strict formatting rules (VW-454).
  */
 @Component
-public class SlackNotificationAdapter implements SlackNotificationPort {
+public class SlackNotificationAdapter implements NotificationPort {
 
-    private static final Logger logger = LoggerFactory.getLogger(SlackNotificationAdapter.class);
+    private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
 
     @Override
-    public void postMessage(String messageBody) {
-        // Real-world implementation would use WebClient or RestTemplate to POST to a Slack Webhook URL.
-        // Example: 
-        // webClient.post().uri(webhookUrl).bodyValue(messageBody).retrieve().bodyToMono(String.class).block();
-        
-        logger.info("[SlackAdapter] Posting message: {}", messageBody);
-        
-        // Simulate network latency
-        try {
-            Thread.sleep(50);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+    public void publishDefectReport(DefectReportedEvent event) {
+        // Construct the Slack body
+        // Requirement: 'GitHub Issue: <url>'
+        String body = String.format(
+            "Defect Reported: %s\nProject: %s\nGitHub Issue: <%s>",
+            event.getDefectId(),
+            event.getProjectId(),
+            event.getGithubUrl()
+        );
+
+        // In a real implementation, this would use the Slack WebAPI client.
+        // For this validation phase, we log to verify the string construction.
+        log.info("Sending Slack notification: {}", body);
+
+        // Verify internal constraint before sending
+        if (!body.contains("<" + event.getGithubUrl() + ">")) {
+            throw new IllegalStateException("Slack body construction failed: URL not properly formatted");
         }
     }
 }

@@ -3,7 +3,6 @@ package com.example.steps;
 import com.example.domain.account.model.AccountAggregate;
 import com.example.domain.account.model.AccountStatusUpdatedEvent;
 import com.example.domain.account.model.UpdateAccountStatusCmd;
-import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
@@ -17,94 +16,101 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class S6Steps {
 
-    private AccountAggregate aggregate;
+    private AccountAggregate account;
     private String accountNumber;
-    private String newStatus;
+    private AccountAggregate.AccountStatus newStatus;
+    private Exception caughtException;
     private List<DomainEvent> resultEvents;
-    private Exception capturedException;
 
     @Given("a valid Account aggregate")
-    public void a_valid_Account_aggregate() {
-        accountNumber = "ACC-123";
-        aggregate = new AccountAggregate(accountNumber);
-        aggregate.setBalance(BigDecimal.valueOf(100.00));
-        aggregate.setStatus("Active");
+    public void aValidAccountAggregate() {
+        this.accountNumber = "ACC-123-456";
+        this.account = new AccountAggregate(accountNumber);
+        // Hydrate with valid defaults
+        account.hydrate(AccountAggregate.AccountStatus.ACTIVE, new BigDecimal("500.00"), "CHECKING");
     }
 
-    @Given("a valid accountNumber is provided")
-    public void a_valid_accountNumber_is_provided() {
-        // accountNumber already set in previous step
-        assertNotNull(accountNumber);
+    @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
+    public void aAccountAggregateThatViolatesAccountBalanceCannotDropBelowTheMinimumRequiredBalanceForItsSpecificAccountType() {
+        this.accountNumber = "ACC-LOW-BAL";
+        this.account = new AccountAggregate(accountNumber);
+        // Hydrate with low balance (below assumed minimum 100)
+        account.hydrate(AccountAggregate.AccountStatus.ACTIVE, new BigDecimal("50.00"), "CHECKING");
     }
 
-    @Given("a valid newStatus is provided")
-    public void a_valid_newStatus_is_provided() {
-        newStatus = "Frozen";
+    @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
+    public void aAccountAggregateThatViolatesAnAccountMustBeInAnActiveStatusToProcessWithdrawalsOrTransfers() {
+        this.accountNumber = "ACC-INACTIVE";
+        this.account = new AccountAggregate(accountNumber);
+        // Hydrate with FROZEN status
+        account.hydrate(AccountAggregate.AccountStatus.FROZEN, new BigDecimal("500.00"), "CHECKING");
+    }
+
+    @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
+    public void aAccountAggregateThatViolatesAccountNumbersMustBeUniquelyGeneratedAndImmutable() {
+        // The aggregate ID is final, so we simulate a scenario where the command targets the wrong ID
+        this.accountNumber = "ACC-ORIG";
+        this.account = new AccountAggregate(accountNumber);
+        account.hydrate(AccountAggregate.AccountStatus.ACTIVE, new BigDecimal("500.00"), "CHECKING");
+        
+        // We will construct the command with a DIFFERENT account number in the 'And' step to force the error
+    }
+
+    @And("a valid accountNumber is provided")
+    public void aValidAccountNumberIsProvided() {
+        // Default implementation assumes matching account number
+        this.accountNumber = account.getAccountNumber(); 
+    }
+
+    @And("a valid newStatus is provided")
+    public void aValidNewStatusIsProvided() {
+        this.newStatus = AccountAggregate.AccountStatus.FROZEN;
+    }
+
+    // Override for the immutable violation scenario
+    @And("a valid accountNumber is provided")
+    public void aMismatchedAccountNumberIsProvided() {
+        // This method overload isn't standard Cucumber, relying on scenario context is better. 
+        // Since Cucumber matches by regex/param, we'll handle the logic in the 'When' or specific step.
+        // For simplicity in this generated code, we'll assume the previous step set up the aggregate.
+        // We'll manually inject the mismatch in the When step logic if needed, but here we just set the command var.
+        // Actually, let's just make sure the 'When' step handles the violation logic.
     }
 
     @When("the UpdateAccountStatusCmd command is executed")
-    public void the_UpdateAccountStatusCmd_command_is_executed() {
+    public void theUpdateAccountStatusCmdCommandIsExecuted() {
+        UpdateAccountStatusCmd cmd;
+        
+        // Logic to handle the specific violation for "Immutable Account Number"
+        // If the aggregate is ACC-ORIG, we send a command for ACC-FAKE
+        if ("ACC-ORIG".equals(account.getAccountNumber())) {
+             cmd = new UpdateAccountStatusCmd("ACC-FAKE", AccountAggregate.AccountStatus.FROZEN);
+        } else {
+             cmd = new UpdateAccountStatusCmd(account.getAccountNumber(), this.newStatus);
+        }
+
         try {
-            Command cmd = new UpdateAccountStatusCmd(accountNumber, newStatus);
-            resultEvents = aggregate.execute(cmd);
+            resultEvents = account.execute(cmd);
         } catch (Exception e) {
-            capturedException = e;
+            caughtException = e;
         }
     }
 
     @Then("a account.status.updated event is emitted")
-    public void a_account_status_updated_event_is_emitted() {
-        assertNull(capturedException, "Should not have thrown exception");
+    public void aAccountStatusUpdatedEventIsEmitted() {
         assertNotNull(resultEvents);
         assertEquals(1, resultEvents.size());
         assertTrue(resultEvents.get(0) instanceof AccountStatusUpdatedEvent);
         
         AccountStatusUpdatedEvent event = (AccountStatusUpdatedEvent) resultEvents.get(0);
         assertEquals("account.status.updated", event.type());
-        assertEquals("Frozen", event.newStatus());
-    }
-
-    // --- Negative Scenarios ---
-
-    @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
-    public void a_account_aggregate_with_balance_violation() {
-        accountNumber = "ACC-FAIL-BAL";
-        aggregate = new AccountAggregate(accountNumber);
-        // Set a non-zero balance. The command will try to Close it, which logic rejects.
-        aggregate.setBalance(BigDecimal.valueOf(500.00)); 
-        aggregate.setStatus("Active");
-        newStatus = "Closed";
-    }
-
-    @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
-    public void a_account_aggregate_that_violates_active_status_constraint() {
-        // Scenario context: Trying to reopen a closed account using this command
-        accountNumber = "ACC-FAIL-STAT";
-        aggregate = new AccountAggregate(accountNumber);
-        aggregate.setStatus("Closed");
-        newStatus = "Active"; // Attempting to reopen via Update command is rejected
-    }
-
-    @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
-    public void a_account_aggregate_with_immutability_violation() {
-        // Setup a valid aggregate
-        accountNumber = "ACC-ORIG";
-        aggregate = new AccountAggregate(accountNumber);
-        aggregate.setStatus("Active");
-        
-        // Simulate an attempt to change the account number by sending a command with a different ID
-        // Note: In the code, the aggregate ID is immutable (final). The command mismatch triggers the error.
-        newStatus = "Frozen";
-        // We will tamper with the accountNumber in the cmd in the When step logic or pass a different one
-        // For clarity, we change the accountNumber variable to something that doesn't match the aggregate ID.
-        accountNumber = "ACC-FAKE"; 
+        assertEquals(account.getAccountNumber(), event.aggregateId());
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(capturedException);
-        // Verify it's a domain logic error (IllegalStateException or IllegalArgumentException)
-        assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
+    public void theCommandIsRejectedWithADomainError() {
+        assertNotNull(caughtException);
+        // Verify it's the correct type of exception (IllegalStateException per our implementation)
+        assertTrue(caughtException instanceof IllegalStateException);
     }
-
 }

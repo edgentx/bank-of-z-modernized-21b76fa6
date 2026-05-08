@@ -1,15 +1,10 @@
 package com.example.steps;
 
-import io.cucumber.junit.platform.engine.Cucumber;
-import org.junit.platform.suite.api.ConfigurationParameter;
-import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasspathResource;
+import org.junit.platform.suite.api.SelectClasses;
 import org.junit.platform.suite.api.Suite;
 
 @Suite
-@IncludeEngines(Cucumber.class)
-@SelectClasspathResource("features")
-@ConfigurationParameter(key = "glue", value = "com.example.steps")
+@SelectClasses(VW454Steps.class)
 public class SFB1TestSuite {
-    // Test Suite Configuration
+    // This suite runs the specific steps for Feature S-FB-1
 }

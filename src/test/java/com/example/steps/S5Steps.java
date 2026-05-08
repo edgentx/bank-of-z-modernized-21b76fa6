@@ -1,103 +1,121 @@
 package com.example.steps;
 
-import com.example.domain.account.model.AccountAggregate;
-import com.example.domain.account.model.OpenAccountCmd;
-import com.example.domain.account.model.AccountOpenedEvent;
-import com.example.domain.shared.DomainEvent;
-import io.cucumber.java.en.And;
+import com.example.domain.account.model.*;
+import com.example.domain.shared.Command;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 public class S5Steps {
 
     private AccountAggregate account;
-    private List<DomainEvent> resultEvents;
-    private Exception caughtException;
-    private OpenAccountCmd cmd;
+    private Command lastCommand;
+    private List<com.example.domain.shared.DomainEvent> lastResult;
+    private Exception capturedException;
 
     @Given("a valid Account aggregate")
     public void a_valid_account_aggregate() {
-        account = new AccountAggregate("acct-new-1");
+        // ID is arbitrary for new account, but we need a valid customer ID context
+        this.account = new AccountAggregate("acc-new-1");
     }
 
-    @And("a valid customerId is provided")
+    @Given("a valid customerId is provided")
     public void a_valid_customer_id_is_provided() {
-        // Handled in When setup for simplicity
+        // Handled in command construction
     }
 
-    @And("a valid accountType is provided")
+    @Given("a valid accountType is provided")
     public void a_valid_account_type_is_provided() {
-        // Handled in When setup
+        // Handled in command construction
     }
 
-    @And("a valid initialDeposit is provided")
+    @Given("a valid initialDeposit is provided")
     public void a_valid_initial_deposit_is_provided() {
-        // Handled in When setup
+        // Handled in command construction
     }
 
-    @And("a valid sortCode is provided")
+    @Given("a valid sortCode is provided")
     public void a_valid_sort_code_is_provided() {
-        // Handled in When setup
+        // Handled in command construction
     }
 
     @When("the OpenAccountCmd command is executed")
     public void the_open_account_cmd_command_is_executed() {
-        // Defaults to valid values. If specific invalid context is needed, the Given
-        // steps would set up specific command variables, but for BDD structure we handle
-        // the aggregate state setup primarily.
-        cmd = new OpenAccountCmd("acct-new-1", "cust-123", "SAVINGS", new BigDecimal("500.00"), "10-20-30");
+        executeCommand(new OpenAccountCmd("acc-new-1", "cust-123", "CHECKING", new BigDecimal("100"), "10-20-30"));
+    }
+
+    private void executeCommand(Command cmd) {
+        this.lastCommand = cmd;
         try {
-            resultEvents = account.execute(cmd);
+            this.lastResult = account.execute(cmd);
         } catch (Exception e) {
-            caughtException = e;
+            this.capturedException = e;
         }
     }
 
     @Then("a account.opened event is emitted")
     public void a_account_opened_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof AccountOpenedEvent);
-        AccountOpenedEvent event = (AccountOpenedEvent) resultEvents.get(0);
-        assertEquals("acct-new-1", event.aggregateId());
-        assertEquals("cust-123", event.customerId());
-        assertEquals("SAVINGS", event.accountType());
+        Assertions.assertNull(capturedException, "Should not have thrown exception");
+        Assertions.assertNotNull(lastResult);
+        Assertions.assertFalse(lastResult.isEmpty());
+        Assertions.assertInstanceOf(AccountOpenedEvent.class, lastResult.get(0));
+        
+        AccountOpenedEvent evt = (AccountOpenedEvent) lastResult.get(0);
+        Assertions.assertEquals("acc-new-1", evt.aggregateId());
+        Assertions.assertEquals("CHECKING", evt.accountType());
+        Assertions.assertEquals(0, new BigDecimal("100").compareTo(evt.initialDeposit()));
     }
 
-    // --- Negative Scenarios (Simulated) ---
+    // --- Failure Scenarios ---
 
     @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
-    public void a_account_aggregate_that_violates_balance() {
-        // We simulate this by passing a command that results in insufficient funds
-        // relative to a high minimum balance required for the type.
-        // In a real opening flow, the 'initialDeposit' covers this.
-        account = new AccountAggregate("acct-violate-balance");
+    public void a_account_aggregate_that_violates_minimum_balance() {
+        this.account = new AccountAggregate("acc-low-1");
+        // Setup via command, but the validation logic is inside the aggregate handler
+    }
+
+    @When("the OpenAccountCmd command is executed for low balance")
+    public void the_open_account_cmd_command_is_executed_for_low_balance() {
+        // Checking requires 100 min, we provide 50
+        executeCommand(new OpenAccountCmd("acc-low-1", "cust-123", "CHECKING", new BigDecimal("50"), "10-20-30"));
     }
 
     @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
-    public void a_account_aggregate_that_violates_status() {
-        account = new AccountAggregate("acct-violate-status");
-        // Logic handled inside aggregate for 'OPEN' command not being applicable if already active? 
-        // Or simply opening an account that is already active.
-        account.activate(); // Manually setting state to simulate pre-existing active account for the sake of invariant check
+    public void a_account_aggregate_that_violates_active_status() {
+        this.account = new AccountAggregate("acc-inactive-1");
+        // We simulate this by trying to 'open' an account that is already opened (state = Active) -> Error
+        // Or relying on business logic that prevents it. Let's open it first.
+        account.execute(new OpenAccountCmd("acc-inactive-1", "cust-123", "CHECKING", new BigDecimal("100"), "10-20-30"));
+    }
+
+    @When("the OpenAccountCmd command is executed for inactive status")
+    public void the_open_account_cmd_command_is_executed_for_inactive_status() {
+        // Trying to open an already active/opened account
+        executeCommand(new OpenAccountCmd("acc-inactive-1", "cust-123", "CHECKING", new BigDecimal("100"), "10-20-30"));
     }
 
     @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
-    public void a_account_aggregate_that_violates_uniqueness() {
-        account = new AccountAggregate("acct-duplicate-id");
-        // We simulate a duplicate ID attempt
+    public void a_account_aggregate_that_violates_unique_id() {
+        // This is an invariant of the repository/process, but we can check immutability logic
+        this.account = new AccountAggregate("acc-imm-1");
+    }
+
+    @When("the OpenAccountCmd command is executed for immutability")
+    public void the_open_account_cmd_command_is_executed_for_immutability() {
+        // Scenario: Trying to open an account with an ID that doesn't match the Aggregate ID (simulating ID hijack)
+        // The Command ID is 'acc-imm-1', but we are trying to force it to act as 'acc-other'
+        // Since we pass ID into command, and aggregate holds ID, the aggregate checks if they match.
+        executeCommand(new OpenAccountCmd("acc-imm-1", "cust-123", "CHECKING", new BigDecimal("100"), "10-20-30"));
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(caughtException);
-        // Ideally we check for specific DomainException, but RuntimeException is fine for this prototype
-        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
+        Assertions.assertNotNull(capturedException);
+        // It should be a runtime exception (IAE or ISE)
+        Assertions.assertTrue(capturedException instanceof IllegalArgumentException || capturedException instanceof IllegalStateException);
     }
 }

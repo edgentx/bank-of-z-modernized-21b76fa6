@@ -1,22 +1,26 @@
 package com.example.domain.tellersession.repository;
 
-import com.example.domain.tellersession.model.TellerSession;
+import com.example.domain.tellersession.model.TellerSessionAggregate;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * In-memory implementation of TellerSessionRepository for testing.
+ */
 public class InMemoryTellerSessionRepository implements TellerSessionRepository {
-    private final Map<UUID, TellerSession> store = new HashMap<>();
+
+    private final Map<UUID, TellerSessionAggregate> store = new HashMap<>();
 
     @Override
-    public TellerSession save(TellerSession aggregate) {
+    public void save(TellerSessionAggregate aggregate) {
         store.put(UUID.fromString(aggregate.id()), aggregate);
-        return aggregate;
     }
 
     @Override
-    public Optional<TellerSession> findById(UUID id) {
+    public Optional<TellerSessionAggregate> findById(UUID id) {
         return Optional.ofNullable(store.get(id));
     }
 }

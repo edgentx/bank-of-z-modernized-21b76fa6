@@ -1,7 +1,6 @@
-Feature: Validating VW-454 — GitHub URL in Slack body (end-to-end)
+Feature: S-FB-1 - Validating VW-454 (GitHub URL in Slack body)
 
-  Scenario: Verify Slack notification includes GitHub link after workflow execution
-    Given the temporal worker executes the defect reporting workflow
-    And a GitHub issue is created for defect VW-454
-    When the workflow completes reporting the defect
-    Then the Slack message body contains the GitHub issue URL
+  Scenario: Defect report workflow should include GitHub URL in Slack notification
+    Given a defect report command is triggered
+    When the system processes the report_defect workflow
+    Then the Slack notification body contains the GitHub issue URL

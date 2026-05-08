@@ -1,45 +1,39 @@
 package com.example.domain.defect;
 
-import com.example.ports.SlackNotificationPort;
+import com.example.ports.IssueTrackerPort;
+import com.example.ports.NotificationPort;
 import org.springframework.stereotype.Service;
 
 /**
- * Service handling defect reporting logic.
- * This class acts as the workflow implementation triggered by the Temporal worker.
+ * Service handling the defect reporting workflow.
+ * This fixes S-FB-1 by ensuring the GitHub URL is included in the Slack notification.
  */
 @Service
 public class DefectService {
 
-    private final SlackNotificationPort slackNotificationPort;
+    private final IssueTrackerPort issueTracker;
+    private final NotificationPort notificationPort;
+    private static final String SLACK_CHANNEL = "#vforce360-issues";
 
-    /**
-     * Constructor for dependency injection.
-     *
-     * @param slackNotificationPort The port implementation for sending Slack notifications.
-     */
-    public DefectService(SlackNotificationPort slackNotificationPort) {
-        this.slackNotificationPort = slackNotificationPort;
+    public DefectService(IssueTrackerPort issueTracker, NotificationPort notificationPort) {
+        this.issueTracker = issueTracker;
+        this.notificationPort = notificationPort;
     }
 
     /**
-     * Executes the report_defect workflow.
-     * Constructs the message body and delegates to the Slack port.
+     * Reports a defect, creating an external issue and notifying Slack.
+     * This is the implementation required to pass the S-FB-1 scenario.
      *
-     * @param issueUrl The URL of the created GitHub issue.
+     * @param defectId The ID of the defect (e.g. VW-454).
+     * @param description The description of the defect.
      */
-    public void reportDefect(String issueUrl) {
-        String messageBody = constructSlackBody(issueUrl);
-        slackNotificationPort.sendMessage(messageBody);
-    }
+    public void reportDefect(String defectId, String description) {
+        // Step 1: Create the GitHub issue (or Jira, etc.)
+        String issueUrl = issueTracker.createIssue(defectId, description);
 
-    /**
-     * Constructs the Slack message body containing the defect details.
-     * Pattern: "Defect Reported. GitHub Issue: <url>"
-     *
-     * @param url The GitHub issue URL.
-     * @return The formatted message string.
-     */
-    private String constructSlackBody(String url) {
-        return "Defect Reported. GitHub Issue: " + url;
+        // Step 2: Notify Slack including the URL (Fix for S-FB-1)
+        // Previously, the URL might have been omitted.
+        String messageBody = String.format("Defect reported: %s%nIssue Link: %s", defectId, issueUrl);
+        notificationPort.sendMessage(SLACK_CHANNEL, messageBody);
     }
 }

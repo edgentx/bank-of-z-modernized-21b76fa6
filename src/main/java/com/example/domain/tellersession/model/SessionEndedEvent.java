@@ -5,27 +5,15 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 
 /**
- * Event emitted when a TellerSession is terminated.
+ * Event emitted when a teller session is terminated.
  */
 public record SessionEndedEvent(
         String aggregateId,
-        String type,
         Instant occurredAt
 ) implements DomainEvent {
-
-    public SessionEndedEvent {
-        if (aggregateId == null || aggregateId.isBlank()) {
-            throw new IllegalArgumentException("aggregateId cannot be null or blank");
-        }
-    }
-
-    public SessionEndedEvent(String aggregateId) {
-        this(aggregateId, "session.ended", Instant.now());
-    }
-
     @Override
     public String type() {
-        return type;
+        return "session.ended";
     }
 
     @Override

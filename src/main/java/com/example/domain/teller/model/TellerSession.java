@@ -5,13 +5,13 @@ import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
 /**
- * TellerSession Aggregate.
- * Represents a bank teller's authenticated state at a specific physical terminal.
- * Handles navigation and session lifecycle invariants.
+ * Teller Session Aggregate
+ * S-18: Implement StartSessionCmd
  */
 public class TellerSession extends AggregateRoot {
 
@@ -22,13 +22,14 @@ public class TellerSession extends AggregateRoot {
     private Instant lastActivityAt;
     private String navigationState;
 
-    // Invariant constants (could be externalized later)
-    private static final long SESSION_TIMEOUT_MINUTES = 30;
+    // Invariant: Sessions must timeout after a configured period of inactivity.
+    private static final Duration SESSION_TIMEOUT = Duration.ofMinutes(30);
 
     public TellerSession(String sessionId) {
         this.sessionId = sessionId;
         this.active = false;
-        this.navigationState = "HOME"; // Default operational context
+        this.lastActivityAt = Instant.now();
+        this.navigationState = "HOME";
     }
 
     @Override
@@ -47,44 +48,51 @@ public class TellerSession extends AggregateRoot {
     private List<DomainEvent> startSession(StartSessionCmd cmd) {
         // Invariant: A teller must be authenticated to initiate a session.
         if (!cmd.isAuthenticated()) {
-            throw new IllegalStateException("Teller must be authenticated to initiate a session.");
+            throw new IllegalStateException("A teller must be authenticated to initiate a session.");
         }
 
         // Invariant: Sessions must timeout after a configured period of inactivity.
-        // (N/A for new session starts, checked on command loading in real app, valid here for state transitions)
+        // (Check if the session being reused is too old, though for a new session this is usually relevant only if resurrecting)
+        if (active && Duration.between(lastActivityAt, Instant.now()).compareTo(SESSION_TIMEOUT) > 0) {
+            throw new IllegalStateException("Sessions must timeout after a configured period of inactivity.");
+        }
 
         // Invariant: Navigation state must accurately reflect the current operational context.
-        // Assuming for Start Cmd, we ensure we aren't hijacking a weird state.
-        if (this.active) {
-            throw new IllegalStateException("Session already active for " + this.sessionId);
+        // For this scenario, we assume 'HOME' is the valid start context.
+        if (this.navigationState == null || !this.navigationState.equals("HOME")) {
+            throw new IllegalStateException("Navigation state must accurately reflect the current operational context.");
         }
 
-        // Validate inputs
-        if (cmd.tellerId() == null || cmd.tellerId().isBlank()) {
-            throw new IllegalArgumentException("tellerId cannot be blank");
-        }
-        if (cmd.terminalId() == null || cmd.terminalId().isBlank()) {
-            throw new IllegalArgumentException("terminalId cannot be blank");
-        }
-
-        var event = new SessionStartedEvent(this.sessionId, cmd.tellerId(), cmd.terminalId());
-
-        // Apply state changes
+        // Logic for start
         this.tellerId = cmd.tellerId();
         this.terminalId = cmd.terminalId();
         this.active = true;
         this.lastActivityAt = Instant.now();
-        this.navigationState = "TELLER_MENU";
 
+        var event = new SessionStartedEvent(sessionId, cmd.tellerId(), cmd.terminalId(), Instant.now());
         addEvent(event);
         incrementVersion();
         return List.of(event);
     }
 
-    // Getters for testing/verification
-    public String getTellerId() { return tellerId; }
-    public String getTerminalId() { return terminalId; }
-    public boolean isActive() { return active; }
-    public Instant getLastActivityAt() { return lastActivityAt; }
-    public String getNavigationState() { return navigationState; }
+    public boolean isActive() {
+        return active;
+    }
+
+    public String getTellerId() {
+        return tellerId;
+    }
+
+    public String getTerminalId() {
+        return terminalId;
+    }
+
+    // Used for testing violations
+    public void markStale() {
+        this.lastActivityAt = Instant.now().minus(SESSION_TIMEOUT).minusSeconds(10);
+    }
+
+    public void corruptNavigationState() {
+        this.navigationState = "INVALID_STATE";
+    }
 }

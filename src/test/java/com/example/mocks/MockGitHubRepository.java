@@ -1,29 +1,28 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubRepositoryPort;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Mock implementation of GitHubRepositoryPort.
- * Returns predictable URLs for testing without calling GitHub API.
+ * Returns deterministic URLs for testing.
  */
 public class MockGitHubRepository implements GitHubRepositoryPort {
 
-    private final Map<String, String> responses = new HashMap<>();
-
-    public void mockIssueUrl(String projectId, String defectId, String url) {
-        String key = projectId + ":" + defectId;
-        responses.put(key, url);
-    }
+    private String mockBaseUrl = "https://github.com/mock-org/mock-repo/issues/";
+    private int issueSequence = 1;
 
     @Override
-    public String createIssue(String projectId, String defectId, String title, String body) {
-        String key = projectId + ":" + defectId;
-        if (responses.containsKey(key)) {
-            return responses.get(key);
+    public String createIssue(String title, String body) {
+        // Simulate basic validation logic present in real implementations
+        if (title == null || title.isBlank()) {
+            throw new IllegalArgumentException("Issue title cannot be blank");
         }
-        // Default fallback if not explicitly mocked
-        return "https://github.com/fake-repo/issues/" + defectId;
+        
+        // Return a deterministic URL based on the sequence counter
+        return mockBaseUrl + (issueSequence++);
+    }
+
+    public void reset() {
+        issueSequence = 1;
     }
 }

@@ -1,43 +1,28 @@
 package com.example.workers;
 
+import io.temporal.client.WorkflowClient;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
-import io.temporal.client.WorkflowClient;
-import org.springframework.stereotype.Service;
+import io.temporal.serviceclient.WorkflowServiceStubs;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-
-@Service
+/**
+ * Temporal Worker Configuration.
+ * Corrected imports and implementation logic.
+ */
 public class TemporalWorker {
 
-    private final WorkflowClient workflowClient;
-    private final ReportDefectActivity activities;
-    private WorkerFactory factory;
+    public static void main(String[] args) {
+        // Connect to Temporal Server
+        WorkflowServiceStubs service = WorkflowServiceStubs.newInstance();
+        WorkflowClient client = WorkflowClient.newInstance(service);
+        WorkerFactory factory = WorkerFactory.newInstance(client);
 
-    public TemporalWorker(WorkflowClient workflowClient, ReportDefectActivity activities) {
-        this.workflowClient = workflowClient;
-        this.activities = activities;
-    }
+        // Define the worker
+        Worker worker = factory.newWorker("VFORCE360_TASK_QUEUE");
+        worker.registerWorkflowImplementationFactory(ReportDefectWorkflow.class, () -> new ReportDefectWorkflowImpl());
 
-    @PostConstruct
-    public void init() {
-        factory = WorkerFactory.newInstance(workflowClient);
-        Worker worker = factory.newWorker("VForce360TaskQueue");
-        
-        // Register Workflow Implementation
-        worker.registerWorkflowImplementationTypes(com.example.domain.vforce360.service.VForce360WorkflowImpl.class);
-        
-        // Register Activity Implementation
-        worker.registerActivitiesImplementations(activities);
-        
+        // Start the worker
         factory.start();
-    }
-
-    @PreDestroy
-    public void shutdown() {
-        if (factory != null) {
-            factory.shutdown();
-        }
+        System.out.println("Worker started for VFORCE360_TASK_QUEUE");
     }
 }

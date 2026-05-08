@@ -1,41 +1,51 @@
 package com.example.config;
 
-import com.example.domain.defect.model.DefectAggregate;
+import com.example.adapters.GitHubIssueAdapter;
+import com.example.adapters.SlackNotificationAdapter;
+import com.example.ports.GitHubIssuePort;
 import com.example.ports.SlackNotificationPort;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import com.slack.api.Slack;
+import com.slack.api.methods.MethodsClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestTemplate;
 
+/**
+ * Configuration class for Defect Reporting workflow dependencies.
+ * Wires up the real adapters for GitHub and Slack.
+ */
 @Configuration
 public class DefectWorkflowConfig {
 
-    /**
-     * Real-world configuration for Slack Notification Port.
-     * In a real environment, this would inject the production SlackAdapter.
-     * For the purposes of this defect fix, we conditionally wire a mock or real adapter.
-     */
     @Bean
-    @ConditionalOnProperty(
-        name = "app.slack.provider", 
-        havingValue = "real", 
-        matchIfMissing = false
-    )
-    public SlackNotificationPort realSlackAdapter() {
-        return new com.example.adapters.SlackAdapter();
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 
-    /**
-     * Configuration for the unit test scenario. 
-     * Note: In Spring Boot tests, this bean is often overridden by @MockBean,
-     * but we provide a default noop implementation to prevent startup failures if tests run without mocks.
-     */
     @Bean
-    @ConditionalOnProperty(
-        name = "app.slack.provider", 
-        havingValue = "mock", 
-        matchIfMissing = true
-    )
-    public SlackNotificationPort mockSlackAdapter() {
-        return new com.example.mocks.MockSlackNotificationPort();
+    public GitHubIssuePort gitHubIssuePort(
+            RestTemplate restTemplate,
+            @Value("${github.api.url:https://api.github.com/repos/bank-of-z/core/issues}") String apiUrl) {
+        return new GitHubIssueAdapter(restTemplate, apiUrl);
+    }
+
+    @Bean
+    public MethodsClient slackMethodsClient(Slack slack) {
+        return slack.methods();
+    }
+
+    @Bean
+    public SlackNotificationPort slackNotificationPort(MethodsClient slackMethodsClient) {
+        return new SlackNotificationAdapter(slackMethodsClient);
+    }
+
+    @Bean
+    public Slack slack(
+            @Value("${slack.token:}") String slackToken) {
+        // In a real scenario, the token must be set. For the test context,
+        // this might be initialized with a dummy token or not used at all if mocks are active.
+        // Assuming Spring Boot's test properties or profile will inject a valid test token if needed.
+        return Slack.getInstance();
     }
 }

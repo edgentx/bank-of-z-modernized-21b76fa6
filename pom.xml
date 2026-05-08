@@ -47,6 +47,7 @@
 
         <!-- Temporal (Temporal SDK) -->
         <!-- Fix: Spring Boot BOM does not manage Temporal versions. Explicit version required. -->
+        <!-- Note: temporal-testing-junit4 is the artifact available in Maven Central for 1.22.0 -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
@@ -54,7 +55,7 @@
         </dependency>
         <dependency>
             <groupId>io.temporal</groupId>
-            <artifactId>temporal-testing</artifactId>
+            <artifactId>temporal-testing-junit4</artifactId>
             <version>1.22.0</version>
             <scope>test</scope>
         </dependency>

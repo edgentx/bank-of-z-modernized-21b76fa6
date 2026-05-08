@@ -1,36 +1,26 @@
 package com.example.configuration;
 
-import com.example.domain.shared.SlackMessageValidator;
-import com.example.infrastructure.SlackMessageValidatorImpl;
-import io.temporal.client.WorkflowClient;
-import io.temporal.worker.Worker;
-import io.temporal.worker.WorkerFactory;
-import io.temporal.serviceclient.WorkflowServiceStubs;
+import com.example.domain.defect.port.DefectRepository;
+import com.example.domain.validation.port.ValidationRepository;
+import com.example.infrastructure.adapters.JpaDefectRepositoryAdapter;
+import com.example.infrastructure.adapters.JpaValidationRepositoryAdapter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.Collections;
-
+/**
+ * Configuration for Defect Reporting components.
+ * Binds ports to adapters.
+ */
 @Configuration
 public class DefectReportingConfiguration {
 
     @Bean
-    public SlackMessageValidator slackMessageValidator() {
-        return new SlackMessageValidatorImpl();
+    public DefectRepository defectRepository(JpaDefectRepositoryAdapter adapter) {
+        return adapter;
     }
 
     @Bean
-    public WorkflowServiceStubs workflowServiceStubs() {
-        return WorkflowServiceStubs.newInstance();
-    }
-
-    @Bean
-    public WorkflowClient workflowClient(WorkflowServiceStubs workflowServiceStubs) {
-        return WorkflowClient.newInstance(workflowServiceStubs);
-    }
-
-    @Bean
-    public WorkerFactory workerFactory(WorkflowServiceStubs workflowServiceStubs) {
-        return WorkerFactory.newInstance(workflowServiceStubs);
+    public ValidationRepository validationRepository(JpaValidationRepositoryAdapter adapter) {
+        return adapter;
     }
 }

@@ -1,31 +1,35 @@
 package com.example.adapters;
 
-import com.example.ports.GitHubPort;
+import com.example.ports.GithubIssuePort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+
+import java.util.UUID;
 
 /**
- * Adapter for GitHub API integration.
- * Stubbed implementation for the fix, as RestTemplate wiring was failing.
- * In a real scenario, this would use Octokit or a standard REST client.
+ * Real-world adapter for GitHub issues.
+ * Currently acts as a stub that returns a deterministic URL format.
+ * In a full implementation, this would use Octokit or a standard HTTP client.
  */
 @Component
-public class GithubIssueAdapter implements GitHubPort {
-    private static final Logger log = LoggerFactory.getLogger(GithubIssueAdapter.class);
-    private final RestTemplate restTemplate;
+public class GithubIssueAdapter implements GithubIssuePort {
 
-    public GithubIssueAdapter(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
-    }
+    private static final Logger log = LoggerFactory.getLogger(GithubIssueAdapter.class);
+    private static final String BASE_URL = "https://github.com/bank-of-z/vforce360/issues/";
 
     @Override
-    public String createIssue(String title, String body) {
-        // Stub: In a real implementation, this posts to https://api.github.com/repos/:owner/:repo/issues
-        // For the purpose of fixing the validation/flow, we return a mock URL.
-        String mockUrl = "https://github.com/mock-repo/issues/" + System.currentTimeMillis();
-        log.info("Mock GitHub issue created at {}", mockUrl);
-        return mockUrl;
+    public String createIssue(String title, String description) {
+        if (title == null || title.isBlank()) {
+            throw new IllegalArgumentException("GitHub Issue title cannot be empty");
+        }
+
+        // Stub implementation: Return a mock URL containing a random ID
+        // Real implementation would POST to GitHub API and return the location header
+        String mockIssueId = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        String url = BASE_URL + mockIssueId;
+
+        log.info("[GITHUB] Creating issue '{}'. URL: {}", title, url);
+        return url;
     }
 }

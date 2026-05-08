@@ -18,6 +18,8 @@
         <java.version>21</java.version>
         <spring-cloud-aws.version>3.1.0</spring-cloud-aws.version>
         <mockito-inline.version>5.2.0</mockito-inline.version>
+        <!-- Define Temporal version explicitly to ensure consistency -->
+        <temporal.version>1.22.0</temporal.version>
     </properties>
 
     <dependencies>
@@ -25,12 +27,12 @@
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>1.22.0</version>
+            <version>${temporal.version}</version>
         </dependency>
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-testing</artifactId>
-            <version>1.22.0</version>
+            <version>${temporal.version}</version>
             <scope>test</scope>
         </dependency>
 

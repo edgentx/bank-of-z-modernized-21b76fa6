@@ -1,40 +1,49 @@
 package com.example.domain.validation.service;
 
-import com.example.domain.validation.model.ReportDefectCmd;
+import com.example.domain.validation.model.ReportDefectCommand;
+import com.example.ports.DefectReportGeneratorPort;
 import com.example.ports.SlackNotificationPort;
+import org.springframework.stereotype.Service;
 
 /**
- * Service to handle defect reporting commands.
- * This file represents the skeleton/implementation context required to run the tests.
+ * Domain Service handling the defect reporting workflow.
+ * Orchestrates the generation of the GitHub report URL and the notification to Slack.
+ * This is the implementation class targeted by the VW-454 validation test.
  */
+@Service
 public class DefectReportingService {
 
-    private final SlackNotificationPort slackNotificationPort;
+    private final DefectReportGeneratorPort reportGenerator;
+    private final SlackNotificationPort slackClient;
 
-    public DefectReportingService(SlackNotificationPort slackNotificationPort) {
-        this.slackNotificationPort = slackNotificationPort;
+    public DefectReportingService(DefectReportGeneratorPort reportGenerator,
+                                  SlackNotificationPort slackClient) {
+        this.reportGenerator = reportGenerator;
+        this.slackClient = slackClient;
     }
 
-    public void handle(ReportDefectCmd cmd) {
-        if (cmd == null || cmd.defectId() == null) {
-            throw new IllegalArgumentException("Invalid ReportDefectCommand");
+    /**
+     * Executes the defect reporting logic.
+     * 1. Generates the GitHub URL via the generator port.
+     * 2. Notifies Slack via the notification port.
+     *
+     * @param cmd The command triggering the report.
+     * @return true if the workflow completed successfully.
+     */
+    public boolean reportDefect(ReportDefectCommand cmd) {
+        if (cmd == null) {
+            throw new IllegalArgumentException("Command cannot be null");
         }
 
-        // STEP 1: Determine GitHub URL (Mocked logic for TDD setup)
-        // In reality this might call a GitHub Port or construct a link based on config.
-        String githubUrl = "https://github.com/org/repo/issues/" + cmd.defectId();
+        // 1. Generate the GitHub Issue URL
+        String githubUrl = reportGenerator.generateDefectReportUrl(cmd);
 
-        // STEP 2: Construct the Slack Body
-        // The defect implies the body might be missing the URL.
-        // The fix ensures it is present.
-        String slackBody = String.format(
-            "Defect Reported: %s\nID: %s\nGitHub Issue: %s",
-            cmd.title(),
-            cmd.defectId(),
-            githubUrl
-        );
+        // 2. Construct the message body
+        // CRITICAL for VW-454: The URL must be present in the body.
+        String messageBody = "Defect Reported: " + githubUrl;
 
-        // STEP 3: Send to Slack
-        slackNotificationPort.postMessage("#vforce360-issues", slackBody);
+        // 3. Send notification
+        String targetChannel = "#vforce360-issues";
+        return slackClient.sendMessage(targetChannel, messageBody);
     }
 }

@@ -1,12 +1,10 @@
 package com.example.domain.teller.repository;
 
-import com.example.domain.teller.model.TellerSessionAggregate;
+import com.example.domain.teller.model.TellerSession;
 
-/**
- * Repository interface for TellerSession aggregates.
- * Following the Hexagonal Architecture pattern.
- */
+import java.util.Optional;
+
 public interface TellerSessionRepository {
-    void save(TellerSessionAggregate aggregate);
-    TellerSessionAggregate load(String id);
+    void save(TellerSession aggregate);
+    Optional<TellerSession> findById(String id);
 }

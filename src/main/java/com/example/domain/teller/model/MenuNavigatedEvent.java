@@ -3,18 +3,15 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Objects;
 
 public record MenuNavigatedEvent(
-    String aggregateId,
-    String menuId,
-    String action,
-    Instant occurredAt
+        String aggregateId,
+        String targetMenuId,
+        String action,
+        String previousMenuId,
+        Instant occurredAt
 ) implements DomainEvent {
-    public MenuNavigatedEvent {
-        // Ensure non-null for sanity, though constructor validation handles logic
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
-    }
 
     @Override
     public String type() {
@@ -22,12 +19,12 @@ public record MenuNavigatedEvent(
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 
-    // Factory to match existing aggregate style
-    public static MenuNavigatedEvent create(String aggregateId, String menuId, String action) {
-        return new MenuNavigatedEvent(aggregateId, menuId, action, Instant.now());
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

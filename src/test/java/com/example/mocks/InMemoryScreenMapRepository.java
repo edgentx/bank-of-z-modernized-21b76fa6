@@ -1,7 +1,8 @@
 package com.example.mocks;
 
-import com.example.domain.userinterface.model.ScreenMapAggregate;
-import com.example.domain.userinterface.repository.ScreenMapRepository;
+import com.example.domain.screenmap.model.ScreenMapAggregate;
+import com.example.domain.screenmap.repository.ScreenMapRepository;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;

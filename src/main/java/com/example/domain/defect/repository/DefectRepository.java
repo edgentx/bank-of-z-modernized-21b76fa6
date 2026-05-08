@@ -3,9 +3,9 @@ package com.example.domain.defect.repository;
 import com.example.domain.defect.model.DefectAggregate;
 
 /**
- * Repository interface for Defect aggregates.
+ * Repository interface for Defect Aggregates.
  */
 public interface DefectRepository {
-    DefectAggregate save(DefectAggregate aggregate);
+    void save(DefectAggregate defect);
     DefectAggregate findById(String defectId);
 }

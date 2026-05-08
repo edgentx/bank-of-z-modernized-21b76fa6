@@ -3,25 +3,36 @@ package com.example.domain.navigation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
 /**
- * Domain event emitted when a screen is successfully rendered.
+ * Event emitted when a screen layout is successfully generated.
  */
 public record ScreenRenderedEvent(
-    String type,
-    String aggregateId,
-    String screenId,
-    Instant occurredAt
+        String aggregateId,
+        String deviceType,
+        Instant occurredAt
 ) implements DomainEvent {
+
     public ScreenRenderedEvent {
-        Objects.requireNonNull(type);
-        Objects.requireNonNull(aggregateId);
-        Objects.requireNonNull(screenId);
-        Objects.requireNonNull(occurredAt);
+        // Ensure immutability and non-nulls
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId cannot be null");
+        if (deviceType == null) throw new IllegalArgumentException("deviceType cannot be null");
+        if (occurredAt == null) throw new IllegalArgumentException("occurredAt cannot be null");
     }
 
-    public ScreenRenderedEvent(String aggregateId, String screenId, Instant occurredAt) {
-        this("screen.rendered", aggregateId, screenId, occurredAt);
+    @Override
+    public String type() {
+        return "screen.rendered";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

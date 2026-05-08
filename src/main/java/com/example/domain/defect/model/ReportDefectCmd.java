@@ -1,17 +1,14 @@
 package com.example.domain.defect.model;
 
 import com.example.domain.shared.Command;
-import java.util.Map;
 
 /**
- * Command to report a defect (e.g., triggered via Temporal).
- * Context: Story VW-454 / S-FB-1.
+ * Command to report a defect.
+ * S-FB-1: Validating VW-454 — GitHub URL in Slack body.
  */
 public record ReportDefectCmd(
-        String defectId,
-        String title,
-        String description,
-        String projectId,
-        Map<String, String> metadata
-) implements Command {
-}
+    String defectId,
+    String title,
+    String description,
+    String githubUrl
+) implements Command {}

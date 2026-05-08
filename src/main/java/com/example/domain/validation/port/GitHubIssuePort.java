@@ -1,9 +1,12 @@
 package com.example.domain.validation.port;
 
 /**
- * Port interface for creating issues in GitHub.
- * Used by the Validation Aggregate to track defects.
+ * Port for GitHub Issue operations.
+ * Used to decouple the domain from the actual GitHub WebClient.
  */
 public interface GitHubIssuePort {
-    String createIssue(String title, String description);
+    /**
+     * Creates a GitHub issue and returns the HTML URL.
+     */
+    String createIssue(String title, String body, String labels);
 }

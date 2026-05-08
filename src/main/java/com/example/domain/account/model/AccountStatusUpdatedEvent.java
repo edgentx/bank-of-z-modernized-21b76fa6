@@ -1,15 +1,19 @@
 package com.example.domain.account.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
+import java.util.UUID;
 
-public record AccountStatusUpdatedEvent(
-    String accountNumber,
-    AccountAggregate.Status oldStatus,
-    AccountAggregate.Status newStatus,
-    Instant occurredAt
-) implements DomainEvent {
+public class AccountStatusUpdatedEvent implements DomainEvent {
+    private final String aggregateId;
+    private final String newStatus;
+    private final Instant occurredAt;
+
+    public AccountStatusUpdatedEvent(String aggregateId, String newStatus, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.newStatus = newStatus;
+        this.occurredAt = occurredAt;
+    }
 
     @Override
     public String type() {
@@ -18,11 +22,15 @@ public record AccountStatusUpdatedEvent(
 
     @Override
     public String aggregateId() {
-        return accountNumber;
+        return aggregateId;
     }
 
     @Override
     public Instant occurredAt() {
         return occurredAt;
+    }
+
+    public String getNewStatus() {
+        return newStatus;
     }
 }

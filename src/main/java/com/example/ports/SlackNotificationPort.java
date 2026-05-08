@@ -2,7 +2,7 @@ package com.example.ports;
 
 /**
  * Port interface for sending notifications to Slack.
- * Used by the Temporal worker to report defects.
+ * Used by the application layer to decouple from specific Slack implementations.
  */
 public interface SlackNotificationPort {
 

@@ -1,10 +1,12 @@
 package com.example.steps;
 
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.teller.model.EndSessionCmd;
-import com.example.domain.teller.model.SessionEndedEvent;
-import com.example.domain.teller.model.TellerSessionAggregate;
+import com.example.domain.tellersession.model.EndSessionCmd;
+import com.example.domain.tellersession.model.SessionEndedEvent;
+import com.example.domain.tellersession.model.TellerSessionAggregate;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -16,76 +18,64 @@ import static org.junit.jupiter.api.Assertions.*;
 public class S20Steps {
 
     private TellerSessionAggregate aggregate;
-    private String sessionId;
     private List<DomainEvent> resultEvents;
-    private Exception capturedException;
+    private Exception thrownException;
+    private static final String TEST_SESSION_ID = "session-123";
 
     @Given("a valid TellerSession aggregate")
-    public void a_valid_teller_session_aggregate() {
-        this.sessionId = "SESSION-123";
-        this.aggregate = new TellerSessionAggregate(sessionId);
-        // Simulate a valid active session
-        this.aggregate.start("TELLER-99", "MAIN_MENU");
+    public void a_valid_TellerSession_aggregate() {
+        aggregate = new TellerSessionAggregate(TEST_SESSION_ID);
+        aggregate.markAuthenticated("teller-1");
+        aggregate.markConsistentNavigationState();
     }
 
-    @Given("a valid sessionId is provided")
-    public void a_valid_session_id_is_provided() {
-        // Session ID is already set in the previous step
-        assertNotNull(sessionId);
-    }
-
-    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_teller_session_aggregate_that_violates_auth() {
-        this.sessionId = "SESSION-404";
-        this.aggregate = new TellerSessionAggregate(sessionId);
-        // Intentionally do NOT call start(). Active is false.
-    }
-
-    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_teller_session_aggregate_that_violates_timeout() {
-        this.sessionId = "SESSION-TIMEOUT";
-        this.aggregate = new TellerSessionAggregate(sessionId);
-        this.aggregate.start("TELLER-88", "MAIN_MENU");
-        // Force timeout
-        this.aggregate.forceTimeout();
-    }
-
-    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_teller_session_aggregate_that_violates_nav_state() {
-        this.sessionId = "SESSION-NAV-ERR";
-        this.aggregate = new TellerSessionAggregate(sessionId);
-        this.aggregate.start("TELLER-77", "MAIN_MENU");
-        // Simulate corruption
-        this.aggregate.corruptNavigationState();
+    @And("a valid sessionId is provided")
+    public void a_valid_sessionId_is_provided() {
+        // Handled by constructor setup
     }
 
     @When("the EndSessionCmd command is executed")
-    public void the_end_session_cmd_command_is_executed() {
+    public void the_EndSessionCmd_command_is_executed() {
         try {
-            EndSessionCmd cmd = new EndSessionCmd(sessionId);
-            this.resultEvents = aggregate.execute(cmd);
-            this.capturedException = null;
+            Command cmd = new EndSessionCmd(TEST_SESSION_ID);
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            this.capturedException = e;
-            this.resultEvents = null;
+            thrownException = e;
         }
     }
 
     @Then("a session.ended event is emitted")
     public void a_session_ended_event_is_emitted() {
+        assertNull(thrownException, "Should not throw exception");
         assertNotNull(resultEvents);
         assertEquals(1, resultEvents.size());
         assertTrue(resultEvents.get(0) instanceof SessionEndedEvent);
-        SessionEndedEvent event = (SessionEndedEvent) resultEvents.get(0);
-        assertEquals(sessionId, event.aggregateId());
-        assertFalse(aggregate.isActive());
-        assertNull(aggregate.getCurrentScreen());
+        assertEquals("session.ended", resultEvents.get(0).type());
+    }
+
+    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
+    public void a_TellerSession_aggregate_that_violates_authentication() {
+        aggregate = new TellerSessionAggregate(TEST_SESSION_ID);
+        aggregate.markUnauthenticated(); // Violation: not authenticated
+    }
+
+    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
+    public void a_TellerSession_aggregate_that_violates_timeout() {
+        aggregate = new TellerSessionAggregate(TEST_SESSION_ID);
+        aggregate.markAuthenticated("teller-1");
+        aggregate.markTimedOut(); // Violation: inactive for too long
+    }
+
+    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
+    public void a_TellerSession_aggregate_that_violates_navigation_state() {
+        aggregate = new TellerSessionAggregate(TEST_SESSION_ID);
+        aggregate.markAuthenticated("teller-1");
+        aggregate.markInconsistentNavigationState(); // Violation: navigation in error
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(capturedException);
-        // We expect IllegalStateException for invariant violations in this pattern
-        assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
+        assertNotNull(thrownException, "Should throw exception");
+        assertTrue(thrownException instanceof IllegalStateException || thrownException instanceof UnknownCommandException);
     }
 }

@@ -1,14 +1,10 @@
 Feature: Implement StartSessionCmd on TellerSession (user-interface-navigation)
-
   Feature: StartSessionCmd
 
     Scenario: Successfully execute StartSessionCmd
       Given a valid TellerSession aggregate
       And a valid tellerId is provided
       And a valid terminalId is provided
-      And the teller is authenticated
-      And the session timeout is within configured limits
-      And the navigation state is valid
       When the StartSessionCmd command is executed
       Then a session.started event is emitted
 

@@ -2,15 +2,17 @@ package com.example.mocks;
 
 import com.example.ports.GitHubPort;
 
+/**
+ * Mock implementation of GitHubPort for testing.
+ * Returns a predictable URL to satisfy the contract without calling GitHub.
+ */
 public class MockGitHubPort implements GitHubPort {
-    private String nextIssueUrl = "https://github.com/mock/issues/1";
+
+    private static final String FAKE_GITHUB_URL = "https://github.com/fake-repo/issues/454";
 
     @Override
-    public String createIssue(String title, String body) {
-        return nextIssueUrl;
-    }
-
-    public void setNextIssueUrl(String url) {
-        this.nextIssueUrl = url;
+    public String createIssue(String title, String description) {
+        // Simulate a successful creation and return the standard URL format
+        return FAKE_GITHUB_URL;
     }
 }

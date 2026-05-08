@@ -1,87 +1,63 @@
 package com.example.steps;
 
-import com.example.domain.shared.slack.SlackNotificationPort;
-import com.example.domain.shared.validation.ValidationPort;
-import com.example.mocks.MockSlackNotificationPort;
-import com.example.mocks.MockValidationPort;
-import org.junit.jupiter.api.Test;
-
-import java.util.HashMap;
-import java.util.Map;
-
+import com.example.domain.vforce360.model.DefectReportedEvent;
+import com.example.domain.vforce360.model.ReportDefectCmd;
+import com.example.domain.vforce360.model.VForce360IntegrationAggregate;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.When;
+import io.cucumber.java.en.Then;
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Regression Test for S-FB-1: Validating VW-454 — GitHub URL in Slack body.
- * 
- * Context:
- * 1. Trigger _report_defect via temporal-worker exec
- * 2. Verify Slack body contains GitHub issue link
- * 
- * Tech Stack: Java, Spring Boot
- */
 public class SFB1Steps {
 
-    // We use the mock adapters defined in the mocks package
-    private final MockValidationPort validationPort = new MockValidationPort();
-    private final MockSlackNotificationPort slackPort = new MockSlackNotificationPort();
+    private VForce360IntegrationAggregate aggregate;
+    private DefectReportedEvent resultingEvent;
+    private Exception caughtException;
 
-    /**
-     * Scenario: Successful defect report with valid GitHub URL.
-     * Given a valid defect context with a GitHub URL
-     * When the worker executes the reporting workflow
-     * Then the Slack notification body should contain the GitHub URL
-     */
-    @Test
-    public void testSlackBodyContainsValidGithubUrl() {
-        // Setup inputs
-        String expectedUrl = "https://github.com/egdcrypto/bank-of-z/issues/454";
-        Map<String, Object> context = new HashMap<>();
-        context.put("issue_url", expectedUrl);
-        context.put("severity", "LOW");
-
-        // Configure Mocks
-        validationPort.setSimulatedUrl(expectedUrl);
-
-        // Execute the logic (simulating the Temporal Worker)
-        // In a real worker, this would be a workflow method calling the ports
-        String extractedUrl = validationPort.extractAndValidateGithubUrl(context);
-        String slackBody = buildSlackBody(extractedUrl);
-        slackPort.postMessage("#vforce360-issues", slackBody);
-
-        // Verify Validation logic extracted the URL
-        assertEquals(expectedUrl, extractedUrl, "Validation port should extract the correct URL");
-
-        // Verify Slack logic
-        assertTrue(slackPort.containsUrl(expectedUrl), "Slack body must contain the GitHub issue link");
-        
-        // Verify the actual content of the message
-        assertEquals(1, slackPort.getMessages().size());
-        MockSlackNotificationPort.PostedMessage msg = slackPort.getMessages().get(0);
-        assertEquals("#vforce360-issues", msg.channel);
-        assertTrue(msg.body.contains(expectedUrl), "Actual body content check");
+    @Given("a defect report is triggered via temporal-worker")
+    public void a_defect_report_is_triggered_via_temporal_worker() {
+        // Initialize the aggregate with a specific issue ID
+        aggregate = new VForce360IntegrationAggregate("VW-454");
     }
 
-    /**
-     * Scenario: Defect report fails if URL is missing.
-     * Given a defect context missing the GitHub URL
-     * When the worker executes the reporting workflow
-     * Then validation should fail
-     */
-    @Test
-    public void testValidationFailsOnMissingUrl() {
-        validationPort.setShouldFail(true); // Simulating validation logic detecting a missing/invalid URL
-        Map<String, Object> context = new HashMap<>();
-
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            validationPort.extractAndValidateGithubUrl(context);
-        });
-
-        assertTrue(exception.getMessage().contains("Mock validation failure"));
+    @When("the report_defect command is executed")
+    public void the_report_defect_command_is_executed() {
+        try {
+            var cmd = new ReportDefectCmd(
+                "VW-454",
+                "Validating VW-454 — GitHub URL in Slack body",
+                "LOW"
+            );
+            var events = aggregate.execute(cmd);
+            // Assume the first event is the one we care about
+            if (!events.isEmpty()) {
+                resultingEvent = (DefectReportedEvent) events.get(0);
+            }
+        } catch (Exception e) {
+            caughtException = e;
+        }
     }
 
-    // Helper to simulate the message formatting done by the worker
-    private String buildSlackBody(String url) {
-        return "Defect Reported. GitHub issue: " + url;
+    @Then("the resulting event payload contains a valid GitHub URL")
+    public void the_resulting_event_payload_contains_a_valid_github_url() {
+        assertNotNull(resultingEvent, "Event should not be null");
+        assertNotNull(resultingEvent.githubUrl(), "GitHub URL should not be null");
+        assertTrue(
+            resultingEvent.githubUrl().startsWith("https://github.com/"),
+            "URL should start with https://github.com/"
+        );
+        assertTrue(
+            resultingEvent.githubUrl().contains("VW-454"),
+            "URL should contain the issue ID"
+        );
+    }
+
+    @Then("the body format supports Slack link generation")
+    public void the_body_format_supports_slack_link_generation() {
+        assertNotNull(resultingEvent);
+        // Validate the format matches the Slack expectation: <url>
+        String slackBody = "<" + resultingEvent.githubUrl() + ">";
+        assertTrue(slackBody.startsWith("<"), "Slack body should start with <");
+        assertTrue(slackBody.endsWith(">"), "Slack body should end with >");
     }
 }

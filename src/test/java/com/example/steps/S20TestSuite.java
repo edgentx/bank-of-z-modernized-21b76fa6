@@ -5,7 +5,8 @@ import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
 /**
- * JUnit 5 Suite wrapper to run Cucumber tests for S-20.
+ * Test Suite to run Cucumber scenarios for S-20.
+ * S-20: Implement EndSessionCmd on TellerSession
  */
 @Suite
 @IncludeEngines("cucumber")

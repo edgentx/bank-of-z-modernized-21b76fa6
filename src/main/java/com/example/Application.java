@@ -2,19 +2,12 @@ package com.example;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
-@EnableAsync
+@ComponentScan(basePackages = {"com.example"})
 public class Application {
-
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
-
-    // Inner config class for VForce360 reporting
-    // @Component
-    // public static class VForce360Reporter {
-    //     // Logic to report defects to VForce360
-    // }
 }

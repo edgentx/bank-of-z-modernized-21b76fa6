@@ -1,34 +1,46 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to Slack in memory.
+ * Mock implementation of SlackNotificationPort.
+ * Stores messages in memory for verification without external I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public record PostedMessage(String channel, String body) {}
-
-    private final List<PostedMessage> messages = new ArrayList<>();
+    private final List<String> sentMessages = new ArrayList<>();
+    private boolean shouldFail = false;
 
     @Override
-    public void postMessage(String channel, String messageBody) {
-        this.messages.add(new PostedMessage(channel, messageBody));
+    public boolean send(String payload) {
+        if (shouldFail) {
+            return false;
+        }
+        sentMessages.add(payload);
+        return true;
     }
 
-    public List<PostedMessage> getMessages() {
-        return new ArrayList<>(messages);
+    @Override
+    public String getLastMessageBody() {
+        if (sentMessages.isEmpty()) {
+            return "";
+        }
+        return sentMessages.get(sentMessages.size() - 1);
     }
 
-    public void clear() {
-        messages.clear();
+    public void reset() {
+        sentMessages.clear();
+        shouldFail = false;
     }
 
-    public PostedMessage getLastMessage() {
-        if (messages.isEmpty()) return null;
-        return messages.get(messages.size() - 1);
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
+    }
+
+    public List<String> getAllMessages() {
+        return new ArrayList<>(sentMessages);
     }
 }

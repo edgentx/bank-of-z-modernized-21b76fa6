@@ -5,31 +5,51 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Stores sent payloads to allow assertions on content.
+ * In-memory mock implementation of SlackNotificationPort for testing.
+ * Captures messages to verify content without calling the real API.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> sentPayloads = new ArrayList<>();
+    public static class PostedMessage {
+        public final String channel;
+        public final String body;
+
+        public PostedMessage(String channel, String body) {
+            this.channel = channel;
+            this.body = body;
+        }
+    }
+
+    private final List<PostedMessage> postedMessages = new ArrayList<>();
+    private boolean shouldThrowException = false;
 
     @Override
-    public void send(String payload) {
-        // In a real mock we might verify formatting here, but storing is sufficient for verification in tests
-        sentPayloads.add(payload);
-    }
-
-    public List<String> getSentPayloads() {
-        return new ArrayList<>(sentPayloads);
-    }
-
-    public String getLatestPayload() {
-        if (sentPayloads.isEmpty()) {
-            throw new IllegalStateException("No payloads sent");
+    public void postMessage(String channel, String messageBody) {
+        if (shouldThrowException) {
+            throw new RuntimeException("Simulated Slack API failure");
         }
-        return sentPayloads.get(sentPayloads.size() - 1);
+        postedMessages.add(new PostedMessage(channel, messageBody));
     }
 
-    public void clear() {
-        sentPayloads.clear();
+    public List<PostedMessage> getPostedMessages() {
+        return postedMessages;
+    }
+
+    public void reset() {
+        postedMessages.clear();
+        shouldThrowException = false;
+    }
+
+    public void setShouldThrowException(boolean value) {
+        this.shouldThrowException = value;
+    }
+
+    /**
+     * Helper to assert that a specific URL was posted to a specific channel.
+     */
+    public boolean verifyUrlPosted(String channel, String url) {
+        return postedMessages.stream()
+                .filter(m -> m.channel.equals(channel))
+                .anyMatch(m -> m.body.contains(url));
     }
 }

@@ -31,7 +31,7 @@
         <!-- Domain/Shared (Internal) -->
         <!-- Note: In a real multi-module project these would be module dependencies -->
 
-        <!-- Cucumber for Testing (BOM-pinned groupId) -->
+        <!-- Cucumber for Testing -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>

@@ -6,9 +6,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Real adapter for Slack notifications.
- * In a production environment, this would integrate with the Slack Web API.
- * For defect VW-454 validation, this component ensures the URL is injected into the payload.
+ * Real implementation of SlackPort.
+ * In a real environment, this would use a Slack WebClient or an API client.
+ * For the scope of this defect fix (validation of content), we simulate the send
+ * to allow the system to run end-to-end locally without a live Slack token.
  */
 @Component
 public class SlackAdapter implements SlackPort {
@@ -16,14 +17,16 @@ public class SlackAdapter implements SlackPort {
     private static final Logger log = LoggerFactory.getLogger(SlackAdapter.class);
 
     @Override
-    public void sendNotification(String messageBody) {
-        if (messageBody == null) {
-            throw new IllegalArgumentException("Message body cannot be null");
+    public void sendMessage(String message) {
+        // In production: SlackClient.postMessage(message);
+        // Here we log to standard out so the CI logs capture the "Body"
+        log.info("[SLACK ADAPTER] Sending message: {}", message);
+        
+        // Simulate network latency
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
-        
-        // In a real implementation, we would POST this to a Slack Webhook URL.
-        // e.g., restTemplate.postForEntity(webhookUrl, new SlackMessage(messageBody), Void.class);
-        
-        log.info("Sending notification to #vforce360-issues: {}", messageBody);
     }
 }

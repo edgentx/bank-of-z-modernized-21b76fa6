@@ -10,5 +10,5 @@ import org.junit.platform.suite.api.Suite;
 @SelectClasspathResource("features")
 @Cucumber
 public class SFb1TestSuite {
-    // Test Suite Configuration for S-FB-1
+    // Suite configuration is handled by annotations
 }

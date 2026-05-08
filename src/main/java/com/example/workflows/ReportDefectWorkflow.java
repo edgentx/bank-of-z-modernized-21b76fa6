@@ -5,17 +5,11 @@ import io.temporal.workflow.WorkflowMethod;
 
 /**
  * Temporal Workflow interface for reporting defects.
- * This orchestrates creating the GitHub issue and notifying Slack.
+ * Story: S-FB-1
  */
 @WorkflowInterface
 public interface ReportDefectWorkflow {
 
-    /**
-     * Workflow entry point.
-     *
-     * @param defectDescription Description of the defect.
-     * @return The GitHub Issue URL.
-     */
     @WorkflowMethod
-    String reportDefect(String defectDescription);
+    String reportDefect(String description, String severity);
 }

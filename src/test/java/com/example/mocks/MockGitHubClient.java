@@ -1,17 +1,21 @@
 package com.example.mocks;
 
-import com.example.domain.vforce360.model.DefectAggregate;
-import com.example.ports.GitHubClient;
+import com.example.ports.GitHubPort;
 
 /**
- * Mock implementation of GitHubClient for testing.
+ * Mock implementation of GitHubPort.
+ * Returns a configurable URL string.
  */
-public class MockGitHubClient implements GitHubClient {
+public class MockGitHubClient implements GitHubPort {
 
-    private String mockUrl = "https://github.com/mocked-org/repo/issues/1";
+    private String mockUrl = "https://github.com/mock/repo/issues/1";
 
     @Override
-    public String createIssue(DefectAggregate defect) {
+    public String createIssue(String title, String description) {
+        // Simulate creation logic
+        if (title == null || title.isBlank()) {
+            throw new IllegalArgumentException("Title cannot be blank");
+        }
         return mockUrl;
     }
 

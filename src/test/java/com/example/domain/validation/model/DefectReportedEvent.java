@@ -1,20 +1,20 @@
 package com.example.domain.validation.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.Map;
+import java.util.UUID;
 
 /**
  * Event emitted when a defect is successfully reported.
- * Part of Story S-FB-1: Validating VW-454.
+ * Must contain the GitHub URL for the Slack body validation.
  */
 public record DefectReportedEvent(
-        String aggregateId,
-        String defectId,
-        String issueUrl,
-        Instant occurredAt,
-        Map<String, String> metadata
+    String defectId,
+    String title,
+    String githubIssueUrl, // The critical field for S-FB-1
+    String severity,
+    String component,
+    Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
@@ -23,7 +23,7 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return defectId;
     }
 
     @Override

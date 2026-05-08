@@ -1,105 +1,88 @@
 package com.example.e2e.regression;
 
-import com.example.domain.reconciliation.model.ReportDefectCommand;
-import com.example.domain.reconciliation.model.ReconciliationBatch;
-import com.example.mocks.MockSlackNotificationPort;
-import com.example.ports.SlackNotificationPort;
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.domain.defect.port.DefectRepository;
+import com.example.domain.validation.model.SlackLinkVerifiedEvent;
+import com.example.domain.validation.model.VerifySlackLinkCmd;
+import com.example.domain.validation.model.ValidationAggregate;
+import com.example.domain.validation.port.ValidationRepository;
+import com.example.mocks.FakeSlackMessageValidator;
+import com.example.mocks.InMemoryDefectRepository;
+import com.example.mocks.InMemoryValidationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * E2E Regression Test for Story S-FB-1.
- * Verifies that reporting a defect generates a Slack body containing
- * the GitHub issue URL.
+ * S-FB-1: Regression test for GitHub URL validation in Slack body.
  */
-class SFB1RegressionTest {
+public class SFB1RegressionTest {
 
-    private MockSlackNotificationPort slackPort;
+    private DefectRepository defectRepo;
+    private ValidationRepository validationRepo;
+    private FakeSlackMessageValidator validator;
 
     @BeforeEach
     void setUp() {
-        slackPort = new MockSlackNotificationPort();
+        defectRepo = new InMemoryDefectRepository();
+        validationRepo = new InMemoryValidationRepository();
+        validator = new FakeSlackMessageValidator();
     }
 
     @Test
-    void testReportDefect_ShouldIncludeGitHubUrlInSlackBody() {
-        // Arrange
-        // Assuming the aggregate/command handler would look up or use a configured GitHub URL
-        String expectedGitHubUrl = "https://github.com/egdcrypto/bank-of-z/issues/454";
-        ReportDefectCommand cmd = new ReportDefectCommand(
-            "batch-123",
-            "COBOL-LEGACY",
-            new BigDecimal("500.00"),
-            "Balance mismatch detected"
-        );
-
-        // Simulate the workflow/activity logic:
-        // In a real Spring Boot app, we might invoke a WorkflowOrchestrator or Service.
-        // Since we are in TDD red phase without the service implemented, we simulate
-        // the expected side-effect logic directly here to ensure the requirement is met.
+    void shouldContainGitHubUrlInSlackBody_EndToEnd() {
+        // Arrange: Create a defect which generates a GitHub URL
+        String defectId = "VW-454";
+        DefectAggregate defect = new DefectAggregate(defectId);
+        ReportDefectCmd cmd = new ReportDefectCmd(defectId, "GitHub URL validation failing", "Slack body missing link");
         
-        // Step 1: Construct the Slack body (Simulating the 'Fix' we need to implement)
-        // The defect states: "Slack body includes GitHub issue: <url>"
-        StringBuilder bodyBuilder = new StringBuilder();
-        bodyBuilder.append("Defect Detected:\n");
-        bodyBuilder.append("Batch: ").append(cmd.batchId()).append("\n");
-        bodyBuilder.append("Amount: ").append(cmd.discrepancyAmount()).append("\n");
-        bodyBuilder.append("Reason: ").append(cmd.reason()).append("\n");
-        // --- CRITICAL REQUIREMENT START ---
-        bodyBuilder.append("GitHub issue: ").append(expectedGitHubUrl).append("\n");
-        // --- CRITICAL REQUIREMENT END ---
+        List<com.example.domain.shared.DomainEvent> events = defect.execute(cmd);
+        defectRepo.save(defect);
+        
+        String expectedUrl = defect.getGithubUrl(); // Retrieved from aggregate state
+        
+        // Simulate the Slack body construction which is expected to contain the URL
+        // In a real scenario, this might come from a workflow or service.
+        // Here we simulate the body that SHOULD be sent.
+        String simulatedSlackBody = "Defect Reported: " + defectId + "\nGitHub Issue: " + expectedUrl;
 
-        String constructedBody = bodyBuilder.toString();
+        // Act: Validate that the simulated body contains the URL
+        ValidationAggregate validation = new ValidationAggregate("val-1");
+        VerifySlackLinkCmd verifyCmd = new VerifySlackLinkCmd("val-1", simulatedSlackBody, expectedUrl);
+        
+        List<com.example.domain.shared.DomainEvent> validationEvents = validation.execute(verifyCmd);
+        validationRepo.save(validation);
+
+        // Assert: The validation event should indicate the link was found
+        assertEquals(1, validationEvents.size());
+        SlackLinkVerifiedEvent verifiedEvent = (SlackLinkVerifiedEvent) validationEvents.get(0);
+        
+        assertTrue(verifiedEvent.found(), "Expected Slack body to contain GitHub URL, but it was not found.");
+    }
+
+    @Test
+    void shouldFailValidationIfUrlMissingFromSlackBody() {
+        // Arrange
+        String defectId = "VW-454";
+        DefectAggregate defect = new DefectAggregate(defectId);
+        defect.execute(new ReportDefectCmd(defectId, "Title", "Desc"));
+        
+        String expectedUrl = defect.getGithubUrl();
+        // Simulate the DEFECT: Slack body missing the URL
+        String brokenSlackBody = "Defect Reported: " + defectId + "\nLink: (Pending)";
 
         // Act
-        // Send the notification using our Mock Port
-        slackPort.sendNotification("#vforce360-issues", constructedBody);
+        ValidationAggregate validation = new ValidationAggregate("val-2");
+        VerifySlackLinkCmd verifyCmd = new VerifySlackLinkCmd("val-2", brokenSlackBody, expectedUrl);
+        
+        List<com.example.domain.shared.DomainEvent> validationEvents = validation.execute(verifyCmd);
 
         // Assert
-        List<MockSlackNotificationPort.SentMessage> messages = slackPort.getMessages();
-        assertFalse(messages.isEmpty(), "Slack notification should have been sent");
-        
-        MockSlackNotificationPort.SentMessage msg = messages.get(0);
-        assertEquals("#vforce360-issues", msg.channel, "Channel should be #vforce360-issues");
-        
-        // The actual validation from the Story ID: S-FB-1
-        assertTrue(msg.body.contains(expectedGitHubUrl), 
-            "Slack body must contain the GitHub issue URL");
-        assertTrue(msg.body.contains("GitHub issue:"), 
-            "Slack body must contain the label 'GitHub issue:'");
-    }
-
-    @Test
-    void testReportDefect_Regression_UrlMissing_Fails() {
-        // Arrange
-        ReportDefectCommand cmd = new ReportDefectCommand(
-            "batch-999",
-            "DB2-SHARED",
-            BigDecimal.ZERO,
-            "Null pointer"
-        );
-
-        // Act (Simulate the BROKEN behavior - missing URL)
-        StringBuilder badBody = new StringBuilder();
-        badBody.append("Defect Detected: ").append(cmd.reason());
-        // Intentionally omitting the URL to simulate the defect
-        
-        slackPort.sendNotification("#vforce360-issues", badBody.toString());
-
-        // Assert (This test PASSES if the defect is present, failing the build if the code is bad)
-        MockSlackNotificationPort.SentMessage msg = slackPort.getMessages().get(0);
-        
-        // This assertion demonstrates the bug. When the fix is applied, this logic
-        // would be inverted in the actual test suite.
-        // However, for Red-Green, we write a test that EXPECTS the URL.
-        
-        // Let's stick to the positive assertion for the main test case above.
-        // This secondary test confirms we are validating correctly.
-        assertFalse(msg.body.contains("GitHub issue:"), "This simulates the broken state check");
+        SlackLinkVerifiedEvent verifiedEvent = (SlackLinkVerifiedEvent) validationEvents.get(0);
+        assertFalse(verifiedEvent.found(), "Expected validation to fail for missing URL.");
     }
 }

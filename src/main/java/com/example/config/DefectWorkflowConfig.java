@@ -1,51 +1,45 @@
 package com.example.config;
 
-import com.example.adapters.GitHubIssueAdapter;
-import com.example.adapters.SlackNotificationAdapter;
-import com.example.ports.GitHubIssuePort;
+import com.example.adapters.DefaultSlackAdapter;
+import com.example.adapters.GitHubAdapter;
+import com.example.domain.defect.DefectAggregate;
+import com.example.ports.GitHubPort;
 import com.example.ports.SlackNotificationPort;
-import com.slack.api.Slack;
-import com.slack.api.methods.MethodsClient;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.client.RestTemplate;
 
-/**
- * Configuration class for Defect Reporting workflow dependencies.
- * Wires up the real adapters for GitHub and Slack.
- */
+import java.util.UUID;
+
 @Configuration
 public class DefectWorkflowConfig {
 
+    /**
+     * Factory for creating new DefectAggregate instances.
+     * The aggregate is transient (not managed by Spring), but its dependencies are.
+     */
     @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
+    public DefectAggregateFactory defectAggregateFactory(GitHubPort gitHubPort, SlackNotificationPort slackPort) {
+        return new DefectAggregateFactory(gitHubPort, slackPort);
     }
 
-    @Bean
-    public GitHubIssuePort gitHubIssuePort(
-            RestTemplate restTemplate,
-            @Value("${github.api.url:https://api.github.com/repos/bank-of-z/core/issues}") String apiUrl) {
-        return new GitHubIssueAdapter(restTemplate, apiUrl);
-    }
+    public static class DefectAggregateFactory {
+        private final GitHubPort gitHubPort;
+        private final SlackNotificationPort slackPort;
 
-    @Bean
-    public MethodsClient slackMethodsClient(Slack slack) {
-        return slack.methods();
-    }
+        public DefectAggregateFactory(GitHubPort gitHubPort, SlackNotificationPort slackPort) {
+            this.gitHubPort = gitHubPort;
+            this.slackPort = slackPort;
+        }
 
-    @Bean
-    public SlackNotificationPort slackNotificationPort(MethodsClient slackMethodsClient) {
-        return new SlackNotificationAdapter(slackMethodsClient);
-    }
-
-    @Bean
-    public Slack slack(
-            @Value("${slack.token:}") String slackToken) {
-        // In a real scenario, the token must be set. For the test context,
-        // this might be initialized with a dummy token or not used at all if mocks are active.
-        // Assuming Spring Boot's test properties or profile will inject a valid test token if needed.
-        return Slack.getInstance();
+        public DefectAggregate create() {
+            // Generate a unique ID for the defect
+            String defectId = "DEF-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+            return new DefectAggregate(defectId, gitHubPort, slackPort);
+        }
+        
+        public DefectAggregate create(String defectId) {
+            return new DefectAggregate(defectId, gitHubPort, slackPort);
+        }
     }
 }

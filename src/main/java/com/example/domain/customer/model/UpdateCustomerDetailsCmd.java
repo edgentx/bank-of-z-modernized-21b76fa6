@@ -4,9 +4,8 @@ import com.example.domain.shared.Command;
 
 public record UpdateCustomerDetailsCmd(
     String customerId,
-    String email,
-    String fullName,
+    String emailAddress,
     String sortCode,
-    String governmentId,
-    boolean markDeleted
+    String fullName, // Optional for update
+    boolean requestingDeletion // Used to test the "active accounts" invariant scenario
 ) implements Command {}

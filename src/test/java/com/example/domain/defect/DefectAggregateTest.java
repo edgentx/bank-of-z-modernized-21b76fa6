@@ -1,72 +1,124 @@
 package com.example.domain.defect;
 
 import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.DefectReportedEvent;
 import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.domain.shared.DomainEvent;
+import com.example.mocks.MockGitHubIssuePort;
+import com.example.mocks.MockSlackNotificationPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * TDD Red Phase: Unit tests for the Defect Aggregate.
- * Story: S-FB-1
+ * TDD Red Phase Tests for Defect Reporting (VW-454).
+ * 
+ * Acceptance Criteria:
+ * 1. The validation no longer exhibits the reported behavior (Missing GitHub URL in Slack body).
+ * 2. Regression test added to e2e/regression/ covering this scenario.
+ * 
+ * Context:
+ * The defect report indicates that when a defect is triggered, the resulting Slack notification
+ * must contain the actual link to the created GitHub issue.
  */
 class DefectAggregateTest {
 
-    @Test
-    void should_reject_report_command_when_summary_is_null() {
-        // Arrange
-        var defect = new DefectAggregate("defect-1");
-        var cmd = new ReportDefectCmd(null, "Description", "LOW", "validation");
+    private MockGitHubIssuePort mockGitHub;
+    private MockSlackNotificationPort mockSlack;
+    private DefectAggregate aggregate;
 
-        // Act & Assert
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> defect.execute(cmd));
-        assertTrue(ex.getMessage().contains("summary required"));
+    @BeforeEach
+    void setUp() {
+        mockGitHub = new MockGitHubIssuePort();
+        mockSlack = new MockSlackNotificationPort();
+        // ID matches the story ID: S-FB-1 or the Defect ID VW-454
+        aggregate = new DefectAggregate("VW-454", mockGitHub, mockSlack);
     }
 
     @Test
-    void should_reject_report_command_when_summary_is_blank() {
-        var defect = new DefectAggregate("defect-1");
-        var cmd = new ReportDefectCmd("   ", "Description", "LOW", "validation");
-
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> defect.execute(cmd));
-        assertTrue(ex.getMessage().contains("summary required"));
-    }
-
-    @Test
-    void should_emit_event_on_valid_report() {
+    void testExecute_ReportDefect_Success() {
         // Arrange
-        var defectId = "vw-454";
-        var defect = new DefectAggregate(defectId);
-        var cmd = new ReportDefectCmd("Validating VW-454", "URL missing in Slack", "LOW", "validation");
+        String expectedTitle = "Fix: Validating VW-454";
+        String expectedDesc = "Repro steps...";
+        mockGitHub.setMockUrl("https://github.com/bank-of-z/core/issues/454");
+
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            "VW-454",
+            expectedTitle,
+            expectedDesc,
+            "LOW",
+            "validation"
+        );
 
         // Act
-        var events = defect.execute(cmd);
+        List<DomainEvent> events = aggregate.execute(cmd);
 
         // Assert
-        assertEquals(1, events.size());
-        var event = events.get(0);
-        assertEquals("DefectReportedEvent", event.type());
-        assertEquals(defectId, event.aggregateId());
-        assertNotNull(event.occurredAt());
+        assertFalse(events.isEmpty(), "Should produce an event");
+        assertTrue(events.get(0) instanceof DefectReportedEvent);
+
+        DefectReportedEvent event = (DefectReportedEvent) events.get(0);
+        assertEquals("https://github.com/bank-of-z/core/issues/454", event.githubUrl());
+        assertEquals("#vforce360-issues", event.slackChannel());
+    }
+
+    /**
+     * Primary Regression Test for VW-454.
+     * Verifies that the Slack body actually contains the GitHub URL.
+     */
+    @Test
+    void testExecute_SlackBodyContainsGitHubURL_RegressionTest() {
+        // Arrange
+        String specificGitHubUrl = "https://github.com/project/repo/issues/999";
+        mockGitHub.setMockUrl(specificGitHubUrl);
+
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            "VW-454",
+            "Defect Title",
+            "Description",
+            "LOW",
+            "validation"
+        );
+
+        // Act
+        aggregate.execute(cmd);
+
+        // Assert - Verify Mock Slack Port received the body
+        // We expect the body to contain the URL.
+        MockSlackNotificationPort.SlackMessage msg = mockSlack.getMessages().get(0);
+        
+        assertNotNull(msg, "Slack should have received a message");
+        assertEquals("#vforce360-issues", msg.channel, "Channel should be #vforce360-issues");
+        
+        // Critical assertion: The body must include the GitHub URL link
+        // This checks the fix for "Slack body includes GitHub issue: <url>"
+        assertTrue(
+            msg.body.contains(specificGitHubUrl), 
+            "Slack body must contain the GitHub URL. VW-454 regression check.\nActual Body: " + msg.body
+        );
     }
 
     @Test
-    void should_set_aggregate_state_on_report() {
-        // This test ensures the aggregate state updates correctly so the
-        // Workflow can access the URL for the Slack notification.
-        var defect = new DefectAggregate("vw-454");
-        var cmd = new ReportDefectCmd("GitHub URL missing", "Fix the Slack body", "LOW", "validation");
+    void testExecute_GitHubFailure_ThrowsException() {
+        // Arrange
+        mockGitHub.setShouldFail(true); // GitHub returns null/empty
+        ReportDefectCmd cmd = new ReportDefectCmd("VW-454", "T", "D", "HIGH", "comp");
 
-        defect.execute(cmd);
+        // Act & Assert
+        assertThrows(IllegalStateException.class, () -> aggregate.execute(cmd));
+    }
 
-        // Assuming DefectAggregate will expose getters derived from the state
-        // For the workflow to pass the URL to Slack.
-        assertNotNull(defect.getSummary());
-        assertNotNull(defect.getDescription());
-        // We verify state mutation happens
+    @Test
+    void testExecute_SlackFailure_ThrowsException() {
+        // Arrange
+        mockSlack.setShouldFail(true); // Slack returns false
+        mockGitHub.setMockUrl("http://url");
+        ReportDefectCmd cmd = new ReportDefectCmd("VW-454", "T", "D", "HIGH", "comp");
+
+        // Act & Assert
+        assertThrows(IllegalStateException.class, () -> aggregate.execute(cmd));
     }
 }

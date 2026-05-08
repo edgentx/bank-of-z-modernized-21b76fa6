@@ -23,6 +23,8 @@
         <java.version>17</java.version>
         <spring-cloud.version>2023.0.0</spring-cloud.version>
         <otel.version>1.32.0</otel.version>
+        <!-- Temporal requires explicit version as it is not in Spring Boot BOM -->
+        <temporal.version>1.22.0</temporal.version>
     </properties>
 
     <dependencies>
@@ -55,7 +57,7 @@
             <groupId>org.springframework.session</groupId>
             <artifactId>spring-session-data-redis</artifactId>
         </dependency>
-        
+
         <!-- Database -->
         <dependency>
             <groupId>com.h2database</groupId>
@@ -72,16 +74,16 @@
             <version>9.22.3</version>
         </dependency>
 
-        <!-- Temporal (Explicit Version Required) -->
+        <!-- Temporal (Explicit Version Required - Fixed Resolution) -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>1.22.0</version>
+            <version>${temporal.version}</version>
         </dependency>
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-testing</artifactId>
-            <version>1.22.0</version>
+            <version>${temporal.version}</version>
             <scope>test</scope>
         </dependency>
 

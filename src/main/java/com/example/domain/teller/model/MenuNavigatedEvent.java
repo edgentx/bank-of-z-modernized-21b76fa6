@@ -6,9 +6,8 @@ import java.time.Instant;
 
 public record MenuNavigatedEvent(
     String aggregateId,
-    String targetMenuId,
+    String menuId,
     String action,
-    String previousMenuId,
     Instant occurredAt
 ) implements DomainEvent {
     @Override

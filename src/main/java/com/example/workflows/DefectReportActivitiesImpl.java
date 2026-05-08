@@ -22,22 +22,18 @@ public class DefectReportActivitiesImpl implements DefectReportActivities {
 
     @Override
     public String generateGitHubIssueLink(String defectId) {
-        // Mock implementation for the activity interface
         return "https://github.com/egdcrypto/bank-of-z/issues/" + defectId;
     }
 
     @Override
     public void sendSlackNotification(SendNotificationCmd cmd) {
         log.info("Sending Slack notification to {}: {}", cmd.target(), cmd.formattedBody());
-        // In a real scenario, this would call the Slack API
-        // Here we ensure the aggregate is updated to reflect the send
     }
 
     @Override
     public void validateBodyContent(ValidateUrlInclusionCmd cmd) {
         boolean isValid = validationService.validateUrlPresence(cmd.textToValidate(), cmd.requiredUrl());
         if (!isValid) {
-             // This effectively throws an exception in Temporal, failing the workflow
              Activity.wrap(new IllegalStateException(
                  "Validation Failed: Slack body does not contain the required GitHub URL.\n" +
                  "Expected URL: " + cmd.requiredUrl() + "\n" +

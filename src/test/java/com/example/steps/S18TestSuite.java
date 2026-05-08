@@ -1,16 +1,15 @@
 package com.example.steps;
 
+import org.junit.platform.suite.api.ConfigurationParameter;
 import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
-/**
- * JUnit 5 Suite wrapper to run Cucumber features.
- * This is detected by the Maven Surefire plugin during the test phase.
- */
+import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
+
 @Suite
 @IncludeEngines("cucumber")
 @SelectClasspathResource("features")
+@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
 public class S18TestSuite {
-    // No code needed here, annotations drive the execution
 }

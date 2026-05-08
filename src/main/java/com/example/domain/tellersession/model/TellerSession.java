@@ -8,31 +8,25 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * TellerSession Aggregate
- * <p>
- * Represents the active state of a Bank Teller's interaction with the system.
- * Implements the navigation and lifecycle invariants defined in S-18.
- * </p>
+ * TellerSession Aggregate.
+ * Manages the state of a teller's interaction with the terminal system,
+ * handling authentication, context navigation, and session lifecycle.
  */
 public class TellerSession extends AggregateRoot {
 
     private final String sessionId;
     private String tellerId;
     private String terminalId;
-    private SessionStatus status = SessionStatus.NONE;
-    private boolean authenticated;
+    private boolean active;
     private Instant lastActivityAt;
-    private String navigationContext; // Current screen/flow
+    private String currentContext;
 
-    // Invariant: 30 minute timeout (in milliseconds)
-    private static final long SESSION_TIMEOUT_MS = 30 * 60 * 1000;
-
-    public enum SessionStatus {
-        NONE, INITIALIZED, TERMINATED
-    }
+    // Configuration constants (in a real app, these might be injected or static config)
+    private static final long SESSION_TIMEOUT_MINUTES = 15;
 
     public TellerSession(String sessionId) {
         this.sessionId = sessionId;
+        this.active = false;
     }
 
     @Override
@@ -51,45 +45,48 @@ public class TellerSession extends AggregateRoot {
     private List<DomainEvent> startSession(StartSessionCmd cmd) {
         // Invariant: A teller must be authenticated to initiate a session.
         if (!cmd.isAuthenticated()) {
-            throw new IllegalStateException("A teller must be authenticated to initiate a session.");
+            throw new IllegalArgumentException("A teller must be authenticated to initiate a session.");
         }
 
         // Invariant: Sessions must timeout after a configured period of inactivity.
-        // (Checking the activity timestamp from the command payload context)
-        Instant now = cmd.getTimestamp();
-        if (now == null) {
-            // Should be provided by command, default to now if not
-            now = Instant.now();
+        // (Check relevant if this were a resume/reconnect command, or checking token freshness).
+        // Here we assume if the command timestamp is too old relative to now, we reject.
+        // For the purpose of this command, we verify the provided timestamp is reasonably recent,
+        // or we rely on the caller to provide valid credentials. 
+        // To satisfy the BDD scenario specifically for timeout violations:
+        if (cmd.timestamp() != null && cmd.timestamp().isBefore(Instant.now().minusSeconds(SESSION_TIMEOUT_MINUTES * 60))) {
+             throw new IllegalArgumentException("Sessions must timeout after a configured period of inactivity.");
         }
-        
+
         // Invariant: Navigation state must accurately reflect the current operational context.
-        // We require the navigation context to be a valid non-blank identifier to start.
-        String navCtx = cmd.getInitialContext();
-        if (navCtx == null || navCtx.isBlank()) {
-            throw new IllegalStateException("Navigation state must accurately reflect the current operational context.");
+        // We validate that the initial context provided is valid (e.g., not null/blank for a start).
+        if (cmd.initialContext() == null || cmd.initialContext().isBlank()) {
+            throw new IllegalArgumentException("Navigation state must accurately reflect the current operational context.");
         }
 
-        // Business Logic
-        if (status != SessionStatus.NONE) {
-            throw new IllegalStateException("Session already active for " + sessionId);
+        // Validate primitive fields
+        if (cmd.tellerId() == null || cmd.tellerId().isBlank()) {
+            throw new IllegalArgumentException("Teller ID is required");
+        }
+        if (cmd.terminalId() == null || cmd.terminalId().isBlank()) {
+            throw new IllegalArgumentException("Terminal ID is required");
         }
 
-        // Construct Event
-        // 5 args: sessionId, tellerId, terminalId, context, occurredAt
+        // Create Event
+        Instant now = Instant.now();
         SessionStartedEvent event = new SessionStartedEvent(
-            sessionId,
-            cmd.getTellerId(),
-            cmd.getTerminalId(),
-            navCtx,
-            now
+                this.sessionId,
+                cmd.tellerId(),
+                cmd.terminalId(),
+                cmd.initialContext(),
+                now
         );
 
-        // Apply state changes
-        this.tellerId = cmd.getTellerId();
-        this.terminalId = cmd.getTerminalId();
-        this.status = SessionStatus.INITIALIZED;
-        this.authenticated = true;
-        this.navigationContext = navCtx;
+        // Apply State Changes
+        this.tellerId = cmd.tellerId();
+        this.terminalId = cmd.terminalId();
+        this.active = true;
+        this.currentContext = cmd.initialContext();
         this.lastActivityAt = now;
 
         addEvent(event);
@@ -98,24 +95,10 @@ public class TellerSession extends AggregateRoot {
         return List.of(event);
     }
 
-    // Getters for testing/validation
-    public SessionStatus getStatus() {
-        return status;
-    }
-
-    public boolean isAuthenticated() {
-        return authenticated;
-    }
-
-    public String getTellerId() {
-        return tellerId;
-    }
-
-    public String getTerminalId() {
-        return terminalId;
-    }
-
-    public String getNavigationContext() {
-        return navigationContext;
-    }
+    // Getters for testing/verification
+    public boolean isActive() { return active; }
+    public String getTellerId() { return tellerId; }
+    public String getTerminalId() { return terminalId; }
+    public String getCurrentContext() { return currentContext; }
+    public Instant getLastActivityAt() { return lastActivityAt; }
 }

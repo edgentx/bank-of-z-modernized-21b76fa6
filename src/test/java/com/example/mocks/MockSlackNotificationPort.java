@@ -1,38 +1,37 @@
 package com.example.mocks;
 
-import com.example.domain.vforce360.ports.VForce360NotificationPort;
+import com.example.ports.SlackNotificationPort;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock adapter for VForce360 Slack notifications.
- * Captures messages for verification in tests.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Captures payloads to verify contents without external I/O.
  */
-public class MockSlackNotificationPort implements VForce360NotificationPort {
+public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> postedMessages = new ArrayList<>();
+    private final List<String> receivedPayloads = new ArrayList<>();
 
     @Override
-    public void postMessage(String messageBody) {
-        // Validate input as the real implementation might
-        if (messageBody == null) {
-            throw new IllegalArgumentException("Message body cannot be null");
-        }
-        this.postedMessages.add(messageBody);
-    }
-
-    public List<String> getPostedMessages() {
-        return new ArrayList<>(postedMessages);
-    }
-
-    public void reset() {
-        postedMessages.clear();
+    public void sendNotification(String payload) {
+        // Simulate successful transmission by storing the payload
+        this.receivedPayloads.add(payload);
     }
 
     /**
-     * Helper to verify if any message contains the GitHub URL.
+     * Retrieves the last payload received.
      */
-    public boolean wasUrlPosted(String url) {
-        return postedMessages.stream().anyMatch(msg -> msg.contains(url));
+    public String getLastPayload() {
+        if (receivedPayloads.isEmpty()) {
+            throw new IllegalStateException("No payloads received");
+        }
+        return receivedPayloads.get(receivedPayloads.size() - 1);
+    }
+
+    /**
+     * Clears the mock history.
+     */
+    public void clear() {
+        receivedPayloads.clear();
     }
 }

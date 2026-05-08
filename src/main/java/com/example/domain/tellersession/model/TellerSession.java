@@ -5,27 +5,23 @@ import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
-/**
- * TellerSession aggregate.
- * Manages teller terminal lifecycle, authentication state, and context locks.
- */
 public class TellerSession extends AggregateRoot {
-
     private final String sessionId;
-    private String tellerId;
-    private boolean authenticated = false;
-    private Instant lastActivityAt;
-    private boolean transactionLocked = false;
+    private TellerSessionState state;
+    private String currentNavigationContext;
+    private long lastActivityTimestamp;
 
-    // Configuration: 30 minutes timeout
-    private static final Duration SESSION_TIMEOUT = Duration.ofMinutes(30);
+    // Configuration for timeout (in milliseconds). In a real app, this might be injected or static.
+    private static final long SESSION_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
 
     public TellerSession(String sessionId) {
         this.sessionId = sessionId;
+        this.state = TellerSessionState.NOT_AUTHENTICATED;
+        this.currentNavigationContext = "UNKNOWN";
+        this.lastActivityTimestamp = System.currentTimeMillis();
     }
 
     @Override
@@ -35,63 +31,51 @@ public class TellerSession extends AggregateRoot {
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof EndSessionCmd) {
-            return endSession((EndSessionCmd) cmd);
+        if (cmd instanceof EndSessionCmd c) {
+            return endSession(c);
         }
         throw new UnknownCommandException(cmd);
     }
 
     private List<DomainEvent> endSession(EndSessionCmd cmd) {
-        // Invariant: Authentication check
-        if (!authenticated) {
-            throw new IllegalStateException("A teller must be authenticated to initiate a session.");
+        // Invariant: A teller must be authenticated to initiate a session.
+        // Context: Interpreted as requiring an active/authenticated session to perform actions like explicit termination.
+        if (this.state != TellerSessionState.AUTHENTICATED) {
+            throw new IllegalStateException("Cannot end session: Session is not active or authenticated.");
         }
 
-        // Invariant: Timeout check
-        if (lastActivityAt != null && lastActivityAt.plus(SESSION_TIMEOUT).isBefore(Instant.now())) {
-            throw new IllegalStateException("Sessions must timeout after a configured period of inactivity.");
+        // Invariant: Sessions must timeout after a configured period of inactivity.
+        // We check if the session is effectively timed out before allowing an explicit end command.
+        long now = System.currentTimeMillis();
+        if (now - this.lastActivityTimestamp > SESSION_TIMEOUT_MS) {
+            throw new IllegalStateException("Cannot end session: Session has already timed out due to inactivity.");
         }
 
-        // Invariant: Navigation/Context check
-        if (transactionLocked) {
-            throw new IllegalStateException("Navigation state must accurately reflect the current operational context (Transaction Locked).");
+        // Invariant: Navigation state must accurately reflect the current operational context.
+        // If the system detected a nav error, we might block clean termination to force investigation.
+        if ("UNKNOWN".equals(this.currentNavigationContext) || this.currentNavigationContext.startsWith("error")) {
+             throw new IllegalStateException("Cannot end session: Navigation state is invalid or error context detected.");
         }
 
+        var event = new SessionEndedEvent(this.sessionId, Instant.now());
+        
         // Apply state changes
-        SessionEndedEvent event = new SessionEndedEvent(this.sessionId, Instant.now());
-        
-        // Update internal state (termination)
-        this.authenticated = false;
-        this.tellerId = null;
-        this.lastActivityAt = null;
-        
+        this.state = TellerSessionState.NOT_AUTHENTICATED; // Or a specific TERMINATED state
+        this.currentNavigationContext = "TERMINATED";
+        this.lastActivityTimestamp = now;
+
         addEvent(event);
         incrementVersion();
         return List.of(event);
     }
 
     /**
-     * Helper to rebuild state from events (simplified for this scenario).
-     * In a full implementation, this would be the 'apply' method overload
-     * used by the repository to hydrate the aggregate.
+     * Test helper to set internal state for BDD scenarios.
+     * In a real application, state evolves via Events (apply methods).
      */
-    public void apply(SessionStartedEvent event) {
-        this.tellerId = event.tellerId();
-        this.authenticated = true;
-        this.lastActivityAt = event.occurredAt();
-        incrementVersion();
-    }
-
-    // Test helpers to simulate specific state violations
-    public void setTransactionLocked(boolean locked) {
-        this.transactionLocked = locked;
-    }
-
-    public boolean isAuthenticated() {
-        return authenticated;
-    }
-
-    public Instant getLastActivityAt() {
-        return lastActivityAt;
+    public void initializeState(TellerSessionState state, String navContext, long lastActivity) {
+        this.state = state;
+        this.currentNavigationContext = navContext;
+        this.lastActivityTimestamp = lastActivity;
     }
 }

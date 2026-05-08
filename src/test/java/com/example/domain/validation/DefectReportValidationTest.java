@@ -1,71 +1,83 @@
 package com.example.domain.validation;
 
-import com.example.ports.SlackNotifier;
-import com.example.ports.GitHubIssueTracker;
-import org.junit.jupiter.api.Test;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackNotificationPort;
+import com.example.mocks.InMemoryGitHubAdapter;
+import com.example.mocks.InMemorySlackAdapter;
 import org.junit.jupiter.api.BeforeEach;
-import org.mockito.ArgumentCaptor;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 /**
- * S-FB-1: Fix: Validating VW-454 — GitHub URL in Slack body (end-to-end)
+ * TDD Red Phase: Validation for VW-454.
  *
- * Test Class: DefectReportValidationTest
- * Description: Verifies that when reporting a defect via the temporal-worker execution path,
- * the resulting Slack notification body contains the GitHub issue URL.
+ * Story: Verify that when _report_defect is triggered,
+ * the Slack message body contains a link to the created GitHub issue.
  */
 public class DefectReportValidationTest {
 
-    private MockGitHubIssueTracker mockGitHub;
-    private MockSlackNotifier mockSlack;
-    private DefectReportService service;
+    private GitHubPort mockGitHub;
+    private SlackNotificationPort mockSlack;
+
+    // This is the class we are driving the creation of.
+    // It will likely be a Spring Service or Temporal Activity implementation.
+    private DefectReportWorkflowService workflowService;
 
     @BeforeEach
-    public void setUp() {
-        mockGitHub = new MockGitHubIssueTracker();
-        mockSlack = new MockSlackNotifier();
-        service = new DefectReportService(mockGitHub, mockSlack);
+    void setUp() {
+        // In a real Spring Boot test, these would be @MockBeans or configured beans.
+        // Here we use simple in-memory adapters to control behavior.
+        mockGitHub = new InMemoryGitHubAdapter();
+        mockSlack = new InMemorySlackAdapter();
+
+        // Inject dependencies into the System Under Test (SUT)
+        workflowService = new DefectReportWorkflowService(mockGitHub, mockSlack);
     }
 
     @Test
-    public void testReportDefect_ShouldContainGitHubUrlInSlackBody() {
-        // Given: A defect report for VW-454
-        String defectTitle = "VW-454: GitHub URL missing";
-        String defectBody = "The Slack notification does not include the link.";
-        String defectLabel = "bug";
+    void testReportDefect_ShouldIncludeGitHubUrlInSlackBody() {
+        // 1. Setup: Configure GitHub to return a specific URL
+        String expectedTitle = "VW-454: GitHub URL in Slack body";
+        String expectedIssueUrl = "https://github.com/example/bank-of-z/issues/454";
+        
+        // Configure the mock to return this specific URL when createIssue is called
+        ((InMemoryGitHubAdapter) mockGitHub).setNextIssueUrl(expectedIssueUrl);
 
-        // We configure the Mock GitHub to return a predictable URL
-        // Simulating the creation of https://github.com/example/repo/issues/123
-        mockGitHub.setNextIssueUrl("https://github.com/example/repo/issues/123");
+        // 2. Act: Execute the workflow command
+        // Note: DefectReportCmd is a placeholder for the actual command object structure
+        workflowService.reportDefect(expectedTitle, "Defect details...");
 
-        // When: The defect report is executed via the temporal-worker logic
-        service.reportDefect(defectTitle, defectBody, defectLabel);
-
-        // Then: The Slack body must include the GitHub URL
-        // We verify the state of the Mock to see what was actually passed
-        String actualSlackBody = mockSlack.getCapturedBody();
-        String expectedUrl = "https://github.com/example/repo/issues/123";
-
-        assertNotNull(actualSlackBody, "Slack body should not be null");
+        // 3. Assert: Verify Slack received the URL in the body
+        InMemorySlackAdapter slack = (InMemorySlackAdapter) mockSlack;
+        
+        // Check that a message was actually sent
+        assertTrue(slack.wasCalled(), "Slack should have received a notification");
+        
+        // Check the content
+        String lastMessageBody = slack.getLastMessageBody();
+        assertNotNull(lastMessageBody, "Slack body should not be null");
+        
+        // The critical assertion: Does the body contain the GitHub link?
         assertTrue(
-            actualSlackBody.contains(expectedUrl),
-            "Expected Slack body to contain GitHub issue URL: " + expectedUrl + ", but got: " + actualSlackBody
+            lastMessageBody.contains(expectedIssueUrl), 
+            "Slack body must contain the GitHub Issue URL. Expected: " + expectedIssueUrl + " but got: " + lastMessageBody
         );
     }
 
     @Test
-    public void testReportDefect_MissingGitHubUrl_ShouldFailAssertion() {
-        // Regression test for VW-454
-        // Given: GitHub service returns a URL
-        mockGitHub.setNextIssueUrl("https://github.com/example/repo/issues/454");
+    void testReportDefect_ShouldFailValidationIfUrlMissingFromSlack() {
+        // Regression test to ensure we don't ship a version that forgets the link.
+        // We simulate a 'broken' GitHub adapter that returns empty or null, or a broken workflow.
+        // However, in TDD Red, we assert the POSITIVE case first (above).
+        // This test verifies the bounds of the contract.
+        
+        ((InMemoryGitHubAdapter) mockGitHub).setNextIssueUrl(null);
 
-        // When: Reporting defect
-        service.reportDefect("Regression", "Body", "bug");
+        Exception exception = assertThrows(IllegalStateException.class, () -> {
+            workflowService.reportDefect("Null URL Test", "Testing...");
+        });
 
-        // Then: Verify the URL is present. If the implementation is broken (red phase), this fails.
-        String body = mockSlack.getCapturedBody();
-        assertTrue(body.contains("https://github.com/example/repo/issues/454"), "Regression check: URL missing in Slack body");
+        assertTrue(exception.getMessage().contains("GitHub URL generation failed"));
     }
 }

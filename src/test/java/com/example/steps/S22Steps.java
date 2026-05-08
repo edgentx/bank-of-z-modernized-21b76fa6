@@ -1,14 +1,16 @@
 package com.example.steps;
 
-import com.example.domain.navigation.model.ScreenInputValidatedEvent;
-import com.example.domain.navigation.model.ScreenMapAggregate;
-import com.example.domain.navigation.model.ValidateScreenInputCmd;
+import com.example.domain.screenmap.model.ScreenInputValidatedEvent;
+import com.example.domain.screenmap.model.ScreenMapAggregate;
+import com.example.domain.screenmap.model.ValidateScreenInputCmd;
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,56 +19,34 @@ import static org.junit.jupiter.api.Assertions.*;
 public class S22Steps {
 
     private ScreenMapAggregate aggregate;
-    private String screenId;
-    private Map<String, String> inputFields;
+    private ValidateScreenInputCmd cmd;
     private List<DomainEvent> resultEvents;
     private Exception caughtException;
 
     @Given("a valid ScreenMap aggregate")
     public void aValidScreenMapAggregate() {
-        // Using "LOGIN" which is defined in the Aggregate's static map
-        this.screenId = "LOGIN";
-        this.aggregate = new ScreenMapAggregate(screenId);
+        aggregate = new ScreenMapAggregate("LOGIN_SCREEN");
+        // Define the screen map rules (BMS constraints)
+        aggregate.defineField("USER_ID", 10, true);   // Mandatory, max 10
+        aggregate.defineField("PASSWORD", 20, true);  // Mandatory, max 20
+        aggregate.defineField("NEW_PIN", 4, false);   // Optional, max 4
     }
 
-    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void aScreenMapAggregateThatViolatesMandatoryFields() {
-        this.screenId = "LOGIN";
-        this.aggregate = new ScreenMapAggregate(screenId);
-        // Setup input that violates the rule (missing USER_ID)
-        this.inputFields = Map.of("PASSWORD", "secret");
-    }
-
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void aScreenMapAggregateThatViolatesLengthConstraints() {
-        this.screenId = "LOGIN";
-        this.aggregate = new ScreenMapAggregate(screenId);
-        // Setup input that violates the rule (USER_ID > 10 chars)
-        // The definition in Aggregate has USER_ID max length 10
-        this.inputFields = Map.of(
-            "USER_ID", "very-long-user-id-exceeds-limit",
-            "PASSWORD", "secret"
-        );
-    }
-
-    @And("a valid screenId is provided")
+    @Given("a valid screenId is provided")
     public void aValidScreenIdIsProvided() {
-        // screenId is set in the 'Given' steps
-        assertNotNull(screenId);
+        // Handled in command construction steps
     }
 
     @And("a valid inputFields is provided")
     public void aValidInputFieldsIsProvided() {
-        // Valid data for LOGIN screen
-        this.inputFields = Map.of(
-            "USER_ID", "admin",
-            "PASSWORD", "password123"
-        );
+        Map<String, String> inputs = new HashMap<>();
+        inputs.put("USER_ID", "ALICE");
+        inputs.put("PASSWORD", "secret123");
+        this.cmd = new ValidateScreenInputCmd("LOGIN_SCREEN", inputs);
     }
 
     @When("the ValidateScreenInputCmd command is executed")
     public void theValidateScreenInputCmdCommandIsExecuted() {
-        ValidateScreenInputCmd cmd = new ValidateScreenInputCmd(screenId, inputFields);
         try {
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
@@ -76,20 +56,51 @@ public class S22Steps {
 
     @Then("a input.validated event is emitted")
     public void aInputValidatedEventIsEmitted() {
+        assertNull(caughtException, "Should not have thrown exception");
         assertNotNull(resultEvents);
         assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof ScreenInputValidatedEvent);
         
-        ScreenInputValidatedEvent event = (ScreenInputValidatedEvent) resultEvents.get(0);
-        assertEquals("input.validated", event.type());
-        assertEquals(screenId, event.aggregateId());
+        DomainEvent event = resultEvents.get(0);
+        assertInstanceOf(ScreenInputValidatedEvent.class, event);
+        
+        ScreenInputValidatedEvent validatedEvent = (ScreenInputValidatedEvent) event;
+        assertEquals("input.validated", validatedEvent.type());
+        assertEquals("LOGIN_SCREEN", validatedEvent.aggregateId());
+    }
+
+    // Negative Scenarios
+
+    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
+    public void aScreenMapAggregateThatViolatesAllMandatoryInputFields() {
+        aggregate = new ScreenMapAggregate("LOGIN_SCREEN");
+        aggregate.defineField("USER_ID", 10, true);
+        aggregate.defineField("PASSWORD", 20, true);
+        
+        // Provide inputs missing the mandatory PASSWORD
+        Map<String, String> inputs = new HashMap<>();
+        inputs.put("USER_ID", "BOB");
+        // Password is missing
+        
+        this.cmd = new ValidateScreenInputCmd("LOGIN_SCREEN", inputs);
+    }
+
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void aScreenMapAggregateThatViolatesBMSLengthConstraints() {
+        aggregate = new ScreenMapAggregate("LOGIN_SCREEN");
+        aggregate.defineField("USER_ID", 5, true); // Max 5 chars
+
+        Map<String, String> inputs = new HashMap<>();
+        inputs.put("USER_ID", "LONGNAME"); // Length 8 > 5
+        
+        this.cmd = new ValidateScreenInputCmd("LOGIN_SCREEN", inputs);
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(caughtException);
-        // Domain logic exceptions are modeled as RuntimeExceptions in this context
-        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
-        assertFalse(aggregate.isInputValidated());
+        assertNotNull(caughtException, "Expected an exception to be thrown");
+        assertInstanceOf(IllegalStateException.class, caughtException);
+        
+        // Ensure no events were emitted
+        assertNull(resultEvents);
     }
 }

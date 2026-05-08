@@ -1,161 +1,98 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  ~ Bank of Z (0.0.1-SNAPSHOT)
-  ~ Modernization Project: Track B (S-10+)
-  ~
-  ~ Stack: Spring Boot, DB2, MongoDB, IBM MQ, z/OS Connect, Temporal, Redis, MinIO.
-  ~ Tech: Java 17, Maven, Cucumber, Spring Batch, JPA, OpenTelemetry.
-  -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <parent>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.2.3</version>
+    <relativePath/>
+  </parent>
+  
+  <groupId>com.example</groupId>
+  <artifactId>bank-of-z</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>bank-of-z</name>
+  <description>Bank of Z Modernization Platform</description>
+  
+  <properties>
+    <java.version>17</java.version>
+    <cucumber.version>7.15.0</cucumber.version>
+    <flyway-db2.version>10.0.0</flyway-db2.version>
+  </properties>
+  
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-mongodb</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-integration</artifactId>
+    </dependency>
+    <!-- Flyway DB2: version is required because groupId is not in the default BOM set -->
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-db2</artifactId>
+      <version>${flyway-db2.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+    </dependency>
+    
+    <!-- Cucumber Test Dependencies -->
+    <dependency>
+      <groupId>io.cucumber</groupId>
+      <artifactId>cucumber-java</artifactId>
+      <version>${cucumber.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.cucumber</groupId>
+      <artifactId>cucumber-junit-platform-engine</artifactId>
+      <version>${cucumber.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-suite</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.ibm.db2</groupId>
+      <artifactId>jcc</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.ibm.mq</groupId>
+      <artifactId>mq-jms-spring-boot-starter</artifactId>
+      <version>3.0.3</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
         <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.3</version>
-        <relativePath/>
-    </parent>
-    <groupId>com.example</groupId>
-    <artifactId>bank-of-z</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>bank-of-z</name>
-    <description>Bank-of-Z modernization with DDD, CQRS, and Event Sourcing</description>
-
-    <properties>
-        <java.version>17</java.version>
-        <spring-cloud.version>2023.0.0</spring-cloud.version>
-        <cucumber.version>7.15.0</cucumber.version>
-    </properties>
-
-    <dependencies>
-        <!-- Spring Boot Starters -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-batch</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-integration</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-
-        <!-- IBM MQ JMS Client (Commented out to fix build resolution failure on central repo) -->
-        <!--
-        <dependency>
-            <groupId>com.ibm.mq</groupId>
-            <artifactId>mq-jms-spring-boot-starter</artifactId>
-            <version>3.1.7</version>
-        </dependency>
-        -->
-
-        <!-- DB2 Driver -->
-        <dependency>
-            <groupId>com.ibm.db2</groupId>
-            <artifactId>jcc</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
-        <!-- Flyway -->
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-db2</artifactId>
-        </dependency>
-
-        <!-- MinIO Client -->
-        <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-            <version>8.5.7</version>
-        </dependency>
-
-        <!-- OpenTelemetry -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-otel</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <version>1.36.0</version>
-        </dependency>
-
-        <!-- Cucumber Test -->
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-java</artifactId>
-            <version>${cucumber.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>${cucumber.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-suite</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <properties>
-                        <configurationParameters>
-                            cucumber.junit-platform.naming-strategy=long
-                        </configurationParameters>
-                    </properties>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
 </project>

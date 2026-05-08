@@ -2,26 +2,29 @@ package com.example.mocks;
 
 import com.example.ports.GitHubPort;
 
+import java.util.Optional;
+
 /**
  * Mock implementation of GitHubPort for testing.
- * Returns a deterministic URL for issue creation.
  */
 public class MockGitHubPort implements GitHubPort {
-
-    private final String mockBaseUrl;
-
-    public MockGitHubPort() {
-        this("https://github.com/test/repo/issues/");
-    }
-
-    public MockGitHubPort(String mockBaseUrl) {
-        this.mockBaseUrl = mockBaseUrl;
-    }
+    private String configuredUrl;
+    private boolean shouldReturnEmpty = false;
 
     @Override
-    public String createIssue(String title, String body) {
-        // Simulate a successful creation returning a specific URL format
-        // Using title to generate a deterministic ID for verification if needed
-        return mockBaseUrl + "1";
+    public Optional<String> getIssueUrl(String issueId) {
+        if (shouldReturnEmpty) {
+            return Optional.empty();
+        }
+        // If no specific URL is configured, return a deterministic mock URL based on ID
+        return Optional.ofNullable(configuredUrl != null ? configuredUrl : "https://github.com/mock/issues/" + issueId);
+    }
+
+    public void setMockUrl(String url) {
+        this.configuredUrl = url;
+    }
+
+    public void setReturnEmpty(boolean isEmpty) {
+        this.shouldReturnEmpty = isEmpty;
     }
 }

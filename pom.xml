@@ -31,6 +31,8 @@
             <scope>runtime</scope>
         </dependency>
         <!-- DB2 Flyway support is NOT in the standard BOM, explicit version required -->
+        <!-- Aligning with Flyway 9.22.3, but using the explicit DB2 dependency. -->
+        <!-- Note: 9.22.3 is the version compatible with Spring Boot 3.2.0 Flyway Core. -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -40,13 +42,12 @@
             <artifactId>flyway-db2</artifactId>
             <version>9.22.3</version>
         </dependency>
-        
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Using JUnit 5 (Jupiter) via Spring Boot Starter Test -->
     </dependencies>
 
     <build>

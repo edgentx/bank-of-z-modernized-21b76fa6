@@ -2,16 +2,15 @@ package com.example.ports;
 
 /**
  * Port for interacting with GitHub Issue tracking.
- * Used to generate URLs for reported defects.
  */
 public interface GitHubIssueTrackerPort {
 
     /**
-     * Creates a remote issue in GitHub and returns its URL.
+     * Creates a new issue in the repository.
      *
-     * @param title Title of the defect
-     * @param body Description of the defect
-     * @return The fully qualified URL to the GitHub issue
+     * @param title The title of the issue
+     * @param body  The body content of the issue
+     * @return The HTML URL of the created issue (e.g., "https://github.com/org/repo/issues/123")
      */
     String createIssue(String title, String body);
 }

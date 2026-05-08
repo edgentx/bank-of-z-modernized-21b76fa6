@@ -1,24 +1,23 @@
 package com.example.config;
 
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackNotificationPort;
-import com.example.workflows.ReportDefectWorkflow;
+import io.temporal.client.WorkflowClient;
+import io.temporal.serviceclient.WorkflowServiceStubs;
+import io.temporal.serviceclient.WorkflowServiceStubsOptions;
+import io.temporal.worker.WorkerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Configuration for Temporal Workflows and dependencies.
- * In a real environment, this would also set up the Temporal Worker and WorkflowClient.
- */
 @Configuration
 public class TemporalConfiguration {
 
-    /**
-     * Bean definition for the ReportDefectWorkflow.
-     * Wired with the actual adapter implementations.
-     */
     @Bean
-    public ReportDefectWorkflow reportDefectWorkflow(GitHubPort gitHubPort, SlackNotificationPort slackNotificationPort) {
-        return new ReportDefectWorkflow.WorkflowImpl(gitHubPort, slackNotificationPort);
+    public WorkflowServiceStubs workflowServiceStubs() {
+        // Connect to Temporal Server (default local address)
+        return WorkflowServiceStubs.newInstance();
+    }
+
+    @Bean
+    public WorkflowClient workflowClient(WorkflowServiceStubs serviceStubs) {
+        return WorkflowClient.newInstance(serviceStubs);
     }
 }

@@ -12,7 +12,6 @@ public record SessionStartedEvent(
         Instant occurredAt
 ) implements DomainEvent {
     public SessionStartedEvent {
-        // Ensure defaults if null, though constructor logic handles it
         if (occurredAt == null) occurredAt = Instant.now();
     }
 

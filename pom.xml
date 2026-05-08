@@ -31,10 +31,8 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Temporal Dependencies (Corrected Group/Artifact) -->
+        <!-- Temporal Dependencies -->
         <!-- Rule 9a: io.temporal is NOT in the Spring Boot BOM closed set. Must use <version>. -->
-        <!-- Fixing error: io.temporal:temporal-spring-boot-starter was not found -->
-        <!-- The correct artifact for Spring Boot integration is temporal-spring-boot-starter-alpha -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter-alpha</artifactId>
@@ -46,7 +44,7 @@
             <version>${temporal.version}</version>
         </dependency>
 
-        <!-- JUnit 5 (Required for TDD Red Phase) -->
+        <!-- JUnit 5 -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

@@ -1,14 +1,14 @@
 package com.example.domain.statement.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
 public record StatementGeneratedEvent(
-        String statementId,
+        String aggregateId,
         String accountNumber,
+        LocalDate periodStart,
         LocalDate periodEnd,
         BigDecimal openingBalance,
         BigDecimal closingBalance,
@@ -20,12 +20,12 @@ public record StatementGeneratedEvent(
     }
 
     @Override
-    public String aggregateId() {
-        return statementId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 }

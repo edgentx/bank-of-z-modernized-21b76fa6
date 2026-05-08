@@ -1,18 +1,27 @@
 package com.example.config;
 
-import com.example.ports.SlackPort;
-import com.example.adapters.SlackAdapter;
-import org.springframework.context.annotation.Bean;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Configuration properties for Slack integration.
+ * Supports customization of the message template and link behavior.
+ */
 @Configuration
+@ConfigurationProperties(prefix = "slack")
 public class SlackConfig {
 
-    @Bean
-    public SlackPort slackPort() {
-        // In a real environment, this might be conditionally instantiated
-        // based on a profile (e.g., using MockSlackAdapter for 'test' and
-        // SlackAdapter for 'prod'). For this implementation, we provide the real adapter.
-        return new SlackAdapter();
+    /**
+     * Template used to format the message body.
+     * Supported placeholders: {title}, {url}
+     */
+    private String messageTemplate = "Defect Reported: {title}\nLink: <{url}|View Issue>";
+
+    public String getMessageTemplate() {
+        return messageTemplate;
+    }
+
+    public void setMessageTemplate(String messageTemplate) {
+        this.messageTemplate = messageTemplate;
     }
 }

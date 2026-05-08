@@ -1,25 +1,26 @@
 package com.example.domain.validation.service;
 
-import com.example.domain.validation.model.ValidationAggregate;
-import com.example.domain.validation.repository.ValidationRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.regex.Pattern;
+
+/**
+ * Service for validating defect reports and associated metadata.
+ */
 @Service
 public class ValidationService {
-    private final ValidationRepository repository;
 
-    public ValidationService(ValidationRepository repository) {
-        this.repository = repository;
-    }
+    private static final Pattern GITHUB_ISSUE_URL_PATTERN = Pattern.compile("https://github.com/[a-zA-Z0-9-]+/issues/[0-9]+");
 
     /**
-     * Validates that the text contains the required URL.
-     * This is the business logic that was presumably broken or missing.
+     * Validates if the provided string is a valid GitHub Issue URL.
+     * Supports defect VW-454 validation logic.
+     * 
+     * @param url The URL string to validate.
+     * @return true if valid, false otherwise.
      */
-    public boolean validateUrlPresence(String text, String requiredUrl) {
-        if (text == null || requiredUrl == null) {
-            return false;
-        }
-        return text.contains(requiredUrl);
+    public boolean isValidGitHubIssueUrl(String url) {
+        if (url == null) return false;
+        return GITHUB_ISSUE_URL_PATTERN.matcher(url).matches();
     }
 }

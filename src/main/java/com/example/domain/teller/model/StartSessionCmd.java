@@ -4,12 +4,12 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to initiate a teller session.
- * Encapsulates authentication status, terminal details, and context validity flags.
  */
 public record StartSessionCmd(
+        String sessionId,
         String tellerId,
         String terminalId,
         boolean isAuthenticated,
-        boolean isTimedOut,
-        boolean isNavigationStateValid
+        String initialScreen,
+        long sessionTimeoutMinutes // Duration in minutes
 ) implements Command {}

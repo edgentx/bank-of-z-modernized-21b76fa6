@@ -1,6 +1,6 @@
 package com.example.domain.vforce.port;
 
-import com.example.domain.vforce.DefectReportingOrchestrator.SlackMessage;
+import com.example.domain.vforce.model.SlackMessage;
 
 /**
  * Port interface for Slack integration.

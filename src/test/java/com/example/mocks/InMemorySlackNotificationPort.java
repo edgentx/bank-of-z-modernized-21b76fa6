@@ -5,47 +5,45 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * In-memory mock for Slack notifications.
- * Used in testing to capture messages without external I/O.
+ * In-memory mock implementation of SlackNotificationPort for testing.
+ * Captures messages to verify content without network calls.
  */
 public class InMemorySlackNotificationPort implements SlackNotificationPort {
 
     public static class PostedMessage {
-        public final String channel;
-        public final String body;
+        public final String channelId;
+        public final String message;
 
-        public PostedMessage(String channel, String body) {
-            this.channel = channel;
-            this.body = body;
+        public PostedMessage(String channelId, String message) {
+            this.channelId = channelId;
+            this.message = message;
         }
     }
 
     private final List<PostedMessage> messages = new ArrayList<>();
 
     @Override
-    public void postMessage(String channel, String messageBody) {
-        // Simulate basic validation
-        if (channel == null || channel.isBlank()) {
-            throw new IllegalArgumentException("Channel cannot be blank");
+    public void postMessage(String channelId, String message) {
+        // Simulate basic validation logic found in real adapters
+        if (channelId == null || channelId.isBlank()) {
+            throw new IllegalArgumentException("channelId cannot be blank");
         }
-        if (messageBody == null) {
-            throw new IllegalArgumentException("Body cannot be null");
+        if (message == null) {
+            throw new IllegalArgumentException("message cannot be null");
         }
-        this.messages.add(new PostedMessage(channel, messageBody));
+        this.messages.add(new PostedMessage(channelId, message));
     }
 
     public List<PostedMessage> getMessages() {
-        return new ArrayList<>(messages);
+        return List.copyOf(messages);
     }
 
     public void clear() {
         messages.clear();
     }
 
-    public PostedMessage findFirstByChannel(String channel) {
+    public boolean containsUrl(String url) {
         return messages.stream()
-                .filter(m -> m.channel.equals(channel))
-                .findFirst()
-                .orElse(null);
+                .anyMatch(pm -> pm.message.contains(url));
     }
 }

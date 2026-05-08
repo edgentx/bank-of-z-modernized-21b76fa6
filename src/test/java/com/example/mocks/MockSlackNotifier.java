@@ -1,29 +1,28 @@
 package com.example.mocks;
 
-import com.example.infrastructure.slack.SlackNotifier;
+import com.example.ports.SlackNotifier;
 
 /**
- * Mock implementation of SlackNotifier for testing.
- * Records messages instead of sending real HTTP requests.
+ * Mock Adapter for Slack Notifications.
+ * Captures messages sent to Slack for assertion.
  */
 public class MockSlackNotifier implements SlackNotifier {
 
-    private String lastMessage;
-    private boolean failNextCall = false;
+    private String lastBody;
+    private boolean notifyCalled = false;
 
     @Override
-    public void send(String message) {
-        if (failNextCall) {
-            throw new RuntimeException("Simulated Slack failure");
-        }
-        this.lastMessage = message;
+    public void sendNotification(String messageBody) {
+        this.notifyCalled = true;
+        this.lastBody = messageBody;
+        // System.out.println("[MockSlack] Received: " + messageBody); // Debug helper
     }
 
-    public String getLastMessage() {
-        return lastMessage;
+    public boolean wasNotifyCalled() {
+        return notifyCalled;
     }
 
-    public void setFailNextCall(boolean fail) {
-        this.failNextCall = fail;
+    public String getLastBody() {
+        return lastBody;
     }
 }

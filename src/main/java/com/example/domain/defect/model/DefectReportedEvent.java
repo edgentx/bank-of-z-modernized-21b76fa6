@@ -6,16 +6,15 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event emitted when a defect is successfully reported and logged in external systems.
+ * Event emitted when a defect has been successfully reported and posted to external systems.
  */
 public record DefectReportedEvent(
-        String aggregateId,
-        String defectId,
-        String githubIssueUrl,
-        String slackChannel,
-        Instant occurredAt
+    String aggregateId,
+    String defectId,
+    String githubUrl,
+    String channel,
+    Instant occurredAt
 ) implements DomainEvent {
-
     @Override
     public String type() {
         return "DefectReported";
@@ -29,16 +28,5 @@ public record DefectReportedEvent(
     @Override
     public Instant occurredAt() {
         return occurredAt;
-    }
-
-    // Static factory for cleaner creation
-    public static DefectReportedEvent create(String defectId, String githubIssueUrl, String slackChannel) {
-        return new DefectReportedEvent(
-                UUID.randomUUID().toString(), // Aggregate ID
-                defectId,
-                githubIssueUrl,
-                slackChannel,
-                Instant.now()
-        );
     }
 }

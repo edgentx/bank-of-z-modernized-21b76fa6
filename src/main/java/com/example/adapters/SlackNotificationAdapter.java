@@ -1,42 +1,59 @@
 package com.example.adapters;
 
 import com.example.ports.SlackNotificationPort;
-import org.springframework.context.annotation.Profile;
+import com.google.gson.Gson;
+import okhttp3.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Real-world implementation of SlackNotificationPort.
- * In a production environment, this would use a Slack Web API client (e.g., OkHttp or Slack SDK).
- * For the purposes of this defect fix validation, we use a concrete in-memory implementation
- * that satisfies the interface contract, effectively identical to the Mock but defined as an Adapter.
+ * Real adapter for Slack notifications using Webhooks.
+ * For production, this would hit the Slack API.
  */
 @Component
-@Profile("default") // Active by default if no other profile (like 'test' or 'prod') overrides it
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
-    private final Map<String, String> messages = new HashMap<>();
+    private static final Logger logger = LoggerFactory.getLogger(SlackNotificationAdapter.class);
+    private final Gson gson = new Gson();
+    private final OkHttpClient client = new OkHttpClient();
+
+    @Value("${slack.webhook.url:https://hooks.slack.com/services/FAKE/URL/FOR_TESTING}")
+    private String webhookUrl;
 
     @Override
-    public void sendMessage(String channel, String messageBody) {
-        if (channel == null || channel.isBlank()) {
-            throw new IllegalArgumentException("Channel cannot be null or empty");
-        }
-        if (messageBody == null) {
-            throw new IllegalArgumentException("Message body cannot be null");
-        }
-        
-        // Real implementation logic would go here:
-        // SlackClient.postMessage(channel, messageBody);
-        
-        // Storing for simulation/verification purposes in this execution context
-        this.messages.put(channel, messageBody);
-    }
+    public void sendDefectNotification(String channel, String message, String githubIssueUrl) {
+        logger.info("Sending Slack notification to {}: {} - Link: {}", channel, message, githubIssueUrl);
 
-    @Override
-    public String getLastMessage(String channel) {
-        return this.messages.get(channel);
+        // Construct the JSON payload for Slack
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("channel", channel);
+        payload.put("text", message + "\n" + githubIssueUrl);
+        
+        // In a real scenario, we might use blocks for better formatting
+        // but a simple text string containing the URL satisfies the acceptance criteria.
+
+        RequestBody body = RequestBody.create(gson.toJson(payload), MediaType.parse("application/json; charset=utf-8"));
+        Request request = new Request.Builder()
+                .url(webhookUrl)
+                .post(body)
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                logger.error("Failed to send Slack notification: {} {}", response.code(), response.message());
+                // Do not throw to prevent workflow rollback if Slack is down, but log error.
+            } else {
+                logger.info("Slack notification sent successfully.");
+            }
+        } catch (IOException e) {
+            logger.error("IOException while sending Slack notification", e);
+            // Swallow exception to ensure temporal workflow doesn't fail purely on slack notification
+        }
     }
 }

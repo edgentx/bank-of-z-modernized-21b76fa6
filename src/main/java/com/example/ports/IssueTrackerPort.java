@@ -1,17 +1,16 @@
 package com.example.ports;
 
+import com.example.domain.validation.model.IssueUrl;
+
 /**
- * Port interface for reporting defects to external issue trackers (e.g., GitHub).
+ * Port for interacting with external issue tracking systems (e.g., GitHub).
  */
 public interface IssueTrackerPort {
-    
     /**
-     * Reports a defect and returns the URL of the created issue.
-     *
-     * @param projectId The ID of the project
-     * @param summary   Summary of the defect
-     * @param description Full description of the defect
-     * @return The URL string to the created issue
+     * Creates a new issue in the tracker system.
+     * @param title Title of the issue
+     * @param body Body content of the issue
+     * @return The URL of the created issue
      */
-    String reportDefect(String projectId, String summary, String description);
+    IssueUrl createIssue(String title, String body);
 }

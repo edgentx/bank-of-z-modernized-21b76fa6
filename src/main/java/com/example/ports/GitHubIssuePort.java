@@ -1,17 +1,18 @@
 package com.example.ports;
 
-import java.util.Optional;
-
 /**
  * Port for interacting with GitHub issues.
- * Used to generate the links required in the Slack notifications.
+ * This decouples the core logic from the GitHub Client implementation.
  */
 public interface GitHubIssuePort {
+
     /**
-     * Retrieves the public URL of a GitHub issue.
+     * Creates a new GitHub issue.
      *
-     * @param issueId The internal or external ID of the issue.
-     * @return The full HTTPS URL if found, empty otherwise.
+     * @param title The title of the issue
+     * @param body The body content of the issue
+     * @return The HTML URL of the created issue
+     * @throws RuntimeException if creation fails
      */
-    Optional<String> getIssueUrl(String issueId);
+    String createIssue(String title, String body);
 }

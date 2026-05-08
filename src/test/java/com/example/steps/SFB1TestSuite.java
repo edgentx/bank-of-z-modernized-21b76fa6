@@ -1,15 +1,15 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasses;
-import org.junit.platform.suite.api.Suite;
+import io.cucumber.junit.Cucumber;
+import io.cucumber.junit.CucumberOptions;
+import org.junit.runner.RunWith;
 
-/**
- * Test Suite for S-FB-1.
- * Groups the specific step definitions for the regression test.
- */
-@Suite
-@IncludeEngines("cucumber")
-@SelectClasses(SFB1Steps.class)
+@RunWith(Cucumber.class)
+@CucumberOptions(
+    features = {"features/S-FB-1.feature"},
+    glue = {"com.example.steps"},
+    plugin = {"pretty", "html:target/cucumber-report/S-FB-1.html"}
+)
 public class SFB1TestSuite {
+    // JUnit Runner for Cucumber
 }

@@ -4,30 +4,87 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-import java.time.Instant;
+
 import java.util.List;
 
-// This file appears to be a misplacement or duplicate from previous iterations based on errors.
-// We will leave it empty or minimal to resolve compilation errors, or just rely on the correct path.
-// However, the error log references /domain/teller/model/TellerSession.java.
-// The requirement says "DO NOT introduce new files; edit only the files needed".
-// Since we are creating the correct aggregate in tellersession.model, 
-// we might need to delete/fix this file if it's causing conflicts. 
-// Given the prompt constraints, I will provide the correct Aggregate in the correct package (tellersession.model).
-// This file is retained to ensure if anything imports it, it doesn't break, but effectively the logic is in TellerSessionAggregate.
+/**
+ * TellerSession Aggregate.
+ * Manages the lifecycle of a Bank Teller's terminal session.
+ * Context: S-18 Implement StartSessionCmd.
+ */
 public class TellerSession extends AggregateRoot {
-    // Placeholder if absolutely needed, but the logic lives in TellerSessionAggregate now.
-    // To fix the specific error about sessionId() in this file, we patch it.
-    private String sessionId;
-    public TellerSession(String id) { this.sessionId = id; }
-    @Override public String id() { return sessionId; }
-    @Override public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof com.example.domain.teller.model.StartSessionCmd c) {
-            // Patch for error: cannot find symbol: method sessionId()
-            // Assuming StartSessionCmd here refers to the correct one or a local one.
-            // We delegate or stub.
-            throw new UnsupportedOperationException("Use TellerSessionAggregate");
+
+    private final String sessionId;
+    private String tellerId;
+    private String terminalId;
+    private boolean active;
+    private TellerSessionState navigationContext;
+
+    public TellerSession(String sessionId) {
+        this.sessionId = sessionId;
+        this.active = false;
+    }
+
+    @Override
+    public String id() {
+        return sessionId;
+    }
+
+    @Override
+    public List<DomainEvent> execute(Command cmd) {
+        if (cmd instanceof StartSessionCmd c) {
+            return startSession(c);
         }
         throw new UnknownCommandException(cmd);
     }
+
+    private List<DomainEvent> startSession(StartSessionCmd cmd) {
+        // Invariant: A teller must be authenticated to initiate a session.
+        if (!cmd.isAuthenticated()) {
+            throw new IllegalStateException("A teller must be authenticated to initiate a session.");
+        }
+
+        // Invariant: Sessions must timeout after a configured period of inactivity.
+        // We enforce that the timeout configuration must be valid (positive).
+        if (cmd.timeoutInSeconds() <= 0) {
+            throw new IllegalArgumentException("Sessions must timeout after a configured period of inactivity.");
+        }
+
+        // Invariant: Navigation state must accurately reflect the current operational context.
+        // We enforce that a navigation state (context) must be provided.
+        if (cmd.navigationContext() == null) {
+            throw new IllegalStateException("Navigation state must accurately reflect the current operational context.");
+        }
+
+        // Check idempotency or state constraint: Cannot start an already active session
+        if (this.active) {
+            throw new IllegalStateException("Session is already active.");
+        }
+
+        var event = new SessionStartedEvent(
+                cmd.sessionId(),
+                cmd.tellerId(),
+                cmd.terminalId(),
+                cmd.navigationContext(),
+                java.time.Instant.now()
+        );
+
+        // Apply state changes
+        this.tellerId = cmd.tellerId();
+        this.terminalId = cmd.terminalId();
+        this.active = true;
+        this.navigationContext = cmd.navigationContext();
+
+        addEvent(event);
+        incrementVersion();
+
+        return List.of(event);
+    }
+
+    // Accessors for testing/verification
+    public String getTellerId() { return tellerId; }
+    public String getTerminalId() { return terminalId; }
+    public boolean isActive() { return active; }
+    public TellerSessionState getNavigationContext() { return navigationContext; }
+
 }

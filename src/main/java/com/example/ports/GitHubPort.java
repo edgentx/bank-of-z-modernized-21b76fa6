@@ -1,18 +1,23 @@
 package com.example.ports;
 
 /**
- * Port interface for interacting with GitHub issues.
- * Used to create tickets for reported defects.
+ * Port for interacting with GitHub issues.
+ * Used to generate URLs and track defect reports.
  */
 public interface GitHubPort {
 
     /**
-     * Creates a new issue in the repository.
+     * Generates the full HTML link for a GitHub issue.
      *
-     * @param title Title of the issue.
-     * @param body Body/description of the issue.
-     * @param labels Labels to apply (e.g., "bug", "S-FB-1").
-     * @return The full URL of the created issue.
+     * @param issueId The unique identifier of the issue (e.g., "VW-454")
+     * @return The full URL string (e.g., "https://github.com/org/repo/issues/454")
+     * @throws IllegalArgumentException if issueId is null or empty
      */
-    String createIssue(String title, String body, String... labels);
+    String generateIssueUrl(String issueId);
+
+    /**
+     * Creates a new issue on GitHub and returns its URL.
+     * For this defect validation, we might expect this to be called, or we might verify the URL format.
+     */
+    String createIssue(String title, String description);
 }

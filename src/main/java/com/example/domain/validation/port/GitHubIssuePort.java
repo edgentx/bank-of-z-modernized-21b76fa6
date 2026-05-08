@@ -1,12 +1,14 @@
 package com.example.domain.validation.port;
 
+import com.example.domain.validation.model.GitHubIssueUrl;
+
 /**
- * Port for GitHub Issue operations.
- * Used to decouple the domain from the actual GitHub WebClient.
+ * Port for creating or finding GitHub Issues.
+ * Abstracts the GitHub API interaction.
  */
 public interface GitHubIssuePort {
     /**
-     * Creates a GitHub issue and returns the HTML URL.
+     * Creates an issue on GitHub and returns the direct URL to it.
      */
-    String createIssue(String title, String body, String labels);
+    GitHubIssueUrl createIssue(String title, String description);
 }

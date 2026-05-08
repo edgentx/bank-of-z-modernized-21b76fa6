@@ -1,10 +1,9 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
-import java.util.UUID;
 
 /**
- * Command to terminate a teller session and clear sensitive state.
- * Part of S-20: TellerSession user-interface-navigation.
+ * Command to terminate an active teller session.
+ * ID: S-20
  */
-public record EndSessionCmd(UUID sessionId) implements Command {}
+public record EndSessionCmd(String sessionId) implements Command {}

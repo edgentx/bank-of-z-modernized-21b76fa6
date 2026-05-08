@@ -1,17 +1,18 @@
 package com.example.ports;
 
+import java.util.Map;
+
 /**
- * Port interface for sending notifications (e.g., Slack).
- * Implementations will handle the actual HTTP/Websocket interactions.
+ * Port for sending notifications (e.g., Slack, Email).
+ * Used to decouple the domain logic from specific notification implementations.
  */
 public interface NotificationPort {
 
     /**
-     * Sends a message to a specific channel.
+     * Sends a notification to a specific channel.
      *
-     * @param channelId The target channel ID or name.
-     * @param messageBody The content of the message.
-     * @return true if sending was considered successful, false otherwise.
+     * @param channel The target channel (e.g., "#vforce360-issues").
+     * @param body The message body/content.
      */
-    boolean sendMessage(String channelId, String messageBody);
+    void send(String channel, String body);
 }

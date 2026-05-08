@@ -1,30 +1,30 @@
 package com.example.mocks;
 
-import com.example.domain.ports.GitHubIssuePort;
+import com.example.ports.GitHubIssuePort;
 
-import java.util.concurrent.CompletableFuture;
+import java.util.Optional;
 
 /**
  * Mock implementation of GitHubIssuePort for testing.
  */
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private String mockUrl;
+    private String mockUrl = "https://github.com/mock/repo/issues/1";
     private boolean shouldFail = false;
 
-    public MockGitHubIssuePort(String mockUrl) {
-        this.mockUrl = mockUrl;
+    public void setMockUrl(String url) {
+        this.mockUrl = url;
+    }
+
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
     }
 
     @Override
-    public CompletableFuture<String> createIssue(String title, String description) {
+    public Optional<String> createIssue(String title, String body) {
         if (shouldFail) {
-            return CompletableFuture.failedFuture(new RuntimeException("GitHub API unavailable"));
+            return Optional.empty();
         }
-        return CompletableFuture.completedFuture(mockUrl);
-    }
-
-    public void setShouldFail(boolean shouldFail) {
-        this.shouldFail = shouldFail;
+        return Optional.of(mockUrl);
     }
 }

@@ -1,25 +1,40 @@
 package com.example.mocks;
 
-import com.example.ports.SlackNotifierPort;
+import com.example.ports.DefectReporterPort;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock implementation of SlackNotifierPort.
- * Stores the last body for verification in tests.
+ * Mock implementation of DefectReporterPort for testing.
+ * Captures payloads to verify Slack body contents.
  */
-public class MockSlackNotifier implements SlackNotifierPort {
+public class MockSlackNotifier implements DefectReporterPort {
 
-    private String lastBody;
+    public static class Report {
+        public final String defectId;
+        public final String githubUrl;
 
-    @Override
-    public void sendNotification(String channel, String body) {
-        if (channel == null || body == null) {
-            throw new IllegalArgumentException("Channel and Body must not be null");
+        public Report(String defectId, String githubUrl) {
+            this.defectId = defectId;
+            this.githubUrl = githubUrl;
         }
-        this.lastBody = body;
-        // Simulate success
     }
 
-    public String getLastBody() {
-        return lastBody;
+    private final List<Report> calls = new ArrayList<>();
+
+    @Override
+    public boolean reportDefect(String defectId, String githubUrl) {
+        // Simulate recording the call
+        calls.add(new Report(defectId, githubUrl));
+        return true;
+    }
+
+    public List<Report> getCalls() {
+        return calls;
+    }
+
+    public void reset() {
+        calls.clear();
     }
 }

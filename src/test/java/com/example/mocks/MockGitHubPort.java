@@ -4,24 +4,19 @@ import com.example.ports.GitHubPort;
 
 /**
  * Mock implementation of GitHubPort for testing.
+ * Returns deterministic URLs.
  */
 public class MockGitHubPort implements GitHubPort {
-
-    private String mockIssueUrl = "https://github.com/example/repo/issues/1";
-    private String mockBaseUrl = "https://github.com/example/repo";
+    private static final String MOCK_BASE_URL = "https://github.com/example/bank-of-z/issues/";
+    private int issueCounter = 1;
 
     @Override
     public String createIssue(String title, String body) {
         // Simulate successful creation
-        return mockIssueUrl;
+        return MOCK_BASE_URL + issueCounter++;
     }
 
-    @Override
-    public String getRepositoryUrl() {
-        return mockBaseUrl;
-    }
-
-    public void setMockIssueUrl(String url) {
-        this.mockIssueUrl = url;
+    public void reset() {
+        issueCounter = 1;
     }
 }

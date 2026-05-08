@@ -1,13 +1,19 @@
 package com.example.ports;
 
+import com.example.domain.defect.model.ReportDefectCmd;
+
+import java.net.URI;
+
 /**
- * Port interface for sending Slack notifications.
- * Used by the Temporal workflow to communicate with the outside world.
+ * Port for sending notifications to Slack.
+ * Used by the defect reporting workflow.
  */
 public interface SlackNotificationPort {
     /**
-     * Sends a defect report to Slack.
-     * @param message The formatted message body.
+     * Sends a formatted notification to the #vforce360-issues channel.
+     *
+     * @param cmd The defect command containing details.
+     * @param gitHubIssueUrl The URL of the created GitHub issue (must be present in body).
      */
-    void sendDefectReport(String message);
+    void sendDefectNotification(ReportDefectCmd cmd, URI gitHubIssueUrl);
 }

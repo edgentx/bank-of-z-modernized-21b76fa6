@@ -2,35 +2,24 @@ package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Mock implementation of GitHubIssuePort for testing.
- * Returns a predictable URL and captures inputs for verification.
+ * Returns deterministic URLs for issue creation.
  */
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private final String mockedUrl;
-    private final List<IssueRequest> requests = new ArrayList<>();
-
-    public record IssueRequest(String title, String body) {}
-
-    public MockGitHubIssuePort(String mockedUrl) {
-        this.mockedUrl = mockedUrl;
-    }
+    private String returnedUrl = "https://github.com/example-bank/vforce360/issues/42";
 
     @Override
-    public String createIssue(String title, String body) {
-        requests.add(new IssueRequest(title, body));
-        return mockedUrl;
+    public String createIssue(String title, String description) {
+        // Simulate successful issue creation
+        return returnedUrl;
     }
 
-    public List<IssueRequest> getRequests() {
-        return requests;
-    }
-
-    public boolean hasCreatedIssue() {
-        return !requests.isEmpty();
+    /**
+     * Configures the URL to return on the next call to createIssue.
+     */
+    public void setNextIssueUrl(String url) {
+        this.returnedUrl = url;
     }
 }

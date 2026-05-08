@@ -1,15 +1,16 @@
 package com.example.ports;
 
 /**
- * Port interface for GitHub Issue operations.
- * Used to retrieve issue metadata.
+ * Port for interacting with GitHub issues.
  */
 public interface GitHubIssuePort {
 
     /**
-     * Retrieves the full browser URL for a specific issue ID.
-     * @param issueId The ID or key of the issue (e.g. "VW-454")
-     * @return The full URL (e.g. "https://github.com/org/repo/issues/454")
+     * Creates a new issue in the repository.
+     *
+     * @param title The title of the issue
+     * @param body The body content of the issue
+     * @return The HTML URL of the created issue
      */
-    String getIssueUrl(String issueId);
+    String createIssue(String title, String body);
 }

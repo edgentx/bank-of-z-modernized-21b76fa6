@@ -1,53 +1,63 @@
 package com.example.adapters;
 
-import com.example.ports.SlackNotificationPort;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import com.example.ports.SlackPort;
+import com.slack.api.methods.MethodsClient;
+import com.slack.api.methods.SlackApiException;
+import com.slack.api.methods.request.chat.ChatPostMessageRequest;
+import com.slack.api.methods.response.chat.ChatPostMessageResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
 /**
- * Default implementation of the Slack Notification Port.
- * Uses OkHttp to post messages to a Slack Webhook.
+ * Default implementation of the Slack port using the official Slack API SDK.
+ * Addresses S-FB-1: Ensure GitHub URLs are appended to the body.
  */
 @Component
-public class DefaultSlackAdapter implements SlackNotificationPort {
+public class DefaultSlackAdapter implements SlackPort {
 
-    private final OkHttpClient client;
-    private final String webhookUrl;
+    private static final Logger logger = LoggerFactory.getLogger(DefaultSlackAdapter.class);
+    private final MethodsClient slackMethodsClient;
+    private final String defaultChannel;
 
-    public DefaultSlackAdapter(@Value("${slack.webhook.url}") String webhookUrl) {
-        this.webhookUrl = webhookUrl;
-        this.client = new OkHttpClient();
+    public DefaultSlackAdapter(MethodsClient slackMethodsClient,
+                               @Value("${slack.default.channel:}") String defaultChannel) {
+        this.slackMethodsClient = slackMethodsClient;
+        this.defaultChannel = defaultChannel;
     }
 
     @Override
-    public void sendNotification(String message) {
-        // Construct JSON payload for Slack
-        // Slack webhook expects { "text": "..." }
-        String jsonPayload = "{\"text\": \"" + message.replace("\"", "\\"") + "\"}";
+    public void sendAlert(String channel, String message, String githubIssueUrl) {
+        String targetChannel = (channel != null && !channel.isBlank()) ? channel : defaultChannel;
+        if (targetChannel == null || targetChannel.isBlank()) {
+            logger.warn("Slack channel is not configured. Message not sent.");
+            return;
+        }
 
-        RequestBody body = RequestBody.create(
-            jsonPayload, 
-            MediaType.get("application/json; charset=utf-8")
-        );
+        // S-FB-1: Append GitHub URL if present
+        String fullMessage = message;
+        if (githubIssueUrl != null && !githubIssueUrl.isBlank()) {
+            fullMessage = message + "\nGitHub issue: " + githubIssueUrl;
+        }
 
-        Request request = new Request.Builder()
-            .url(webhookUrl)
-            .post(body)
-            .build();
+        try {
+            ChatPostMessageRequest request = ChatPostMessageRequest.builder()
+                    .channel(targetChannel)
+                    .text(fullMessage)
+                    .build();
 
-        try (Response response = client.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                throw new RuntimeException("Failed to send Slack notification: " + response.code());
+            ChatPostMessageResponse response = slackMethodsClient.chatPostMessage(request);
+            if (response.isOk()) {
+                logger.info("Message sent to Slack channel {}", targetChannel);
+            } else {
+                logger.error("Failed to send message to Slack: {}", response.getError());
             }
-        } catch (IOException e) {
-            throw new RuntimeException("IOException sending Slack notification", e);
+        } catch (IOException | SlackApiException e) {
+            logger.error("Error communicating with Slack API", e);
+            throw new RuntimeException("Failed to send Slack alert", e);
         }
     }
 }

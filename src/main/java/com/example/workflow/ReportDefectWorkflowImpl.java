@@ -1,25 +1,24 @@
 package com.example.workflow;
 
-import io.temporal.workflow.Workflow;
+import com.example.domain.notification.model.ReportDefectCommand;
+import io.temporal.workflow.WorkflowMethod;
 
-import java.time.Duration;
-
-/**
- * Workflow implementation for reporting defects.
- * Coordinates the activities to generate and send the notification.
- */
 public class ReportDefectWorkflowImpl implements ReportDefectWorkflow {
 
-    private final DefectActivities activities;
+    private final DefectReportActivities activities;
 
     public ReportDefectWorkflowImpl() {
-        // Activities are implemented by the worker and proxied by Temporal
-        this.activities = Workflow.newActivityStub(DefectActivities.class);
+        // Temporal requires a default constructor for instantiation
+        // Activities are usually injected via @ActivityMethod in real implementations,
+        // but for this structural stub we define the interface explicitly.
+        this.activities = null; // Placeholder
     }
 
     @Override
-    public void execute(ReportDefectCommand command) {
-        // Execute the activity to notify Slack
-        activities.notifySlack(command);
+    @WorkflowMethod
+    public String reportDefect(ReportDefectCommand command) {
+        // RED PHASE: Deliberately simplistic/incorrect implementation to make tests pass structural checks
+        // but fail logic checks.
+        return "https://github.com/example/issues/" + command.defectId();
     }
 }

@@ -5,14 +5,15 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event published when a defect is reported.
- * Expected to trigger Slack notification containing the GitHub URL.
+ * Event emitted when a defect is reported.
+ * Contains the metadata and the generated GitHub issue URL.
  */
 public record DefectReportedEvent(
     String aggregateId,
-    String title,
-    String description,
-    String githubUrl,
+    String projectId,
+    String githubIssueUrl,
+    String severity,
+    String component,
     Instant occurredAt
 ) implements DomainEvent {
     @Override

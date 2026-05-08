@@ -1,14 +1,14 @@
 package com.example.domain.screenmap.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Map;
 
 public record ScreenRenderedEvent(
     String aggregateId,
     String screenId,
     String deviceType,
+    Map<String, String> layoutAttributes,
     Instant occurredAt
 ) implements DomainEvent {
     @Override

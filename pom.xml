@@ -9,7 +9,7 @@
         <version>3.2.0</version>
         <relativePath/>
     </parent>
-    
+
     <groupId>com.example</groupId>
     <artifactId>egdcrypto-bank-of-z-modernized</artifactId>
     <version>1.0.0</version>

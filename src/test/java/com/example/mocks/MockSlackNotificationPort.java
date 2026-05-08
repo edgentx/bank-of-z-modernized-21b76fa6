@@ -6,47 +6,30 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to "Slack" for assertion in tests.
+ * Stores sent payloads to allow assertions on content.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class SlackMessage {
-        public final String channel;
-        public final String body;
-
-        public SlackMessage(String channel, String body) {
-            this.channel = channel;
-            this.body = body;
-        }
-    }
-
-    private final List<SlackMessage> messages = new ArrayList<>();
-    private boolean shouldFail = false;
-
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
-    }
+    private final List<String> sentPayloads = new ArrayList<>();
 
     @Override
-    public boolean postMessage(String channel, String body) {
-        if (shouldFail) {
-            return false;
+    public void send(String payload) {
+        // In a real mock we might verify formatting here, but storing is sufficient for verification in tests
+        sentPayloads.add(payload);
+    }
+
+    public List<String> getSentPayloads() {
+        return new ArrayList<>(sentPayloads);
+    }
+
+    public String getLatestPayload() {
+        if (sentPayloads.isEmpty()) {
+            throw new IllegalStateException("No payloads sent");
         }
-        messages.add(new SlackMessage(channel, body));
-        return true;
+        return sentPayloads.get(sentPayloads.size() - 1);
     }
 
-    public List<SlackMessage> getMessages() {
-        return messages;
-    }
-
-    public boolean lastMessageContains(String text) {
-        if (messages.isEmpty()) return false;
-        return messages.get(messages.size() - 1).body.contains(text);
-    }
-
-    public void reset() {
-        messages.clear();
-        shouldFail = false;
+    public void clear() {
+        sentPayloads.clear();
     }
 }

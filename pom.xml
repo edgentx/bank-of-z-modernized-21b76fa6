@@ -9,31 +9,27 @@
         <version>3.2.0</version>
         <relativePath/>
     </parent>
-    
+
     <groupId>com.example</groupId>
     <artifactId>teller-system</artifactId>
     <version>1.0.0</version>
-    <name>Teller System</name>
-    <description>Bank of Z Modernized Teller System</description>
-    
+    <name>teller-system</name>
+    <description>Teller System for Bank-of-Z Modernization</description>
+
     <properties>
         <java.version>17</java.version>
-        <flyway-db2.version>9.22.3</flyway-db2.version>
+        <flyway.version>9.22.3</flyway.version>
     </properties>
-    
+
     <dependencies>
-        <!-- Spring Boot Starters -->
+        <!-- Spring Boot Dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -41,39 +37,35 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-integration</artifactId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+
+        <!-- Database Drivers -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-batch</artifactId>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
         </dependency>
+        <!-- DB2 Driver (assumed provided by runtime environment in z/OS) -->
         <dependency>
-            <groupId>org.springframework.batch</groupId>
-            <artifactId>spring-batch-test</artifactId>
-            <scope>test</scope>
+            <groupId>com.ibm.db2</groupId>
+            <artifactId>jcc</artifactId>
+            <scope>provided</scope>
         </dependency>
-        
-        <!-- Flyway for DB2 (Explicit version required per project rules) -->
+
+        <!-- Flyway -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <!-- Flyway DB2 Support - Redwood dependency requires explicit version outside BOM -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-db2</artifactId>
-            <version>${flyway-db2.version}</version>
+            <version>${flyway.version}</version>
         </dependency>
-        
-        <!-- IBM MQ JMS Client -->
-        <dependency>
-            <groupId>com.ibm.mq</groupId>
-            <artifactId>com.ibm.mq.allclient</artifactId>
-            <version>9.3.4.0</version>
-        </dependency>
-        
-        <!-- Redis -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-        
-        <!-- Cucumber Test -->
+
+        <!-- Cucumber Test Dependencies -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
@@ -97,7 +89,7 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-    
+
     <build>
         <plugins>
             <plugin>
@@ -106,10 +98,13 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
+                <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <source>17</source>
-                    <target>17</target>
+                    <properties>
+                        <configurationParameters>
+                            cucumber.junit-platform.naming-strategy=long
+                        </configurationParameters>
+                    </properties>
                 </configuration>
             </plugin>
         </plugins>

@@ -1,27 +1,20 @@
 package com.example.domain.validation.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
+import java.util.UUID;
 
+/**
+ * Event emitted when a defect is reported.
+ * CRITICAL: Must contain the GitHub URL for the Slack adapter.
+ */
 public record DefectReportedEvent(
-    String validationId,
-    String summary,
-    String githubIssueUrl,
-    Instant occurredAt
+        String aggregateId,
+        String defectId,
+        String githubIssueUrl,
+        Instant occurredAt
 ) implements DomainEvent {
-    @Override
-    public String type() {
-        return "DefectReported";
-    }
-
-    @Override
-    public String aggregateId() {
-        return validationId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
+    @Override public String type() { return "DefectReported"; }
+    @Override public String aggregateId() { return aggregateId; }
+    @Override public Instant occurredAt() { return occurredAt; }
 }

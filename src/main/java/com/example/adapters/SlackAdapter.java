@@ -1,41 +1,24 @@
 package com.example.adapters;
 
-import com.example.model.DefectReport;
 import com.example.ports.SlackPort;
 import org.springframework.stereotype.Component;
 
-import java.util.Objects;
-
 /**
- * Real implementation of the SlackPort.
- * This adapter formats the defect report into a Slack message body.
- * FIX S-FB-1: Ensures the body contains "GitHub issue: <url>" when a URL is present.
+ * Real implementation of SlackPort.
+ * In a production environment, this would use a WebClient to call the Slack API.
  */
 @Component
 public class SlackAdapter implements SlackPort {
 
     @Override
-    public void sendDefectNotification(DefectReport report) {
-        Objects.requireNonNull(report, "DefectReport cannot be null");
-
-        // Constructing the message body according to the expected format
-        StringBuilder bodyBuilder = new StringBuilder();
-        bodyBuilder.append("Defect Detected: ").append(report.defectId()).append("\n");
-        bodyBuilder.append("Title: ").append(report.title()).append("\n");
-
-        String url = report.githubUrl();
-        // Validation: Ensure we don't append empty brackets
-        if (url != null && !url.isBlank()) {
-            bodyBuilder.append("GitHub issue: <").append(url).append(">");
-        } else {
-            bodyBuilder.append("No GitHub issue linked.");
-        }
-
-        String body = bodyBuilder.toString();
+    public void sendMessage(String channel, String messageBody) {
+        // Implementation Note: This is a stub for the real adapter logic.
+        // Actual implementation would involve:
+        // 1. Constructing a JSON payload for the Slack Webhook or API chat.postMessage.
+        // 2. POSTing to the Slack endpoint.
+        // 3. Handling 200 OK vs error responses.
         
-        // In a real scenario, we would invoke the Slack WebClient API here.
-        // e.g. slackClient.sendMessage(body);
-        // For this defect fix, the critical part is the string formatting logic above.
-        System.out.println("[SlackAdapter] Sending notification: " + body);
+        // Logging the action (simulated)
+        System.out.println("[SlackAdapter] Sending to channel " + channel + ": " + messageBody);
     }
 }

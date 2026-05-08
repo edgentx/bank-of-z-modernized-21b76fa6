@@ -61,16 +61,17 @@
         </dependency>
 
         <!-- Temporal (Workflow) -->
-        <!-- Removing specific version to rely on Temporal's Spring Boot Starter bill of materials or explicit management if available.
-             However, based on the error in the prompt, we are fixing this by using the proper SDK artifact. -->
+        <!-- Fixed version to 1.22.1 to resolve build failure -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
-            <!-- Explicit version matching a known good version for Spring Boot 3.x if not in parent BOM. 
-                 However, standard practice is often adding the BOM. For this fix, we will specify version explicitly if needed, 
-                 but let's try to align with Spring Boot BOM or add temporal BOM if it exists. 
-                 The prompt error complained about 1.22.1 not being found. We will use the current stable version. -->
-            <version>1.24.1</version> 
+            <version>1.22.1</version>
+        </dependency>
+        <!-- Ensure the core SDK is also aligned to 1.22.1 -->
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-sdk</artifactId>
+            <version>1.22.1</version>
         </dependency>
 
         <!-- Redis -->

@@ -1,18 +1,14 @@
 package com.example.steps;
 
 import com.example.mocks.MockSlackNotificationPort;
-import com.example.ports.SlackNotificationPort;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 
 /**
- * Spring Test Configuration to provide Mock beans to the Cucumber Context.
+ * Base configuration for Cucumber tests ensuring Spring context is loaded
+ * and Mocks are available.
  */
-@TestConfiguration
+@SpringBootTest
+@Import(MockSlackNotificationPort.class)
 public class CucumberSpringConfiguration {
-
-    @Bean
-    public SlackNotificationPort slackNotificationPort() {
-        return new MockSlackNotificationPort();
-    }
 }

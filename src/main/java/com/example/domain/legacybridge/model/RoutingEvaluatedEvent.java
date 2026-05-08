@@ -3,17 +3,17 @@ package com.example.domain.legacybridge.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.UUID;
 
 /**
- * Event emitted when routing rules are successfully evaluated.
+ * Event emitted when routing rules have been successfully evaluated.
  */
 public record RoutingEvaluatedEvent(
-        String aggregateId,
-        String targetSystem, // "MODERN" or "LEGACY"
-        String rulesVersion,
-        Map<String, Object> context,
-        Instant occurredAt
+    String aggregateId,
+    String transactionType,
+    String targetSystem,
+    Integer ruleVersion,
+    Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {

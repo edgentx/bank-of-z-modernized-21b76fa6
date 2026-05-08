@@ -1,4 +1,3 @@
-<!-- UPGATED POM.XML -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -18,12 +17,10 @@
 
     <properties>
         <java.version>17</java.version>
-        <spring-cloud-aws.version>3.1.0</spring-cloud-aws.version>
-        <aws.sdk.version>2.21.1</aws.sdk.version>
     </properties>
 
     <dependencies>
-        <!-- Existing Dependencies -->
+        <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
@@ -36,6 +33,8 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
+
+        <!-- Serialization & Validation -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -45,7 +44,7 @@
             <artifactId>jakarta.validation-api</artifactId>
         </dependency>
 
-        <!-- Test Dependencies (Updated Versions) -->
+        <!-- Test Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

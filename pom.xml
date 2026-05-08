@@ -15,7 +15,6 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <!-- Updated to a stable recent version to support Java 17+ syntax properly -->
         <version>3.2.0</version>
         <relativePath/>
     </parent>
@@ -26,6 +25,7 @@
     </properties>
 
     <dependencies>
+        <!-- Spring Boot Starter -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
@@ -59,6 +59,7 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Spring Boot Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -75,13 +76,6 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
-        </dependency>
-        
-        <!-- Project Modules (assuming standard maven structure, ensuring module compilation) -->
-        <dependency>
-            <groupId>com.example</groupId>
-            <artifactId>domain-shared</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

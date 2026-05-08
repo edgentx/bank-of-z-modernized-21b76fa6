@@ -1,45 +1,25 @@
 package com.example.services;
 
-import com.example.ports.GitHubIssuePort;
-import com.example.ports.SlackNotificationPort;
-import org.springframework.stereotype.Service;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackWebhookPort;
 
 /**
- * Service responsible for reporting defects.
- * This class orchestrates the creation of a GitHub issue and subsequent notification via Slack.
- * This serves as the implementation logic triggered by the Temporal workflow or direct invocation.
+ * Service for reporting defects.
+ * Story S-FB-1: Ensure Slack notification includes GitHub URL.
  */
-@Service
 public class ReportDefectService {
 
-    private final GitHubIssuePort gitHubIssuePort;
-    private final SlackNotificationPort slackNotificationPort;
+    private final GitHubPort gitHubPort;
+    private final SlackWebhookPort slackPort;
 
-    /**
-     * Constructor for dependency injection.
-     *
-     * @param gitHubIssuePort The port for interacting with GitHub.
-     * @param slackNotificationPort The port for sending Slack notifications.
-     */
-    public ReportDefectService(GitHubIssuePort gitHubIssuePort, SlackNotificationPort slackNotificationPort) {
-        this.gitHubIssuePort = gitHubIssuePort;
-        this.slackNotificationPort = slackNotificationPort;
+    public ReportDefectService(GitHubPort gitHubPort, SlackWebhookPort slackPort) {
+        this.gitHubPort = gitHubPort;
+        this.slackPort = slackPort;
     }
 
-    /**
-     * Reports a defect by creating a GitHub issue and notifying Slack.
-     *
-     * @param title The title of the defect.
-     * @param description The description of the defect.
-     * @param channel The Slack channel to notify.
-     */
-    public void reportDefect(String title, String description, String channel) {
-        // 1. Create GitHub Issue
-        String issueUrl = gitHubIssuePort.createIssue(title, description);
-
-        // 2. Notify Slack
-        // The defect requirement (VW-454) emphasizes validating that the URL is present in the body.
-        String messageBody = String.format("Issue created: %s", issueUrl);
-        slackNotificationPort.sendMessage(channel, messageBody);
+    public void execute(String defectId, String description) {
+        // Stub implementation for compilation (Red Phase)
+        // This will be implemented later to satisfy the tests.
+        throw new UnsupportedOperationException("Implement Me");
     }
 }

@@ -1,42 +1,43 @@
 package com.example.adapters;
 
-import com.example.domain.shared.DomainEvent;
-import com.example.domain.validation.model.DefectReportedEvent;
-import com.example.domain.validation.model.ReportDefectCommand;
-import com.example.ports.DefectWorkflowPort;
-import com.example.workflow.DefectReportingWorkflow;
 import io.temporal.client.WorkflowClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
+import io.temporal.client.WorkflowOptions;
+import io.temporal.workflow.WorkflowInterface;
+import io.temporal.workflow.WorkflowMethod;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /**
- * Adapter implementation for DefectWorkflowPort using Temporal.
- * Bridges the domain/application layer to the Temporal workflow engine.
+ * Adapter to trigger Temporal workflows for defect reporting.
  */
-@Service
-public class TemporalDefectWorkflowAdapter implements DefectWorkflowPort {
+@Component
+public class TemporalDefectWorkflowAdapter {
 
-    private static final Logger log = LoggerFactory.getLogger(TemporalDefectWorkflowAdapter.class);
-    private final WorkflowClient workflowClient;
+    private final WorkflowClient client;
 
-    public TemporalDefectWorkflowAdapter(WorkflowClient workflowClient) {
-        this.workflowClient = workflowClient;
+    @Autowired
+    public TemporalDefectWorkflowAdapter(WorkflowClient client) {
+        this.client = client;
     }
 
-    @Override
-    public void reportDefect(ReportDefectCommand command) {
-        log.info("Adapter: Triggering defect report for {}", command.defectId());
-
-        // Create a workflow stub
-        DefectReportingWorkflow workflow = workflowClient.newWorkflowStub(
-            DefectReportingWorkflow.class,
-            "Defect-" + command.defectId()
+    public void reportDefect(String taskId, String severity, String title, String description) {
+        // Create a new workflow stub
+        // Workflow ID is deterministic based on taskId for idempotency
+        DefectWorkflow workflow = client.newWorkflowStub(
+            DefectWorkflow.class,
+            WorkflowOptions.newBuilder()
+                .setTaskQueue("DefectTaskQueue")
+                .setWorkflowId(taskId)
+                .build()
         );
 
-        // Execute workflow (synchronously for this demo, or async via WorkflowClient.start)
-        // Using synchronous execution for immediate feedback in this context.
-        String result = workflow.reportDefect(command);
-        log.info("Workflow result: {}", result);
+        // Execute workflow
+        workflow.reportDefect(severity, title, description);
+    }
+
+    @WorkflowInterface
+    public interface DefectWorkflow {
+        @WorkflowMethod
+        void reportDefect(String severity, String title, String description);
     }
 }

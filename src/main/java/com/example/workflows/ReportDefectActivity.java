@@ -1,14 +1,10 @@
 package com.example.workflows;
 
 import io.temporal.activity.ActivityInterface;
+import io.temporal.activity.ActivityMethod;
 
-/**
- * Temporal Activity interface for side-effects such as DB writes or Slack notifications.
- */
 @ActivityInterface
 public interface ReportDefectActivity {
-
-    String createGitHubIssue(String description, String severity);
-
-    void notifySlack(String text);
+    @ActivityMethod
+    String reportDefectToSlack(String message, String githubUrl);
 }

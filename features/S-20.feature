@@ -1,7 +1,4 @@
-Feature: EndSessionCmd
-  As a TellerSession aggregate
-  I want to execute the EndSessionCmd command
-  So that the teller session is terminated and sensitive session state is cleared
+Feature: Implement EndSessionCmd on TellerSession (user-interface-navigation)
 
   Scenario: Successfully execute EndSessionCmd
     Given a valid TellerSession aggregate

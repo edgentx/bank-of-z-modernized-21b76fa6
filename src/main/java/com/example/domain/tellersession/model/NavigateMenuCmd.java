@@ -2,11 +2,9 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.Objects;
-
 /**
- * Command for the Teller to navigate between UI screens/menus.
- * Part of the 3270 terminal emulator preservation logic.
+ * Command to route the teller to a different menu or screen.
+ * Used to emulate legacy 3270 menu navigation.
  */
 public record NavigateMenuCmd(String sessionId, String menuId, String action) implements Command {
     public NavigateMenuCmd {

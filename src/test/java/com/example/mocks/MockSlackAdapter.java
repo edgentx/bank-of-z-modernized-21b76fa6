@@ -1,29 +1,38 @@
 package com.example.mocks;
 
 import com.example.ports.SlackPort;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock adapter for Slack.
- * Stores the last posted body to allow assertions in tests.
+ * Mock implementation for Slack notifications.
+ * Used in tests to verify message content without external I/O.
  */
+@Component
 public class MockSlackAdapter implements SlackPort {
 
-    private String lastChannel;
-    private String lastBody;
+    private final List<String> messages = new ArrayList<>();
+    private String lastMessageBody;
 
     @Override
-    public void postMessage(String channel, String body) {
-        this.lastChannel = channel;
-        this.lastBody = body;
-        // In a real mock, we might throw exceptions if certain inputs are detected
-        // to simulate error conditions.
+    public void sendMessage(String channel, String messageBody) {
+        this.lastMessageBody = messageBody;
+        this.messages.add(messageBody);
+        System.out.println("[MockSlack] Sent to " + channel + ": " + messageBody);
     }
 
-    public String getLastPostedBody() {
-        return lastBody;
+    public String getLastMessageBody() {
+        return lastMessageBody;
     }
 
-    public String getLastChannel() {
-        return lastChannel;
+    public List<String> getAllMessages() {
+        return new ArrayList<>(messages);
+    }
+
+    public void reset() {
+        messages.clear();
+        lastMessageBody = null;
     }
 }

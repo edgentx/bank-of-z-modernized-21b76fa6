@@ -3,7 +3,7 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command for a teller to navigate to a specific menu or screen.
- * Used to emulate legacy 3270 menu navigation flows.
+ * Command to navigate the teller session to a specific menu context.
  */
-public record NavigateMenuCmd(String sessionId, String menuId, String action) implements Command {}
+public record NavigateMenuCmd(String sessionId, String tellerId, String menuId, String action) implements Command {
+}

@@ -1,42 +1,37 @@
 package com.example.mocks;
 
-import com.example.domain.validation.model.GitHubIssueUrl;
-import com.example.domain.validation.port.GitHubIssuePort;
-import java.util.HashSet;
-import java.util.Set;
+import com.example.ports.GitHubIssuePort;
+
+import java.util.Optional;
 
 /**
- * Mock Adapter for GitHub Issue Port.
- * Simulates GitHub API behavior for testing.
+ * Mock implementation of GitHubIssuePort for testing.
+ * Returns a predictable URL without calling the real API.
  */
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private final Set<String> createdIssues = new HashSet<>();
-    private GitHubIssueUrl nextUrlToReturn;
+    private String simulatedUrl = "https://github.com/example/repo/issues/1";
+    private boolean shouldFail = false;
 
-    public void setNextUrl(GitHubIssueUrl url) {
-        this.nextUrlToReturn = url;
+    @Override
+    public String createIssue(String title, String body) {
+        if (shouldFail) {
+            return null; // Simulate failure or empty URL
+        }
+        // Simulate a successful creation returning a URL
+        return simulatedUrl;
     }
 
     @Override
-    public GitHubIssueUrl createIssue(String title, String description) {
-        // Record that this was called
-        String key = title + ":" + description;
-        createdIssues.add(key);
-
-        if (nextUrlToReturn == null) {
-            // Default deterministic URL for testing if not set
-            return new GitHubIssueUrl("https://github.com/example/bank-of-z/issues/1");
-        }
-        return nextUrlToReturn;
+    public Optional<String> getIssueUrl(String issueId) {
+        return Optional.of(simulatedUrl);
     }
 
-    public boolean wasIssueCreated(String title, String description) {
-        return createdIssues.contains(title + ":" + description);
+    public void setSimulatedUrl(String url) {
+        this.simulatedUrl = url;
     }
 
-    public void reset() {
-        createdIssues.clear();
-        nextUrlToReturn = null;
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
     }
 }

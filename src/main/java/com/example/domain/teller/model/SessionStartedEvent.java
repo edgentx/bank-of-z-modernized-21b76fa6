@@ -3,24 +3,16 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
-/**
- * Event emitted when a teller session is successfully started.
- * Context: S-18 TellerSession
- */
-public class SessionStartedEvent implements DomainEvent {
-
-    private final String aggregateId;
-    private final String tellerId;
-    private final String terminalId;
-    private final Instant occurredAt;
-
-    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
-        this.aggregateId = Objects.requireNonNull(aggregateId);
-        this.tellerId = Objects.requireNonNull(tellerId);
-        this.terminalId = Objects.requireNonNull(terminalId);
-        this.occurredAt = Objects.requireNonNull(occurredAt);
+public record SessionStartedEvent(
+        String aggregateId,
+        String tellerId,
+        String terminalId,
+        Instant occurredAt
+) implements DomainEvent {
+    public SessionStartedEvent {
+        // Defensive copy or validation if necessary
     }
 
     @Override
@@ -36,13 +28,5 @@ public class SessionStartedEvent implements DomainEvent {
     @Override
     public Instant occurredAt() {
         return occurredAt;
-    }
-
-    public String tellerId() {
-        return tellerId;
-    }
-
-    public String terminalId() {
-        return terminalId;
     }
 }

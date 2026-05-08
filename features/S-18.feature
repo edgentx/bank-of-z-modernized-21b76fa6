@@ -1,7 +1,4 @@
-Feature: StartSessionCmd
-  As a bank teller
-  I want to start my secure session
-  So that I can process customer transactions securely
+Feature: Implement StartSessionCmd on TellerSession (user-interface-navigation)
 
   Scenario: Successfully execute StartSessionCmd
     Given a valid TellerSession aggregate

@@ -1,17 +1,14 @@
 package com.example.ports;
 
 /**
- * Port interface for Slack notification operations.
- * This allows us to mock the Slack API in tests.
+ * Port interface for sending notifications to Slack.
+ * Used by the Temporal workflow to alert users.
  */
 public interface SlackPort {
-
     /**
-     * Sends an alert message to a Slack channel.
-     *
-     * @param channel The channel ID or name (e.g., "#alerts").
-     * @param message The core message content.
-     * @param githubIssueUrl The URL to the related GitHub issue (can be null/blank).
+     * Posts a message to a specific Slack channel.
+     * @param channel The channel ID or name (e.g. #vforce360-issues).
+     * @param body The formatted message body.
      */
-    void sendAlert(String channel, String message, String githubIssueUrl);
+    void postMessage(String channel, String body);
 }

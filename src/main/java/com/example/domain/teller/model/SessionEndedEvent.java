@@ -5,10 +5,6 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Event emitted when a teller session is terminated.
- * Part of S-20: EndSessionCmd.
- */
 public record SessionEndedEvent(
         String aggregateId,
         Instant occurredAt

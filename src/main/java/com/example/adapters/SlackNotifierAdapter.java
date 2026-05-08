@@ -1,32 +1,54 @@
 package com.example.adapters;
 
-import com.example.ports.SlackNotifierPort;
+import com.example.ports.DefectReporterPort;
+import com.squareup.okhttp3.*;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+
 /**
- * Real implementation of SlackNotifierPort.
- * This adapter would use the Slack SDK to send a real webhook request.
+ * Real implementation of DefectReporterPort using OkHttp to post to Slack.
+ * Activated only when 'slack.webhook.url' is configured.
  */
 @Component
-public class SlackNotifierAdapter implements SlackNotifierPort {
+@ConditionalOnProperty(name = "slack.webhook.url")
+public class SlackNotifierAdapter implements DefectReporterPort {
 
-    // In a real implementation, this would use a WebClient or SlackClient to post to a webhook URL
-    // For this defect fix, the focus is on ensuring the URL is passed into the body construction.
+    private final OkHttpClient client = new OkHttpClient();
+    private final String webhookUrl;
+
+    public SlackNotifierAdapter(@Value("${slack.webhook.url}") String webhookUrl) {
+        this.webhookUrl = webhookUrl;
+    }
 
     @Override
-    public void sendNotification(String message, String githubIssueUrl) {
-        StringBuilder bodyBuilder = new StringBuilder();
-        bodyBuilder.append("Message: ").append(message != null ? message : "");
+    public boolean reportDefect(String defectId, String githubUrl) {
+        // Construct the Slack message body
+        // Ensure the GitHub URL is included as per Acceptance Criteria
+        String message = String.format(
+            "Defect Reported: %s\nGitHub Issue: %s",
+            defectId,
+            githubUrl
+        );
 
-        // VW-454 Fix: Ensure the GitHub URL is appended to the body if present
-        if (githubIssueUrl != null) {
-            bodyBuilder.append("\nIssue: ").append(githubIssueUrl);
+        // Build JSON payload manually to avoid extra dependencies like Jackson for simple strings
+        // in this specific adapter context, or use a simple JSON formatter.
+        // Using simple string construction for strict dependency control.
+        String jsonPayload = "{\"text\": \"" + message.replace("\"", "\\\"") + "\"}";
+
+        RequestBody body = RequestBody.create(jsonPayload, MediaType.parse("application/json; charset=utf-8"));
+        Request request = new Request.Builder()
+                .url(webhookUrl)
+                .post(body)
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            return response.isSuccessful();
+        } catch (IOException e) {
+            // Log error in a real scenario
+            return false;
         }
-
-        String payload = bodyBuilder.toString();
-
-        // Real execution: post to Slack Webhook
-        // System.out.println("[Slack Integration] Sending payload: " + payload);
-        // webClient.post().uri(webhookUrl).bodyValue(payload).retrieve();
     }
 }

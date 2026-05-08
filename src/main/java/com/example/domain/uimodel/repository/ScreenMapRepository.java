@@ -1,8 +1,17 @@
 package com.example.domain.uimodel.repository;
 
-import com.example.domain.uimodel.model.ScreenMapAggregate;
+import com.example.domain.userinterface.model.ScreenMap;
+import java.util.Optional;
 
+/**
+ * Repository interface for ScreenMap aggregate.
+ * Corrected to use the concrete aggregate class.
+ */
 public interface ScreenMapRepository {
-    ScreenMapAggregate save(ScreenMapAggregate aggregate);
-    ScreenMapAggregate findById(String id);
+
+    ScreenMap save(ScreenMap aggregate);
+
+    Optional<ScreenMap> findById(String id);
+
+    void deleteById(String id);
 }

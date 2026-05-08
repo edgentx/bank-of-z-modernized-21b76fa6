@@ -1,15 +1,16 @@
 package com.example.steps;
 
-import io.cucumber.junit.Cucumber;
-import io.cucumber.junit.CucumberOptions;
-import org.junit.runner.RunWith;
+import org.junit.platform.suite.api.ConfigurationParameter;
+import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectClasspathResource;
+import org.junit.platform.suite.api.Suite;
 
-@RunWith(Cucumber.class)
-@CucumberOptions(
-    features = {"features/VW454.feature"},
-    glue = {"com.example.steps"},
-    plugin = {"pretty", "html:target/cucumber-report/VW454.html"}
-)
+import static io.cucumber.junit.platform.engine.CucumberJUnitPlatformParameters.GLUE_PROPERTY_NAME;
+
+@Suite
+@IncludeEngines("cucumber")
+@SelectClasspathResource("features")
+@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
 public class VW454TestSuite {
-    // Suite configuration
+    // JUnit 5 Suite wrapper for Cucumber
 }

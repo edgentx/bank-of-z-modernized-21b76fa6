@@ -6,41 +6,31 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotificationPort.
- * Stores messages in memory for verification without external I/O.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Captures payloads sent to Slack to allow validation.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> sentMessages = new ArrayList<>();
-    private boolean shouldFail = false;
+    private final List<String> payloads = new ArrayList<>();
+    private boolean shouldThrowException = false;
 
     @Override
-    public boolean send(String payload) {
-        if (shouldFail) {
-            return false;
+    public void send(String payload) {
+        if (shouldThrowException) {
+            throw new IllegalArgumentException("Slack service unavailable");
         }
-        sentMessages.add(payload);
-        return true;
+        payloads.add(payload);
     }
 
-    @Override
-    public String getLastMessageBody() {
-        if (sentMessages.isEmpty()) {
-            return "";
-        }
-        return sentMessages.get(sentMessages.size() - 1);
+    public List<String> getPayloads() {
+        return new ArrayList<>(payloads);
     }
 
-    public void reset() {
-        sentMessages.clear();
-        shouldFail = false;
+    public void clear() {
+        payloads.clear();
     }
 
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
-    }
-
-    public List<String> getAllMessages() {
-        return new ArrayList<>(sentMessages);
+    public void setShouldThrowException(boolean shouldThrowException) {
+        this.shouldThrowException = shouldThrowException;
     }
 }

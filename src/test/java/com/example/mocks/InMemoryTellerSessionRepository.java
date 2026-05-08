@@ -20,4 +20,9 @@ public class InMemoryTellerSessionRepository implements TellerSessionRepository 
     public Optional<TellerSessionAggregate> findById(String id) {
         return Optional.ofNullable(store.get(id));
     }
+
+    @Override
+    public void deleteById(String id) {
+        store.remove(id);
+    }
 }

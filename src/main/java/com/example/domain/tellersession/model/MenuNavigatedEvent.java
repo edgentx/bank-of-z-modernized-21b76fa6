@@ -11,6 +11,7 @@ public record MenuNavigatedEvent(
     String action,
     Instant occurredAt
 ) implements DomainEvent {
+
     public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
         this.aggregateId = aggregateId;
         this.menuId = menuId;

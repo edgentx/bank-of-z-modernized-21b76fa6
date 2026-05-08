@@ -7,32 +7,36 @@
     <version>3.2.0</version>
     <relativePath/>
   </parent>
+  
   <groupId>com.example</groupId>
-  <artifactId>bank-of-z</artifactId>
+  <artifactId>teller-core</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>bank-of-z</name>
-  <description>Bank of Z Mainframe Modernization</description>
+  <name>Teller Core Domain</name>
+  <description>Bank of Z Teller Session and Transaction Domain</description>
+  
   <properties>
-    <java.version>17</java.version>
+    <java.version>21</java.version>
     <cucumber.version>7.14.0</cucumber.version>
+    <otel.version>1.31.0</otel.version>
   </properties>
+  
   <dependencies>
     <!-- Spring Boot Starters -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-mongodb</artifactId>
-    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-security</artifactId>
+      <artifactId>spring-boot-starter-data-mongodb</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -42,23 +46,62 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-batch</artifactId>
     </dependency>
-    <!-- Note: Temporal, MQ, and z/OS Connect dependencies would go here -->
+    
+    <!-- DB2 Driver (Assumed provided by runtime or explicitly versioned if not in BOM) -->
+    <!-- Spring Boot BOM pins com.ibm.db2, but usually we ensure explicit version if not available in public repos -->
+    
+    <!-- Observability -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-tracing-bridge-otel</artifactId>
+    </dependency>
+    <!-- NOT in BOM: Requires explicit version -->
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-exporter-otlp</artifactId>
+      <version>${otel.version}</version>
+    </dependency>
+
+    <!-- Flyway (DB2) -->
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-core</artifactId>
     </dependency>
-    <!-- Fix for DB2 driver (classpath scope for tests) -->
+    <!-- NOT in BOM: Requires explicit version for DB2 support -->
     <dependency>
-      <groupId>com.ibm.db2</groupId>
-      <artifactId>jcc</artifactId>
-      <version>11.5.8.0</version>
-      <scope>provided</scope>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-db2</artifactId>
+      <version>9.22.3</version>
     </dependency>
-    
-    <!-- Testing Dependencies -->
+
+    <!-- IBM MQ -->
+    <dependency>
+      <groupId>com.ibm.mq</groupId>
+      <artifactId>com.ibm.mq.allclient</artifactId>
+      <version>9.3.4.1</version>
+    </dependency>
+    <!-- Spring JMS -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
+      <artifactId>spring-boot-starter-activemq</artifactId>
+    </dependency>
+
+    <!-- Redis & MinIO -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
+    </dependency>
+    <!-- NOT in BOM: MinIO client -->
+    <dependency>
+      <groupId>io.minio</groupId>
+      <artifactId>minio</artifactId>
+      <version>8.5.6</version>
+    </dependency>
+
+    <!-- Testing (Cucumber) -->
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-suite</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -80,8 +123,8 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.junit.platform</groupId>
-      <artifactId>junit-platform-suite</artifactId>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

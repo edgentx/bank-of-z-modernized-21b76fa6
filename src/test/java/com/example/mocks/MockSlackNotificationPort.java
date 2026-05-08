@@ -1,39 +1,33 @@
 package com.example.mocks;
 
-import com.example.ports.SlackNotificationPort;
+import com.example.domain.ports.SlackNotificationPort;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
+/**
+ * Mock implementation of SlackNotificationPort for testing.
+ * Captures the message body sent to Slack for assertion.
+ */
 public class MockSlackNotificationPort implements SlackNotificationPort {
-    public String lastBody;
-    public Map<String, String> lastAttachments;
-    public int invocationCount = 0;
+
+    private String lastReceivedBody;
+    private boolean shouldFail = false;
 
     @Override
-    public void sendNotification(String body, Map<String, String> attachments) {
-        this.lastBody = body;
-        this.lastAttachments = new HashMap<>(attachments); // Defensive copy
-        this.invocationCount++;
+    public CompletableFuture<String> send(String messageBody) {
+        this.lastReceivedBody = messageBody;
+        if (shouldFail) {
+            return CompletableFuture.failedFuture(new RuntimeException("Slack API unavailable"));
+        }
+        // Return a fake timestamp
+        return CompletableFuture.completedFuture("1234567890.123456");
     }
 
-    public void reset() {
-        this.lastBody = null;
-        this.lastAttachments = null;
-        this.invocationCount = 0;
+    public String getLastReceivedBody() {
+        return lastReceivedBody;
     }
 
-    /**
-     * Helper assertion for testing.
-     * Verifies that the 'github_url' key exists and is not blank in the attachments map.
-     */
-    public void assertGithubUrlPresent() {
-        if (this.lastAttachments == null) {
-            throw new AssertionError("Slack was not invoked");
-        }
-        String url = this.lastAttachments.get("github_url");
-        if (url == null || url.isBlank()) {
-            throw new AssertionError("Slack attachments missing 'github_url' or it is blank. Received: " + this.lastAttachments);
-        }
+    public void setShouldFail(boolean shouldFail) {
+        this.shouldFail = shouldFail;
     }
 }

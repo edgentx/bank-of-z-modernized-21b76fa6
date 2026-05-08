@@ -2,16 +2,8 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.UUID;
-
-public record NavigateMenuCmd(
-    String sessionId,
-    String menuId,
-    String action
-) implements Command {
-    public NavigateMenuCmd {
-        if (sessionId == null || sessionId.isBlank()) {
-            throw new IllegalArgumentException("sessionId cannot be null or blank");
-        }
-    }
-}
+/**
+ * Command to navigate the Teller UI to a specific menu or screen.
+ * Part of the legacy 3270 emulator navigation flow.
+ */
+public record NavigateMenuCmd(String sessionId, String menuId, String action) implements Command {}

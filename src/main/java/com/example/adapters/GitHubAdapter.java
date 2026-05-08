@@ -1,20 +1,26 @@
 package com.example.adapters;
 
 import com.example.ports.GitHubPort;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
- * Real implementation for GitHub API interactions.
- * Currently a placeholder to satisfy the Port contract.
+ * Real implementation of the GitHubPort.
+ * Constructs URLs based on the configured repository base.
  */
 @Component
+@ConditionalOnProperty(name = "app.adapters.github.enabled", havingValue = "true", matchIfMissing = true)
 public class GitHubAdapter implements GitHubPort {
 
+    private final String baseUrl;
+
+    public GitHubAdapter(@Value("${app.adapters.github.base-url}") String baseUrl) {
+        this.baseUrl = baseUrl;
+    }
+
     @Override
-    public String createIssue(String title, String body) {
-        // In a real implementation, this would use WebClient or RestTemplate
-        // to POST to https://api.github.com/repos/owner/repo/issues
-        // For now, we return a dummy URL to satisfy compiler requirements.
-        return "https://github.com/bank-of-z/vforce360/issues/0";
+    public String constructIssueUrl(String issueId) {
+        return baseUrl + issueId;
     }
 }

@@ -6,12 +6,15 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Event emitted when a defect is successfully reported and verified.
+ * Event emitted when a defect is reported.
  */
 public record DefectReportedEvent(
         String defectId,
         String title,
-        String githubUrl,
+        String severity,
+        String component,
+        String description,
+        String gitHubIssueUrl,
         Instant occurredAt
 ) implements DomainEvent {
     @Override

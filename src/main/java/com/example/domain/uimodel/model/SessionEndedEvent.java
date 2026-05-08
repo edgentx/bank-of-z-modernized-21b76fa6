@@ -5,16 +5,13 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Event emitted when a Teller Session is successfully terminated.
- */
 public record SessionEndedEvent(
     String aggregateId,
     Instant occurredAt
 ) implements DomainEvent {
-
-    public SessionEndedEvent(String aggregateId) {
-        this(aggregateId, Instant.now());
+    public SessionEndedEvent(String aggregateId, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.occurredAt = occurredAt;
     }
 
     @Override

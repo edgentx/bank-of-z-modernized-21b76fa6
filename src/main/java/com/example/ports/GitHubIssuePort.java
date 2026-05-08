@@ -2,14 +2,15 @@ package com.example.ports;
 
 /**
  * Port for interacting with GitHub issues.
+ * Used to generate valid URLs for defect tracking.
  */
 public interface GitHubIssuePort {
 
     /**
-     * Generates the full URL for a specific issue.
+     * Constructs the full URL for a specific GitHub issue.
      *
-     * @param issueId The ID of the issue (e.g., "VW-454").
-     * @return The HTTPS URL to the issue.
+     * @param issueId The unique identifier of the issue (e.g. "VW-454").
+     * @return The https URL to the issue.
      */
     String getIssueUrl(String issueId);
 }

@@ -5,31 +5,24 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.Objects;
 
-/**
- * Event emitted when an account is closed.
- */
 public record AccountClosedEvent(
         String aggregateId,
-        String type,
+        String accountNumber,
         Instant occurredAt
 ) implements DomainEvent {
-
-    public AccountClosedEvent(String aggregateId, Instant occurredAt) {
-        this(aggregateId, "account.closed", occurredAt);
+    public AccountClosedEvent {
+        Objects.requireNonNull(aggregateId);
+        Objects.requireNonNull(accountNumber);
+        Objects.requireNonNull(occurredAt);
     }
 
     @Override
     public String type() {
-        return type;
+        return "account.closed";
     }
 
     @Override
     public String aggregateId() {
         return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

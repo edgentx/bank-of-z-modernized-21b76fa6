@@ -2,20 +2,19 @@ package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
 
+import java.time.Instant;
+import java.util.Objects;
+
 /**
- * Command to route the teller to a different menu or screen.
- * Part of Story S-19: User Interface Navigation.
+ * Command to navigate the Teller Terminal UI to a specific menu/context.
+ * Emulates 3270 screen flows (Enter, PF3, Clear, etc.)
  */
-public record NavigateMenuCmd(String sessionId, String menuId, String action) implements Command {
+public record NavigateMenuCmd(String sessionId, String menuId, String action, Instant timestamp) implements Command {
+
     public NavigateMenuCmd {
-        if (sessionId == null || sessionId.isBlank()) {
-            throw new IllegalArgumentException("sessionId cannot be null or blank");
-        }
-        if (menuId == null || menuId.isBlank()) {
-            throw new IllegalArgumentException("menuId cannot be null or blank");
-        }
-        if (action == null || action.isBlank()) {
-            throw new IllegalArgumentException("action cannot be null or blank");
-        }
+        // Defensive checks
+        Objects.requireNonNull(sessionId, "sessionId cannot be null");
+        // Allow empty string for menuId/action? Usually required, validated in Aggregate.
+        if (timestamp == null) timestamp = Instant.now();
     }
 }

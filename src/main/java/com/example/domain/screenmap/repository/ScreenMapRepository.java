@@ -1,12 +1,3 @@
-package com.example.domain.screenmap.repository;
-
-import com.example.domain.screenmap.model.ScreenMapAggregate;
-import java.util.Optional;
-
-/**
- * Repository interface for ScreenMap aggregates.
- */
-public interface ScreenMapRepository {
-  ScreenMapAggregate save(ScreenMapAggregate aggregate);
-  Optional<ScreenMapAggregate> findById(String id);
-}
+// This file was incorrectly generated in a previous step and referenced non-existent classes.
+// Deleting it to resolve build errors. 
+// The correct ScreenMapRepository is in com.example.domain.screenmap.repository

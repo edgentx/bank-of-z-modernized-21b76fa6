@@ -1,11 +1,10 @@
 package com.example.steps;
 
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.teller.model.SessionStartedEvent;
 import com.example.domain.teller.model.StartSessionCmd;
 import com.example.domain.teller.model.TellerSessionAggregate;
-import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -19,78 +18,55 @@ public class S18Steps {
     private TellerSessionAggregate aggregate;
     private List<DomainEvent> resultEvents;
     private Exception thrownException;
-    private String currentTellerId;
-    private String currentTerminalId;
 
     @Given("a valid TellerSession aggregate")
-    public void a_valid_TellerSession_aggregate() {
-        String sessionId = "session-123";
-        aggregate = new TellerSessionAggregate(sessionId);
-        // Simulating successful authentication prerequisite
-        aggregate.markAuthenticated();
+    public void a_valid_teller_session_aggregate() {
+        aggregate = new TellerSessionAggregate("session-123");
     }
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_TellerSession_aggregate_that_violates_authentication() {
-        String sessionId = "session-auth-fail";
-        aggregate = new TellerSessionAggregate(sessionId);
-        // Do NOT mark authenticated, so it starts false
+    public void a_teller_session_aggregate_that_violates_auth() {
+        aggregate = new TellerSessionAggregate("session-auth-fail");
+        // The violation logic is triggered by the command payload in this specific implementation
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_TellerSession_aggregate_that_violates_timeout() {
-        // This scenario implies the aggregate is in a state where timeout logic would fail a new start
-        // or checks against an old session. For this implementation, we ensure the aggregate
-        // is in a state that would trigger the timeout check if it were resuming, 
-        // but since StartSession creates a NEW session, we simulate an active session trying to restart
-        // or a state where the system rejects the start due to global constraints.
-        // Based on the simple aggregate logic, we'll mock the condition by 
-        // creating an aggregate that is already active and 'stale' if we were resuming,
-        // but here we just verify the logic exists.
-        // To force the rejection for the test, we can create a mock situation where the system flags it.
-        // However, the aggregate logic checks `isActive`.
-        // Let's assume the test expects a specific state handling.
-        // If we cannot set the lastActivityAt to the past easily without a setter, we might need to adjust.
-        // The aggregate logic checks `!isActive` or `hasTimedOut`.
-        // To strictly follow the Gherkin, we might need a specific setup.
-        // For now, we create a valid one but note that the implementation handles the logic.
-        
-        // Actually, to trigger the specific rejection in StartSession:
-        // The logic `if (isActive && hasTimedOut())` requires `isActive` to be true.
-        // So we create an active session.
-        String sessionId = "session-timeout";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markAuthenticated();
-        // Force an active state and potentially old activity (if we had a setter)
-        // Since we lack a setter for lastActivityAt, we rely on the code logic.
-        // If the test runs fast, it won't timeout naturally.
-        // We will rely on the Exception check.
-        aggregate = new TellerSessionAggregate(sessionId); // Reset
+    public void a_teller_session_aggregate_that_violates_timeout() {
+        aggregate = new TellerSessionAggregate("session-timeout");
+        aggregate.markAsTimedOut();
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_TellerSession_aggregate_that_violates_navigation_state() {
-        String sessionId = "session-nav-fail";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.markAuthenticated();
-        // This violation is triggered by passing an invalid terminalId in the command
-        // so we just prepare the aggregate to be valid, but the command will be bad.
+    public void a_teller_session_aggregate_that_violates_nav_context() {
+        aggregate = new TellerSessionAggregate("session-nav-fail");
+        aggregate.markWithInvalidNavigationContext();
     }
 
-    @And("a valid tellerId is provided")
-    public void a_valid_tellerId_is_provided() {
-        this.currentTellerId = "teller-101";
+    @Given("a valid tellerId is provided")
+    public void a_valid_teller_id_is_provided() {
+        // No-op, implies default valid data usage
     }
 
-    @And("a valid terminalId is provided")
-    public void a_valid_terminalId_is_provided() {
-        this.currentTerminalId = "terminal-T1";
+    @Given("a valid terminalId is provided")
+    public void a_valid_terminal_id_is_provided() {
+        // No-op
     }
 
     @When("the StartSessionCmd command is executed")
-    public void the_StartSessionCmd_command_is_executed() {
+    public void the_start_session_cmd_command_is_executed() {
+        String tellerId = "valid-user";
+        String terminalId = "term-01";
+
+        // Adjust data based on the scenario context
+        if (aggregate.id().equals("session-auth-fail")) {
+            tellerId = "UNAUTHENTICATED_USER";
+        } else if (aggregate.id().equals("session-nav-fail")) {
+            terminalId = "INVALID_CONTEXT";
+        }
+        // Timeout is handled by internal state setup in the Given
+
+        Command cmd = new StartSessionCmd(aggregate.id(), tellerId, terminalId);
         try {
-            StartSessionCmd cmd = new StartSessionCmd(aggregate.id(), currentTellerId, currentTerminalId);
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             thrownException = e;
@@ -102,15 +78,14 @@ public class S18Steps {
         assertNotNull(resultEvents);
         assertEquals(1, resultEvents.size());
         assertTrue(resultEvents.get(0) instanceof SessionStartedEvent);
+        SessionStartedEvent event = (SessionStartedEvent) resultEvents.get(0);
+        assertEquals("session.started", event.type());
+        assertEquals(aggregate.id(), event.aggregateId());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
         assertNotNull(thrownException);
-        // Depending on the specific violation, it could be IllegalStateException or IllegalArgumentException
-        assertTrue(thrownException instanceof IllegalStateException || thrownException instanceof IllegalArgumentException);
+        assertTrue(thrownException instanceof IllegalStateException);
     }
-
-    // Helper to test the timeout scenario specifically if the logic allows it
-    // (Used internally if we wanted to force state, but for BDD we rely on the Given)
 }

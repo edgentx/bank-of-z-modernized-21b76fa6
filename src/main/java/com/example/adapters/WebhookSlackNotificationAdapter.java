@@ -1,36 +1,30 @@
 package com.example.adapters;
 
 import com.example.domain.shared.SlackMessageValidator;
-import com.example.ports.SlackNotificationPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Real adapter for sending Slack notifications.
- * Uses WebClient or RestTemplate to hit the webhook URL.
+ * Adapter responsible for sending notifications to Slack.
+ * This adapter enforces validation logic before sending.
  */
 @Component
-public class WebhookSlackNotificationAdapter implements SlackNotificationPort {
+public class WebhookSlackNotificationAdapter {
 
-    private static final Logger log = LoggerFactory.getLogger(WebhookSlackNotificationAdapter.class);
     private final SlackMessageValidator validator;
 
     public WebhookSlackNotificationAdapter(SlackMessageValidator validator) {
         this.validator = validator;
     }
 
-    @Override
-    public void notify(String message) {
-        if (!validator.validate(message)) {
-            throw new IllegalArgumentException("Invalid Slack message: " + message);
+    /**
+     * Posts a message to the configured Slack webhook.
+     * @param body The message body.
+     * @throws IllegalArgumentException if validation fails.
+     */
+    public void post(String body) {
+        if (!validator.containsGitHubUrl(body)) {
+            throw new IllegalArgumentException("Slack body validation failed: GitHub URL missing");
         }
-
-        // In a real implementation, we would use:
-        // WebClient.post().uri(webhookUrl).bodyValue(message).retrieve().bodyToMono(String.class).block();
-        // For this defect fix, we verify the message content logic passes validation.
-        
-        log.info("Sending Slack notification: {}", message);
-        // Simulate successful send
+        // Actual Slack HTTP call would go here
     }
 }

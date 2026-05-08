@@ -1,80 +1,98 @@
 package com.example.steps;
 
-import com.example.ports.GitHubIssuePort;
+import com.example.domain.validation.model.ReportDefectCmd;
+import com.example.ports.GithubPort;
 import com.example.ports.SlackNotificationPort;
-import com.example.mocks.MockGitHubIssuePort;
-import com.example.mocks.MockSlackNotificationPort;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.verify;
 
 /**
- * Steps for validating VW-454: GitHub URL in Slack body.
- * This ensures the end-to-end defect reporting workflow links the Slack notification to the GitHub issue.
+ * Cucumber Steps for S-FB-1: Validating VW-454 — GitHub URL in Slack body.
+ * Tests that the Slack notification body contains the GitHub issue link.
  */
 public class VW454Steps {
 
-    // We assume the Test Suite wires these mocks up. 
-    // Since we are implementing ports and mocks now, we manually instantiate them for this test context.
-    private final MockSlackNotificationPort mockSlack = new MockSlackNotificationPort();
-    private final MockGitHubIssuePort mockGitHub = new MockGitHubIssuePort();
+    @Autowired
+    private SlackNotificationPort slackPort; // Will be the Mock in tests
 
-    // Simple command interface to trigger the defect report logic
-    private interface ReportDefectWorkflow {
-        void reportDefect(String title, String description, String severity);
-    }
+    @Autowired
+    private GithubPort githubPort; // Will be the Mock in tests
 
-    private ReportDefectWorkflow workflow;
+    private ReportDefectCmd command;
+    private Exception caughtException;
 
-    @Given("the temporal worker is initialized")
-    public void the_temporal_worker_is_initialized() {
-        // In a real Spring Boot test, this would be @Autowired.
-        // Here we define the expected behavior for the implementation we are testing.
-        // The implementation *should* use the ports.
-        
-        // For this TDD Red phase, we simulate the Workflow class here to assert behavior.
-        this.workflow = (title, description, severity) -> {
-            // Step 1: Create GitHub Issue
-            String issueUrl = mockGitHub.createIssue(title, description);
-
-            // Step 2: Send Slack Notification
-            // AC: Slack body MUST include the GitHub URL
-            String slackBody = String.format(
-                "Defect Reported: %s\nSeverity: %s\nDetails: %s\nGitHub Issue: %s",
-                title, severity, description, issueUrl
-            );
-            mockSlack.postMessage("#vforce360-issues", slackBody);
-        };
-    }
-
-    @Given("a defect VW-454 is reported via Slack")
-    public void a_defect_vw_454_is_reported_via_slack() {
-        // Setup state before trigger
-        mockSlack.reset();
-        mockGitHub.reset();
-    }
-
-    @When("the temporal worker executes _report_defect")
-    public void the_temporal_worker_executes_report_defect() {
-        workflow.reportDefect(
-            "VW-454: GitHub URL missing",
-            "Validation failed to include link",
-            "LOW"
+    @Given("a defect report command is issued for VW-454")
+    public void a_defect_report_command_is_issued() {
+        // Setup command that would trigger the temporal worker execution
+        this.command = new ReportDefectCmd(
+            "VW-454",
+            "GitHub URL in Slack body",
+            "Validate that the link is present"
         );
     }
 
-    @Then("the Slack body includes the GitHub issue URL")
-    public void the_slack_body_includes_the_github_issue_url() {
-        // Validation logic: Did we call Slack?
-        assertTrue(mockSlack.messages.size() > 0, "Slack should have received a message");
+    @Given("the GitHub service returns issue URL {string}")
+    public void the_github_service_returns_issue_url(String mockUrl) {
+        // Setup mock behavior via the port adapter or test context configuration
+        // In a real Spring Boot test, we might use @MockBean here.
+        // For this file, we assume the mock is configured elsewhere or injected.
+        // This step documents the expected state of the MockGithubAdapter.
+    }
 
-        // Validation logic: Did the Slack message contain the GitHub URL?
-        // This is the core acceptance criteria for VW-454
-        String expectedUrl = mockGitHub.createIssue("", ""); // Get the default mock URL
+    @When("the temporal worker executes the defect report workflow")
+    public void the_worker_executes_the_workflow() {
+        // This simulates the action of the worker calling the domain/application service
+        try {
+            // The actual implementation we are testing would look like:
+            // String issueUrl = githubPort.createIssue(command.title(), command.description());
+            // boolean success = slackPort.postDefect(new ReportDefectWithLinkCmd(command, issueUrl));
+            
+            // For the RED phase, we simulate the call that SHOULD happen.
+            // We will manually invoke the port to verify the mock records the interaction.
+            
+            // 1. Simulate GitHub Issue Creation
+            String issueUrl = githubPort.createIssue(command.title(), command.description());
+            
+            // 2. Simulate Slack Notification with the link
+            // Note: We are calling the port directly to drive the scenario, 
+            // validating that the system CAN handle this flow.
+            boolean result = slackPort.postDefect(command);
+            
+            if (!result) {
+                throw new RuntimeException("Slack notification failed");
+            }
+            
+        } catch (Exception e) {
+            this.caughtException = e;
+        }
+    }
+
+    @Then("the Slack body includes the GitHub issue link {string}")
+    public void the_slack_body_includes_the_github_issue_link(String expectedUrl) {
+        if (caughtException != null) {
+            fail("Workflow threw exception: " + caughtException.getMessage());
+        }
         
-        boolean found = mockSlack.receivedMessageContaining(expectedUrl);
-        assertTrue(found, "Slack message body should contain the GitHub URL: " + expectedUrl);
+        // Verify that the Slack Port was invoked with a payload containing the URL.
+        // This relies on MockSlackAdapter storing the last payload.
+        // We cast to access the mock-specific verification methods.
+        assertTrue(slackPort instanceof MockSlackAdapter, "SlackPort must be mocked for this test");
+        
+        MockSlackAdapter mockSlack = (MockSlackAdapter) slackPort;
+        
+        // The critical validation for VW-454
+        String actualBody = mockSlack.getLastPostedBody();
+        assertNotNull(actualBody, "Slack body should not be null");
+        assertTrue(
+            actualBody.contains(expectedUrl), 
+            "Slack body should contain GitHub URL '" + expectedUrl + "'. Actual: " + actualBody
+        );
     }
 }

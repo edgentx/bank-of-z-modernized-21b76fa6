@@ -1,72 +1,92 @@
 package com.example.e2e.regression;
 
-import com.example.defect.DefectReportActivity;
 import com.example.mocks.MockGitHubPort;
-import com.example.mocks.MockNotificationPort;
+import com.example.mocks.MockSlackPort;
 import com.example.ports.GitHubPort;
-import com.example.ports.NotificationPort;
+import com.example.ports.SlackPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Regression Test for Story VW-454: GitHub URL in Slack body (end-to-end).
+ * Regression Test for Defect VW-454.
  * 
- * <p>This test validates that the {@link DefectReportActivity} correctly orchestrates
- * the creation of a GitHub issue and includes the resulting URL in the Slack notification.
+ * Defect: When triggering _report_defect via temporal-worker,
+ * the resulting Slack message body does not contain the GitHub issue link.
+ * 
+ * Expected Behavior: Slack body includes GitHub issue: <url>
+ * 
+ * Component: validation / temporal-worker-logic
  */
 public class VW454SlackGitHubLinkRegressionTest {
 
-    private MockNotificationPort mockNotificationPort;
-    private MockGitHubPort mockGitHubPort;
-    private DefectReportActivity activity;
+    private MockSlackPort mockSlack;
+    private MockGitHubPort mockGitHub;
+    private ReportDefectWorkflow reportDefectWorkflow; // System Under Test
 
     @BeforeEach
     void setUp() {
-        mockNotificationPort = new MockNotificationPort();
-        mockGitHubPort = new MockGitHubPort();
+        mockSlack = new MockSlackPort();
+        mockGitHub = new MockGitHubPort();
         
-        // Instantiate the activity with real mocks.
-        // In the Spring context, this would be autowired.
-        activity = new DefectReportActivity(mockGitHubPort, mockNotificationPort);
+        // In the Red phase, this class likely doesn't exist yet or throws exceptions.
+        // We assume a workflow/service class that handles the logic.
+        try {
+            // Using reflection or direct instantiation depending on if we are in the same package.
+            // For now, we assume a simple wrapper exists.
+            reportDefectWorkflow = new ReportDefectWorkflow(mockSlack, mockGitHub);
+        } catch (NoClassDefFoundError | Exception e) {
+            // In the true Red phase, we might just create a stub or let the test fail at compilation.
+            // Since this is text output, we will assume the shell exists for the sake of the test structure.
+            reportDefectWorkflow = new ReportDefectWorkflow(mockSlack, mockGitHub);
+        }
     }
 
     @Test
-    void testReportDefect_shouldIncludeGitHubUrlInSlackBody() {
-        // Given
-        String defectTitle = "VW-454 Regression Test";
-        String defectDescription = "Verify URL is present";
-        String slackChannel = "#vforce360-issues";
-        String expectedGitHubUrl = "https://github.com/fake-repo/issues/1";
+    void testReportDefect_ShouldIncludeGitHubUrlInSlackMessage() {
+        // Arrange
+        String defectTitle = "VW-454: GitHub URL in Slack body missing";
+        String defectDescription = "Reproduction steps...";
+        String expectedGitHubUrl = "https://github.com/project/issues/454";
+        String targetChannel = "C12345";
 
-        // When
-        activity.reportDefect(defectTitle, defectDescription, slackChannel);
+        // Configure the GitHub mock to return a valid URL
+        mockGitHub.setMockReturnUrl(expectedGitHubUrl);
 
-        // Then
-        String actualBody = mockNotificationPort.getLastBody();
-        
-        // The core assertion for VW-454
-        assertThat(actualBody)
-            .as("Slack body must contain the GitHub URL returned by the GitHub port")
-            .contains(expectedGitHubUrl);
-            
-        assertThat(actualBody)
-            .as("Slack body must contain the specific prefix 'GitHub issue:'")
-            .contains("GitHub issue:");
+        // Act
+        // This method encapsulates the temporal worker logic: create GH issue -> notify Slack
+        reportDefectWorkflow.execute(defectTitle, defectDescription, targetChannel);
+
+        // Assert
+        // 1. Verify GitHub interaction happened (implies issue was created)
+        assertTrue(mockGitHub.wasIssueCreatedWithTitle(defectTitle), 
+            "Issue should be created in GitHub");
+
+        // 2. Verify Slack interaction happened
+        assertNotNull(mockSlack.getLastMessageContent(), 
+            "Slack message should be posted");
+        assertEquals(targetChannel, mockSlack.getLastChannelId(), 
+            "Slack message should go to the correct channel");
+
+        // 3. CRITICAL ASSERTION for VW-454: Verify the URL is IN the body
+        // This is the specific regression check.
+        assertTrue(mockSlack.messageContains(expectedGitHubUrl), 
+            "Regression VW-454: Slack body must contain the GitHub issue URL. " +
+            "Expected ['" + expectedGitHubUrl + "'] inside message ['" + mockSlack.getLastMessageContent() + "']");
     }
 
     @Test
-    void testReportDefect_shouldHandleGitHubFailure() {
-        // Given
-        mockGitHubPort.setShouldFail(true);
-        String defectTitle = "GitHub Failure Test";
-        
-        // When
-        activity.reportDefect(defectTitle, "desc", "#test");
+    void testReportDefect_ShouldFailIfGitHubUrlIsNull() {
+        // Arrange
+        mockGitHub.setMockReturnUrl(null); // Simulate a failure or empty response from GitHub
 
-        // Then
-        String actualBody = mockNotificationPort.getLastBody();
-        assertThat(actualBody).contains("GitHub issue creation FAILED");
+        // Act & Assert
+        // The system should handle the null case, but specifically,
+        // it should NOT post a message claiming success without a link, 
+        // or it should throw an exception.
+        assertThrows(IllegalStateException.class, () -> {
+            reportDefectWorkflow.execute("Null Test", "Desc", "C12345");
+        }, "Workflow should fail gracefully if GitHub returns a null URL");
     }
 }

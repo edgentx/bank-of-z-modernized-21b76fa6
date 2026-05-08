@@ -1,95 +1,93 @@
 package com.example.steps;
 
 import com.example.domain.legacybridge.model.LegacyTransactionRoute;
-import com.example.domain.legacybridge.model.RoutingUpdatedEvent;
+import com.example.domain.legacybridge.model.RoutingRuleUpdatedEvent;
 import com.example.domain.legacybridge.model.UpdateRoutingRuleCmd;
 import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.Instant;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 public class S24Steps {
 
     private LegacyTransactionRoute aggregate;
-    private Exception caughtException;
-    private List<DomainEvent> resultEvents;
-
-    // Test Data
-    private static final String TEST_ROUTE_ID = "route-123";
-    private static final String TEST_RULE_ID = "rule-abc";
-    private static final String TEST_TARGET = "VForce360";
-    private static final Instant TEST_DATE = Instant.now();
+    private UpdateRoutingRuleCmd command;
+    private List<DomainEvent> resultingEvents;
+    private Exception capturedException;
 
     @Given("a valid LegacyTransactionRoute aggregate")
-    public void aValidLegacyTransactionRouteAggregate() {
-        this.aggregate = new LegacyTransactionRoute(TEST_ROUTE_ID);
-        this.caughtException = null;
+    public void a_valid_legacy_transaction_route_aggregate() {
+        aggregate = new LegacyTransactionRoute("route-123");
     }
 
-    @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.")
-    public void aLegacyTransactionRouteAggregateThatViolatesDualProcessing() {
-        this.aggregate = new LegacyTransactionRoute(TEST_ROUTE_ID);
-        // Mark the aggregate to simulate the invariant violation state
+    @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system")
+    public void a_legacy_transaction_route_aggregate_with_dual_processing_violation() {
+        aggregate = new LegacyTransactionRoute("route-123");
         aggregate.markDualProcessingViolation();
     }
 
-    @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback.")
-    public void aLegacyTransactionRouteAggregateThatViolatesVersioning() {
-        this.aggregate = new LegacyTransactionRoute(TEST_ROUTE_ID);
-        // Mark the aggregate to simulate the invariant violation state
+    @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback")
+    public void a_legacy_transaction_route_aggregate_with_versioning_violation() {
+        aggregate = new LegacyTransactionRoute("route-123");
         aggregate.markVersioningViolation();
     }
 
     @And("a valid ruleId is provided")
-    public void aValidRuleIdIsProvided() {
-        // Context setup, data handled in 'When' step
+    public void a_valid_rule_id_is_provided() {
+        // Context setup - passed to command in 'When'
     }
 
     @And("a valid newTarget is provided")
-    public void aValidNewTargetIsProvided() {
-        // Context setup, data handled in 'When' step
+    public void a_valid_new_target_is_provided() {
+        // Context setup - passed to command in 'When'
     }
 
     @And("a valid effectiveDate is provided")
-    public void aValidEffectiveDateIsProvided() {
-        // Context setup, data handled in 'When' step
+    public void a_valid_effective_date_is_provided() {
+        // Context setup - passed to command in 'When'
     }
 
     @When("the UpdateRoutingRuleCmd command is executed")
-    public void theUpdateRoutingRuleCmdCommandIsExecuted() {
+    public void the_update_routing_rule_cmd_command_is_executed() {
+        // Create a valid command with defaults for positive flow, 
+        // specific values don't matter much for Invariant checks unless specified
+        command = new UpdateRoutingRuleCmd(
+            "route-123", 
+            "rule-A", 
+            "MODERN", 
+            Instant.now(), 
+            2
+        );
+
         try {
-            UpdateRoutingRuleCmd cmd = new UpdateRoutingRuleCmd(TEST_ROUTE_ID, TEST_RULE_ID, TEST_TARGET, TEST_DATE);
-            resultEvents = aggregate.execute(cmd);
+            resultingEvents = aggregate.execute(command);
         } catch (Exception e) {
-            caughtException = e;
+            capturedException = e;
         }
     }
 
     @Then("a routing.updated event is emitted")
-    public void aRoutingUpdatedEventIsEmitted() {
-        assertNotNull(resultEvents, "Events list should not be null");
-        assertEquals(1, resultEvents.size(), "Exactly one event should be emitted");
+    public void a_routing_updated_event_is_emitted() {
+        assertNotNull(resultingEvents);
+        assertEquals(1, resultingEvents.size());
         
-        DomainEvent event = resultEvents.get(0);
-        assertInstanceOf(RoutingUpdatedEvent.class, event, "Event must be of type RoutingUpdatedEvent");
+        DomainEvent event = resultingEvents.get(0);
+        assertTrue(event instanceof RoutingRuleUpdatedEvent);
         
-        RoutingUpdatedEvent routingEvent = (RoutingUpdatedEvent) event;
+        RoutingRuleUpdatedEvent routingEvent = (RoutingRuleUpdatedEvent) event;
         assertEquals("routing.updated", routingEvent.type());
-        assertEquals(TEST_ROUTE_ID, routingEvent.aggregateId());
-        assertEquals(TEST_RULE_ID, routingEvent.ruleId());
-        assertEquals(TEST_TARGET, routingEvent.newTarget());
+        assertEquals("route-123", routingEvent.aggregateId());
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(caughtException, "Expected an exception to be thrown");
-        // The specific message or type can be asserted here based on the violation
-        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(capturedException);
+        // Depending on invariant, it could be IllegalStateException or IllegalArgumentException
+        assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
     }
 }

@@ -5,15 +5,13 @@ import java.time.Instant;
 
 /**
  * Domain event emitted when a routing rule is successfully updated.
- * Indicates a shift in traffic configuration (e.g., Legacy to Modern).
  */
 public record RoutingRuleUpdatedEvent(
-    String aggregateId,
-    String ruleId,
-    String newTarget,
-    Instant effectiveDate,
-    int newVersion,
-    Instant occurredAt
+        String aggregateId,
+        String ruleId,
+        String newTarget,
+        Instant effectiveDate,
+        Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
@@ -22,7 +20,7 @@ public record RoutingRuleUpdatedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId();
+        return aggregateId;
     }
 
     @Override

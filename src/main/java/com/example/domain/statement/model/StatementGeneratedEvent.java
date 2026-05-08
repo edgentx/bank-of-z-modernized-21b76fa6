@@ -4,19 +4,20 @@ import com.example.domain.shared.DomainEvent;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
 
+// Internal event for setup/simulation of the aggregate state
 public record StatementGeneratedEvent(
-        String aggregateId,
+        String statementId,
         String accountId,
-        LocalDate startDate,
-        LocalDate endDate,
         BigDecimal openingBalance,
         BigDecimal closingBalance,
+        boolean isPeriodClosed,
         Instant occurredAt
 ) implements DomainEvent {
     @Override
-    public String type() {
-        return "statement.generated";
-    }
+    public String type() { return "statement.generated"; }
+    @Override
+    public String aggregateId() { return statementId; }
+    @Override
+    public Instant occurredAt() { return occurredAt; }
 }

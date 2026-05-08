@@ -12,11 +12,11 @@ public record DefectReportedEvent(
         String eventId,
         String defectId,
         String issueId,
-        String gitHubUrl,
+        String summary,
         Instant occurredAt
 ) implements DomainEvent {
-    public DefectReportedEvent(String defectId, String issueId, String gitHubUrl, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), defectId, issueId, gitHubUrl, occurredAt);
+    public DefectReportedEvent(String defectId, String issueId, String summary, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), defectId, issueId, summary, occurredAt);
     }
 
     @Override

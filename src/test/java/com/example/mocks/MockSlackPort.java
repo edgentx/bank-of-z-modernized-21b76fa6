@@ -10,27 +10,18 @@ import java.util.List;
  */
 public class MockSlackPort implements SlackPort {
 
-    private final List<String> postedMessages = new ArrayList<>();
-    private boolean shouldFail = false;
+    public final List<String> sentMessages = new ArrayList<>();
+    public String lastChannelId;
 
     @Override
-    public boolean postMessage(String text) {
-        if (shouldFail) {
-            return false;
-        }
-        postedMessages.add(text);
-        return true;
+    public void sendMessage(String channelId, String message) {
+        this.lastChannelId = channelId;
+        this.sentMessages.add(message);
+        // Simulate no exception thrown
     }
 
-    public List<String> getPostedMessages() {
-        return postedMessages;
-    }
-
-    public boolean containsMessageWithSubstring(String substring) {
-        return postedMessages.stream().anyMatch(msg -> msg.contains(substring));
-    }
-
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
+    public void reset() {
+        sentMessages.clear();
+        lastChannelId = null;
     }
 }

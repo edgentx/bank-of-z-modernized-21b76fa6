@@ -6,21 +6,22 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event emitted when a teller successfully navigates to a new menu context.
+ * Event emitted when a Teller successfully navigates to a new menu.
+ * S-19: Implement NavigateMenuCmd on TellerSession.
  */
 public record MenuNavigatedEvent(
-    String eventId,
     String aggregateId,
     String menuId,
     String action,
     Instant occurredAt
 ) implements DomainEvent {
-    public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), aggregateId, menuId, action, occurredAt);
-    }
-
     @Override
     public String type() {
         return "menu.navigated";
+    }
+
+    // Constructor overload for backward compatibility if needed, though record handles it
+    public static MenuNavigatedEvent create(String sessionId, String menuId, String action) {
+        return new MenuNavigatedEvent(sessionId, menuId, action, Instant.now());
     }
 }

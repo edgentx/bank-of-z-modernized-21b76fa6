@@ -1,16 +1,14 @@
 package com.example.ports;
 
 /**
- * Port interface for Slack notifications.
- * Used to validate defect VW-454 regarding GitHub URLs in the message body.
+ * Port for sending notifications to Slack.
+ * Used by Temporal workflows to alert on defect reports.
  */
 public interface SlackPort {
-
     /**
-     * Sends a notification to the #vforce360-issues channel.
+     * Sends a message to the configured Slack channel.
      *
-     * @param messageBody The formatted message payload.
-     * @throws IllegalArgumentException if the messageBody is invalid or missing required components.
+     * @param message The formatted message body.
      */
-    void sendNotification(String messageBody);
+    void sendMessage(String message);
 }

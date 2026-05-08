@@ -2,7 +2,6 @@ package com.example.domain.reporting.model;
 
 import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * Event emitted when a defect is successfully reported to Slack/GitHub.

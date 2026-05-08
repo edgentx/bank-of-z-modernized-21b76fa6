@@ -3,18 +3,26 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.Objects;
 
 /**
- * Domain event emitted when a teller successfully navigates to a new menu.
+ * Event emitted when a teller successfully navigates to a new menu.
  */
 public record MenuNavigatedEvent(
     String aggregateId,
-    String tellerId,
+    String sourceMenuId,
     String targetMenuId,
     String action,
-    String previousMenuId,
     Instant occurredAt
 ) implements DomainEvent {
+
+    public MenuNavigatedEvent {
+        Objects.requireNonNull(aggregateId, "aggregateId required");
+        Objects.requireNonNull(sourceMenuId, "sourceMenuId required");
+        Objects.requireNonNull(targetMenuId, "targetMenuId required");
+        Objects.requireNonNull(action, "action required");
+        Objects.requireNonNull(occurredAt, "occurredAt required");
+    }
 
     @Override
     public String type() {

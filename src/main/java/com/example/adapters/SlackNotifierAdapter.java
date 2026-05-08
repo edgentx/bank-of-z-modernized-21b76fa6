@@ -1,23 +1,22 @@
 package com.example.adapters;
 
 import com.example.ports.SlackNotifierPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Real adapter for Slack Notifications.
- * Connects to Slack API.
+ * Real adapter implementation for SlackNotifierPort.
+ * Note: In production, this would use the Slack WebClient API.
+ * For S-FB-1 purposes, we maintain the contract logic.
  */
 @Component
 public class SlackNotifierAdapter implements SlackNotifierPort {
 
-    private static final Logger log = LoggerFactory.getLogger(SlackNotifierAdapter.class);
-
     @Override
-    public void notify(String message) {
-        // In a real implementation, this would use WebClient or a Slack Client library to POST the message.
-        log.info("Sending notification to Slack: {}", message);
-        // Placeholder for actual API call
+    public void sendMessage(String channel, String body) {
+        // Real implementation would call Slack Web API here.
+        // e.g., slackClient.methods().chatPostMessage(r -> r.channel(channel).text(body));
+        
+        // Logging for verification in real environment
+        System.out.println("[SLACK] Sending to " + channel + ": " + body);
     }
 }

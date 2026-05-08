@@ -2,15 +2,16 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.Objects;
+import java.util.UUID;
 
 /**
- * Command to end an active teller session.
- * Context: Teller Session (S-20).
+ * Command to end a current Teller session.
+ * Clears sensitive session state.
  */
 public record EndSessionCmd(String sessionId) implements Command {
     public EndSessionCmd {
-        Objects.requireNonNull(sessionId, "sessionId cannot be null");
-        if (sessionId.isBlank()) throw new IllegalArgumentException("sessionId cannot be blank");
+        if (sessionId == null || sessionId.isBlank()) {
+            throw new IllegalArgumentException("sessionId cannot be null or blank");
+        }
     }
 }

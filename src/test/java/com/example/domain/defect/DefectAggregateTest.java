@@ -1,52 +1,86 @@
 package com.example.domain.defect;
 
-import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.defect.domain.DefectAggregate;
+import com.example.defect.domain.DefectReportedEvent;
+import com.example.defect.domain.ReportDefectCmd;
 import com.example.domain.shared.UnknownCommandException;
 import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.Map;
+
 /**
- * TDD Red Phase: Verify Defect Aggregate logic.
- * Ensures command handling produces correct events.
+ * Unit tests for DefectAggregate.
  */
 class DefectAggregateTest {
 
     @Test
-    void should_handle_report_defect_command() {
-        String defectId = "d-123";
-        String title = "Test Failure";
-        String severity = "HIGH";
-        ReportDefectCmd cmd = new ReportDefectCmd(defectId, title, severity);
-
+    void testExecute_ReportDefect_Success() {
+        // Arrange
+        String defectId = "VW-454";
         DefectAggregate aggregate = new DefectAggregate(defectId);
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            defectId,
+            "GitHub URL Validation",
+            "LOW",
+            "validation",
+            "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1",
+            Map.of("reporter", "VForce360")
+        );
 
-        assertEquals(0, aggregate.uncommittedEvents().size());
+        // Act
+        var events = aggregate.execute(cmd);
 
-        aggregate.execute(cmd);
-
-        assertEquals(1, aggregate.uncommittedEvents().size());
+        // Assert
+        assertFalse(events.isEmpty());
+        assertTrue(events.get(0) instanceof DefectReportedEvent);
+        
+        DefectReportedEvent event = (DefectReportedEvent) events.get(0);
+        assertEquals(defectId, event.defectId());
+        assertNotNull(event.githubUrl());
+        assertTrue(event.githubUrl().contains(defectId));
+        
+        // Verify aggregate state
         assertTrue(aggregate.isReported());
+        assertEquals(event.githubUrl(), aggregate.getGithubUrl());
     }
 
     @Test
-    void should_throw_on_unknown_command() {
-        String defectId = "d-123";
-        // Just use a generic object or a new Command type not implemented
-        Object unknownCmd = new Object(); 
-
+    void testExecute_ReportDefect_ThrowsOnMissingProjectId() {
+        // Arrange
+        String defectId = "VW-455";
         DefectAggregate aggregate = new DefectAggregate(defectId);
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            defectId, "Title", "LOW", "comp", null, Map.of()
+        );
 
-        // Note: The execute method signature takes Command. We need to pass something castable to Command
-        // or relying on the pattern used in other aggregates (pattern matching).
-        // For this test, we simulate the failure condition.
-        assertThrows(UnknownCommandException.class, () -> {
-            // This requires a dummy Command implementation if we don't import one
-            // For compilation safety in this stub, we'll assume a dummy instance
-            // or verify the logic via the ReportDefectCmd test.
-            // Given the constraints, we verify the happy path primarily and exception structure.
-            throw new UnknownCommandException((com.example.domain.shared.Command) () -> "dummy");
-        });
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> aggregate.execute(cmd));
+    }
+
+    @Test
+    void testExecute_ReportDefect_ThrowsOnDuplicateReport() {
+        // Arrange
+        String defectId = "VW-456";
+        DefectAggregate aggregate = new DefectAggregate(defectId);
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            defectId, "Title", "LOW", "comp", "proj-1", Map.of()
+        );
+        aggregate.execute(cmd); // First report
+
+        // Act & Assert
+        assertThrows(IllegalStateException.class, () -> aggregate.execute(cmd));
+    }
+
+    @Test
+    void testExecute_UnknownCommand() {
+        // Arrange
+        String defectId = "VW-457";
+        DefectAggregate aggregate = new DefectAggregate(defectId);
+        
+        class UnknownCommand implements com.example.domain.shared.Command {}
+
+        // Act & Assert
+        assertThrows(UnknownCommandException.class, () -> aggregate.execute(new UnknownCommand()));
     }
 }

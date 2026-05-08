@@ -29,7 +29,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        
+
         <!-- Temporal (Explicit version required, not in Boot BOM) -->
         <dependency>
             <groupId>io.temporal</groupId>

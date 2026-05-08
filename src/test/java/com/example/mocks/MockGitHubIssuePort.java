@@ -1,43 +1,27 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
 
 /**
  * Mock implementation of GitHubIssuePort for testing.
- * Allows verification of calls and injection of failure states.
  */
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private final List<String> createdTitles = new ArrayList<>();
-    private String mockUrl = "https://github.com/mock-org/mock-repo/issues/1";
-    private boolean shouldFail = false;
-
-    public void setMockUrl(String url) {
-        this.mockUrl = url;
-    }
-
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
-    }
+    private String configuredUrl = null;
 
     @Override
-    public String createIssue(String title, String description) {
-        createdTitles.add(title);
-        if (shouldFail) {
-            return null; // Simulate API failure
+    public Optional<String> getIssueUrl(String issueId) {
+        if (configuredUrl != null) {
+            return Optional.of(configuredUrl);
         }
-        return mockUrl;
+        return Optional.empty();
     }
 
-    public boolean wasIssueCreated(String title) {
-        return createdTitles.contains(title);
-    }
-
-    public void reset() {
-        createdTitles.clear();
-        mockUrl = "https://github.com/mock-org/mock-repo/issues/1";
-        shouldFail = false;
+    /**
+     * Helper to configure what this mock should return.
+     */
+    public void mockUrl(String url) {
+        this.configuredUrl = url;
     }
 }

@@ -3,25 +3,26 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
-/**
- * Event emitted when a Teller Session is successfully started.
- * Verified by S-18.
- */
 public record SessionStartedEvent(
-        String sessionId,
+        String eventId,
+        String aggregateId,
         String tellerId,
         String terminalId,
         Instant occurredAt
 ) implements DomainEvent {
-    @Override
-    public String type() {
-        return "session.started";
+    public SessionStartedEvent {
+        if (eventId == null) eventId = UUID.randomUUID().toString();
+    }
+
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, tellerId, terminalId, occurredAt);
     }
 
     @Override
-    public String aggregateId() {
-        return sessionId;
+    public String type() {
+        return "session.started";
     }
 
     @Override

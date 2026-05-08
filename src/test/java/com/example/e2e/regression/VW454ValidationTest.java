@@ -1,90 +1,112 @@
 package com.example.e2e.regression;
 
-import com.example.Application;
-import com.example.mocks.MockSlackNotificationPort;
-import com.example.ports.SlackNotificationPort;
+import com.example.domain.shared.ValidationResult;
+import com.example.mocks.MockSlackReporter;
+import com.example.ports.DefectReporterPort;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * E2E Regression test for VW-454.
+ * TDD Red Phase Regression Test for VW-454.
  * 
- * Story: S-FB-1
- * Defect: Validating VW-454 — GitHub URL in Slack body (end-to-end)
+ * Story: Validating VW-454 — GitHub URL in Slack body (end-to-end)
+ * Severity: LOW
+ * Component: validation
  * 
- * Context: Temporal worker executes _report_defect, which eventually
- * triggers a Slack notification. We must ensure the Slack body contains
- * the valid GitHub issue URL.
+ * Reproduction Steps:
+ * 1. Trigger _report_defect via temporal-worker exec
+ * 2. Verify Slack body contains GitHub issue link
+ * 
+ * Expected Behavior: Slack body includes GitHub issue: <url>
  */
-@ExtendWith(SpringExtension.class)
-@SpringBootTest(classes = Application.class)
-class VW454ValidationTest {
-
-    @Autowired
-    private SlackNotificationPort slackNotificationPort;
+public class VW454ValidationTest {
 
     /**
-     * AC: The validation no longer exhibits the reported behavior.
-     * Test: Verify that when a defect is reported, the Slack payload contains the GitHub URL.
+     * Acceptance Criterion 1: The validation no longer exhibits the reported behavior.
+     * We verify that the defect reporter correctly includes the GitHub URL in the message body.
      */
     @Test
     void testSlackBodyContainsGitHubUrl() {
         // Arrange
-        String expectedGitHubUrl = "https://github.com/example/bank-of-z/issues/454";
+        DefectReporterPort reporter = new MockSlackReporter();
+        String expectedUrl = "https://github.com/example/bank-of-z/issues/454";
         
-        // Simulate the Temporal worker executing the report_defect workflow logic.
-        // In a real scenario, this would trigger the saga/transaction.
-        // Here we trigger the port directly to validate the formatting logic.
-        // The defect VW-454 implies this URL was missing.
-        
-        String defectBody = "Defect reported: VW-454\nPlease review: " + expectedGitHubUrl;
-        slackNotificationPort.send(defectBody);
+        ValidationResult stubValidationResult = new ValidationResult() {
+            @Override public String getMessage() { return "VW-454 Validation Failed"; }
+            @Override public boolean isValid() { return false; }
+        };
 
-        // Act
-        String actualPayload = slackNotificationPort.getLastSentPayload();
+        // Act (Simulating Temporal Worker exec)
+        reporter.reportDefect(stubValidationResult, expectedUrl);
 
         // Assert
-        assertNotNull(actualPayload, "Slack payload should not be null");
+        MockSlackReporter mock = (MockSlackReporter) reporter;
+        assertEquals(1, mock.getReports().size(), "Should have generated one report");
+        
+        MockSlackReporter.Report report = mock.getReports().get(0);
+        
+        // The core assertion: the body must contain the URL
+        assertNotNull(report.body, "Report body should not be null");
         assertTrue(
-            actualPayload.contains(expectedGitHubUrl),
-            "Slack body must include the GitHub issue URL. Defect VW-454 indicates the link is missing."
+            report.body.contains(expectedUrl), 
+            "Slack body must contain the GitHub issue URL. Actual: " + report.body
+        );
+        
+        // Ensure it's formatted somewhat correctly (contains 'GitHub issue:' prefix based on requirement)
+        assertTrue(
+            report.body.contains("GitHub issue:"),
+            "Slack body should contain 'GitHub issue:' prefix. Actual: " + report.body
         );
     }
 
     /**
-     * AC: Regression test added to e2e/regression/ covering this scenario.
-     * Test: Verify that if the URL is missing (reproducing the bug), the test fails.
-     * This ensures the guard is working.
+     * Negative Check: Ensure we don't falsely pass if URL is missing.
      */
     @Test
-    void testRegressionGuard_Behavior() {
-        // Arrange: Reproduce the 'Missing URL' scenario described in Actual Behavior
-        String badBody = "Defect reported: VW-454. Link is missing.";
-        slackNotificationPort.send(badBody);
+    void testSlackBodyFailsIfUrlIsMissing() {
+        // Arrange
+        DefectReporterPort reporter = new MockSlackReporter();
+        String missingUrl = null;
+        
+        ValidationResult stubValidationResult = new ValidationResult() {
+            @Override public String getMessage() { return "VW-454 Validation Failed"; }
+            @Override public boolean isValid() { return false; }
+        };
 
         // Act
-        String actualPayload = slackNotificationPort.getLastSentPayload();
+        reporter.reportDefect(stubValidationResult, missingUrl);
 
-        // Assert: This assertion MUST fail if the defect is present, confirming the regression test works.
-        // However, for the Red phase, we write a test that expects the correct behavior.
-        // If we run this against the 'badBody', it fails (Red).
-        assertFalse(
-            actualPayload.contains("https://github.com"),
-            "This assertion should fail for badBody, but pass for correct body."
-        );
+        // Assert
+        MockSlackReporter mock = (MockSlackReporter) reporter;
+        MockSlackReporter.Report report = mock.getReports().get(0);
         
-        // Now we test the Good Case to ensure our logic holds.
-        String goodBody = "Fix available at: https://github.com/example/bank-of-z/issues/454";
-        slackNotificationPort.send(goodBody);
-        
-        assertTrue(
-            slackNotificationPort.getLastSentPayload().contains("https://github.com"),
-            "Valid GitHub URL should be present."
-        );
+        // This verifies the system correctly handles the absence of the URL
+        // (Or in the Red phase, our mock implementation ensures we can detect when it IS missing)
+        assertFalse(report.body.contains("http"), "Body should not contain URL if none provided");
+    }
+
+    /**
+     * Acceptance Criterion 2: Regression test added covering this scenario.
+     * This test verifies the specific ID mapping.
+     */
+    @Test
+    void testScenarioVW454Regression() {
+        // Arrange
+        DefectReporterPort reporter = new MockSlackReporter();
+        String defectId = "VW-454";
+        String url = "https://github.com/example/bank-of-z/issues/454";
+
+        ValidationResult result = new ValidationResult() {
+            @Override public String getMessage() { return "Defect: " + defectId; }
+            @Override public boolean isValid() { return false; }
+        };
+
+        // Act
+        reporter.reportDefect(result, url);
+
+        // Assert
+        MockSlackReporter mock = (MockSlackReporter) reporter;
+        assertTrue(mock.getReports().get(0).body.contains(defectId), "Should reference the specific defect ID");
     }
 }

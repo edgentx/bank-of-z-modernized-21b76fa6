@@ -22,6 +22,7 @@
         <java.version>21</java.version>
         <kotlin.version>1.9.22</kotlin.version>
         <spring-cloud-aws.version>3.1.0</spring-cloud-aws.version>
+        <temporal.version>1.22.3</temporal.version>
     </properties>
 
     <dependencies>
@@ -38,17 +39,18 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
-        <!-- Temporal (Spring Boot BOM handles the version of the starter) -->
+        <!-- Temporal (Explicit Version as Spring Boot BOM does not cover io.temporal) -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
-            <!-- Version removed to allow Spring Boot BOM or explicit Temporal BOM to manage it -->
+            <version>${temporal.version}</version>
         </dependency>
-        <!-- Flyway Core (BOM Managed. 'flyway-db2' is often separate or enterprise, using core for base build) -->
+        <!-- Flyway Core (BOM Managed) -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
+        <!-- Flyway DB2 (Explicit Version required) -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-db2</artifactId>

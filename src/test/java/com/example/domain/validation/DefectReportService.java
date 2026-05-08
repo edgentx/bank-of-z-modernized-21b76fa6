@@ -1,50 +1,31 @@
 package com.example.domain.validation;
 
-import com.example.ports.GitHubRepositoryPort;
-import com.example.ports.SlackNotifierPort;
-import org.springframework.stereotype.Service;
+import com.example.ports.GitHubIssueTracker;
+import com.example.ports.SlackNotifier;
 
 /**
- * Service handling the logic of reporting defects.
- * Orchestrates interactions between GitHub (creation) and Slack (notification).
+ * Wrapper service mimicking the 'temporal-worker exec' logic.
+ * This class wires the GitHub creation and Slack notification logic.
+ * In a real scenario, this might be a Temporal Activity implementation.
  */
-@Service
 public class DefectReportService {
 
-    private final GitHubRepositoryPort gitHub;
-    private final SlackNotifierPort slack;
+    private final GitHubIssueTracker gitHub;
+    private final SlackNotifier slack;
 
-    /**
-     * Constructor for Dependency Injection.
-     * Spring will automatically inject the configured beans (Adapters) implementing these ports.
-     *
-     * @param gitHub The GitHub adapter.
-     * @param slack The Slack adapter.
-     */
-    public DefectReportService(GitHubRepositoryPort gitHub, SlackNotifierPort slack) {
+    public DefectReportService(GitHubIssueTracker gitHub, SlackNotifier slack) {
         this.gitHub = gitHub;
         this.slack = slack;
     }
 
-    /**
-     * Executes the defect reporting workflow.
-     * 1. Create Issue in GitHub.
-     * 2. Construct notification body including the URL.
-     * 3. Send to Slack.
-     *
-     * @param cmd The command containing title, description, and target channel.
-     */
-    public void execute(ReportDefectCommand cmd) {
-        // 1. Create GitHub Issue
-        String issueUrl = gitHub.createIssue(cmd.title(), cmd.description());
+    public void reportDefect(String title, String body, String label) {
+        // Step 1: Create GitHub Issue
+        String issueUrl = gitHub.createIssue(title, body, label);
 
-        // 2. Construct Slack Message (Bug Fix: Ensure URL is included)
-        StringBuilder messageBuilder = new StringBuilder();
-        messageBuilder.append("*Defect Report Created*\n");
-        messageBuilder.append("*Title:*").append(cmd.title()).append("\n");
-        messageBuilder.append("*GitHub Issue: <").append(issueUrl).append("|View Details>");
-
-        // 3. Send to Slack
-        slack.send(cmd.slackChannel(), messageBuilder.toString());
+        // Step 2: Notify Slack
+        // BUG SCENARIO: The defect states that 'issueUrl' might not be included here.
+        // We are testing to ensure it IS included.
+        String slackMessage = String.format("Defect Reported: %s. GitHub URL: %s", title, issueUrl);
+        slack.sendNotification(slackMessage);
     }
 }

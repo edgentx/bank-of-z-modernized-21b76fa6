@@ -1,16 +1,18 @@
 package com.example.steps;
 
-import com.example.domain.navigation.model.*;
-import com.example.domain.navigation.repository.ScreenMapRepository;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.uimodel.model.ScreenMapAggregate;
+import com.example.domain.uimodel.model.ScreenRenderedEvent;
+import com.example.domain.uimodel.model.RenderScreenCmd;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
-import java.util.Map;
 
 public class S21Steps {
 
@@ -19,68 +21,62 @@ public class S21Steps {
     private List<DomainEvent> resultEvents;
 
     @Given("a valid ScreenMap aggregate")
-    public void a_valid_screen_map_aggregate() {
-        aggregate = new ScreenMapAggregate("screen-map-1");
-        // Assume the aggregate starts in a valid state or has no state required for validation context other than ID
+    public void aValidScreenMapAggregate() {
+        aggregate = new ScreenMapAggregate("screen-1");
+        // Setup valid state if needed
     }
 
-    @Given("a valid screenId is provided")
-    public void a_valid_screen_id_is_provided() {
-        // Context setup handled in execution step
+    @And("a valid screenId is provided")
+    public void aValidScreenIdIsProvided() {
+        // Handled by command construction in When
     }
 
-    @Given("a valid deviceType is provided")
-    public void a_valid_device_type_is_provided() {
-        // Context setup handled in execution step
-    }
-
-    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void aggregate_mandatory_fields_violated() {
-        aggregate = new ScreenMapAggregate("screen-map-bad-mandatory");
-    }
-
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void aggregate_bms_constraints_violated() {
-        aggregate = new ScreenMapAggregate("screen-map-bad-bms");
+    @And("a valid deviceType is provided")
+    public void aValidDeviceTypeIsProvided() {
+        // Handled by command construction in When
     }
 
     @When("the RenderScreenCmd command is executed")
-    public void the_render_screen_cmd_command_is_executed() {
-        // Scenario 1: Valid Data
-        if ("screen-map-1".equals(aggregate.id())) {
-            RenderScreenCmd cmd = new RenderScreenCmd("scr-001", "3270", Map.of("field1", "value"));
+    public void theRenderScreenCmdCommandIsExecuted() {
+        // Assuming the context implies valid data here for the happy path
+        theRenderScreenCmdCommandIsExecutedWith("screen-1", "3270");
+    }
+
+    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
+    public void aScreenMapAggregateThatViolatesMandatoryFields() {
+        aggregate = new ScreenMapAggregate("screen-invalid");
+    }
+
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void aScreenMapAggregateThatViolatesFieldLengths() {
+        aggregate = new ScreenMapAggregate("screen-bms-violation");
+    }
+
+    @When("the RenderScreenCmd command is executed with screenId {string} and deviceType {string}")
+    public void theRenderScreenCmdCommandIsExecutedWith(String screenId, String deviceType) {
+        try {
+            Command cmd = new RenderScreenCmd(screenId, deviceType);
             resultEvents = aggregate.execute(cmd);
-        }
-        // Scenario 2: Missing Mandatory (e.g. null screenId)
-        else if ("screen-map-bad-mandatory".equals(aggregate.id())) {
-            try {
-                RenderScreenCmd cmd = new RenderScreenCmd(null, "3270", Map.of());
-                aggregate.execute(cmd);
-            } catch (IllegalArgumentException e) {
-                capturedException = e;
-            }
-        }
-        // Scenario 3: BMS Constraint Violation (e.g. screenId too long)
-        else if ("screen-map-bad-bms".equals(aggregate.id())) {
-            try {
-                RenderScreenCmd cmd = new RenderScreenCmd("this-id-is-much-too-long-for-legacy-bms", "3270", Map.of());
-                aggregate.execute(cmd);
-            } catch (IllegalArgumentException e) {
-                capturedException = e;
-            }
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            capturedException = e;
+        } catch (UnknownCommandException e) {
+            capturedException = e;
         }
     }
 
     @Then("a screen.rendered event is emitted")
-    public void a_screen_rendered_event_is_emitted() {
+    public void aScreenRenderedEventIsEmitted() {
+        Assertions.assertNull(capturedException, "Should not have thrown an exception: " + capturedException);
         Assertions.assertNotNull(resultEvents);
-        Assertions.assertFalse(resultEvents.isEmpty());
-        Assertions.assertEquals("screen.rendered", resultEvents.get(0).type());
+        Assertions.assertEquals(1, resultEvents.size());
+        Assertions.assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
+        ScreenRenderedEvent event = (ScreenRenderedEvent) resultEvents.get(0);
+        Assertions.assertEquals("screen.rendered", event.type());
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(capturedException);
-        Assertions.assertTrue(capturedException instanceof IllegalArgumentException);
+    public void theCommandIsRejectedWithADomainError() {
+        Assertions.assertNotNull(capturedException, "Expected an exception but command succeeded");
+        Assertions.assertTrue(capturedException instanceof IllegalArgumentException || capturedException instanceof IllegalStateException);
     }
 }

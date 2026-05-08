@@ -1,64 +1,92 @@
 package com.example.steps;
 
-import com.example.defect.ReportDefectWorkflow;
-import com.example.defect.ReportDefectWorkflowImpl;
-import com.example.defect.SlackNotificationService;
+import com.example.domain.reconciliation.model.ReconciliationBalancedEvent;
+import com.example.domain.reconciliation.model.ReconciliationStartedEvent;
+import com.example.domain.shared.DomainEvent;
+import com.example.ports.SlackNotifier;
+import com.example.ports.TemporalWorkflowStarter;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import io.cucumber.java.en.Then;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest
+/**
+ * Steps for VW-454: Validating GitHub URL in Slack body during defect reporting.
+ */
 public class VW454Steps {
 
-    private final SlackNotificationService slackService = mock(SlackNotificationService.class);
-    private ReportDefectWorkflow workflow;
-    private String capturedUrl;
-    private Exception actualException;
+    @Autowired
+    private TemporalWorkflowStarter temporalWorkflowStarter;
 
     @Autowired
-    public void setWorkflow() {
-        // Manually wire the workflow with the mock service for testing
-        this.workflow = new ReportDefectWorkflowImpl(slackService);
+    private SlackNotifier slackNotifier;
+
+    private Exception caughtException;
+
+    // Scenario 1: Successful reporting
+    @Given("a reconciliation has failed and a defect is detected")
+    public void a_reconciliation_has_failed() {
+        // No-op setup, assuming the workflow handles the trigger
     }
 
-    @Given("a defect report is triggered with title {string}, severity {string}, and GitHub URL {string}")
-    public void a_defect_report_is_triggered(String title, String severity, String url) {
-        // Setup phase logic if needed
-    }
-
-    @When("the temporal worker executes the report_defect workflow")
-    public void the_temporal_worker_executes_the_workflow() {
+    @When("the temporal workflow executes the report_defect command")
+    public void the_temporal_workflow_executes_the_report_defect_command() {
         try {
-            // Execute
-            String result = workflow.reportDefect("VW-454", "LOW", "https://github.com/example/bank-of-z/issues/1");
-            capturedUrl = result;
+            // In a real integration test, this would trigger the Temporal workflow.
+            // Here, we simulate the logic that would be invoked by the worker.
+            String defectId = "VW-454";
+            String description = "Validating GitHub URL in Slack body";
+            
+            // Simulate the call that would be made inside the workflow
+            temporalWorkflowStarter.reportDefect(defectId, description);
         } catch (Exception e) {
-            actualException = e;
+            caughtException = e;
         }
     }
 
-    @When("the temporal worker executes the workflow with an invalid URL")
-    public void the_temporal_worker_executes_with_invalid_url() {
-        actualException = assertThrows(IllegalArgumentException.class, () -> {
-            workflow.reportDefect("VW-454", "LOW", "not-a-url");
-        });
+    @Then("the Slack message body must contain the GitHub issue URL")
+    public void the_slack_message_body_must_contain_the_github_issue_url() {
+        // Verify that the notify method was called
+        verify(slackNotifier, times(1)).sendNotification(anyString());
+        
+        // Capture the argument passed to the mock
+        // Note: This requires ArgumentCaptor in a real implementation, 
+        // but here we check the mock state directly.
+        String messageBody = ((MockSlackNotifier) slackNotifier).getLastMessageBody();
+        
+        assertNotNull(messageBody, "Slack body should not be null");
+        
+        // The Core Assertion for VW-454
+        String expectedUrl = "https://github.com/example/bank-of-z-modernization/issues/VW-454";
+        assertTrue(
+            messageBody.contains(expectedUrl), 
+            "Slack body must contain GitHub URL. Got: " + messageBody
+        );
     }
 
-    @Then("the Slack body contains the GitHub issue link")
-    public void the_slack_body_contains_the_github_issue_link() {
-        verify(slackService).sendAlert("Defect Reported: VW-454\nSeverity: LOW\nGitHub Issue: https://github.com/example/bank-of-z/issues/1");
+    // Scenario 2: Validation Failure (Regression)
+    @When("the temporal workflow executes report_defect with an invalid ID")
+    public void the_temporal_workflow_executes_report_defect_with_invalid_id() {
+        try {
+            temporalWorkflowStarter.reportDefect("", "Description");
+        } catch (IllegalArgumentException e) {
+            caughtException = e;
+        }
     }
 
-    @Then("the validation prevents execution")
-    public void the_validation_prevents_execution() {
-        assertNotNull(actualException);
+    @Then("the workflow should reject the command and Slack should not be notified")
+    public void validation_should_fail_and_slack_should_not_be_notified() {
+        assertNotNull(caughtException, "Exception should have been thrown");
+        assertTrue(caughtException instanceof IllegalArgumentException);
+        
+        // Verify interaction was NOT made
+        verify(slackNotifier, never()).sendNotification(anyString());
+        assertEquals("", ((MockSlackNotifier) slackNotifier).getLastMessageBody());
     }
 }

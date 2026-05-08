@@ -1,105 +1,122 @@
 package com.example.steps;
 
-import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.shared.DomainEvent;
 import com.example.domain.userinterface.model.RenderScreenCmd;
 import com.example.domain.userinterface.model.ScreenMapAggregate;
+import com.example.domain.userinterface.model.ScreenRenderedEvent;
 import com.example.domain.userinterface.repository.ScreenMapRepository;
-import io.cucumber.java.en.And;
+import com.example.mocks.InMemoryScreenMapRepository;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
-import java.util.Optional;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S21Steps {
 
-    // Test Double Repository
-    private static class InMemoryScreenMapRepository implements ScreenMapRepository {
-        private ScreenMapAggregate store;
-        @Override
-        public ScreenMapAggregate save(ScreenMapAggregate aggregate) {
-            this.store = aggregate;
-            return aggregate;
-        }
-        @Override
-        public Optional<ScreenMapAggregate> findById(String id) {
-            return Optional.ofNullable(store);
-        }
-    }
-
-    private final ScreenMapRepository repository = new InMemoryScreenMapRepository();
     private ScreenMapAggregate aggregate;
-    private RenderScreenCmd command;
+    private final ScreenMapRepository repository = new InMemoryScreenMapRepository();
     private Exception capturedException;
+    private List<DomainEvent> resultEvents;
 
     @Given("a valid ScreenMap aggregate")
     public void aValidScreenMapAggregate() {
-        aggregate = new ScreenMapAggregate("map-1");
+        aggregate = new ScreenMapAggregate("screen-map-1");
+        repository.save(aggregate);
     }
 
-    @And("a valid screenId is provided")
+    @Given("a valid screenId is provided")
     public void aValidScreenIdIsProvided() {
-        // Do nothing, default command construction in 'When' will use valid values
-        // Or store state for the When clause to pick up
+        // Handled in When step context for simplicity, or we could store state in a context object
     }
 
-    @And("a valid deviceType is provided")
+    @Given("a valid deviceType is provided")
     public void aValidDeviceTypeIsProvided() {
-        // Do nothing, default command construction in 'When' will use valid values
-    }
-
-    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void aScreenMapAggregateThatViolatesMandatoryFields() {
-        aggregate = new ScreenMapAggregate("map-2");
-    }
-
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void aScreenMapAggregateThatViolatesLegacyConstraints() {
-        aggregate = new ScreenMapAggregate("map-3");
+        // Handled in When step context
     }
 
     @When("the RenderScreenCmd command is executed")
     public void theRenderScreenCmdCommandIsExecuted() {
+        // Default valid values for "Happy Path" scenario if not specified by Given violations
+        if (aggregate == null) {
+            // If aggregate wasn't initialized in a specific violation Given, initialize it now
+            aggregate = new ScreenMapAggregate("screen-map-test");
+        }
+        
         try {
-            // Determine context based on previous Givens or simple defaults.
-            // For simplicity, we construct a "valid" command by default.
-            // The "Violates" scenarios will need specific logic or we can rely on
-            // the Gherkin table or context injection. Given the constraints,
-            // we'll use simple branching or context inspection if possible.
-            // Since Cucumber steps are stateless, we check the aggregate ID or a flag if needed.
-            // Here, we just assume "valid" unless the specific violation scenario context implies otherwise.
-            // However, the Cucumber flow usually sets up the Command state in the Given/And steps.
-            // Let's assume standard happy path values, and override them in specific violation scenario variations if we had context objects.
-            // Since we don't have a context object in this simple snippet, we will cheat slightly:
-            // If the aggregate ID is 'map-2' (Mandatory violation), we create a bad command.
-            // If the aggregate ID is 'map-3' (Length violation), we create a bad command.
-
-            if (aggregate.id().equals("map-2")) {
-                command = new RenderScreenCmd("map-2", null, "DESKTOP"); // Blank screenId
-            } else if (aggregate.id().equals("map-3")) {
-                command = new RenderScreenCmd("map-3", "very-long-screen-id", "MOBILE"); // Too long
-            } else {
-                command = new RenderScreenCmd("map-1", "LOGIN", "DESKTOP");
-            }
-
-            aggregate.execute(command);
-        } catch (Exception e) {
+            RenderScreenCmd cmd = new RenderScreenCmd("screen-map-1", "MENUI01", "3270");
+            resultEvents = aggregate.execute(cmd);
+            repository.save(aggregate);
+        } catch (IllegalArgumentException | IllegalStateException e) {
             capturedException = e;
         }
     }
 
+    @When("the RenderScreenCmd command is executed with invalid input")
+    public void theRenderScreenCmdCommandIsExecutedWithInvalidInput() {
+        // We use this generic hook to trigger execution for violation scenarios 
+        // assuming the aggregate state was set up to fail or we pass bad data here.
+        // However, to support specific violation Givens, we'll handle command creation in the When
+        // based on context, or we assume the violation is in the Command payload we construct here.
+        
+        // Actually, Gherkin scenarios usually drive specific inputs. 
+        // Let's refine the approach: The specific violation scenarios below will override this generic execution.
+    }
+
+    // --- Scenario: Mandatory Input Validation ---
+    
+    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
+    public void aScreenMapAggregateThatViolatesAllMandatoryInputFields() {
+        aggregate = new ScreenMapAggregate("screen-map-violation-mandatory");
+    }
+
+    @When("the RenderScreenCmd command is executed with missing screenId")
+    public void theRenderScreenCmdCommandIsExecutedWithMissingScreenId() {
+        try {
+            RenderScreenCmd cmd = new RenderScreenCmd("screen-map-violation-mandatory", "", "3270");
+            resultEvents = aggregate.execute(cmd);
+        } catch (IllegalArgumentException e) {
+            capturedException = e;
+        }
+    }
+
+    // --- Scenario: Legacy BMS Constraints ---
+
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void aScreenMapAggregateThatViolatesFieldLengths() {
+        aggregate = new ScreenMapAggregate("screen-map-violation-length");
+    }
+
+    @When("the RenderScreenCmd command is executed with invalid length")
+    public void theRenderScreenCmdCommandIsExecutedWithInvalidLength() {
+        try {
+            // BMS max is 7 chars for screenId. Using 8 chars to violate.
+            RenderScreenCmd cmd = new RenderScreenCmd("screen-map-violation-length", "LONGMENU01", "3270");
+            resultEvents = aggregate.execute(cmd);
+        } catch (IllegalArgumentException e) {
+            capturedException = e;
+        }
+    }
+
+    // --- Assertions ---
+
     @Then("a screen.rendered event is emitted")
     public void aScreenRenderedEventIsEmitted() {
-        Assertions.assertNull(capturedException, "Should not have thrown exception");
-        Assertions.assertFalse(aggregate.uncommittedEvents().isEmpty(), "Should have events");
-        Assertions.assertEquals("screen.rendered", aggregate.uncommittedEvents().get(0).type());
+        assertNotNull(resultEvents);
+        assertFalse(resultEvents.isEmpty());
+        assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
+        
+        ScreenRenderedEvent event = (ScreenRenderedEvent) resultEvents.get(0);
+        assertEquals("screen.rendered", event.type());
+        assertEquals("MENUI01", event.screenId());
+        assertEquals("3270", event.deviceType());
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(capturedException, "Should have thrown exception");
-        // Check for specific exception types based on business rules (IllegalArgumentException usually)
-        Assertions.assertTrue(capturedException instanceof IllegalArgumentException || capturedException instanceof UnknownCommandException);
+        assertNotNull(capturedException);
+        assertTrue(capturedException instanceof IllegalArgumentException);
     }
 }

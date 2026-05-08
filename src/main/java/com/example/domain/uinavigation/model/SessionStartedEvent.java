@@ -3,16 +3,22 @@ package com.example.domain.uinavigation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
-/**
- * Event emitted when a teller session is successfully started.
- */
 public record SessionStartedEvent(
-    String sessionId,
-    String tellerId,
-    String terminalId,
-    Instant occurredAt
+        String aggregateId,
+        String tellerId,
+        String terminalId,
+        Instant startedAt,
+        String eventId
 ) implements DomainEvent {
+    public SessionStartedEvent {
+        if (eventId == null) eventId = UUID.randomUUID().toString();
+    }
+
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant startedAt) {
+        this(aggregateId, tellerId, terminalId, startedAt, UUID.randomUUID().toString());
+    }
 
     @Override
     public String type() {
@@ -21,11 +27,11 @@ public record SessionStartedEvent(
 
     @Override
     public String aggregateId() {
-        return sessionId;
+        return aggregateId;
     }
 
     @Override
     public Instant occurredAt() {
-        return occurredAt;
+        return startedAt;
     }
 }

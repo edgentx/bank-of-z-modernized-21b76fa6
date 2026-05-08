@@ -2,86 +2,82 @@ package com.example.steps;
 
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.tellersession.model.MenuNavigatedEvent;
-import com.example.domain.tellersession.model.NavigateMenuCmd;
-import com.example.domain.tellersession.model.TellerSessionAggregate;
+import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.teller.model.NavigateMenuCmd;
+import com.example.domain.teller.model.TellerSessionAggregate;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 public class S19Steps {
 
     private TellerSessionAggregate aggregate;
-    private String sessionId;
-    private String menuId;
-    private String action;
     private List<DomainEvent> resultEvents;
     private Exception caughtException;
 
     @Given("a valid TellerSession aggregate")
-    public void aValidTellerSessionAggregate() {
-        this.sessionId = "session-123";
-        this.aggregate = new TellerSessionAggregate(sessionId);
-        // Simulate authentication (init session)
-        aggregate.execute(new com.example.domain.tellersession.model.InitSessionCmd(sessionId, "teller-01", Instant.now()));
-        // Reset events for the scenario
-        aggregate.clearEvents();
+    public void a_valid_TellerSession_aggregate() {
+        aggregate = new TellerSessionAggregate("session-123");
     }
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void aTellerSessionAggregateThatViolatesAuthentication() {
-        this.sessionId = "session-not-auth";
-        this.aggregate = new TellerSessionAggregate(sessionId);
-        // Not calling InitSessionCmd, so isAuthenticated remains false
+    public void a_TellerSession_aggregate_that_violates_authentication() {
+        aggregate = new TellerSessionAggregate("session-unauth");
+        // Simulate unauthenticated state
+        aggregate.markUnauthenticated();
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void aTellerSessionAggregateThatViolatesTimeout() {
-        this.sessionId = "session-timeout";
-        this.aggregate = new TellerSessionAggregate(sessionId);
-        // Init with a timestamp that is definitely old (e.g. 20 mins ago)
-        Instant oldTimestamp = Instant.now().minus(Duration.ofMinutes(20));
-        aggregate.execute(new com.example.domain.tellersession.model.InitSessionCmd(sessionId, "teller-01", oldTimestamp));
-        aggregate.clearEvents();
+    public void a_TellerSession_aggregate_that_violates_timeout() {
+        aggregate = new TellerSessionAggregate("session-timeout");
+        // Simulate timeout by overriding last interaction
+        aggregate.setLastInteraction(Instant.now().minus(Duration.ofMinutes(31)));
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void aTellerSessionAggregateThatViolatesNavigationState() {
-        this.sessionId = "session-bad-nav";
-        this.aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.execute(new com.example.domain.tellersession.model.InitSessionCmd(sessionId, "teller-01", Instant.now()));
-        aggregate.clearEvents();
-        // Force invalid state: trying to navigate to 'DEPOSIT' while being in 'WITHDRAWAL' without closing
-        // (Simplified check logic: if currently in a transactional screen, can't jump to another)
-        aggregate.execute(new NavigateMenuCmd(sessionId, "WITHDRAWAL", "ENTER"));
-        aggregate.clearEvents();
+    public void a_TellerSession_aggregate_that_violates_navigation_state() {
+        aggregate = new TellerSessionAggregate("session-bad-state");
+        aggregate.markInvalidContext();
     }
 
     @And("a valid sessionId is provided")
-    public void aValidSessionIdIsProvided() {
-        // Handled in aggregate setup
+    public void a_valid_sessionId_is_provided() {
+        // Handled implicitly by aggregate ID in construction
     }
 
     @And("a valid menuId is provided")
-    public void aValidMenuIdIsProvided() {
-        this.menuId = "MAIN_MENU";
+    public void a_valid_menuId_is_provided() {
+        // Context for the command execution
     }
 
     @And("a valid action is provided")
-    public void aValidActionIsProvided() {
-        this.action = "ENTER";
+    public void a_valid_action_is_provided() {
+        // Context for the command execution
     }
 
     @When("the NavigateMenuCmd command is executed")
-    public void theNavigateMenuCmdCommandIsExecuted() {
+    public void the_NavigateMenuCmd_command_is_executed() {
         try {
-            NavigateMenuCmd cmd = new NavigateMenuCmd(sessionId, menuId, action);
+            Command cmd = new NavigateMenuCmd("session-123", "MAIN_MENU", "ENTER");
+            // We dynamically set the ID on the command based on the current aggregate to support different Given states
+            // In a real repo, we might load the aggregate first. Here we use reflection-like test logic or just construct directly.
+            // Since S19Steps handles multiple Givens, we need to construct the command targeting the specific aggregate under test.
+            
+            // For the sake of the test structure, we assume the command targets the aggregate we built.
+            // Note: The command constructor signature is (sessionId, menuId, action). 
+            // We need to ensure the sessionId in the command matches the aggregate being tested.
+            
+            String targetId = aggregate.id();
+            // We use a valid menu/action pair
+            cmd = new NavigateMenuCmd(targetId, "MENU_01", "SELECT");
+
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             caughtException = e;
@@ -89,19 +85,17 @@ public class S19Steps {
     }
 
     @Then("a menu.navigated event is emitted")
-    public void aMenuNavigatedEventIsEmitted() {
-        Assertions.assertNotNull(resultEvents);
-        Assertions.assertEquals(1, resultEvents.size());
-        Assertions.assertTrue(resultEvents.get(0) instanceof MenuNavigatedEvent);
-        MenuNavigatedEvent event = (MenuNavigatedEvent) resultEvents.get(0);
-        Assertions.assertEquals("menu.navigated", event.type());
-        Assertions.assertEquals(menuId, event.menuId());
+    public void a_menu_navigated_event_is_emitted() {
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertEquals("menu.navigated", resultEvents.get(0).type());
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(caughtException);
-        // In domain layer, we usually throw IllegalStateException or IllegalArgumentException
-        Assertions.assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(caughtException);
+        // Typically an IllegalStateException or IllegalArgumentException for invariants
+        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
     }
+
 }

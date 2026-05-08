@@ -2,13 +2,14 @@ package com.example.ports;
 
 /**
  * Port for sending Slack notifications.
- * Used to validate that Slack bodies contain required URLs (e.g., GitHub issue links).
+ * Abstracted to allow mocking during the testing of defect reporting workflows.
  */
 public interface SlackNotificationPort {
+
     /**
-     * Posts a message to the configured Slack channel.
-     * @param body The message body content.
-     * @throws IllegalArgumentException if the body is invalid or missing required fields.
+     * Posts a message to a configured Slack channel.
+     *
+     * @param messageBody The content of the message to be sent.
      */
-    void postMessage(String body);
+    void postMessage(String messageBody);
 }

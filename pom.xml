@@ -21,7 +21,7 @@
     </properties>
 
     <dependencies>
-        <!-- Existing Domain Dependencies (implied by existing structure) -->
+        <!-- Existing Domain Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
@@ -64,11 +64,10 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Flyway DB2 - FIX APPLIED HERE -->
+        <!-- Flyway DB2 -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-db2</artifactId>
-            <!-- CRITICAL: Spring Boot BOM does not pin flyway-database-* versions. Explicit version required. -->
             <version>${flyway.version}</version>
         </dependency>
     </dependencies>

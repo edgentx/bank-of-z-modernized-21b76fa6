@@ -1,41 +1,29 @@
 package com.example.mocks;
 
 import com.example.ports.VForce360Port;
-
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
- * Mock implementation of VForce360Port for testing.
+ * Mock implementation of VForce360Port for unit testing.
+ * Simulates creation of a GitHub issue and returns a predictable URL.
  */
 public class MockVForce360Port implements VForce360Port {
 
-    private final List<String> reportedTitles = new ArrayList<>();
-    private String mockReturnUrl = "https://github.com/mock-repo/issues/1";
-    private boolean shouldFail = false;
+    private String nextIssueUrl = "https://github.com/mock-repo/issues/1";
+    private int callCount = 0;
 
     @Override
-    public String reportDefect(String defectTitle) {
-        reportedTitles.add(defectTitle);
-        if (shouldFail) {
-            return null; // Simulate failure
-        }
-        return mockReturnUrl;
+    public Map<String, String> reportDefect(String projectId, String title, String description, String severity) {
+        callCount++;
+        // Simulate external service returning a link to the created ticket
+        Map<String, String> response = new HashMap<>();
+        response.put("id", "GH-" + callCount);
+        response.put("url", this.nextIssueUrl + "?id=" + callCount); 
+        return response;
     }
 
-    public boolean wasCalledWith(String title) {
-        return reportedTitles.contains(title);
-    }
-
-    public void setMockReturnUrl(String url) {
-        this.mockReturnUrl = url;
-    }
-
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
-    }
-
-    public int getCallCount() {
-        return reportedTitles.size();
+    public void setNextIssueUrl(String url) {
+        this.nextIssueUrl = url;
     }
 }

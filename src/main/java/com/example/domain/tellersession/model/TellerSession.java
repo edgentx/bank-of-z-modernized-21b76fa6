@@ -8,13 +8,15 @@ import com.example.domain.shared.UnknownCommandException;
 import java.time.Instant;
 import java.util.List;
 
+/**
+ * TellerSession Aggregate
+ * Handles teller login state, terminal binding, session lifecycle, and UI navigation context.
+ */
 public class TellerSession extends AggregateRoot {
-
     private final String sessionId;
-    private boolean authenticated = false;
-    private boolean active = false;
-    private boolean timedOut = false;
-    private boolean navStateValid = true;
+    private boolean isAuthenticated = false;
+    private boolean isTimedOut = false;
+    private boolean navigationValid = true;
 
     public TellerSession(String sessionId) {
         this.sessionId = sessionId;
@@ -34,46 +36,47 @@ public class TellerSession extends AggregateRoot {
     }
 
     private List<DomainEvent> startSession(StartSessionCmd cmd) {
-        // Invariant: Authentication
-        if (!authenticated) {
-            throw new IllegalStateException("A teller must be authenticated to initiate a session.");
+        // Invariant: A teller must be authenticated to initiate a session.
+        if (!isAuthenticated) {
+            throw new IllegalStateException("Teller must be authenticated to initiate a session.");
         }
 
-        // Invariant: Operational Context (Navigation State)
-        if (!navStateValid) {
-            throw new IllegalStateException("Navigation state must accurately reflect the current operational context.");
+        // Invariant: Sessions must timeout after a configured period of inactivity.
+        // (Simulated here by a flag set in test or logic handling timed out state)
+        if (isTimedOut) {
+            throw new IllegalStateException("Session has timed out due to inactivity.");
         }
 
-        // Invariant: Timeout
-        if (timedOut) {
-            throw new IllegalStateException("Sessions must timeout after a configured period of inactivity.");
+        // Invariant: Navigation state must accurately reflect the current operational context.
+        if (!navigationValid) {
+            throw new IllegalStateException("Navigation state is invalid for the current operational context.");
         }
 
-        if (active) {
-            throw new IllegalStateException("Session is already active.");
+        // Validate Payload
+        if (cmd.tellerId() == null || cmd.tellerId().isBlank()) {
+            throw new IllegalArgumentException("tellerId required");
+        }
+        if (cmd.terminalId() == null || cmd.terminalId().isBlank()) {
+            throw new IllegalArgumentException("terminalId required");
         }
 
-        var event = new SessionStartedEvent(cmd.sessionId(), cmd.tellerId(), cmd.terminalId(), Instant.now());
+        var event = new SessionStartedEvent(sessionId, cmd.tellerId(), cmd.terminalId(), Instant.now());
         addEvent(event);
         incrementVersion();
-        this.active = true;
         return List.of(event);
     }
 
-    // Test helpers / State setters for validation simulation
+    // --- Test/Data Manipulation Helpers ---
+    
     public void markAuthenticated() {
-        this.authenticated = true;
+        this.isAuthenticated = true;
     }
 
-    public void markExpired() {
-        this.timedOut = true;
+    public void simulateTimeoutViolation() {
+        this.isTimedOut = true;
     }
 
-    public void corruptNavigationState() {
-        this.navStateValid = false;
-    }
-
-    public boolean isActive() {
-        return active;
+    public void simulateNavigationViolation() {
+        this.navigationValid = false;
     }
 }

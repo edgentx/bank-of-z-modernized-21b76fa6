@@ -1,5 +1,5 @@
-package com.example.domain.shared;
+package com.example.domain.defect.model;
 
-// Duplicate placeholder to resolve error in DefectReportWorkflow if it imports from shared
-import com.example.domain.defect.model.ReportDefectCmd;
-// This file acts as a marker if the import path changes, but currently relies on the defect.model package.
+import com.example.domain.shared.Command;
+
+public record ReportDefectCmd(String defectId, String title, String severity) implements Command {}

@@ -1,48 +1,64 @@
 package com.example.domain.validation;
 
-import com.example.domain.validation.model.DefectReportedEvent;
-com.example.domain.validation.model.ReportDefectCmd;
+import com.example.domain.shared.Command;
+import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.validation.model.ReportDefectCmd;
 import com.example.domain.validation.model.ValidationAggregate;
+import com.example.domain.validation.model.DefectReportedEvent;
 import org.junit.jupiter.api.Test;
+import java.time.Instant;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Unit tests for ValidationAggregate.
- * Covers the logic of defect reporting and event emission.
- */
-class ValidationAggregateTest {
+public class ValidationAggregateTest {
 
     @Test
-    void testReportDefectGeneratesGitHubUrl() {
+    void whenReportDefectCommandReceived_shouldEmitEventWithGitHubUrl() {
         // Given
-        var aggregate = new ValidationAggregate("v-force-360");
-        var cmd = new ReportDefectCmd("v-force-360", "Test Description", "LOW");
+        String aggregateId = "vw-454";
+        ValidationAggregate aggregate = new ValidationAggregate(aggregateId);
+        ReportDefectCmd cmd = new ReportDefectCmd(aggregateId, "GitHub URL is missing from body", "https://github.com/egdcrypto/bank-of-z/issues/454");
 
         // When
-        var events = aggregate.execute(cmd);
+        List<DomainEvent> events = aggregate.execute(cmd);
 
         // Then
-        assertFalse(events.isEmpty(), "Should emit an event");
-        var event = events.get(0);
-        assertInstanceOf(DefectReportedEvent.class, event);
+        assertFalse(events.isEmpty(), "Aggregate should emit an event");
+        assertTrue(events.get(0) instanceof DefectReportedEvent, "Event should be DefectReportedEvent");
         
-        var defectEvent = (DefectReportedEvent) event;
-        assertNotNull(defectEvent.issueUrl(), "Issue URL must not be null");
-        assertTrue(defectEvent.issueUrl().startsWith("https://github.com"), 
-            "Issue URL must be a GitHub link");
-        assertTrue(defectEvent.issueUrl().contains("v-force-360"), 
-            "Issue URL must contain the aggregate ID");
+        DefectReportedEvent event = (DefectReportedEvent) events.get(0);
+        assertEquals("GitHub URL is missing from body", event.description());
+        
+        // Critical Assertion for S-FB-1
+        assertNotNull(event.githubIssueUrl(), "GitHub Issue URL must be present in the event payload");
+        assertEquals("https://github.com/egdcrypto/bank-of-z/issues/454", event.githubIssueUrl());
     }
 
     @Test
-    void testReportDefectRequiresDescription() {
+    void whenReportDefectCommandWithNullUrl_shouldThrowException() {
         // Given
-        var aggregate = new ValidationAggregate("v-force-360");
-        var cmd = new ReportDefectCmd("v-force-360", "", "LOW");
+        String aggregateId = "vw-454";
+        ValidationAggregate aggregate = new ValidationAggregate(aggregateId);
+        ReportDefectCmd cmd = new ReportDefectCmd(aggregateId, "Missing URL", null);
 
-        // When & Then
-        assertThrows(IllegalArgumentException.class, () -> aggregate.execute(cmd),
-            "Should throw on blank description");
+        // When / Then
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            aggregate.execute(cmd);
+        });
+
+        assertTrue(exception.getMessage().contains("githubIssueUrl"));
+    }
+
+    @Test
+    void whenUnknownCommand_shouldThrowUnknownCommandException() {
+        // Given
+        String aggregateId = "vw-454";
+        ValidationAggregate aggregate = new ValidationAggregate(aggregateId);
+        Command unknownCmd = new Command() {}; // Anonymous mock command
+
+        // When / Then
+        assertThrows(UnknownCommandException.class, () -> aggregate.execute(unknownCmd));
     }
 }

@@ -1,27 +1,26 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
-import java.util.Optional;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
- * Mock implementation of GitHubIssuePort.
- * Allows pre-defining URLs for specific issue IDs to simulate the GitHub API.
+ * Mock adapter for GitHub Issues.
+ * Returns predictable URLs and simulates success without API calls.
  */
 public class MockGitHubIssuePort implements GitHubIssuePort {
-
-    private final Map<String, String> issueDatabase = new HashMap<>();
+    private String mockUrl = "https://github.com/fake-org/repo/issues/1";
+    private int callCount = 0;
 
     @Override
-    public Optional<String> getIssueUrl(String issueId) {
-        return Optional.ofNullable(issueDatabase.get(issueId));
+    public String createIssue(String title, String body) {
+        callCount++;
+        return mockUrl;
     }
 
-    /**
-     * Helper method to setup the mock with a specific URL.
-     */
-    public void mockIssueUrl(String issueId, String url) {
-        issueDatabase.put(issueId, url);
+    public void setMockUrl(String url) {
+        this.mockUrl = url;
+    }
+
+    public int getCallCount() {
+        return callCount;
     }
 }

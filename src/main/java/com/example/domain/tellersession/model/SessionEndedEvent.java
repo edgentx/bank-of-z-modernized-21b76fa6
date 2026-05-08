@@ -6,32 +6,26 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event emitted when a teller session is successfully terminated.
- * Clears sensitive session state and logs the termination time.
+ * Event emitted when a Teller Session is successfully terminated.
+ * Sensitive state is cleared upon this event application.
  */
 public record SessionEndedEvent(
         String aggregateId,
-        Instant occurredAt
+        String endedBy,
+        Instant endedAt
 ) implements DomainEvent {
-
-    public SessionEndedEvent {
-        // Defensive null checks if necessary, though Record pattern handles much of this
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId cannot be null");
-        if (occurredAt == null) occurredAt = Instant.now();
-    }
-
     @Override
     public String type() {
         return "session.ended";
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return endedAt;
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 }

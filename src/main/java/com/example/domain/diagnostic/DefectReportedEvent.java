@@ -3,8 +3,11 @@ package com.example.domain.diagnostic;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
+/**
+ * Domain event published when a defect is successfully reported.
+ * Contains the formatted Slack body ready for dispatch by the temporal worker.
+ */
 public record DefectReportedEvent(
     String issueId,
     String severity,

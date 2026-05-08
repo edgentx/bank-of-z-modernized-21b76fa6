@@ -3,7 +3,7 @@ package com.example.ports;
 import com.example.domain.validation.model.ValidationAggregate;
 
 /**
- * Repository Port.
+ * Repository Port for Validation Aggregate.
  */
 public interface ValidationRepositoryPort {
     ValidationAggregate load(String id);

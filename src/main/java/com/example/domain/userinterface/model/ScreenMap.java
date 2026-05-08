@@ -9,17 +9,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * ScreenMap aggregate.
- * Handles the logic for rendering user interface screens.
+ * Aggregate Root for User Interface / Screen Maps.
+ * Handles the rendering logic for specific screens based on device types.
+ * ID: S-21
  */
 public class ScreenMap extends AggregateRoot {
 
     private final String screenMapId;
-    private boolean active;
 
     public ScreenMap(String screenMapId) {
         this.screenMapId = screenMapId;
-        this.active = true;
     }
 
     @Override
@@ -30,38 +29,47 @@ public class ScreenMap extends AggregateRoot {
     @Override
     public List<DomainEvent> execute(Command cmd) {
         if (cmd instanceof RenderScreenCmd c) {
-            return renderScreen(c);
+            return handleRenderScreen(c);
         }
         throw new UnknownCommandException(cmd);
     }
 
-    private List<DomainEvent> renderScreen(RenderScreenCmd cmd) {
-        // Invariant Check: Mandatory fields
+    private List<DomainEvent> handleRenderScreen(RenderScreenCmd cmd) {
+        // Scenario: All mandatory input fields must be validated before screen submission
         if (cmd.screenId() == null || cmd.screenId().isBlank()) {
-            throw new IllegalArgumentException("screenId cannot be null or blank");
+            throw new IllegalArgumentException("screenId is mandatory");
         }
         if (cmd.deviceType() == null || cmd.deviceType().isBlank()) {
-            throw new IllegalArgumentException("deviceType cannot be null or blank");
+            throw new IllegalArgumentException("deviceType is mandatory");
         }
 
-        // Invariant Check: Field Lengths (BMS Constraints)
-        // Assuming a standard constraint for ID lengths (e.g., max 10 chars for legacy 3270 fields)
-        if (cmd.screenId().length() > 10) {
-            throw new IllegalArgumentException("screenId length exceeds maximum BMS constraint of 10 characters");
+        // Scenario: Field lengths must strictly adhere to legacy BMS constraints
+        // Assuming legacy BMS screen names cannot exceed 8 characters (3270 standard)
+        if (cmd.screenId().length() > 8) {
+            throw new IllegalArgumentException("screenId violates legacy BMS length constraints (max 8 chars)");
         }
 
-        // If we reached here, invariants are satisfied.
-        // Create the event with the correct signature.
+        // Check input data constraints if provided
+        if (cmd.inputData() != null) {
+            for (Map.Entry<String, String> entry : cmd.inputData().entrySet()) {
+                // Example constraint: field values max 50 chars
+                if (entry.getValue() != null && entry.getValue().length() > 50) {
+                    throw new IllegalArgumentException("Field value length exceeds legacy BMS constraints");
+                }
+            }
+        }
+
         var event = new ScreenRenderedEvent(
+            "screen.rendered",
             this.screenMapId,
             cmd.screenId(),
             cmd.deviceType(),
+            cmd.inputData(),
             Instant.now()
         );
 
-        this.addEvent(event);
-        this.incrementVersion();
-
+        addEvent(event);
+        incrementVersion();
         return List.of(event);
     }
 }

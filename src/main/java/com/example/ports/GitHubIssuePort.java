@@ -1,26 +1,27 @@
 package com.example.ports;
 
+import java.net.URI;
+import java.util.Optional;
+
 /**
- * Port interface for creating GitHub Issues.
- * Abstracts the external GitHub API calls.
+ * Port interface for creating and retrieving GitHub issues.
+ * Used to verify that a defect results in a valid GitHub URL.
  */
 public interface GitHubIssuePort {
+    /**
+     * Creates a new GitHub issue based on the defect data.
+     *
+     * @param title The title of the issue.
+     * @param body The body content of the issue.
+     * @return The URL of the created issue.
+     */
+    URI createIssue(String title, String body);
 
     /**
-     * Creates an issue in the repository.
-     * @param title The issue title
-     * @param body The issue body
-     * @param labels Comma separated labels
-     * @return Response containing the URL of the created issue.
+     * Retrieves the URL for a specific issue ID.
+     *
+     * @param issueId The internal issue identifier.
+     * @return The URL if found.
      */
-    GitHubIssueResponse createIssue(String title, String body, String labels);
-
-    /**
-     * Simple DTO for the response.
-     */
-    class GitHubIssueResponse {
-        private final String url;
-        public GitHubIssueResponse(String url) { this.url = url; }
-        public String getUrl() { return url; }
-    }
+    Optional<URI> getIssueUrl(String issueId);
 }

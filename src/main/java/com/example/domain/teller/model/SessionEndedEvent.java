@@ -6,7 +6,7 @@ import java.time.Instant;
 
 public record SessionEndedEvent(
     String aggregateId,
-    String tellerId,
+    String sessionId,
     Instant occurredAt
 ) implements DomainEvent {
     @Override
@@ -15,12 +15,12 @@ public record SessionEndedEvent(
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

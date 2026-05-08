@@ -1,24 +1,35 @@
 package com.example.configuration;
 
+import com.example.adapters.GitHubAdapter;
+import com.example.adapters.SlackAdapter;
 import com.example.ports.GitHubPort;
 import com.example.ports.SlackPort;
-import com.example.workers.ReportDefectActivity;
-import com.example.workers.ReportDefectActivityImpl;
+import com.example.workflows.ReportDefectActivities;
+import com.example.workflows.ReportDefectActivitiesImpl;
 import com.example.workflows.ReportDefectWorkflow;
 import com.example.workflows.ReportDefectWorkflowImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Spring Configuration for Defect Reporting components.
+ * Wires the real adapters to the Temporal Activities.
+ */
 @Configuration
 public class DefectReportingConfiguration {
 
     @Bean
-    public ReportDefectActivity reportDefectActivity(GitHubPort gitHubPort, SlackPort slackPort) {
-        return new ReportDefectActivityImpl(gitHubPort, slackPort);
+    public GitHubPort gitHubPort() {
+        return new GitHubAdapter();
     }
 
     @Bean
-    public ReportDefectWorkflow reportDefectWorkflow(ReportDefectActivity activity) {
-        return new ReportDefectWorkflowImpl(activity);
+    public SlackPort slackPort() {
+        return new SlackAdapter();
+    }
+
+    @Bean
+    public ReportDefectActivities reportDefectActivities(GitHubPort gitHubPort, SlackPort slackPort) {
+        return new ReportDefectActivitiesImpl(gitHubPort, slackPort);
     }
 }

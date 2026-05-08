@@ -1,10 +1,14 @@
 package com.example.ports;
 
-import com.example.domain.validation.model.DefectReportedEvent;
-
 /**
- * Port for sending notifications to Slack.
+ * Port for sending Slack notifications.
+ * Used to validate that Slack bodies contain required URLs (e.g., GitHub issue links).
  */
 public interface SlackNotificationPort {
-    void notify(DefectReportedEvent event);
+    /**
+     * Posts a message to the configured Slack channel.
+     * @param body The message body content.
+     * @throws IllegalArgumentException if the body is invalid or missing required fields.
+     */
+    void postMessage(String body);
 }

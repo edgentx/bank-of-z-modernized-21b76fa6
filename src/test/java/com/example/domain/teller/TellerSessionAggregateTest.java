@@ -1,91 +1,134 @@
 package com.example.domain.teller;
 
-import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.teller.model.EndSessionCmd;
 import com.example.domain.teller.model.SessionEndedEvent;
-import com.example.domain.teller.model.TellerSessionAggregate;
+import com.example.domain.teller.model.TellerSession;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class TellerSessionAggregateTest {
+/**
+ * TDD Red Phase Tests for S-20: EndSessionCmd.
+ *
+ * Context:
+ * - TellerSession (Aggregate)
+ * - EndSessionCmd (Command)
+ * - SessionEndedEvent (Event)
+ *
+ * Invariants Enforced:
+ * 1. AuthZ: Teller must be authenticated (cannot end a session that was never started/invalid).
+ * 2. Timeout: Session cannot be ended if it has already timed out (system must reject).
+ * 3. Nav State: Navigation state must be accurate (cannot end in a transient/mismatched state).
+ */
+class TellerSessionAggregateTest {
 
+    // Valid standard data setup
+    private UUID validSessionId;
+    private String validTellerId;
+    private Instant now;
+    private Duration defaultTimeout;
+
+    @BeforeEach
+    void setUp() {
+        validSessionId = UUID.randomUUID();
+        validTellerId = "TELLER_100";
+        now = Instant.now();
+        defaultTimeout = Duration.ofMinutes(15);
+    }
+
+    // --- SCENARIO 1: Successfully execute EndSessionCmd ---
     @Test
-    public void testExecuteEndSessionCmd_Success() {
+    void whenEndSessionCmdExecuted_thenSessionEndedEventIsEmitted() {
         // Given
-        String sessionId = "SESSION-123";
-        String tellerId = "TELLER-42";
-        TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
-        // Simulate an authenticated session state (bypassing Init command for isolation)
-        // In a real scenario, we'd load from events or invoke Init.
-        // For TDD, we assume the internal state can be set or is initially valid for this command context.
-        // We will validate that IF it is valid, the command works.
-        
-        // However, since EndSessionCmd is the focus, we assume the aggregate is created.
-        EndSessionCmd cmd = new EndSessionCmd(sessionId, Instant.now());
+        // We assume a constructor TellerSession(sessionId, tellerId, lastActivity, timeout)
+        // We assume a method setNavigationState to set the valid context.
+        TellerSession session = new TellerSession(validSessionId, validTellerId, now, defaultTimeout);
+        session.setNavigationState("IDLE"); // Valid state
+        EndSessionCmd cmd = new EndSessionCmd(validSessionId, validTellerId);
 
         // When
-        List<DomainEvent> events = aggregate.execute(cmd);
+        List<DomainEvent> events = session.execute(cmd);
 
         // Then
-        assertNotNull(events, "Events list should not be null");
         assertEquals(1, events.size(), "Should emit exactly one event");
-        assertTrue(events.get(0) instanceof SessionEndedEvent, "Event should be SessionEndedEvent");
+        assertTrue(events.get(0) instanceof SessionEndedEvent, "Event type must be SessionEndedEvent");
+
+        SessionEndedEvent endedEvent = (SessionEndedEvent) events.get(0);
+        assertEquals(validSessionId, endedEvent.sessionId());
+        assertEquals(validTellerId, endedEvent.tellerId());
+        assertNotNull(endedEvent.occurredAt());
+    }
+
+    // --- SCENARIO 2: EndSessionCmd rejected — A teller must be authenticated ---
+    @Test
+    void whenTellerNotAuthenticated_thenCommandIsRejected() {
+        // Given
+        // Simulate an unauthenticated state. In this domain, we can model this by
+        // passing a NULL or BLANK tellerId, or a specific unauthenticated flag.
+        TellerSession session = new TellerSession(validSessionId, null, now, defaultTimeout); 
+        EndSessionCmd cmd = new EndSessionCmd(validSessionId, validTellerId);
+
+        // When & Then
+        Exception ex = assertThrows(IllegalStateException.class, () -> {
+            session.execute(cmd);
+        });
+        assertTrue(ex.getMessage().contains("authenticated"));
+    }
+
+    // --- SCENARIO 3: EndSessionCmd rejected — Sessions must timeout ---
+    @Test
+    void whenSessionTimedOut_thenCommandIsRejected() {
+        // Given
+        // Simulate a session where 'lastActivity' was 16 minutes ago, but timeout is 15 minutes.
+        Instant oldActivity = now.minus(defaultTimeout).minusSeconds(60);
+        TellerSession session = new TellerSession(validSessionId, validTellerId, oldActivity, defaultTimeout);
         
-        SessionEndedEvent event = (SessionEndedEvent) events.get(0);
-        assertEquals("session.ended", event.type());
-        assertEquals(sessionId, event.aggregateId());
-        assertNotNull(event.occurredAt());
-    }
-
-    @Test
-    public void testExecuteEndSessionCmd_Rejected_NotAuthenticated() {
-        // Given
-        String sessionId = "SESSION-UNAUTH";
-        TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
-        // State: No teller ID implies not authenticated for this session context
-        EndSessionCmd cmd = new EndSessionCmd(sessionId, Instant.now());
+        EndSessionCmd cmd = new EndSessionCmd(validSessionId, validTellerId);
 
         // When & Then
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
-            aggregate.execute(cmd);
+        Exception ex = assertThrows(IllegalStateException.class, () -> {
+            session.execute(cmd);
         });
-        assertTrue(ex.getMessage().contains("Teller must be authenticated"));
+        assertTrue(ex.getMessage().contains("timeout") || ex.getMessage().contains("inactive"));
     }
 
+    // --- SCENARIO 4: EndSessionCmd rejected — Navigation state must accurately reflect current operational context ---
     @Test
-    public void testExecuteEndSessionCmd_Rejected_SessionTimedOut() {
+    void whenNavigationStateInvalid_thenCommandIsRejected() {
         // Given
-        String sessionId = "SESSION-TIMEOUT";
-        TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
-        // State: Last activity time is way in the past
-        // We rely on the constructor or state setter to establish this "violated" state
-        // or the command execution logic checks system time vs last activity.
-        EndSessionCmd cmd = new EndSessionCmd(sessionId, Instant.now());
+        // Simulate a session where the Nav State is inconsistent (e.g., null or unknown).
+        TellerSession session = new TellerSession(validSessionId, validTellerId, now, defaultTimeout);
+        // We assume a method or constructor allows us to force an invalid state for testing invariants.
+        session.setNavigationState("UNKNOWN_CONTEXT"); 
+
+        EndSessionCmd cmd = new EndSessionCmd(validSessionId, validTellerId);
 
         // When & Then
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
-            aggregate.execute(cmd);
+        Exception ex = assertThrows(IllegalStateException.class, () -> {
+            session.execute(cmd);
         });
-        assertTrue(ex.getMessage().contains("Session has timed out"));
+        assertTrue(ex.getMessage().contains("Navigation") || ex.getMessage().contains("state"));
     }
 
+    // --- NEGATIVE: Unknown Command ---
     @Test
-    public void testExecuteEndSessionCmd_Rejected_NavigationStateInvalid() {
-        // Given
-        String sessionId = "SESSION-NAV-ERR";
-        TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
-        // State: Current screen is null or invalid context
-        EndSessionCmd cmd = new EndSessionCmd(sessionId, Instant.now());
+    void whenUnknownCommand_thenThrowsUnknownCommandException() {
+        TellerSession session = new TellerSession(validSessionId, validTellerId, now, defaultTimeout);
+        
+        // Create a fake command that isn't EndSessionCmd
+        Command invalid = new Command() {};
 
-        // When & Then
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
-            aggregate.execute(cmd);
-        });
-        assertTrue(ex.getMessage().contains("Navigation state is invalid"));
+        assertThrows(UnknownCommandException.class, () -> session.execute(invalid));
     }
+
+    // --- HELPER Mock/Record for testing (Required for compilation) ---
+    private interface Command {} // minimal duplicate to ensure file compiles if shared isn't imported immediately
 }

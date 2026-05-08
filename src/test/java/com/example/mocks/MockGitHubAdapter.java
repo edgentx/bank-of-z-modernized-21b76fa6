@@ -6,48 +6,47 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Mock implementation of GitHubPort.
- * Simulates GitHub API calls without network I/O.
+ * Mock implementation of GitHubPort for testing.
+ * Simulates issue creation and returns predictable URLs.
  */
 public class MockGitHubAdapter implements GitHubPort {
 
-    private final Map<String, String> database = new HashMap<>();
-    private String forcedUrl = null;
-    private boolean shouldFail = false;
+    private final Map<String, String> stubbedUrls = new HashMap<>();
+    private boolean createIssueCalled = false;
+    private String lastCreatedTitle;
 
     /**
-     * Configures the mock to return a specific URL on the next call.
+     * Stubs a specific Defect ID to return a specific URL.
      */
-    public void forceUrl(String url) {
-        this.forcedUrl = url;
-    }
-
-    /**
-     * Configures the mock to throw an exception.
-     */
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
+    public void stubIssueUrl(String defectId, String url) {
+        this.stubbedUrls.put(defectId, url);
     }
 
     @Override
-    public String createDefectIssue(String title, String body) {
-        if (shouldFail) {
-            throw new RuntimeException("GitHub API simulated failure");
-        }
+    public String createIssue(String title, String description) {
+        this.createIssueCalled = true;
+        this.lastCreatedTitle = title;
 
-        // Generate a stable mock URL based on title if not forced
-        String mockUrl = forcedUrl;
-        if (mockUrl == null) {
-            String issueId = String.valueOf(Math.abs(title.hashCode()));
-            mockUrl = "https://github.com/mock-org/issues/" + issueId;
-        }
+        // Determine the 'Defect ID' from the title or return a default stub if not configured
+        // Real scenario: title might be "VW-454: Validation failed"
+        String key = title.split(":")[0].trim(); 
         
-        // Store it
-        database.put(title, mockUrl);
-        return mockUrl;
+        return stubbedUrls.getOrDefault(key, "https://github.com/mock/default-issue");
     }
 
-    public String getUrlForTitle(String title) {
-        return database.get(title);
+    // Test Utility Methods
+
+    public boolean wasCreateIssueCalled() {
+        return createIssueCalled;
+    }
+
+    public String getGeneratedUrl(String defectId) {
+        return stubbedUrls.get(defectId);
+    }
+
+    public void reset() {
+        this.stubbedUrls.clear();
+        this.createIssueCalled = false;
+        this.lastCreatedTitle = null;
     }
 }

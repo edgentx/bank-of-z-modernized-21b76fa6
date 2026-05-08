@@ -9,20 +9,18 @@
         <version>3.2.3</version>
         <relativePath/>
     </parent>
-
     <groupId>com.example</groupId>
     <artifactId>bank-of-z</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-    <name>Bank of Z</name>
-    <description>Modernization Track B: Domain Core</description>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>bank-of-z</name>
+    <description>Modernization Track B</description>
 
     <properties>
         <java.version>21</java.version>
-        <flyway.version>9.22.3</flyway.version>
+        <cucumber.version>7.15.0</cucumber.version>
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -32,53 +30,36 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.ibm.db2</groupId>
+            <artifactId>jcc</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
-
-        <!-- Database Drivers -->
-        <!-- DB2 driver is usually proprietary, but we assume a scope is provided or standard. -->
-        <!-- Note: The prompt lists DB2, but for compilation, generic JDBC interfaces or stubs suffice. -->
-        <!-- We explicitly include the H2 driver for test/compile if DB2 is missing locally, but the prompt implies DB2 is the target. -->
         
-        <!-- Flyway for DB2 -->
-        <!-- The error indicates flyway-db2:9.22.3 was not found. -->
-        <!-- Spring Boot BOM manages org.flywaydb:flyway-core, but NOT flyway-database-* modules (like flyway-db2). -->
-        <!-- As per Rule 9a, we MUST declare the version explicitly for groupIds NOT in the BOM list. -->
-        <!-- However, flyway-db2 was moved to a separate artifact org.flywaydb:flyway-db2 in later versions, or org.flywaydb:flyway-database-db2. -->
-        <!-- Given the error referenced 9.22.3, we will try to align with the core version or a known compatible one. -->
-        <!-- Note: org.flywaydb:flyway-db2 is often the artifact name. -->
+        <!-- Testing Dependencies -->
         <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-db2</artifactId>
-            <version>${flyway.version}</version>
-        </dependency>
-
-        <!-- Testing: Cucumber -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
-            <version>7.15.0</version>
+            <version>${cucumber.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>7.15.0</version>
+            <version>${cucumber.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -91,15 +72,13 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
+                <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <properties>
-                        <configurationParameters>
-                            cucumber.junit-platform.naming-strategy=long
-                        </configurationParameters>
-                    </properties>
+                    <source>21</source>
+                    <target>21</target>
                 </configuration>
             </plugin>
         </plugins>
     </build>
+
 </project>

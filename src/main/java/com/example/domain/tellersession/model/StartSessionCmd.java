@@ -1,15 +1,17 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
+import java.util.Set;
 
 /**
- * Command to initiate a teller session.
- * S-18: user-interface-navigation
+ * Command to initiate a new Teller Session.
+ * Enforces invariants: Authentication, Terminal Validation, Session State, Timeouts.
  */
 public record StartSessionCmd(
     String sessionId,
     String tellerId,
     String terminalId,
-    boolean authenticated,
-    String navigationContext // Represents the current screen or operation context
+    boolean isAuthenticated,
+    Set<String> activeRoles,
+    String navigationState
 ) implements Command {}

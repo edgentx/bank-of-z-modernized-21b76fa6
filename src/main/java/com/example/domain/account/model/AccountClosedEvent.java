@@ -7,11 +7,16 @@ import java.time.Instant;
 public record AccountClosedEvent(String accountNumber, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
-        return "AccountClosed";
+        return "account.closed";
     }
 
     @Override
     public String aggregateId() {
         return accountNumber;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

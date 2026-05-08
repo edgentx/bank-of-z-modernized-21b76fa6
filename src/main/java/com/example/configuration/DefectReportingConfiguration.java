@@ -1,5 +1,8 @@
 package com.example.configuration;
 
+import com.example.adapters.ValidationRepositoryImpl;
+import com.example.adapters.WebhookSlackNotificationAdapter;
+import com.example.domain.defect.repository.DefectRepository;
 import com.example.domain.shared.SlackMessageValidator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,23 +11,12 @@ import org.springframework.context.annotation.Configuration;
 public class DefectReportingConfiguration {
 
     @Bean
-    public SlackMessageValidator slackMessageValidator() {
-        return new SlackMessageValidatorImpl();
+    public DefectRepository defectRepository() {
+        return new ValidationRepositoryImpl();
     }
 
-    // Implementation of the interface to be used as a Bean
-    public static class SlackMessageValidatorImpl implements SlackMessageValidator {
-        @Override
-        public void validate(String slackBody, String githubUrl) {
-            if (slackBody == null) {
-                throw new IllegalArgumentException("Slack body cannot be null");
-            }
-            if (githubUrl == null) {
-                throw new IllegalArgumentException("GitHub URL cannot be null");
-            }
-            if (!slackBody.contains(githubUrl)) {
-                throw new IllegalStateException("Slack body must include GitHub URL: " + githubUrl);
-            }
-        }
+    @Bean
+    public SlackMessageValidator slackMessageValidator() {
+        return new WebhookSlackNotificationAdapter();
     }
 }

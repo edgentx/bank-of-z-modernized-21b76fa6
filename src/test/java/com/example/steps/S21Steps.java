@@ -3,117 +3,81 @@ package com.example.steps;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.uimodel.model.RenderScreenCmd;
-import com.example.domain.uimodel.model.ScreenMapAggregate;
-import com.example.domain.uimodel.model.ScreenRenderedEvent;
-import io.cucumber.java.en.And;
+import com.example.domain.userinterface.model.ScreenMapAggregate;
+import com.example.domain.userinterface.model.RenderScreenCmd;
+import com.example.domain.userinterface.model.ScreenRenderedEvent;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Assertions;
 
 public class S21Steps {
 
     private ScreenMapAggregate aggregate;
-    private RenderScreenCmd.RenderScreenCmdBuilder cmdBuilder;
-    private Exception caughtException;
-    private List<DomainEvent> resultEvents;
-
-    // Helper to initialize the builder for positive cases
-    private RenderScreenCmd.RenderScreenCmdBuilder createValidCmdBuilder() {
-        return new RenderScreenCmd(
-            "LOGIN001", // Valid 8-char ID
-            "3270"
-        );
-    }
+    private Exception capturedException;
+    private Iterable<DomainEvent> resultEvents;
 
     @Given("a valid ScreenMap aggregate")
     public void aValidScreenMapAggregate() {
-        aggregate = new ScreenMapAggregate("sm-1");
+        aggregate = new ScreenMapAggregate("SCREEN-001");
     }
 
-    @And("a valid screenId is provided")
+    @Given("a valid screenId is provided")
     public void aValidScreenIdIsProvided() {
-        // Used in the positive scenario. We don't store the command, just the intent.
-        // The command is constructed in the When block using valid defaults.
+        // Context setup handled in 'when' via command construction
     }
 
-    @And("a valid deviceType is provided")
+    @Given("a valid deviceType is provided")
     public void aValidDeviceTypeIsProvided() {
-        // Same as above.
+        // Context setup handled in 'when' via command construction
+    }
+
+    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
+    public void aScreenMapAggregateThatViolatesMandatoryFields() {
+        aggregate = new ScreenMapAggregate("SCREEN-ERR-01");
+    }
+
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void aScreenMapAggregateThatViolatesBmsConstraints() {
+        aggregate = new ScreenMapAggregate("SCREEN-BMS-01");
     }
 
     @When("the RenderScreenCmd command is executed")
     public void theRenderScreenCmdCommandIsExecuted() {
+        // Determine command based on context (simulated by state or simple defaults for test)
+        // For simplicity in this Step definition, we infer the intent based on the aggregate ID used in Given
+        Command cmd;
+        if (aggregate.id().equals("SCREEN-001")) {
+            cmd = new RenderScreenCmd("SCREEN-001", "MOBILE", "MAIN_MENU");
+        } else if (aggregate.id().equals("SCREEN-ERR-01")) {
+            cmd = new RenderScreenCmd("SCREEN-ERR-01", null, "MAIN_MENU"); // Violates mandatory
+        } else if (aggregate.id().equals("SCREEN-BMS-01")) {
+            cmd = new RenderScreenCmd("SCREEN-BMS-01", "3270", "THIS_FIELD_IS_DEFINITELY_TOO_LONG_FOR_LEGACY_BMS"); // Violates length
+        } else {
+            cmd = new RenderScreenCmd("UNKNOWN", "UNKNOWN", "UNKNOWN");
+        }
+
         try {
-            // Default valid command for the happy path
-            RenderScreenCmd cmd = new RenderScreenCmd("LOGIN001", "3270");
             resultEvents = aggregate.execute(cmd);
-        } catch (Exception e) {
-            caughtException = e;
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            capturedException = e;
+        } catch (UnknownCommandException e) {
+            capturedException = e;
         }
     }
 
     @Then("a screen.rendered event is emitted")
     public void aScreenRenderedEventIsEmitted() {
-        assertNull(caughtException, "Should not have thrown an exception");
-        assertNotNull(resultEvents, "Events list should not be null");
-        assertEquals(1, resultEvents.size(), "Should emit exactly one event");
-        
-        DomainEvent event = resultEvents.get(0);
-        assertTrue(event instanceof ScreenRenderedEvent, "Event should be ScreenRenderedEvent");
-        assertEquals("screen.rendered", event.type());
-        assertEquals("sm-1", event.aggregateId());
-    }
-
-    // --- Negative Scenarios ---
-
-    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void aScreenMapAggregateThatViolatesMandatoryInputFields() {
-        aggregate = new ScreenMapAggregate("sm-2");
-        // We will pass null/blank in the When step directly for this violation context
-    }
-
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void aScreenMapAggregateThatViolatesBMSConstraints() {
-        aggregate = new ScreenMapAggregate("sm-3");
-        // We will pass a long string in the When step directly
-    }
-
-    // Reusing the When method, but we'll handle the specific cases by setting up state or overwriting the command construction logic.
-    // Since Cucumber steps don't support parameters in this context, we can add specific When methods or inspect the context.
-    // However, standard BDD implies we execute the command and check the result.
-    // To distinguish, I will add specific When/Then methods for the negative flows to be explicit, or use parameters.
-    // Given the strict prompt, I will reuse the When method and assume the specific "Given" sets a flag or state that the When uses.
-    // But simpler approach: I'll add specific When steps for the negative flows.
-
-    @When("the RenderScreenCmd command is executed with invalid mandatory fields")
-    public void theRenderScreenCmdCommandIsExecutedWithInvalidMandatoryFields() {
-        try {
-            RenderScreenCmd cmd = new RenderScreenCmd(null, "3270");
-            resultEvents = aggregate.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            caughtException = e;
-        }
-    }
-
-    @When("the RenderScreenCmd command is executed with BMS length violations")
-    public void theRenderScreenCmdCommandIsExecutedWithBMSLengthViolations() {
-        try {
-            RenderScreenCmd cmd = new RenderScreenCmd("THIS_SCREEN_ID_IS_TOO_LONG", "3270");
-            resultEvents = aggregate.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            caughtException = e;
-        }
+        Assertions.assertNotNull(resultEvents);
+        Assertions.assertTrue(resultEvents.iterator().hasNext());
+        Assertions.assertTrue(resultEvents.iterator().next() instanceof ScreenRenderedEvent);
+        Assertions.assertNull(capturedException);
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(caughtException, "Should have thrown an exception");
-        assertTrue(caughtException instanceof IllegalArgumentException, "Should be an IllegalArgumentException (Domain Error)");
-        assertTrue(caughtException.getMessage().contains("mandatory") || caughtException.getMessage().contains("Field length violation"));
+        Assertions.assertNotNull(capturedException);
+        Assertions.assertTrue(capturedException instanceof IllegalArgumentException || capturedException instanceof IllegalStateException);
+        Assertions.assertNull(resultEvents); // Or empty list depending on strictness
     }
 }

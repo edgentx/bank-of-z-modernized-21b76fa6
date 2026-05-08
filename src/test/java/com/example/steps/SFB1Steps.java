@@ -1,56 +1,83 @@
 package com.example.steps;
 
-import com.example.domain.validation.model.ReportDefectCommand;
-import com.example.mocks.MockGitHubIssueTracker;
-import com.example.mocks.MockSlackNotifier;
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Cucumber Steps for S-FB-1.
- * Bridges the Gherkin feature file with the Java execution logic.
+ * Steps for Story S-FB-1: Validating VW-454 (GitHub URL in Slack body).
+ * 
+ * This test class is in the RED phase. It assumes the implementation exists
+ * but is empty or incorrect, causing assertions to fail.
  */
 public class SFB1Steps {
 
-    private MockSlackNotifier slack;
-    private MockGitHubIssueTracker github;
-    private String createdUrl;
+    private DefectAggregate defectAggregate;
+    private ReportDefectCmd reportCmd;
+    private List<DomainEvent> resultingEvents;
+    private Exception capturedException;
 
-    @Given("the Slack notifier is mocked")
-    public void theSlackNotifierIsMocked() {
-        slack = new MockSlackNotifier();
+    @Given("a defect is reported with ID {string}")
+    public void a_defect_is_reported_with_id(String defectId) {
+        this.defectAggregate = new DefectAggregate(defectId);
+        this.reportCmd = new ReportDefectCmd(
+            defectId,
+            "GitHub URL missing in Slack body",
+            "LOW",
+            "validation",
+            "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1",
+            "Checking #vforce360-issues for the link line"
+        );
     }
 
-    @Given("the GitHub issue tracker is mocked")
-    public void theGithubIssueTrackerIsMocked() {
-        github = new MockGitHubIssueTracker();
+    @When("the defect reporting workflow is executed")
+    public void the_defect_reporting_workflow_is_executed() {
+        try {
+            // Execute the command against the aggregate
+            resultingEvents = defectAggregate.execute(reportCmd);
+        } catch (Exception e) {
+            capturedException = e;
+        }
     }
 
-    @When("a defect {string} is reported with severity {string}")
-    public void aDefectIsReported(String title, String severity) {
-        // Setup Mock Response
-        createdUrl = "https://github.com/bank-of-z/issues/" + title.replaceAll("[^0-9]", "");
-        github.setSimulatedUrl(createdUrl);
+    @Then("the resulting event payload contains a valid GitHub URL")
+    public void the_resulting_event_payload_contains_a_valid_github_url() {
+        // Fail if an exception occurred during execution (e.g., missing implementation)
+        if (capturedException != null) {
+            fail("Defect reporting failed with exception: " + capturedException.getMessage());
+        }
+        
+        assertNotNull(resultingEvents, "Resulting events list should not be null");
+        assertFalse(resultingEvents.isEmpty(), "Resulting events list should not be empty");
 
-        // Execute Command Logic (Simulated)
-        ReportDefectCommand cmd = new ReportDefectCommand("1", title, "Desc", severity);
-
-        // Call the workflow (which is currently just the mock interaction for the test setup)
-        String url = github.createIssue(title, "Desc");
-        slack.postMessage("#vforce360-issues", "Issue created: " + url);
+        DomainEvent event = resultingEvents.get(0);
+        // Check for presence of githubUrl field dynamically or via specific event type
+        // Here we verify the behavior (string content) to satisfy the 'Slack body' requirement
+        assertTrue(
+            event.toString().contains("github.com"), 
+            "Event payload should contain a GitHub URL. Event was: " + event
+        );
     }
 
-    @Then("the Slack message body should contain the GitHub issue URL")
-    public void theSlackMessageBodyShouldContainTheGitHubIssueURL() {
-        assertFalse(slack.getPostedMessages().isEmpty());
-        assertTrue(slack.lastMessageContains(createdUrl));
-    }
-
-    @Then("the message should be posted to {string}")
-    public void theMessageShouldBePostedTo(String channel) {
-        assertEquals(channel, slack.getPostedMessages().get(0).channel);
+    @Then("the URL includes the defect ID {string}")
+    public void the_url_includes_the_defect_id(String defectId) {
+        if (capturedException != null) {
+            fail("Cannot verify URL content due to prior exception: " + capturedException.getMessage());
+        }
+        
+        DomainEvent event = resultingEvents.get(0);
+        // Assuming the event has a way to access the URL (implemented in Domain Event)
+        // This assertion verifies the specific format expected for Slack notification
+        assertTrue(
+            event.toString().contains(defectId),
+            "GitHub URL should contain the specific Defect ID: " + defectId
+        );
     }
 }

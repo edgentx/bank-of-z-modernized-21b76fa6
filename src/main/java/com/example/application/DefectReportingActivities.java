@@ -1,14 +1,30 @@
 package com.example.application;
 
-import io.temporal.activity.ActivityInterface;
-import io.temporal.activity.ActivityMethod;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackPort;
+import io.temporal.spring.boot.ActivityImpl;
+import org.springframework.stereotype.Component;
 
 /**
- * Temporal Activity Interface for Defect Reporting.
+ * Temporal Activity Implementation for Defect Reporting.
+ * Stub to fix compilation.
  */
-@ActivityInterface
-public interface DefectReportingActivities {
+@Component
+@ActivityImpl(taskQueues = "DefectReportingTaskQueue")
+public class DefectReportingActivities implements DefectReportingActivityInterface {
 
-    @ActivityMethod
-    void reportDefect(String defectDetails);
+    private final GitHubPort gitHubClient;
+    private final SlackPort slackClient;
+
+    public DefectReportingActivities(GitHubPort gitHubClient, SlackPort slackClient) {
+        this.gitHubClient = gitHubClient;
+        this.slackClient = slackClient;
+    }
+
+    @Override
+    public String reportDefect(String title, String body) {
+        // Real implementation would call gitHubClient.createIssue(...)
+        // Then slackClient.postMessage(...)
+        return "STUB_ID";
+    }
 }

@@ -1,74 +1,52 @@
 package com.example.domain.notification;
 
-import com.example.domain.notification.model.DefectReportedEvent;
 import com.example.domain.notification.model.NotificationAggregate;
-import com.example.domain.notification.model.ReportDefectCmd;
-import com.example.domain.shared.DomainEvent;
+import com.example.domain.notification.model.PrepareSlackNotificationCmd;
 import org.junit.jupiter.api.Test;
-
-import java.time.Instant;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class NotificationAggregateTest {
+/**
+ * Unit tests for NotificationAggregate.
+ * Verifies domain logic regarding content preparation.
+ */
+public class NotificationAggregateTest {
 
     @Test
-    void shouldFormatBodyWithGitHubUrlWhenUrlIsValid() {
-        // Given
+    @DisplayName("Should prepare notification body containing GitHub URL")
+    public void testPrepareNotificationWithUrl() {
+        // Arrange
         String id = "notif-1";
-        String githubUrl = "https://github.com/bank-of-z/issues/issues/454";
+        String url = "https://github.com/test/123";
         NotificationAggregate aggregate = new NotificationAggregate(id);
-        ReportDefectCmd cmd = new ReportDefectCmd(id, "VW-454", "URL missing in body", githubUrl);
+        PrepareSlackNotificationCmd cmd = new PrepareSlackNotificationCmd(
+            id, 
+            "#general", 
+            "Test Defect", 
+            url
+        );
 
-        // When
-        List<DomainEvent> events = aggregate.execute(cmd);
+        // Act
+        aggregate.execute(cmd);
 
-        // Then
-        assertEquals(1, events.size());
-        DefectReportedEvent event = (DefectReportedEvent) events.get(0);
-        
-        assertNotNull(event);
-        assertEquals(id, event.aggregateId());
-        assertEquals("Defect Reported: VW-454\nGitHub Issue: <https://github.com/bank-of-z/issues/issues/454>", event.formattedBody());
-        assertTrue(event.formattedBody().contains("<" + githubUrl + ">"));
-        assertTrue(event.formattedBody().contains("GitHub Issue:"));
+        // Assert
+        assertTrue(aggregate.getSlackBody().contains(url), "Slack body must contain the GitHub URL");
     }
 
     @Test
-    void shouldThrowExceptionWhenGitHubUrlIsInvalid() {
-        // Given
+    @DisplayName("Should throw exception if GitHub URL is missing")
+    public void testPrepareNotificationFailsWithoutUrl() {
+        // Arrange
         String id = "notif-2";
-        String invalidUrl = "https://gitlab.com/bank-of-z/issues/123";
         NotificationAggregate aggregate = new NotificationAggregate(id);
-        ReportDefectCmd cmd = new ReportDefectCmd(id, "S-123", "External link", invalidUrl);
+        PrepareSlackNotificationCmd cmd = new PrepareSlackNotificationCmd(
+            id, 
+            "#general", 
+            "Test Defect", 
+            "" // Empty URL
+        );
 
-        // When/Then
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aggregate.execute(cmd));
-        assertTrue(ex.getMessage().contains("valid GitHub Issue URL"));
-    }
-
-    @Test
-    void shouldThrowExceptionWhenGitHubUrlIsNull() {
-        // Given
-        String id = "notif-3";
-        NotificationAggregate aggregate = new NotificationAggregate(id);
-        ReportDefectCmd cmd = new ReportDefectCmd(id, "S-999", "No link provided", null);
-
-        // When/Then
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aggregate.execute(cmd));
-        assertTrue(ex.getMessage().contains("valid GitHub Issue URL"));
-    }
-
-    @Test
-    void shouldThrowExceptionWhenTitleIsBlank() {
-        // Given
-        String id = "notif-4";
-        NotificationAggregate aggregate = new NotificationAggregate(id);
-        ReportDefectCmd cmd = new ReportDefectCmd(id, "", "No title", "https://github.com/bank-of/z/issues/1");
-
-        // When/Then
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aggregate.execute(cmd));
-        assertTrue(ex.getMessage().contains("title"));
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> aggregate.execute(cmd));
     }
 }

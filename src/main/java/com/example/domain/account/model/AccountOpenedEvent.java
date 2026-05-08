@@ -7,26 +7,27 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record AccountOpenedEvent(
-    String aggregateId,
-    String customerId,
-    String accountType,
-    BigDecimal initialDeposit,
-    String sortCode,
-    String accountNumber,
-    Instant occurredAt
+        String aggregateId,
+        String customerId,
+        String accountType,
+        BigDecimal initialDeposit,
+        String sortCode,
+        String accountNumber,
+        Instant occurredAt
 ) implements DomainEvent {
-    public AccountOpenedEvent(String aggregateId, String customerId, String accountType, BigDecimal initialDeposit, String sortCode, String accountNumber, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.customerId = customerId;
-        this.accountType = accountType;
-        this.initialDeposit = initialDeposit;
-        this.sortCode = sortCode;
-        this.accountNumber = accountNumber;
-        this.occurredAt = occurredAt;
-    }
 
     @Override
     public String type() {
         return "account.opened";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

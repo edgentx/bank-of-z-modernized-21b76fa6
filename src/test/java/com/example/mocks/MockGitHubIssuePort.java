@@ -1,37 +1,20 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
-
-import java.util.Optional;
+import org.springframework.stereotype.Component;
 
 /**
- * Mock implementation of GitHubIssuePort for testing.
- * Returns a predictable URL without calling the real API.
+ * Mock implementation of the GitHub Port.
+ * Allows controlling responses for testing without hitting real GitHub API.
  */
+@Component
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private String simulatedUrl = "https://github.com/example/repo/issues/1";
-    private boolean shouldFail = false;
-
     @Override
-    public String createIssue(String title, String body) {
-        if (shouldFail) {
-            return null; // Simulate failure or empty URL
-        }
-        // Simulate a successful creation returning a URL
-        return simulatedUrl;
-    }
-
-    @Override
-    public Optional<String> getIssueUrl(String issueId) {
-        return Optional.of(simulatedUrl);
-    }
-
-    public void setSimulatedUrl(String url) {
-        this.simulatedUrl = url;
-    }
-
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
+    public GitHubIssueResponse createIssue(String title, String body, String labels) {
+        // Default mock behavior: Return a dummy URL.
+        // In a real test setup, this can be overridden via a test config or Mockito spies,
+        // but for the purpose of the requested Mock Adapter pattern, we return a valid static object.
+        return new GitHubIssueResponse("https://github.com/bank-of-z/vforce360/issues/MOCK-123");
     }
 }

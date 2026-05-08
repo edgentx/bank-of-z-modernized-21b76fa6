@@ -19,16 +19,14 @@ public class ReportDefectWorkflow {
     }
 
     public void reportDefect(String title) {
-        // STUB IMPLEMENTATION FOR RED PHASE
-        // Currently fails criteria because it does not include the URL in the Slack message.
-        // The test SFB1E2ETest expects the URL to be present.
-        
+        // Implementation for GREEN phase.
+        // Fixes defect VW-454 by ensuring the GitHub URL is included in the Slack message body.
+
         String issueUrl = githubIssuePort.createIssue(title, "Defect details...");
-        
-        // BUG: The defect VW-454 states the URL is missing.
-        // This code deliberately omits the URL to reproduce the defect.
-        String slackMessage = "New defect reported: " + title;
-        
+
+        // FIX: Append the GitHub URL to the message body.
+        String slackMessage = "New defect reported: " + title + "\nGitHub Issue: " + issueUrl;
+
         slackNotificationPort.postMessage(slackMessage);
     }
 }

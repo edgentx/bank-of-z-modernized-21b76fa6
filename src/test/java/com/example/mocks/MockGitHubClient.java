@@ -1,18 +1,21 @@
 package com.example.mocks;
 
+import com.example.domain.vforce360.model.DefectAggregate;
 import com.example.ports.GitHubClient;
 
+/**
+ * Mock implementation of GitHubClient for testing.
+ */
 public class MockGitHubClient implements GitHubClient {
-    private String nextIssueUrl = "https://github.com/fake/issues/1";
-    public boolean createIssueCalled = false;
+
+    private String mockUrl = "https://github.com/mocked-org/repo/issues/1";
 
     @Override
-    public String createIssue(String repo, String title, String body) {
-        createIssueCalled = true;
-        return nextIssueUrl;
+    public String createIssue(DefectAggregate defect) {
+        return mockUrl;
     }
 
-    public void setNextIssueUrl(String url) {
-        this.nextIssueUrl = url;
+    public void setMockUrl(String url) {
+        this.mockUrl = url;
     }
 }

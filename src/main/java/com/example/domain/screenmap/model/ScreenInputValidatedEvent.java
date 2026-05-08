@@ -5,11 +5,12 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.Map;
 
-/**
- * Domain event emitted when screen input is successfully validated.
- */
-public record ScreenInputValidatedEvent(String aggregateId, Map<String, String> fields) implements DomainEvent {
-    private final Instant occurredAt = Instant.now();
+public record ScreenInputValidatedEvent(
+        String aggregateId,
+        String screenId,
+        Map<String, String> inputs,
+        Instant occurredAt
+) implements DomainEvent {
 
     @Override
     public String type() {

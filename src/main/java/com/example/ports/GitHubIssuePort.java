@@ -3,8 +3,8 @@ package com.example.ports;
 import java.util.Optional;
 
 /**
- * Port for interacting with GitHub issues.
- * Used to generate URLs for defect reports.
+ * Port interface for interacting with GitHub issues.
+ * Used to generate URLs for defect reports based on Issue IDs.
  */
 public interface GitHubIssuePort {
 

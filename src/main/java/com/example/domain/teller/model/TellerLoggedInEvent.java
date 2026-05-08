@@ -1,34 +1,26 @@
 package com.example.domain.teller.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.UUID;
 
+/**
+ * Event emitted when a Teller Session is started/authenticated.
+ */
 public record TellerLoggedInEvent(
     String aggregateId,
     String tellerId,
     Instant occurredAt
 ) implements DomainEvent {
-    public TellerLoggedInEvent {
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
-    }
 
+    // Canonical constructor required by Aggregate logic
     public TellerLoggedInEvent(String aggregateId, String tellerId, Instant occurredAt) {
-        this(
-            aggregateId != null ? aggregateId : UUID.randomUUID().toString(),
-            tellerId,
-            occurredAt != null ? occurredAt : Instant.now()
-        );
+        this.aggregateId = aggregateId;
+        this.tellerId = tellerId;
+        this.occurredAt = occurredAt;
     }
 
     @Override
     public String type() {
         return "teller.logged.in";
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

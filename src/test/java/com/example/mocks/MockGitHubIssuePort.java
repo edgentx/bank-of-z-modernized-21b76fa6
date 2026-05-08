@@ -2,25 +2,22 @@ package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
 
-/**
- * Mock adapter for GitHub Issue creation.
- * Simulates API latency or behavior without touching real GitHub.
- */
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private String baseUrl = "https://github.com/mock-bank/issues/";
-    private boolean shouldFail = false;
+    private String nextIssueUrl = "https://github.com/mock/issues/1";
+    public boolean createIssueCalled = false;
+    public String lastTitle = "";
+    public String lastDescription = "";
 
     @Override
     public String createIssue(String title, String description) {
-        if (shouldFail) {
-            throw new RuntimeException("GitHub API unavailable");
-        }
-        // Return deterministic URL based on title hash or simple simulation
-        return baseUrl + title.replaceAll("\\s+", "-").toLowerCase() + "-" + System.currentTimeMillis();
+        this.createIssueCalled = true;
+        this.lastTitle = title;
+        this.lastDescription = description;
+        return nextIssueUrl;
     }
 
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
+    public void setNextIssueUrl(String url) {
+        this.nextIssueUrl = url;
     }
 }

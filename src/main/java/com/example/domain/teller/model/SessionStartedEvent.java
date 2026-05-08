@@ -3,29 +3,15 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Objects;
 
 public record SessionStartedEvent(
-        String aggregateId,
-        String tellerId,
-        String terminalId,
-        Instant occurredOn,
-        String navigationState // e.g., "HOME", "MENU"
+    String type,
+    String aggregateId,
+    String tellerId,
+    Instant occurredAt,
+    String terminalId
 ) implements DomainEvent {
-    public SessionStartedEvent {
-        Objects.requireNonNull(aggregateId);
-        Objects.requireNonNull(tellerId);
-        Objects.requireNonNull(terminalId);
-        Objects.requireNonNull(occurredOn);
-    }
-
-    @Override
-    public String type() {
-        return "session.started";
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredOn;
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
+        this("SessionStartedEvent", aggregateId, tellerId, occurredAt, terminalId);
     }
 }

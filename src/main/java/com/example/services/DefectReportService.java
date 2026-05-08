@@ -1,70 +1,49 @@
 package com.example.services;
 
-import com.example.ports.IssueTrackingPort;
-import com.example.ports.SlackNotificationPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.ports.GitHubClientPort;
+import com.example.ports.SlackNotifierPort;
 import org.springframework.stereotype.Service;
 
 /**
- * Service implementation for DefectReportWorkflow.
- * This class acts as the System Under Test (SUT) for the E2E validation.
- * It orchestrates the flow of creating an external issue and notifying Slack.
- * 
- * <p>This follows the Adapter/Port pattern, accepting interfaces via constructor injection.</p>
+ * Service handling the defect reporting workflow logic.
+ * Orchestrates fetching data from GitHub and notifying Slack.
  */
 @Service
 public class DefectReportService {
 
-    private static final Logger log = LoggerFactory.getLogger(DefectReportService.class);
-
-    private final IssueTrackingPort issueTrackingPort;
-    private final SlackNotificationPort slackNotificationPort;
+    private final GitHubClientPort gitHubClient;
+    private final SlackNotifierPort slackNotifier;
 
     /**
-     * Constructor for dependency injection.
-     * 
-     * @param issueTrackingPort The port for interacting with GitHub/JIRA.
-     * @param slackNotificationPort The port for sending Slack notifications.
+     * Constructor injection for ports (adapters).
+     * Spring will automatically inject the Mock implementations during tests
+     * and Real implementations (once configured) during production.
      */
-    public DefectReportService(IssueTrackingPort issueTrackingPort, 
-                               SlackNotificationPort slackNotificationPort) {
-        this.issueTrackingPort = issueTrackingPort;
-        this.slackNotificationPort = slackNotificationPort;
+    public DefectReportService(GitHubClientPort gitHubClient, SlackNotifierPort slackNotifier) {
+        this.gitHubClient = gitHubClient;
+        this.slackNotifier = slackNotifier;
     }
 
     /**
-     * Reports a defect by creating an issue in the tracking system and notifying a Slack channel.
+     * Reports a defect by retrieving its URL and sending a notification.
+     * Corresponds to the temporal-worker exec trigger.
      * 
-     * <h3>Business Logic (VW-454 Fix)</h3>
-     * To resolve the defect "GitHub URL in Slack body":
-     * <ol>
-     *   <li>Create an issue via {@link IssueTrackingPort} and retrieve the URL.</li>
-     *   <li>Construct the Slack body containing the specific URL.</li>
-     *   <li>Send the notification via {@link SlackNotificationPort}.</li>
-     * </ol>
-     * 
-     * @param targetChannel The Slack channel ID (e.g., "#vforce360-issues").
-     * @param title The title of the defect.
-     * @param description The description of the defect.
+     * @param defectId The ID of the defect (e.g., "VW-454")
      */
-    public void reportDefect(String targetChannel, String title, String description) {
-        log.info("Reporting defect: {}", title);
+    public void reportDefect(String defectId) {
+        // 1. Retrieve the URL from GitHub via the port
+        String issueUrl = gitHubClient.getIssueUrl(defectId);
 
-        // Step 1: Create the external issue (e.g., in GitHub)
-        // This returns the URL that was missing in the previous defect.
-        String issueUrl = issueTrackingPort.createIssue(title, description);
+        // 2. Construct the Slack message body including the URL
+        // (Validation check: Ensure URL is present to satisfy the 'Expected Behavior')
+        if (issueUrl == null || issueUrl.isEmpty()) {
+            throw new IllegalStateException("GitHub URL could not be retrieved for defect: " + defectId);
+        }
 
-        // Step 2: Compose the Slack message body ensuring the URL is present
-        // We strictly format it to satisfy VW-454 validation requirements.
-        String slackBody = String.format(
-            "New defect reported: %s\nDescription: %s\nGitHub issue: %s",
-            title, description, issueUrl
-        );
+        String slackBody = "Defect Report: " + defectId + "\n" +
+                           "GitHub Issue: " + issueUrl;
 
-        // Step 3: Send the notification
-        slackNotificationPort.sendNotification(targetChannel, slackBody);
-
-        log.info("Defect report processed. Notification sent to {} with URL: {}", targetChannel, issueUrl);
+        // 3. Send notification via the Slack port
+        slackNotifier.notify(slackBody);
     }
 }

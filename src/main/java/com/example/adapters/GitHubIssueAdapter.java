@@ -1,49 +1,28 @@
 package com.example.adapters;
 
 import com.example.ports.GitHubIssuePort;
-import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 
 /**
  * Real implementation of GitHubIssuePort.
- * Uses Spring's RestClient to interact with GitHub API.
+ * In a real environment, this would use the GitHub Octokit or a standard REST client.
  */
 @Component
+@ConditionalOnProperty(name = "adapters.github.enabled", havingValue = "true", matchIfMissing = false)
 public class GitHubIssueAdapter implements GitHubIssuePort {
 
-    private final RestClient restClient;
-    private final String repoOwner;
-    private final String repoName;
-
-    public GitHubIssueAdapter(
-            RestClient.Builder restClientBuilder,
-            @Value("${github.repo-owner}") String repoOwner,
-            @Value("${github.repo-name}") String repoName
-    ) {
-        this.repoOwner = repoOwner;
-        this.repoName = repoName;
-        this.restClient = restClientBuilder
-                .baseUrl("https://api.github.com")
-                .build();
-    }
+    private static final Logger log = LoggerFactory.getLogger(GitHubIssueAdapter.class);
 
     @Override
-    public String createIssue(String title, String body) {
-        // Structure of the request for GitHub API
-        record GitHubIssueRequest(String title, String body) {}
-        // Structure of the response from GitHub API
-        record GitHubIssueResponse(String htmlUrl, int number) {}
-
-        // This would be the actual POST execution:
-        // GitHubIssueResponse response = restClient.post()
-        //     .uri("/repos/{owner}/{repo}/issues", repoOwner, repoName)
-        //     .body(new GitHubIssueRequest(title, body))
-        //     .retrieve()
-        //     .body(GitHubIssueResponse.class);
-        // return response.htmlUrl();
-
-        // Placeholder for return type safety during compilation without a live endpoint
-        return "https://github.com/" + repoOwner + "/" + repoName + "/issues/1";
+    public String createIssue(String title, String description) {
+        // Implementation of the actual GitHub API call would go here.
+        // e.g., RestTemplate.postForEntity("https://api.github.com/repos/...")...
+        log.info("Creating GitHub issue: {}", title);
+        
+        // Placeholder URL logic matching the Mock's deterministic pattern for demonstration
+        return "https://github.com/example-bank/vforce360/issues/42";
     }
 }

@@ -5,10 +5,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 /**
- * Main Spring Boot Application.
+ * Bank of Z Main Application Entry Point.
+ * Enables Spring Boot, JPA, MongoDB, and Temporal Auto-configuration.
  */
 @SpringBootApplication
-@ComponentScan(basePackages = {"com.example.domain", "com.example.ports", "com.example.adapters"})
+@ComponentScan(basePackages = {"com.example"})
 public class Application {
 
     public static void main(String[] args) {

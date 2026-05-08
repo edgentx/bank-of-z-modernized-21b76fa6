@@ -1,36 +1,38 @@
 package com.example.application;
 
-import com.example.ports.GitHubIssuePort;
+import com.example.domain.shared.ReportDefectCmd;
 import com.example.ports.SlackNotificationPort;
 import org.springframework.stereotype.Service;
 
 /**
- * Application Service handling the defect reporting workflow.
- * Orchestrates the generation of the GitHub URL and the notification to Slack.
+ * Application Service handling the defect reporting logic.
+ * This acts as the bridge between the Temporal Workflow/Activities and the Notification Port.
  */
 @Service
 public class DefectReportService {
 
-    private final GitHubIssuePort gitHubIssuePort;
     private final SlackNotificationPort slackNotificationPort;
 
-    public DefectReportService(GitHubIssuePort gitHubIssuePort, SlackNotificationPort slackNotificationPort) {
-        this.gitHubIssuePort = gitHubIssuePort;
+    public DefectReportService(SlackNotificationPort slackNotificationPort) {
         this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Reports a defect to Slack including the GitHub issue URL.
-     * 
-     * @param defectId The ID of the defect (e.g., VW-454)
-     * @param description The description of the defect
-     * @return The result of the Slack notification attempt
+     * Handles the ReportDefectCmd.
+     * Formats the message including the critical GitHub URL and dispatches it via the port.
+     *
+     * @param cmd The command containing defect details and the generated GitHub URL.
      */
-    public SlackNotificationPort.SendResult reportDefect(String defectId, String description) {
-        // Generate the GitHub URL using the provided port
-        String issueUrl = gitHubIssuePort.generateIssueUrl(defectId);
+    public void reportDefect(ReportDefectCmd cmd) {
+        StringBuilder messageBody = new StringBuilder();
+        messageBody.append("Defect Reported: ").append(cmd.title()).append("\n");
+        messageBody.append("ID: ").append(cmd.defectId()).append("\n");
+        messageBody.append("Severity: ").append(cmd.severity()).append("\n");
+        messageBody.append("Description: ").append(cmd.description()).append("\n");
+        
+        // CRITICAL FIX for VW-454: Ensure the GitHub URL is appended to the message body
+        messageBody.append("GitHub Issue: ").append(cmd.githubIssueUrl());
 
-        // Delegate the actual sending to the Slack port
-        return slackNotificationPort.reportDefect(defectId, issueUrl);
+        slackNotificationPort.sendMessage(messageBody.toString());
     }
 }

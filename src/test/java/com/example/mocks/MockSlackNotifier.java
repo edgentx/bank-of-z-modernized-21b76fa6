@@ -1,40 +1,17 @@
 package com.example.mocks;
 
-import com.example.ports.DefectReporterPort;
-
+import com.example.ports.SlackNotifierPort;
+import com.example.domain.shared.DomainEvent;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Mock implementation of DefectReporterPort for testing.
- * Captures payloads to verify Slack body contents.
- */
-public class MockSlackNotifier implements DefectReporterPort {
-
-    public static class Report {
-        public final String defectId;
-        public final String githubUrl;
-
-        public Report(String defectId, String githubUrl) {
-            this.defectId = defectId;
-            this.githubUrl = githubUrl;
-        }
-    }
-
-    private final List<Report> calls = new ArrayList<>();
+public class MockSlackNotifier implements SlackNotifierPort {
+    public final List<CapturedNotification> notifications = new ArrayList<>();
 
     @Override
-    public boolean reportDefect(String defectId, String githubUrl) {
-        // Simulate recording the call
-        calls.add(new Report(defectId, githubUrl));
-        return true;
+    public void notify(DomainEvent event, String messageBody) {
+        notifications.add(new CapturedNotification(event, messageBody));
     }
 
-    public List<Report> getCalls() {
-        return calls;
-    }
-
-    public void reset() {
-        calls.clear();
-    }
+    public record CapturedNotification(DomainEvent event, String messageBody) {}
 }

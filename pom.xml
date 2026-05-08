@@ -1,7 +1,5 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -9,22 +7,31 @@
         <version>3.2.0</version>
         <relativePath/>
     </parent>
-    
     <groupId>com.example</groupId>
     <artifactId>teller-core</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>teller-core</name>
-    <description>Core Teller Logic and Domain Aggregates</description>
+    <description>Teller Core for Bank of Z</description>
     <properties>
         <java.version>17</java.version>
-        <cucumber.version>7.14.0</cucumber.version>
+        <flyway-db2.version>9.22.3</flyway-db2.version>
     </properties>
-    
     <dependencies>
-        <!-- Spring Boot Dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -34,64 +41,34 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-integration</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-batch</artifactId>
-        </dependency>
-        
-        <!-- Spring Data MongoDB -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
-        </dependency>
-
-        <!-- Database Drivers -->
-        <dependency>
-            <groupId>com.ibm.db2</groupId>
-            <artifactId>jcc</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-db2</artifactId>
-        </dependency>
-        <!-- Note: GroupId org.flywaydb is NOT in the default Spring Boot BOM closed set for plugins, 
-             but the dependencies are usually managed. However, 'flyway-database-db2' might need explicit version if not present. 
-             Assuming standard flyway-core is managed. Adding DB2 support explicitly if needed, 
-             but usually flyway-core covers basic drivers. If not, explicit version required. -->
-
-        <!-- IBM MQ -->
+        <!-- IBM MQ JMS -->
         <dependency>
             <groupId>com.ibm.mq</groupId>
-            <artifactId>mq-jms-spring-boot-starter</artifactId>
-            <version>3.2.0</version>
+            <artifactId>com.ibm.mq.allclient</artifactId>
+            <version>9.3.4.0</version>
         </dependency>
+        <!-- Spring Batch -->
         <dependency>
-            <groupId>jakarta.jms</groupId>
-            <artifactId>jakarta.jms-api</artifactId>
+            <groupId>org.springframework.batch</groupId>
+            <artifactId>spring-batch-core</artifactId>
         </dependency>
-
-        <!-- CICS/IMS -->
-        <!-- z/OS Connect EE & CICS TS dependencies are typically proprietary JARs not in Maven Central. 
-             Assuming local install or provided scope. -->
-
+        <!-- Temporal -->
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-spring-boot-starter</artifactId>
+            <version>1.22.3</version>
+        </dependency>
         <!-- Redis -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
-
-        <!-- Temporal -->
+        <!-- MinIO -->
         <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>1.23.1</version>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>8.5.6</version>
         </dependency>
-
         <!-- OpenTelemetry -->
         <dependency>
             <groupId>io.micrometer</groupId>
@@ -100,30 +77,45 @@
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <version>1.34.1</version>
+            <version>1.32.0</version>
         </dependency>
-
-        <!-- Testing (BDD) -->
+        <!-- Flyway -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-db2</artifactId>
+            <version>${flyway-db2.version}</version>
+        </dependency>
+        <!-- DB2 Driver -->
+        <dependency>
+            <groupId>com.ibm.db2</groupId>
+            <artifactId>jcc</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- Cucumber -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
-            <version>${cucumber.version}</version>
+            <version>7.14.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>${cucumber.version}</version>
+            <version>7.14.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

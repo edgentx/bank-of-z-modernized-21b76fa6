@@ -1,49 +1,41 @@
 package com.example.services;
 
-import com.example.ports.GitHubClientPort;
-import com.example.ports.SlackNotifierPort;
+import com.example.ports.SlackNotificationPort;
 import org.springframework.stereotype.Service;
 
 /**
- * Service handling the defect reporting workflow logic.
- * Orchestrates fetching data from GitHub and notifying Slack.
+ * Service responsible for orchestrating defect reporting.
+ * This encapsulates the business logic required to format the message
+ * and trigger the notification via the Slack Port.
  */
 @Service
 public class DefectReportService {
 
-    private final GitHubClientPort gitHubClient;
-    private final SlackNotifierPort slackNotifier;
+    private final SlackNotificationPort slackNotificationPort;
 
-    /**
-     * Constructor injection for ports (adapters).
-     * Spring will automatically inject the Mock implementations during tests
-     * and Real implementations (once configured) during production.
-     */
-    public DefectReportService(GitHubClientPort gitHubClient, SlackNotifierPort slackNotifier) {
-        this.gitHubClient = gitHubClient;
-        this.slackNotifier = slackNotifier;
+    // Constructor Injection (Adhering to Spring Boot and Adapter Pattern requirements)
+    public DefectReportService(SlackNotificationPort slackNotificationPort) {
+        this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Reports a defect by retrieving its URL and sending a notification.
-     * Corresponds to the temporal-worker exec trigger.
-     * 
-     * @param defectId The ID of the defect (e.g., "VW-454")
+     * Reports a defect identified by its ID.
+     * This method formats the message body to include the GitHub issue URL
+     * and delegates the sending to the provided SlackNotificationPort.
+     *
+     * @param defectId The ID of the defect (e.g., "VW-454").
+     * @return true if the notification was successfully sent.
      */
-    public void reportDefect(String defectId) {
-        // 1. Retrieve the URL from GitHub via the port
-        String issueUrl = gitHubClient.getIssueUrl(defectId);
-
-        // 2. Construct the Slack message body including the URL
-        // (Validation check: Ensure URL is present to satisfy the 'Expected Behavior')
-        if (issueUrl == null || issueUrl.isEmpty()) {
-            throw new IllegalStateException("GitHub URL could not be retrieved for defect: " + defectId);
+    public boolean reportDefect(String defectId) {
+        if (defectId == null || defectId.isBlank()) {
+            throw new IllegalArgumentException("Defect ID cannot be null or blank");
         }
 
-        String slackBody = "Defect Report: " + defectId + "\n" +
-                           "GitHub Issue: " + issueUrl;
+        // Logic to construct the body containing the GitHub URL
+        // Based on the Defect Description and Expected Behavior
+        String githubUrl = "https://github.com/example-bank/z/issues/" + defectId;
+        String messageBody = "Defect reported: " + defectId + ". GitHub issue: " + githubUrl;
 
-        // 3. Send notification via the Slack port
-        slackNotifier.notify(slackBody);
+        return slackNotificationPort.sendNotification(messageBody);
     }
 }

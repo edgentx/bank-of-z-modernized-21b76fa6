@@ -43,37 +43,18 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Fixing Build Errors: Dependency Resolution Exception -->
-        <!-- Note: io.temporal:temporal-spring-boot-starter:1.22.1 does NOT exist in Maven Central.
-             The highest version of temporal-spring-boot-starter currently available is usually around 
-             older iterations or handled via the standard SDK. However, to resolve the error message 
-             'io.temporal:temporal-spring-boot-starter:jar:1.22.1 was not found', we must provide a valid 
-             dependency that actually exists or comment it out if it's not used.
-             
-             Based on the mandate to fix the build, we will assume standard Temporal SDK usage.
-             IMPORTANT: Spring Boot BOM does NOT pin io.temporal.
-             Explicit version is required.
-        -->
+        <!-- Temporal Dependency -->
+        <!-- io.temporal is NOT in the closed set of BOM-pinned GroupIds. 
+             MUST declare <version> explicitly. -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
-            <!-- Using a known valid version (e.g., 1.22.1 might be internal/future, using 1.21.1 or similar valid release) -->
-            <!-- However, since the error log specifically complained about 1.22.1 not being found, 
-                 and we cannot change the version arbitrarily if the code depends on specific APIs, 
-                 we will use a widely available version. -->
-            <version>1.22.1</version> 
-            <!-- If 1.22.1 is strictly required but missing, the build will still fail. 
-                 Usually, this means the artifact ID is wrong or version is unreleased. 
-                 Correct artifact is often 'temporal-sdk' or 'temporal-spring-boot-autoconfigure'. 
-                 For this fix, we swap to the artifact that actually exists in the ecosystem. 
-            -->
-            <artifactId>temporal-spring-boot-autoconfigure-alpha</artifactId> 
             <version>1.22.1</version>
         </dependency>
 
         <!-- Flyway DB2 -->
         <!-- org.flywaydb is NOT in the closed set of BOM-pinned GroupIds. 
-             We MUST declare <version> explicitly. -->
+             MUST declare <version> explicitly. -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>

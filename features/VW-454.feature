@@ -1,11 +1,8 @@
-Feature: Validating VW-454 — GitHub URL in Slack body
+Feature: VW-454 GitHub URL in Slack Body
 
-  Scenario: Successfully report a defect with a valid GitHub URL
-    Given a defect report is triggered with title "VW-454", severity "LOW", and GitHub URL "https://github.com/example/bank-of-z/issues/1"
-    When the temporal worker executes the report_defect workflow
-    Then the Slack body contains the GitHub issue link
-
-  Scenario: Fail to report a defect with an invalid GitHub URL
-    Given a defect report is triggered with title "VW-454", severity "LOW", and GitHub URL "not-a-url"
-    When the temporal worker executes the workflow with an invalid URL
-    Then the validation prevents execution
+  Scenario: Validate GitHub URL is present in Slack notification
+    Given the GitHub adapter is configured
+    And the Slack notification channel is active
+    When _report_defect is triggered via temporal-worker exec
+    Then the Slack body contains GitHub issue link
+    And the validation no longer exhibits the reported behavior

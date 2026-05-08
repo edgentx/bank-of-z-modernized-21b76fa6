@@ -1,45 +1,39 @@
 package com.example.steps;
 
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.teller.model.EndSessionCmd;
-import com.example.domain.teller.model.SessionEndedEvent;
-import com.example.domain.teller.model.TellerSessionAggregate;
-import com.example.mocks.InMemoryTellerSessionRepository;
+import com.example.domain.tellersession.model.EndSessionCmd;
+import com.example.domain.tellersession.model.SessionEndedEvent;
+import com.example.domain.tellersession.model.TellerSessionAggregate;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-
-import java.time.Duration;
-import java.time.Instant;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Assertions;
 
 public class S20Steps {
 
     private TellerSessionAggregate aggregate;
-    private InMemoryTellerSessionRepository repository = new InMemoryTellerSessionRepository();
     private Exception capturedException;
     private List<DomainEvent> resultEvents;
 
     @Given("a valid TellerSession aggregate")
     public void aValidTellerSessionAggregate() {
-        aggregate = new TellerSessionAggregate("session-123");
-        aggregate.init("teller-456", "IDLE");
-        repository.save(aggregate);
+        String sessionId = "session-123";
+        aggregate = new TellerSessionAggregate(sessionId);
+        aggregate.markAuthenticated();       // Ensure auth invariant passes
+        aggregate.validateNavigationState(); // Ensure nav invariant passes
     }
 
     @And("a valid sessionId is provided")
     public void aValidSessionIdIsProvided() {
-        // sessionId is implicitly handled by the aggregate instance created above
+        // ID is already set in the constructor via the Given step
     }
 
     @When("the EndSessionCmd command is executed")
     public void theEndSessionCmdCommandIsExecuted() {
         try {
-            EndSessionCmd cmd = new EndSessionCmd("session-123", Instant.now());
+            Command cmd = new EndSessionCmd(aggregate.id());
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             capturedException = e;
@@ -48,49 +42,45 @@ public class S20Steps {
 
     @Then("a session.ended event is emitted")
     public void aSessionEndedEventIsEmitted() {
-        assertNull(capturedException, "Should not have thrown exception: " + capturedException);
-        assertNotNull(resultEvents);
-        assertFalse(resultEvents.isEmpty());
-        assertTrue(resultEvents.get(0) instanceof SessionEndedEvent);
+        Assertions.assertNotNull(resultEvents);
+        Assertions.assertFalse(resultEvents.isEmpty());
+        Assertions.assertEquals("session.ended", resultEvents.get(0).type());
+        Assertions.assertTrue(resultEvents.get(0) instanceof SessionEndedEvent);
     }
 
-    // --- Negative Scenarios ---
+    // ------------------------------
+    // Negative Scenarios
+    // ------------------------------
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
     public void aTellerSessionAggregateThatViolatesAuth() {
-        aggregate = new TellerSessionAggregate("session-invalid-auth");
-        // Init with null tellerId to violate auth
-        aggregate.setAuthenticated(false); // Force tellerId to null
-        aggregate.init(null, "IDLE"); // Manually force state for test
-        aggregate.setAuthenticated(false);
-        repository.save(aggregate);
+        String sessionId = "session-auth-fail";
+        aggregate = new TellerSessionAggregate(sessionId);
+        // Intentionally NOT calling markAuthenticated()
+        aggregate.validateNavigationState(); // Ensure other invariants pass so we isolate this one
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
     public void aTellerSessionAggregateThatViolatesTimeout() {
-        aggregate = new TellerSessionAggregate("session-timeout");
-        aggregate.init("teller-456", "IDLE");
-        // Set last activity to 31 minutes ago (configured timeout is 30)
-        aggregate.setLastActivityAt(Instant.now().minus(Duration.ofMinutes(31)));
-        repository.save(aggregate);
+        String sessionId = "session-timeout";
+        aggregate = new TellerSessionAggregate(sessionId);
+        aggregate.markAuthenticated();
+        aggregate.validateNavigationState();
+        aggregate.expireSession(); // Force timeout state
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
     public void aTellerSessionAggregateThatViolatesNavState() {
-        aggregate = new TellerSessionAggregate("session-bad-nav");
-        aggregate.init("teller-456", "PENDING_TRANSACTION"); // Invalid state for ending session
-        repository.save(aggregate);
+        String sessionId = "session-nav-fail";
+        aggregate = new TellerSessionAggregate(sessionId);
+        aggregate.markAuthenticated();
+        aggregate.invalidateNavigationState(); // Intentionally NOT validating state
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(capturedException, "Expected exception was not thrown");
-        // Check for the specific invariant messages
-        assertTrue(
-                capturedException.getMessage().contains("authenticated") ||
-                capturedException.getMessage().contains("timeout") ||
-                capturedException.getMessage().contains("Navigation state"),
-                "Exception message did not match expected invariants: " + capturedException.getMessage()
-        );
+        Assertions.assertNotNull(capturedException);
+        // Checking that it is an IllegalStateException (which we use for domain rule violations)
+        Assertions.assertTrue(capturedException instanceof IllegalStateException);
     }
 }

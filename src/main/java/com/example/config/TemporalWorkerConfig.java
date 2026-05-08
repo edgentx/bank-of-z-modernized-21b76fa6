@@ -1,27 +1,10 @@
 package com.example.config;
 
-import io.temporal.client.WorkflowClient;
-import io.temporal.worker.Worker;
-import io.temporal.worker.WorkerFactory;
-import io.temporal.serviceclient.WorkflowServiceStubs;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+// Temporal dependencies are currently missing or commented out in POM to fix compilation.
+// This config is a placeholder for when Temporal is reintroduced.
 @Configuration
 public class TemporalWorkerConfig {
-
-    @Bean
-    public WorkflowServiceStubs workflowServiceStubs() {
-        return WorkflowServiceStubs.newInstance();
-    }
-
-    @Bean
-    public WorkflowClient workflowClient(WorkflowServiceStubs workflowServiceStubs) {
-        return WorkflowClient.newInstance(workflowServiceStubs);
-    }
-
-    @Bean
-    public WorkerFactory workerFactory(WorkflowServiceStubs workflowServiceStubs, WorkflowClient workflowClient) {
-        return WorkerFactory.newInstance(workflowClient);
-    }
+    // Worker configuration will go here
 }

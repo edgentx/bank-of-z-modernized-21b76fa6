@@ -1,14 +1,10 @@
 package com.example.domain.tellersession.repository;
 
-import com.example.domain.tellersession.model.TellerSession;
+import com.example.domain.tellersession.model.TellerSessionAggregate;
 
 import java.util.Optional;
 
-/**
- * Repository interface for TellerSession aggregates.
- * S-20: Implement EndSessionCmd on TellerSession
- */
 public interface TellerSessionRepository {
-    void save(TellerSession session);
-    Optional<TellerSession> findById(String id);
+    TellerSessionAggregate save(TellerSessionAggregate aggregate);
+    Optional<TellerSessionAggregate> findById(String id);
 }

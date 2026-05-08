@@ -3,18 +3,28 @@ package com.example.mocks;
 import com.example.ports.GitHubIssuePort;
 
 /**
- * Mock implementation of GitHubIssuePort for testing.
- * Returns deterministic URLs based on input IDs.
+ * Mock implementation for GitHub interactions.
+ * In a real scenario, this would use MockWebServer or similar, but for unit testing
+ * the workflow logic, a simple deterministic mock is sufficient.
  */
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private static final String FAKE_BASE_URL = "https://github.com/bank-of-z/issues/issues/";
+    private String nextIssueUrl = "https://github.com/fake/repo/issues/1";
+    public boolean createIssueCalled = false;
 
     @Override
-    public String getIssueUrl(String issueId) {
-        if (issueId == null || issueId.isBlank()) {
-            throw new IllegalArgumentException("issueId must not be blank");
-        }
-        return FAKE_BASE_URL + issueId;
+    public String createIssue(String title, String body) {
+        this.createIssueCalled = true;
+        // Simulate GitHub returning a URL immediately
+        return nextIssueUrl;
+    }
+
+    public void setNextIssueUrl(String url) {
+        this.nextIssueUrl = url;
+    }
+
+    public void reset() {
+        this.createIssueCalled = false;
+        this.nextIssueUrl = "https://github.com/fake/repo/issues/1";
     }
 }

@@ -4,25 +4,34 @@ import io.temporal.client.WorkflowClient;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
 import io.temporal.serviceclient.WorkflowServiceStubs;
+import org.springframework.stereotype.Component;
 
-/**
- * Temporal Worker Configuration.
- * Corrected imports and implementation logic.
- */
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+
+@Component
 public class TemporalWorker {
 
-    public static void main(String[] args) {
-        // Connect to Temporal Server
-        WorkflowServiceStubs service = WorkflowServiceStubs.newInstance();
-        WorkflowClient client = WorkflowClient.newInstance(service);
-        WorkerFactory factory = WorkerFactory.newInstance(client);
+    private final WorkflowServiceStubs workflowServiceStubs;
+    private final WorkflowClient workflowClient;
+    private final WorkerFactory workerFactory;
 
-        // Define the worker
-        Worker worker = factory.newWorker("VFORCE360_TASK_QUEUE");
-        worker.registerWorkflowImplementationFactory(ReportDefectWorkflow.class, () -> new ReportDefectWorkflowImpl());
+    public TemporalWorker(WorkflowServiceStubs workflowServiceStubs, WorkflowClient workflowClient, WorkerFactory workerFactory) {
+        this.workflowServiceStubs = workflowServiceStubs;
+        this.workflowClient = workflowClient;
+        this.workerFactory = workerFactory;
+    }
 
-        // Start the worker
-        factory.start();
-        System.out.println("Worker started for VFORCE360_TASK_QUEUE");
+    @PostConstruct
+    public void startWorker() {
+        Worker worker = workerFactory.newWorker("DEFECT_TASK_QUEUE");
+        // Register workflows here
+        workerFactory.start();
+    }
+
+    @PreDestroy
+    public void stopWorker() {
+        workerFactory.shutdown();
+        workflowServiceStubs.shutdown();
     }
 }

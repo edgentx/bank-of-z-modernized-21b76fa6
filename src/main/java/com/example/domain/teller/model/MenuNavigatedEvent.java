@@ -5,19 +5,19 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-public class MenuNavigatedEvent implements DomainEvent {
-    private final String eventId;
-    private final String sessionId;
-    private final String previousMenuId;
-    private final String targetMenuId;
-    private final String action;
-    private final Instant occurredAt;
+/**
+ * Event emitted when a Teller successfully navigates to a new menu context.
+ */
+public record MenuNavigatedEvent(
+    String aggregateId,
+    String menuId,
+    String action,
+    Instant occurredAt
+) implements DomainEvent {
 
-    public MenuNavigatedEvent(String sessionId, String previousMenuId, String targetMenuId, String action, Instant occurredAt) {
-        this.eventId = UUID.randomUUID().toString();
-        this.sessionId = sessionId;
-        this.previousMenuId = previousMenuId;
-        this.targetMenuId = targetMenuId;
+    public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.menuId = menuId;
         this.action = action;
         this.occurredAt = occurredAt;
     }
@@ -26,20 +26,4 @@ public class MenuNavigatedEvent implements DomainEvent {
     public String type() {
         return "menu.navigated";
     }
-
-    @Override
-    public String aggregateId() {
-        return sessionId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
-
-    public String eventId() { return eventId; }
-    public String sessionId() { return sessionId; }
-    public String previousMenuId() { return previousMenuId; }
-    public String targetMenuId() { return targetMenuId; }
-    public String action() { return action; }
 }

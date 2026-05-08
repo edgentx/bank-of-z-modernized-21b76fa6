@@ -7,20 +7,31 @@ import java.util.UUID;
 
 /**
  * Event emitted when a teller session is successfully started.
- * Context: S-18
  */
 public record SessionStartedEvent(
+    String eventId,
     String aggregateId,
     String tellerId,
     String terminalId,
     Instant occurredAt
 ) implements DomainEvent {
-    public SessionStartedEvent {
-        // Validate defaults or immutables if necessary
+
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, tellerId, terminalId, occurredAt);
     }
 
     @Override
     public String type() {
         return "session.started";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

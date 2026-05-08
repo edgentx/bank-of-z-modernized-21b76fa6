@@ -23,6 +23,19 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
 
+        <!-- Temporal Dependencies (NOT covered by Boot BOM - explicit version required) -->
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-spring-boot-starter</artifactId>
+            <version>1.23.1</version>
+        </dependency>
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-test-server</artifactId>
+            <version>1.23.1</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Cucumber Dependencies (Require Explicit Version) -->
         <dependency>
             <groupId>io.cucumber</groupId>
@@ -56,4 +69,11 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    
+    <repositories>
+        <repository>
+            <id>temporal-snapshots</id>
+            <url>https://github.com/temporalio/sdk-java/raw/main</url>
+        </repository>
+    </repositories>
 </project>

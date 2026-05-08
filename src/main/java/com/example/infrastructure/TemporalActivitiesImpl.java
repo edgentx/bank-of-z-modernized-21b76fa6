@@ -1,6 +1,5 @@
 package com.example.infrastructure;
 
-import com.example.domain.defect.model.DefectAggregate;
 import com.example.domain.shared.SlackMessageValidator;
 import com.example.ports.SlackNotifier;
 import com.example.domain.defect.repository.DefectRepository;

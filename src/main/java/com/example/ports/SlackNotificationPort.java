@@ -1,23 +1,13 @@
 package com.example.ports;
 
 /**
- * Port for sending notifications to Slack.
- * Used to verify that the correct content (specifically GitHub URLs) is sent.
+ * Port for sending Slack notifications.
+ * Used by the validation workflow to alert users of defects.
  */
 public interface SlackNotificationPort {
-    
     /**
-     * Sends a message to a Slack channel.
-     * @param channelId The target channel.
-     * @param messageBody The content of the message.
+     * Sends a message to the configured Slack channel.
+     * @param messageBody The formatted body of the message.
      */
-    void sendMessage(String channelId, String messageBody);
-
-    /**
-     * Retrieves the last message body sent to a specific channel.
-     * Used primarily for testing/verification to satisfy the defect requirements.
-     * @param channelId The target channel.
-     * @return The last message body string, or null if no message exists.
-     */
-    String getLastMessageBody(String channelId);
+    void sendMessage(String messageBody);
 }

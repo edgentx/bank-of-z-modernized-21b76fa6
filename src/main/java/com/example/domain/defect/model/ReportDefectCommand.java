@@ -1,14 +1,12 @@
 package com.example.domain.defect.model;
 
-import com.example.domain.shared.Command;
-
 /**
- * Command to report a defect.
- * Corrected naming to match standard Java conventions and the test expectations.
+ * Command object representing a request to report a defect.
+ * Used as input to the DefectReportingService.
  */
 public record ReportDefectCommand(
-        String defectId,
-        String title,
-        String description,
-        String githubUrl
-) implements Command {}
+    String projectId,
+    String title,
+    String description,
+    String githubUrl
+) {}

@@ -2,4 +2,13 @@ package com.example.domain.uimodel.model;
 
 import com.example.domain.shared.Command;
 
-public record NavigateMenuCmd(String sessionId, String menuId, String action) implements Command {}
+/**
+ * Command to route the teller to a different menu or screen.
+ * Part of S-19: TellerSession user-interface-navigation.
+ */
+public record NavigateMenuCmd(
+    String sessionId,
+    String targetMenuId,
+    String action,
+    String currentContextId // The screen/menu we are navigating FROM
+) implements Command {}

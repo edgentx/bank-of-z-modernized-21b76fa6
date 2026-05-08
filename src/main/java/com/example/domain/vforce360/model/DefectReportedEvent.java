@@ -6,6 +6,7 @@ import java.time.Instant;
 
 /**
  * Event emitted when a defect is reported.
+ * Records the occurrence of a defect report creation.
  */
 public record DefectReportedEvent(
     String defectId,

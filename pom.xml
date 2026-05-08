@@ -1,4 +1,3 @@
-<!-- UPGATED POM -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" 
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -34,7 +33,8 @@
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
         
-        <!-- Temporal (Out of BOM per Rule 9) -->
+        <!-- Temporal -->
+        <!-- Note: Explicit version tag required as io.temporal is outside Spring Boot BOM -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>

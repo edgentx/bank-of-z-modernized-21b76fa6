@@ -4,17 +4,39 @@ import com.example.ports.SlackPort;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Mock implementation of SlackPort for testing.
+ * Captures messages sent to Slack to verify content.
+ */
 public class MockSlackPort implements SlackPort {
-    public final List<Message> messages = new ArrayList<>();
+    
+    private final List<String> postedMessages = new ArrayList<>();
+    private boolean shouldFail = false;
 
     @Override
-    public void postMessage(String channel, String body) {
-        messages.add(new Message(channel, body));
+    public boolean postMessage(String text) {
+        if (shouldFail) return false;
+        postedMessages.add(text);
+        return true;
     }
 
-    public record Message(String channel, String body) {}
+    /**
+     * Retrieves the last message sent to Slack.
+     */
+    public String getLastMessage() {
+        if (postedMessages.isEmpty()) return null;
+        return postedMessages.get(postedMessages.size() - 1);
+    }
 
-    public boolean receivedMessageContaining(String text) {
-        return messages.stream().anyMatch(m -> m.body().contains(text));
+    /**
+     * Utility for the test to verify the link is present.
+     */
+    public boolean lastMessageContains(String substr) {
+        String last = getLastMessage();
+        return last != null && last.contains(substr);
+    }
+
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
     }
 }

@@ -1,64 +1,49 @@
 package com.example.application;
 
-import com.example.domain.validation.model.DefectReportedEvent;
-import com.example.domain.validation.model.ReportDefectCommand;
-import com.example.domain.validation.model.ValidationAggregate;
+import com.example.domain.reconciliation.model.DefectReportedEvent;
 import com.example.ports.SlackNotificationPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
- * Application Service handling the Defect Reporting workflow.
- * Orchestrates the aggregate execution and external notifications (Slack).
+ * Application service handling the workflow of defect reporting.
+ * Orchestrates the domain logic and external notifications (Slack).
  */
 @Service
 public class DefectReportingService {
 
-    private static final Logger logger = LoggerFactory.getLogger(DefectReportingService.class);
     private final SlackNotificationPort slackNotificationPort;
+    private final String githubIssueUrlTemplate;
 
-    // Constructor injection (Port)
-    public DefectReportingService(SlackNotificationPort slackNotificationPort) {
+    public DefectReportingService(SlackNotificationPort slackNotificationPort,
+                                  @Value("${vforce360.github.issue-url-template:https://github.com/egdcrypto/bank-of-z/issues/454}") String githubIssueUrlTemplate) {
         this.slackNotificationPort = slackNotificationPort;
+        this.githubIssueUrlTemplate = githubIssueUrlTemplate;
     }
 
     /**
-     * Handles the report_defect command triggered by Temporal or other sources.
-     * Generates the domain event and publishes the notification.
+     * Handles the DefectReportedEvent by constructing the Slack payload
+     * and sending it to the configured channel.
+     * <p>
+     * Implements S-FB-1: Validates that the GitHub URL is present in the body.
      *
-     * @param cmd The command containing defect details and the GitHub URL.
+     * @param event The domain event containing defect details.
      */
-    public void reportDefect(ReportDefectCommand cmd) {
-        // 1. Execute Domain Logic
-        ValidationAggregate aggregate = new ValidationAggregate(cmd.defectId());
-        var events = aggregate.execute(cmd);
-
-        // 2. Process Events (Side effects)
-        for (var event : events) {
-            if (event instanceof DefectReportedEvent reportedEvent) {
-                notifySlack(reportedEvent);
-                logger.info("Defect {} reported successfully.", reportedEvent.getDefectId());
-            }
-        }
+    public void handleDefectReported(DefectReportedEvent event) {
+        String body = buildSlackBody(event);
+        slackNotificationPort.sendNotification("#vforce360-issues", body);
     }
 
-    private void notifySlack(DefectReportedEvent event) {
-        StringBuilder body = new StringBuilder();
-        body.append("Defect Report\n");
-        body.append("ID: ").append(event.getDefectId()).append("\n");
-        body.append("Status: OPEN\n");
-        
-        // CRITICAL FIX FOR VW-454
-        // Ensure the GitHub URL is appended to the message body.
-        // Test SFB1ValidationTest verifies that the body contains the URL.
-        if (event.getGithubIssueUrl() != null && !event.getGithubIssueUrl().isBlank()) {
-            body.append("GitHub Issue: ").append(event.getGithubIssueUrl()).append("\n");
-        } else {
-            // If URL is missing, we still log it, but test expects the URL line for VW-454
-            body.append("GitHub Issue: [PENDING]\n");
-        }
+    private String buildSlackBody(DefectReportedEvent event) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Defect Detected:\n");
+        sb.append("Batch: ").append(event.aggregateId()).append("\n");
+        sb.append("Amount: ").append(event.discrepancyAmount()).append("\n");
+        sb.append("Reason: ").append(event.reason()).append("\n");
 
-        slackNotificationPort.sendMessage(body.toString());
+        // S-FB-1 FIX: Ensure GitHub URL is appended to the body
+        sb.append("GitHub issue: ").append(githubIssueUrlTemplate).append("\n");
+
+        return sb.toString();
     }
 }

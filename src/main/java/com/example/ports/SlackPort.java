@@ -5,7 +5,7 @@ package com.example.ports;
  * Used to validate defect VW-454 regarding GitHub URLs in the message body.
  */
 public interface SlackPort {
-    
+
     /**
      * Sends a notification to the #vforce360-issues channel.
      *

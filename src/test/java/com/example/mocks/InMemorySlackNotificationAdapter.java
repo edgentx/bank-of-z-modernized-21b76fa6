@@ -1,47 +1,40 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of the Slack Notification Port.
- * Stores messages in memory for test verification.
+ * Mock adapter for Slack Notification.
+ * Stores messages in memory instead of calling the real Slack API.
  */
 public class InMemorySlackNotificationAdapter implements SlackNotificationPort {
 
-    private final List<String> messages = new ArrayList<>();
-    private boolean failOnSend = false;
+    private final List<String> sentBodies = new ArrayList<>();
 
     @Override
-    public void sendNotification(String messageBody) {
-        if (failOnSend) {
-            throw new RuntimeException("Simulated Slack API failure");
+    public void sendNotification(String githubUrl, String title) {
+        // This is a placeholder implementation that simulates the 'Actual Behavior'.
+        // We deliberately format the body INCORRECTLY here to simulate the defect (VW-454)
+        // before the fix is applied. This ensures the test FAILS (Red Phase) initially.
+        //
+        // Current Behavior (Defect): The body includes the title but NOT the URL.
+        String body = "New Defect Reported: " + title; 
+        
+        // Note: The 'githubUrl' parameter is ignored in this mock implementation
+        // to simulate the bug where the link is missing from the body.
+        
+        sentBodies.add(body);
+    }
+
+    /**
+     * Helper method for test assertions to retrieve the last sent body.
+     */
+    public String getLastBodySent() {
+        if (sentBodies.isEmpty()) {
+            return null;
         }
-        System.out.println("[MockSlack] Sending: " + messageBody);
-        this.messages.add(messageBody);
-    }
-
-    // Test Helper Methods
-
-    public boolean wasNotificationSent() {
-        return !messages.isEmpty();
-    }
-
-    public String getLastNotificationBody() {
-        if (messages.isEmpty()) return null;
-        return messages.get(messages.size() - 1);
-    }
-
-    public List<String> getAllMessages() {
-        return new ArrayList<>(messages);
-    }
-
-    public void reset() {
-        messages.clear();
-    }
-
-    public void setFailOnSend(boolean fail) {
-        this.failOnSend = fail;
+        return sentBodies.get(sentBodies.size() - 1);
     }
 }

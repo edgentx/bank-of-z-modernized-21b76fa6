@@ -1,60 +1,78 @@
 package com.example.adapters;
 
 import com.example.ports.GitHubPort;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.*;
-
 import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Adapter for GitHub Issues API using OkHttp.
+ * Real implementation of GitHubPort using OkHttp.
+ * Connects to GitHub API to create issues.
  */
 public class OkHttpGitHubClient implements GitHubPort {
-    private final OkHttpClient client;
-    private final ObjectMapper mapper;
-    private final String apiUrl;
-    private final String authToken;
 
-    public OkHttpGitHubClient(String repoOwner, String repoName, String authToken) {
-        this.client = new OkHttpClient();
-        this.mapper = new ObjectMapper();
-        this.apiUrl = "https://api.github.com/repos/" + repoOwner + "/" + repoName + "/issues";
+    private final OkHttpClient httpClient;
+    private final ObjectMapper objectMapper;
+    private final String repoApiUrl; // e.g., https://api.github.com/repos/org/repo/issues
+    private final String authToken;  // For authentication
+
+    // Constructor for configuration injection
+    public OkHttpGitHubClient(String apiUrl, String authToken) {
+        this.repoApiUrl = apiUrl;
         this.authToken = authToken;
+        this.httpClient = new OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .writeTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .build();
+        this.objectMapper = new ObjectMapper();
     }
 
     @Override
-    public CompletableFuture<String> createIssue(String title, String body) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                Map<String, String> payload = Map.of(
-                    "title", title,
-                    "body", body
-                );
+    public String createIssue(String title, String body) {
+        try {
+            // Construct JSON payload manually or with ObjectMapper
+            // Using simple string concatenation for efficiency to avoid extra DTO classes
+            String jsonPayload = String.format(
+                "{\"title\":\"%s\",\"body\":\"%s\"}",
+                escapeJson(title),
+                escapeJson(body)
+            );
 
-                RequestBody jsonBody = RequestBody.create(
-                    mapper.writeValueAsBytes(payload),
-                    MediaType.parse("application/json")
-                );
+            RequestBody requestBody = RequestBody.create(
+                jsonPayload,
+                MediaType.get("application/json; charset=utf-8")
+            );
 
-                Request request = new Request.Builder()
-                    .url(apiUrl)
-                    .addHeader("Authorization", "Bearer " + authToken)
+            Request request = new Request.Builder()
+                    .url(repoApiUrl)
+                    .addHeader("Authorization", "token " + authToken)
                     .addHeader("Accept", "application/vnd.github.v3+json")
-                    .post(jsonBody)
+                    .post(requestBody)
                     .build();
 
-                try (Response response = client.newCall(request).execute()) {
-                    if (!response.isSuccessful()) {
-                        throw new RuntimeException("GitHub API error: " + response.code());
-                    }
-                    String responseBody = response.body().string();
-                    return mapper.readTree(responseBody).path("html_url").asText();
+            try (Response response = httpClient.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    throw new RuntimeException("Failed to create GitHub issue: " + response.code() + " " + response.body().string());
                 }
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to create GitHub issue", e);
+                
+                String responseBody = response.body().string();
+                // Parse the 'html_url' from the response
+                // Simple parsing or use ObjectMapper. Using ObjectMapper for robustness.
+                return objectMapper.readTree(responseBody).path("html_url").asText();
             }
-        });
+        } catch (IOException e) {
+            throw new RuntimeException("Error communicating with GitHub API", e);
+        }
+    }
+
+    private String escapeJson(String value) {
+        if (value == null) return "";
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

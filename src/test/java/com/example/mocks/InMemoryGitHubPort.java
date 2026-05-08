@@ -2,23 +2,37 @@ package com.example.mocks;
 
 import com.example.ports.GitHubPort;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
- * Mock adapter for GitHub interactions.
- * Returns a deterministic URL string without network calls.
+ * Mock implementation of GitHubPort for testing.
+ * Simulates issue creation without calling the real API.
  */
 public class InMemoryGitHubPort implements GitHubPort {
-
-    private int callCount = 0;
+    private final Set<String> createdIssues = new HashSet<>();
+    private String nextIssueUrl = "https://github.com/example/repo/issues/1";
+    private boolean shouldFail = false;
 
     @Override
     public String createIssue(String title, String body) {
-        this.callCount++;
-        // Simulate a successful API call returning a valid URL structure
-        // We append a dummy ID based on call count to ensure uniqueness if needed
-        return "http://github.com/example/repo/issues/" + System.currentTimeMillis();
+        if (shouldFail) {
+            throw new RuntimeException("GitHub API unavailable");
+        }
+        createdIssues.add(title);
+        // Simulate GitHub returning a specific URL format
+        return nextIssueUrl;
     }
 
-    public int getCallCount() {
-        return callCount;
+    public void setNextIssueUrl(String url) {
+        this.nextIssueUrl = url;
+    }
+
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
+    }
+
+    public boolean wasIssueCreated(String title) {
+        return createdIssues.contains(title);
     }
 }

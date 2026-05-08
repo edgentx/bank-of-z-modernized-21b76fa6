@@ -12,7 +12,6 @@ public record SessionStartedEvent(
         String terminalId,
         Instant occurredAt
 ) implements DomainEvent {
-
     public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
         this(UUID.randomUUID().toString(), aggregateId, tellerId, terminalId, occurredAt);
     }
@@ -20,5 +19,15 @@ public record SessionStartedEvent(
     @Override
     public String type() {
         return "session.started";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

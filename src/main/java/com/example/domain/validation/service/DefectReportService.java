@@ -6,13 +6,13 @@ import org.springframework.stereotype.Service;
 
 /**
  * Service to handle defect reporting logic.
- * This implementation currently STUBS the functionality to satisfy the compilation/build process
- * while explicitly failing the TDD Red Phase for the actual business logic.
+ * Generates the Slack payload with the GitHub issue URL and triggers the notification.
  */
 @Service
 public class DefectReportService {
 
     private final SlackNotificationPort slackNotificationPort;
+    private static final String GITHUB_BASE_URL = "https://github.com/example/issues/";
 
     public DefectReportService(SlackNotificationPort slackNotificationPort) {
         this.slackNotificationPort = slackNotificationPort;
@@ -20,10 +20,23 @@ public class DefectReportService {
 
     /**
      * Reports a defect via Temporal and notifies Slack.
-     * RED PHASE IMPLEMENTATION: Does not perform the actual logic.
+     * Constructs the JSON payload containing the GitHub URL.
+     *
+     * @param cmd The defect report command.
      */
     public void report(ReportDefectCmd cmd) {
-        // STUB: Logic to be implemented to make tests pass.
-        // Currently, this does nothing, ensuring the tests fail as required by TDD.
+        if (cmd == null || cmd.defectId() == null) {
+            throw new IllegalArgumentException("ReportDefectCmd and defectId must not be null");
+        }
+
+        String githubUrl = GITHUB_BASE_URL + cmd.defectId();
+        String payload = String.format(
+            "{\"text\": \"Defect Reported: %s - %s. GitHub issue: %s\"}",
+            cmd.defectId(),
+            cmd.title(),
+            githubUrl
+        );
+
+        slackNotificationPort.send(payload);
     }
 }

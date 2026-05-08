@@ -14,20 +14,25 @@ import java.util.List;
 @Component
 public class TemporalWorkerAdapter {
 
-    private final ValidationAggregate validationAggregate;
-
-    public TemporalWorkerAdapter(ValidationAggregate validationAggregate) {
-        this.validationAggregate = validationAggregate;
-    }
+    // We do not inject the aggregate directly as it is stateful per command execution.
+    // Instead, we instantiate it within the method scope.
 
     /**
      * Entry point called by Temporal Workflow Implementation to execute domain logic
      * and construct the Slack payload.
      */
     public String prepareSlackMessage(String validationId, String severity, String title, String description) {
+        ValidationAggregate validationAggregate = new ValidationAggregate(validationId);
         Command cmd = new ReportDefectCmd(validationId, severity, title, description);
-        List<DefectReportedEvent> events = validationAggregate.execute(cmd);
         
+        // Suppress warning for cast, as we control the command types.
+        @SuppressWarnings("unchecked")
+        List<DefectReportedEvent> events = (List<DefectReportedEvent>) validationAggregate.execute(cmd);
+        
+        if (events.isEmpty()) {
+            return "Error: No events generated";
+        }
+
         // In a real scenario, we might project these events to a view model.
         // Here we just format the string directly for the Slack body.
         return formatSlackBody(events.get(0));

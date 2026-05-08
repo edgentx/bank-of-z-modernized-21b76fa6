@@ -1,17 +1,28 @@
 package com.example.domain.validation.model;
 
-import com.example.domain.shared.ValueObject;
-import java.util.Objects;
-
 /**
  * Value Object representing a valid GitHub Issue URL.
- * Enforces basic format validation.
  */
-public class GitHubIssueUrl implements ValueObject {
+public class GitHubIssueUrl {
     private final String url;
 
     public GitHubIssueUrl(String url) {
-        if (url == null || !url.matches("^https://github\.com/.*/issues/\d+$")) {
+        if (url == null || url.isBlank()) {
+            throw new IllegalArgumentException("URL cannot be null or empty");
+        }
+        // Validating GitHub URL format (https or http)
+        // Regex explanation:
+        // ^https?://                - Start with http:// or https://
+        // github\.com/             - Domain
+        // [^/]+/                   - Org/User (non-slash chars)
+        // issues/                  - Literal 'issues/'
+        // \d+                      - Issue ID (digits)
+        // (/)?                     - Optional trailing slash
+        // $
+        // Note: Escaped backslashes for Java String compilation.
+        String regex = "^https?://github\\.com/[^/]+/issues/\\d+/?$";
+
+        if (!url.matches(regex)) {
             throw new IllegalArgumentException("Invalid GitHub Issue URL format: " + url);
         }
         this.url = url;
@@ -22,20 +33,20 @@ public class GitHubIssueUrl implements ValueObject {
     }
 
     @Override
+    public String toString() {
+        return url;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         GitHubIssueUrl that = (GitHubIssueUrl) o;
-        return Objects.equals(url, that.url);
+        return url.equals(that.url);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(url);
-    }
-
-    @Override
-    public String toString() {
-        return url;
+        return url.hashCode();
     }
 }

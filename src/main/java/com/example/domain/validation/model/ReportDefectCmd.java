@@ -2,11 +2,17 @@ package com.example.domain.validation.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.Objects;
+import java.util.Map;
 
-public record ReportDefectCmd(String defectId, String description) implements Command {
-    public ReportDefectCmd {
-        Objects.requireNonNull(defectId, "defectId cannot be null");
-        Objects.requireNonNull(description, "description cannot be null");
-    }
+/**
+ * Command to report a defect detected by the VForce360 PM diagnostic system.
+ * Triggered via temporal-worker exec.
+ */
+public record ReportDefectCmd(
+        String defectId,
+        String title,
+        String severity,
+        String component,
+        Map<String, Object> context
+) implements Command {
 }

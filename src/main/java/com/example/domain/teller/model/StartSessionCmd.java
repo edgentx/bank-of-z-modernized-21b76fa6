@@ -4,13 +4,12 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to initiate a new teller session.
- * Context: User-Interface-Navigation (S-18).
+ * Encapsulates the authentication and context data required to start the session.
  */
-public record StartSessionCmd(
-    String sessionId,
-    String tellerId,
-    String terminalId,
-    boolean isAuthenticated,
-    long currentTimestamp,
-    String navigationState
-) implements Command {}
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {
+    public StartSessionCmd {
+        if (sessionId == null || sessionId.isBlank()) throw new IllegalArgumentException("sessionId required");
+        if (tellerId == null || tellerId.isBlank()) throw new IllegalArgumentException("tellerId required");
+        if (terminalId == null || terminalId.isBlank()) throw new IllegalArgumentException("terminalId required");
+    }
+}

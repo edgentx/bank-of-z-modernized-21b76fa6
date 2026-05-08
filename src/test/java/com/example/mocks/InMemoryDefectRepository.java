@@ -1,28 +1,23 @@
 package com.example.mocks;
 
-import com.example.domain.validation.model.DefectAggregate;
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.repository.DefectRepository;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
-/**
- * In-memory repository for DefectAggregate.
- */
-public class InMemoryDefectRepository {
+public class InMemoryDefectRepository implements DefectRepository {
+
     private final Map<String, DefectAggregate> store = new HashMap<>();
 
-    public DefectAggregate save(DefectAggregate aggregate) {
+    @Override
+    public void save(DefectAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
-        return aggregate;
     }
 
-    public Optional<DefectAggregate> findById(String id) {
-        return Optional.ofNullable(store.get(id));
-    }
-
-    public DefectAggregate createNew() {
-        String id = UUID.randomUUID().toString();
-        return new DefectAggregate(id);
+    @Override
+    public Optional<DefectAggregate> findById(String defectId) {
+        return Optional.ofNullable(store.get(defectId));
     }
 }

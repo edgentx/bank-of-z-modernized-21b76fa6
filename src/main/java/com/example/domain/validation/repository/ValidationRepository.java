@@ -1,13 +1,9 @@
 package com.example.domain.validation.repository;
 
-import com.example.domain.validation.ValidationAggregate;
+import com.example.domain.validation.model.Validation;
 import java.util.Optional;
 
-/**
- * Repository interface for Validation Aggregates.
- * Implementations would handle persistence (e.g., MongoDB, JPA).
- */
 public interface ValidationRepository {
-    Optional<ValidationAggregate> findById(String defectId);
-    void save(ValidationAggregate aggregate);
+    Validation save(Validation validation);
+    Optional<Validation> findById(String id);
 }

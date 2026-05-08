@@ -1,9 +1,12 @@
 package com.example.ports;
 
 /**
- * Port for sending Slack notifications.
- * Abstracts the specific Slack client implementation (e.g. OkHttp).
+ * Port interface for sending notifications to Slack.
  */
 public interface SlackPort {
-    void sendNotification(String webhookUrl, String jsonPayload);
+    /**
+     * Sends a message to the configured Slack channel.
+     * @param message The message body to send.
+     */
+    void sendMessage(String message);
 }

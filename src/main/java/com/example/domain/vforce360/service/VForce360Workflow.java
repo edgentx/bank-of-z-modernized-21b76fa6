@@ -20,13 +20,18 @@ public class VForce360Workflow {
 
     /**
      * Initiates the defect report process.
-     * Red-Phase: Method body empty, tests will fail.
+     * GREEN PHASE: Implementation logic added.
      */
     public String initiateDefectReport(String defectId, String description) {
-        // RED PHASE: Not implemented yet.
         // 1. Create GitHub Issue
+        String issueUrl = gitHubPort.createIssue(defectId, description);
+        
         // 2. Compose Slack Body with URL
+        String body = "Defect reported: " + defectId + "\nGitHub Issue: " + issueUrl;
+        
         // 3. Send Slack Notification
-        return null; 
+        slackNotifierPort.sendNotification("#vforce360-issues", body);
+        
+        return defectId;
     }
 }

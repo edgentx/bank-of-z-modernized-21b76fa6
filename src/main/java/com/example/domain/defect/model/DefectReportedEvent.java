@@ -1,16 +1,16 @@
 package com.example.domain.defect.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
+import java.util.Map;
 
 public record DefectReportedEvent(
-        String defectId,
-        String title,
-        String description,
-        DefectAggregate.Severity severity,
-        String component,
-        String projectId,
-        Instant occurredAt
+    String aggregateId,
+    String title,
+    String severity,
+    String githubIssueUrl,
+    Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
@@ -19,7 +19,7 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return defectId;
+        return aggregateId;
     }
 
     @Override

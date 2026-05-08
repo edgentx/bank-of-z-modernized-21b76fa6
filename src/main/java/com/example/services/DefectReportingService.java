@@ -29,11 +29,19 @@ public class DefectReportingService {
         DefectAggregate aggregate = new DefectAggregate(cmd.defectId());
         List<DomainEvent> events = aggregate.execute(cmd);
         
-        // defectRepository.save(aggregate);
+        defectRepository.save(aggregate);
         
         events.forEach(event -> {
-            // String url = gitHubIssuePort.createIssue(...).orElse(null);
-            // slackNotifierPort.notify(event, "Body with URL: " + url);
+            if (event instanceof com.example.domain.defect.model.DefectReportedEvent) {
+                var e = (com.example.domain.defect.model.DefectReportedEvent) event;
+                String url = gitHubIssuePort.createIssue(e.title(), e.description())
+                    .orElse("Failed to create GitHub issue");
+                
+                String slackBody = String.format("Defect Reported: %s\nSeverity: %s\nGitHub Issue: %s", 
+                    e.title(), e.severity(), url);
+                
+                slackNotifierPort.notify(event, slackBody);
+            }
         });
     }
 }

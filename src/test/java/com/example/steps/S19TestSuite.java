@@ -6,6 +6,7 @@ import org.junit.platform.suite.api.Suite;
 
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features/S-19.feature")
+@SelectClasspathResource("features")
 public class S19TestSuite {
+    // JUnit 5 Suite to run Cucumber tests via JUnit Platform
 }

@@ -13,5 +13,4 @@ public record ReportDefectCmd(
         String title,
         String description,
         Map<String, String> metadata
-) implements Command {
-}
+) implements Command {}

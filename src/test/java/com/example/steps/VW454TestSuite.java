@@ -1,13 +1,10 @@
 package com.example.steps;
 
-import io.cucumber.junit.Cucumber;
-import io.cucumber.junit.CucumberOptions;
-import org.junit.runner.RunWith;
+import org.junit.platform.suite.api.SelectClasses;
+import org.junit.platform.suite.api.Suite;
 
-@RunWith(Cucumber.class)
-@CucumberOptions(
-    features = "classpath:features", 
-    glue = {"com.example.steps"},
-    plugin = {"pretty", "html:target/cucumber-report"}
-)
-public class VW454TestSuite {}
+@Suite
+@SelectClasses(VW454Steps.class)
+public class VW454TestSuite {
+    // JUnit 5 Suite to run the Cucumber/Java steps logic
+}

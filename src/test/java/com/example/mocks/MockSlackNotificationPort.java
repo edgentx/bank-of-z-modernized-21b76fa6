@@ -6,27 +6,41 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to Slack to allow assertions.
+ * Records sent messages to allow assertions on their content.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
-    private final List<String> messages = new ArrayList<>();
 
-    @Override
-    public void send(String body) {
-        // In a real mock framework we might intercept, but here we just capture.
-        // System.out.println("[MockSlack] Captured: " + body);
-        this.messages.add(body);
+    public static class SentMessage {
+        public final String channel;
+        public final String body;
+
+        public SentMessage(String channel, String body) {
+            this.channel = channel;
+            this.body = body;
+        }
     }
 
-    public List<String> getMessages() {
-        return new ArrayList<>(messages);
+    private final List<SentMessage> messages = new ArrayList<>();
+    private boolean shouldFail = false;
+
+    @Override
+    public boolean sendMessage(String channel, String body) {
+        if (shouldFail) {
+            return false;
+        }
+        messages.add(new SentMessage(channel, body));
+        return true;
+    }
+
+    public List<SentMessage> getMessages() {
+        return messages;
     }
 
     public void clear() {
         messages.clear();
     }
 
-    public boolean hasReceivedMessageContaining(String substring) {
-        return messages.stream().anyMatch(msg -> msg.contains(substring));
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
     }
 }

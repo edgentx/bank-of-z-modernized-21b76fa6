@@ -1,56 +1,32 @@
 package com.example.infrastructure.adapters;
 
-import com.example.domain.validation.port.ValidationRepository;
 import com.example.domain.validation.model.ValidationAggregate;
-import com.example.domain.validation.model.ReportDefectCmd;
-import com.example.domain.validation.model.SlackNotificationPostedEvent;
-import com.example.domain.validation.port.GitHubPort;
-import com.example.domain.validation.port.SlackPort;
-import org.springframework.stereotype.Repository;
+import com.example.domain.validation.port.ValidationRepository;
+import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 /**
- * JPA/MongoDB implementation of ValidationRepository.
- * Persistence layer for the Validation Aggregate.
- * 
- * Since the ValidationAggregate is injected with ports (Slack/GitHub) in the test,
- * and the repository is responsible for loading/recreating the aggregate state,
- * the repository must be able to provide these port implementations when reconstructing
- * the aggregate from persistence.
+ * JPA Adapter implementation for Validation Repository.
+ * In a real DB2 scenario, this would manage JPA entities.
+ * For this defect fix, we use a simplified in-memory store to satisfy the repository contract.
  */
-@Repository
+@Component
 public class JpaValidationRepositoryAdapter implements ValidationRepository {
 
-    // Using a simple in-memory store for this exercise to satisfy the 'Implementation' 
-    // requirement without requiring a running DB2/Mongo instance. 
-    // In a full Spring Boot app, this would extend JpaRepository/MongoRepository.
-    private final Map<String, ValidationAggregate> cache = new HashMap<>();
-
-    private final SlackPort slackPort;
-    private final GitHubPort gitHubPort;
-
-    public JpaValidationRepositoryAdapter(SlackPort slackPort, GitHubPort gitHubPort) {
-        this.slackPort = slackPort;
-        this.gitHubPort = gitHubPort;
-    }
+    private final Map<String, ValidationAggregate> store = new HashMap<>();
 
     @Override
     public void save(ValidationAggregate aggregate) {
-        // Persist to DB2/Mongo here
-        cache.put(aggregate.id(), aggregate);
+        // In a real scenario, map Aggregate to JPA Entity and save via EntityManager/Repository
+        store.put(aggregate.id(), aggregate);
     }
 
     @Override
     public Optional<ValidationAggregate> findById(String id) {
-        // Load from DB2/Mongo here
-        return Optional.ofNullable(cache.get(id));
-    }
-    
-    // Helper for tests to ensure we can reconstruct the aggregate
-    public ValidationAggregate create(String id) {
-        return new ValidationAggregate(id, slackPort, gitHubPort);
+        // In a real scenario, query DB2 and map back to Aggregate
+        return Optional.ofNullable(store.get(id));
     }
 }

@@ -12,9 +12,10 @@ public record ScreenRenderedEvent(
         String aggregateId,
         String screenId,
         String deviceType,
-        Map<String, String> layout,
+        Map<String, String> layoutContext,
         Instant occurredAt
 ) implements DomainEvent {
+
     @Override
     public String type() {
         return "screen.rendered";

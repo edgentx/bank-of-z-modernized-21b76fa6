@@ -1,34 +1,36 @@
 package com.example.mocks;
 
-import com.example.domain.validation.model.SlackMessageBody;
-import com.example.domain.validation.port.SlackNotificationPort;
+import com.example.ports.SlackNotificationPort;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock Adapter for Slack Notification Port.
- * Captures messages sent during the workflow for assertions.
+ * In-memory mock implementation of {@link com.example.ports.SlackNotificationPort} for testing.
+ * Captures messages sent to Slack for assertion.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<SlackMessageBody> sentMessages = new ArrayList<>();
+    private final List<SlackMessage> messages = new ArrayList<>();
+
+    public record SlackMessage(String channel, String body) {}
 
     @Override
-    public void send(SlackMessageBody body) {
-        System.out.println("[MockSlack] Sending: " + body.value());
-        sentMessages.add(body);
+    public void sendMessage(String channel, String messageBody) {
+        this.messages.add(new SlackMessage(channel, messageBody));
     }
 
-    public SlackMessageBody getLastMessage() {
-        if (sentMessages.isEmpty()) return null;
-        return sentMessages.get(sentMessages.size() - 1);
+    public List<SlackMessage> getMessages() {
+        return new ArrayList<>(messages);
     }
 
-    public List<SlackMessageBody> getAllMessages() {
-        return new ArrayList<>(sentMessages);
+    public void clear() {
+        messages.clear();
     }
 
-    public void reset() {
-        sentMessages.clear();
+    public SlackMessage getLastMessage() {
+        if (messages.isEmpty()) {
+            throw new IllegalStateException("No messages captured");
+        }
+        return messages.get(messages.size() - 1);
     }
 }

@@ -1,13 +1,14 @@
 package com.example.ports;
 
-import java.util.concurrent.CompletableFuture;
-
+/**
+ * Port for creating issues in GitHub.
+ */
 public interface GitHubPort {
     /**
-     * Creates a GitHub issue asynchronously.
+     * Creates a GitHub issue and returns the URL.
      * @param title The issue title
      * @param body The issue body
-     * @return A CompletableFuture containing the HTML URL of the created issue
+     * @return The HTML URL of the created issue
      */
-    CompletableFuture<String> createIssue(String title, String body);
+    String createIssue(String title, String body);
 }

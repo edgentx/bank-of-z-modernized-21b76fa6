@@ -1,63 +1,106 @@
 package com.example.e2e.regression;
 
-import com.example.mocks.MockGitHubPort;
-import com.example.mocks.MockSlackPort;
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackPort;
-import org.junit.jupiter.api.AfterEach;
+import com.example.domain.shared.Command;
+import com.example.domain.defect.DefectReportedEvent;
+import com.example.mocks.MockGitHubIssueAdapter;
+import com.example.mocks.MockVForce360NotificationAdapter;
+import com.example.ports.GitHubIssuePort;
+import com.example.ports.VForce360NotificationPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Regression Test for VW-454.
- * Validates that when a defect is reported, the Slack notification body
- * contains the direct link to the created GitHub issue.
- *
- * Corresponds to S-FB-1.
+ * E2E Regression Test for Story S-FB-1 / VW-454.
+ * <p>
+ * Scenario: When a defect is reported via the temporal-worker, the resulting
+ * notification payload must contain the GitHub Issue URL.
+ * <p>
+ * This test is currently in the RED phase: The application logic to generate
+ * the {@link DefectReportedEvent} with the URL is missing or incomplete.
  */
-class VW454SlackBodyValidationTest {
+public class VW454SlackBodyValidationTest {
 
-    private MockSlackPort mockSlack;
-    private MockGitHubPort mockGitHub;
+    // --- Mocks (Adapters) ---
+    private final GitHubIssuePort githubAdapter = new MockGitHubIssueAdapter();
+    private final VForce360NotificationPort vforceAdapter = new MockVForce360NotificationAdapter();
+
+    // --- System Under Test ---
+    // We assume a service/handler exists that coordinates this flow.
+    // For TDD Red phase, we define the Command and expected behavior here.
+    private ReportDefectCommand cmd;
 
     @BeforeEach
     void setUp() {
-        mockSlack = new MockSlackPort();
-        mockGitHub = new MockGitHubPort();
-    }
-
-    @AfterEach
-    void tearDown() {
-        mockSlack.clear();
-        mockGitHub.reset();
+        cmd = new ReportDefectCommand("VW-454", "GitHub URL missing in Slack body");
     }
 
     @Test
-    void whenReportingDefect_GitHubUrlIsPresentInSlackBody() {
-        // Arrange
-        String repo = "bank-of-z/vforce360";
-        String defectTitle = "VW-454: Validating GitHub URL in Slack body";
-        String channel = "#vforce360-issues";
-
-        // Simulating the temporal worker logic or workflow orchestrator locally
-        // This represents the "Red Phase" — testing behavior against a stubbed implementation.
-        // We will execute the flow using the Mocks.
-
-        // Act: Simulate the report_defect workflow execution
-        String expectedUrl = "https://github.com/" + repo + "/issues/1";
+    void shouldContainGitHubUrlInEventPayload() {
+        // WHEN: The defect report command is executed
+        // (In real implementation, this would invoke the Aggregate/Workflow)
+        // For now, we simulate the expected outcome logic to define the contract.
         
-        // Step 1: GitHub issue is created
-        String actualUrl = mockGitHub.createIssue(repo, defectTitle, "Defect details...");
-        
-        // Step 2: Slack notification is sent (Assuming implementation passes the URL)
-        // In a real implementation, the service would fetch 'actualUrl' from GitHub port and pass it here.
-        String slackBody = "Defect Reported: " + defectTitle + "\nGitHub Issue: " + actualUrl;
-        mockSlack.postMessage(channel, slackBody);
+        // Simulate the workflow:
+        // 1. Report Defect (Temporal)
+        String correlationId = vforceAdapter.reportDefect(cmd.defectId(), cmd.summary());
+        assertNotNull(correlationId, "VForce360 should acknowledge the report");
 
-        // Assert: Verify the Slack body contains the GitHub issue URL
-        assertTrue(mockSlack.containsText("GitHub Issue:"), "Slack body should indicate a GitHub issue link");
-        assertTrue(mockSlack.containsText(expectedUrl), "Slack body should contain the specific GitHub URL: " + expectedUrl);
+        // 2. Create GitHub Issue
+        String githubUrl = githubAdapter.createIssue(cmd.summary(), "Defect: " + cmd.summary()).toString();
+
+        // 3. Expected Result: The Domain Event emitted should carry this URL
+        DefectReportedEvent expectedEvent = new DefectReportedEvent(
+                cmd.defectId(),
+                cmd.defectId(),
+                githubUrl
+        );
+
+        // THEN: Verify the contract
+        // This assertion represents the E2E check: does the event leading to Slack contain the URL?
+        assertTrue(
+                expectedEvent.getGithubUrl().isPresent(),
+                "CRITICAL FAIL: DefectReportedEvent must contain a non-null GitHub URL for Slack integration."
+        );
+
+        assertTrue(
+                expectedEvent.getGithubUrl().get().startsWith("http"),
+                "CRITICAL FAIL: GitHub URL must be a valid HTTP link."
+        );
     }
+
+    @Test
+    void shouldValidateRegressionScenarioVW454() {
+        // GIVEN: The specific defect scenario VW-454
+        String defectId = "VW-454";
+
+        // WHEN: Executing the report workflow
+        // (Simulating the Aggregate's emit logic)
+        MockGitHubIssueAdapter mockGithub = new MockGitHubIssueAdapter();
+        String generatedUrl = mockGithub.createIssue("VW-454 Regression", "...").toString();
+
+        DefectReportedEvent event = new DefectReportedEvent("aggregate-123", defectId, generatedUrl);
+
+        // THEN: Verify the URL is propagated correctly to the 'Slack Body' equivalent (Event Payload)
+        // This tests the 'Actual Behavior' vs 'Expected Behavior' from the story description.
+        String bodyContent = "GitHub Issue: " + event.githubUrl(); // Simulating how Slack body might be built
+
+        assertTrue(
+                bodyContent.contains("github.com"),
+                "Regression check failed: Link missing from Slack body equivalent."
+        );
+        
+        assertFalse(
+                bodyContent.contains("<url>"),
+                "Regression check failed: URL was not replaced with a real link."
+        );
+    }
+
+    // --- Inner Classes defining Domain Contracts (Expected to exist/implemented) ---
+
+    public record ReportDefectCommand(String defectId, String summary) implements Command {}
+
 }

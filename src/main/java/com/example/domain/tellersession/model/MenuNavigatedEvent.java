@@ -5,34 +5,30 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Domain Event for S-19: MenuNavigatedEvent.
+ * Published when a teller successfully moves between screens.
+ */
 public record MenuNavigatedEvent(
-        String eventId,
-        String aggregateId,
-        String menuId,
-        String action,
-        Instant occurredAt
+    String aggregateId,
+    String previousMenuId,
+    String targetMenuId,
+    String action,
+    Instant occurredAt
 ) implements DomainEvent {
-    public MenuNavigatedEvent {
-        if (eventId == null) eventId = UUID.randomUUID().toString();
-        if (occurredAt == null) occurredAt = Instant.now();
-    }
 
-    public MenuNavigatedEvent(String aggregateId, String menuId, String action) {
-        this(UUID.randomUUID().toString(), aggregateId, menuId, action, Instant.now());
+    public MenuNavigatedEvent {
+        if (aggregateId == null || aggregateId.isBlank()) {
+            throw new IllegalArgumentException("aggregateId cannot be null");
+        }
+        // occurredAt defaults to now if null, though we usually pass it explicitly
+        if (occurredAt == null) {
+            occurredAt = Instant.now();
+        }
     }
 
     @Override
     public String type() {
         return "menu.navigated";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

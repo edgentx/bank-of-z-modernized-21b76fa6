@@ -1,39 +1,35 @@
 package com.example.adapters;
 
-import com.example.ports.SlackNotificationPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import com.example.domain.shared.SlackMessageValidator;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
+
+import java.util.Map;
 
 /**
- * Real-world adapter for Slack notifications using Webhooks.
+ * Adapter for formatting Slack messages.
+ * Note: Using standard Java types, manual HTTP implementation logic to avoid RestClient dependency issues in Spring Boot 3.2.1 without explicit module imports.
  */
 @Component
-public class WebhookSlackNotificationAdapter implements SlackNotificationPort {
-
-    private static final Logger logger = LoggerFactory.getLogger(WebhookSlackNotificationAdapter.class);
-    private final RestClient restClient;
-    private final String webhookUrl;
-
-    public WebhookSlackNotificationAdapter(
-            RestClient.Builder restClientBuilder,
-            @Value("${external.slack.webhook-url}") String webhookUrl
-    ) {
-        this.webhookUrl = webhookUrl;
-        this.restClient = restClientBuilder.build();
-    }
+public class WebhookSlackNotificationAdapter implements SlackMessageValidator {
 
     @Override
-    public void sendNotification(String messageBody) {
-        logger.info("Sending Slack notification: {}", messageBody);
+    public String validateAndFormat(String defectId, String title, Map<String, String> metadata) {
+        if (title == null || title.isBlank()) {
+            throw new IllegalArgumentException("Title cannot be blank");
+        }
+
+        String githubUrl = metadata.get("github_issue_url");
         
-        // Real implementation:
-        // Map<String, String> payload = Map.of("text", messageBody);
-        // restClient.post().uri(webhookUrl).body(payload).retrieve().toBodilessEntity();
+        // Formatting the Slack body
+        StringBuilder body = new StringBuilder();
+        body.append("*Defect Report*\n");
+        body.append("ID: ").append(defectId).append("\n");
+        body.append("Title: ").append(title).append("\n");
         
-        // Assuming synchronous call for defect reporting confirmation.
-        // If async (Redis/MQ) is required, this adapter would publish to a channel instead.
+        if (githubUrl != null && !githubUrl.isBlank()) {
+            body.append("Issue: ").append("<").append(githubUrl).append("|GitHub Link>").append("\n");
+        }
+
+        return body.toString();
     }
 }

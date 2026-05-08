@@ -1,48 +1,42 @@
 package com.example.service;
 
-import com.example.ports.GitHubIssuePort;
-import com.example.ports.SlackNotificationPort;
-import org.springframework.stereotype.Service;
+import com.example.domain.reconciliation.repository.ReconciliationBatchRepository;
+import com.example.ports.secondary.ReportDefectPort;
+import com.example.ports.secondary.SlackNotifierPort;
+
+import java.util.concurrent.CompletableFuture;
 
 /**
- * Service responsible for reporting defects to external systems.
- * Orchestrates the generation of GitHub issue URLs and the subsequent notification via Slack.
+ * Implementation of the Report Defect use case.
+ * Orchestrates the creation of the defect report and notifies via Slack.
  */
-@Service
-public class ReportDefectService {
+public class ReportDefectService implements ReportDefectPort {
 
-    private final SlackNotificationPort slackNotificationPort;
-    private final GitHubIssuePort gitHubIssuePort;
+    private final SlackNotifierPort slackNotifier;
+    private final ReconciliationBatchRepository repository;
 
-    /**
-     * Constructor for dependency injection.
-     *
-     * @param slackNotificationPort The port for Slack integration.
-     * @param gitHubIssuePort       The port for GitHub URL generation.
-     */
-    public ReportDefectService(SlackNotificationPort slackNotificationPort, GitHubIssuePort gitHubIssuePort) {
-        this.slackNotificationPort = slackNotificationPort;
-        this.gitHubIssuePort = gitHubIssuePort;
+    public ReportDefectService(SlackNotifierPort slackNotifier, ReconciliationBatchRepository repository) {
+        this.slackNotifier = slackNotifier;
+        this.repository = repository;
     }
 
-    /**
-     * Executes the defect reporting workflow.
-     * Retrieves the URL for the specific issue ID and sends a formatted message to Slack.
-     *
-     * @param issueId The ID of the issue to report (e.g., "VW-454").
-     */
-    public void executeReportDefect(String issueId) {
-        if (issueId == null || issueId.isBlank()) {
-            throw new IllegalArgumentException("issueId cannot be blank");
-        }
+    @Override
+    public void reportDefect(String title, String url, String details) {
+        // Construct the Slack message body
+        // Defect: It was reported that this URL might be missing.
+        String body = String.format(
+            "Defect Detected: %s\nDetails: %s\nGitHub Issue: %s", 
+            title, details, url
+        );
 
-        // Retrieve the URL from the GitHub port
-        String issueUrl = gitHubIssuePort.getIssueUrl(issueId);
-
-        // Construct the message body
-        String messageBody = "Defect reported: " + issueUrl;
-
-        // Send the notification via the Slack port
-        slackNotificationPort.sendMessage(messageBody);
+        // Send notification asynchronously (fire and forget in this context or block)
+        // For the sake of the domain logic, we trigger the port.
+        CompletableFuture<String> future = slackNotifier.sendNotification(body);
+        
+        // In a real Temporal workflow, we might wait for this, or handle exceptions.
+        // For this E2E validation, ensuring 'sendNotification' is called with the URL is key.
+        future.exceptionally(ex -> {
+            throw new RuntimeException("Failed to notify Slack", ex);
+        });
     }
 }

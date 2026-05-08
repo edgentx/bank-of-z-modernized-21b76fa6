@@ -1,17 +1,24 @@
 package com.example.ports;
 
 /**
- * Port interface for sending Slack notifications.
- * This isolates the domain logic from the concrete Slack API implementation.
+ * Port for sending notifications to Slack.
+ * Used by defect reporting workflows to notify engineers.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends a notification about a defect to Slack.
+     * Posts a message to a specific Slack channel.
      *
-     * @param channel The Slack channel ID or name.
-     * @param message The main message content.
-     * @param githubIssueUrl The URL of the created GitHub issue (must be included in body).
+     * @param channelId The target channel ID (e.g., "C12345")
+     * @param messageBody The formatted body of the message
+     * @throws IllegalArgumentException if channelId or messageBody is null/empty
      */
-    void sendDefectNotification(String channel, String message, String githubIssueUrl);
+    void postMessage(String channelId, String messageBody);
+
+    /**
+     * Posts a message to the default VForce360 issues channel.
+     *
+     * @param messageBody The formatted body of the message
+     */
+    void postToDefaultChannel(String messageBody);
 }

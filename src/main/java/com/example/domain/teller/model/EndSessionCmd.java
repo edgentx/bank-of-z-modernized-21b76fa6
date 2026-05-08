@@ -2,10 +2,8 @@ package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
 
-import java.time.Instant;
-
 /**
- * Command to end a teller session.
- * Context: Story S-20 (user-interface-navigation).
+ * Command to terminate the current teller session.
+ * Validates that the session exists and can be terminated.
  */
-public record EndSessionCmd(String sessionId, Instant occurredAt) implements Command {}
+public record EndSessionCmd(String sessionId) implements Command {}

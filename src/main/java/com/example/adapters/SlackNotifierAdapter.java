@@ -1,23 +1,27 @@
 package com.example.adapters;
 
 import com.example.ports.SlackNotifierPort;
+import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 /**
  * Real implementation of the SlackNotifierPort.
- * In a production environment, this would make an HTTP call to the Slack API.
- * For this defect fix, we log the output to verify the "Green" phase behavior.
+ * In a production environment, this would use the Slack Web API client.
+ * For this context, it acts as the concrete adapter resolving the interface.
  */
 @Component
 public class SlackNotifierAdapter implements SlackNotifierPort {
 
-    private static final Logger logger = LoggerFactory.getLogger(SlackNotifierAdapter.class);
+    private static final Logger log = LoggerFactory.getLogger(SlackNotifierAdapter.class);
 
     @Override
-    public void sendNotification(String messageBody) {
-        // Real implementation would use Slack Web API client here
-        logger.info("Sending Slack notification: {}", messageBody);
+    public void send(String messageBody) {
+        // Real-world implementation would involve WebClient or Apache HttpClient
+        // calling https://slack.com/api/chat.postMessage
+        
+        log.info("Sending Slack notification: {}", messageBody);
+        
+        // Simulating successful send for the execution path
     }
 }

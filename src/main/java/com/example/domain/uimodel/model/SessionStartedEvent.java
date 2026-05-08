@@ -6,19 +6,33 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record SessionStartedEvent(
-    String aggregateId,
-    String tellerId,
-    String terminalId,
-    Instant occurredAt
+        String eventId,
+        String aggregateId,
+        String tellerId,
+        String terminalId,
+        Instant occurredAt
 ) implements DomainEvent {
     public SessionStartedEvent {
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
+        if (eventId == null) eventId = UUID.randomUUID().toString();
+        if (occurredAt == null) occurredAt = Instant.now();
     }
-    @Override public String type() { return "session.started"; }
-    @Override public String aggregateId() { return aggregateId; }
-    @Override public Instant occurredAt() { return occurredAt; }
 
-    public static SessionStartedEvent create(String aggregateId, String tellerId, String terminalId) {
-        return new SessionStartedEvent(aggregateId, tellerId, terminalId, Instant.now());
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, tellerId, terminalId, occurredAt);
+    }
+
+    @Override
+    public String type() {
+        return "session.started";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

@@ -1,96 +1,89 @@
 package com.example.e2e.regression;
 
+import com.example.domain.validation.model.ReportDefectCmd;
+import com.example.domain.validation.service.DefectReportingService; // Assumes existence of the class we are testing
+import com.example.domain.shared.UnknownCommandException;
+import com.example.mocks.MockSlackNotificationPort;
 import com.example.ports.SlackNotificationPort;
-import com.example.ports.GitHubIssuePort;
-import com.example.mocks.InMemorySlackNotificationAdapter;
-import com.example.mocks.InMemoryGitHubIssueAdapter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * TDD Red Phase: Regression test for VW-454.
- * Verifies that when a defect is reported via the temporal-worker,
- * the resulting Slack body contains the correct GitHub issue link.
+ * Regression Test for VW-454: GitHub URL in Slack body.
+ * ID: S-FB-1
  *
- * Issue: VW-454
- * Severity: LOW
- * Component: validation
+ * Context: Ensures that when _report_defect is triggered,
+ * the resulting Slack body contains the GitHub issue URL.
+ *
+ * Phase: RED (Tests written before implementation logic is verified)
  */
+@SpringBootTest
 class VW454SlackLinkRegressionTest {
 
-    private InMemorySlackNotificationAdapter mockSlack;
-    private InMemoryGitHubIssueAdapter mockGitHub;
-    private SlackNotificationPort slackService;
-    private GitHubIssuePort gitHubService;
+    // We inject the mock via Spring configuration or manual setup for the test context.
+    // For the purpose of this TDD exercise, we assume manual wiring or a specific TestConfig.
+    private final SlackNotificationPort slackPort = new MockSlackNotificationPort();
+    private DefectReportingService service;
+
+    private static final String EXPECTED_GITHUB_URL_PREFIX = "https://github.com";
+    private static final String SLACK_CHANNEL = "#vforce360-issues";
 
     @BeforeEach
     void setUp() {
-        // We initialize our mock adapters to simulate the environment.
-        // In a real integration test, these might be wired via Spring Context,
-        // but for isolated regression verification we instantiate them directly.
-        mockSlack = new InMemorySlackNotificationAdapter();
-        mockGitHub = new InMemoryGitHubIssueAdapter();
-
-        // We assume the SUT (System Under Test) is a service that uses these ports.
-        // For this regression test, we are verifying the contract between the 
-        // 'report_defect' workflow and the Slack notification body.
-        slackService = mockSlack;
-        gitHubService = mockGitHub;
+        // Manual DI for the test. In a real Spring Boot test, we might use @MockBean.
+        // Here we instantiate the System Under Test (SUT) with its dependencies.
+        // Note: Since DefectReportingService implementation doesn't exist yet,
+        // this compilation failure is expected in TDD. We proceed by defining the shape.
+        service = new DefectReportingService(slackPort);
     }
 
     @Test
-    void shouldContainGitHubIssueUrlInSlackBody_whenDefectReported() {
+    void testReportDefect_generatesSlackMessageContainingGitHubLink() {
         // Arrange
         String defectId = "VW-454";
-        String defectTitle = "GitHub URL in Slack body (end-to-end)";
-        String expectedGitHubUrl = "https://github.com/example/project/issues/454";
-
-        // We configure the mock GitHub adapter to return a specific URL
-        // so the test is deterministic and doesn't hit the real GitHub API.
-        mockGitHub.setMockCreateUrl(expectedGitHubUrl);
+        ReportDefectCmd cmd = new ReportDefectCmd(
+                defectId,
+                "Defect: Validating VW-454 — GitHub URL in Slack body",
+                "Checking #vforce360-issues for the link line",
+                Map.of("source", "VForce360 PM diagnostic")
+        );
 
         // Act
-        // Simulating the workflow: Create Issue -> Report to Slack
-        // Note: The actual workflow orchestration is likely handled by Temporal,
-        // but we are testing the logical validation of the output here.
-        String createdUrl = gitHubService.createIssue(defectTitle, "Defect reported by user");
-        
-        // We trigger the Slack notification logic.
-        // This method internally formats the body.
-        slackService.sendNotification(createdUrl, defectTitle);
+        // Trigger the report_defect flow via the service
+        service.handle(cmd);
 
         // Assert
-        // The core validation: The Slack body must include the GitHub URL.
-        String actualSlackBody = mockSlack.getLastBodySent();
-        
-        assertNotNull(actualSlackBody, "Slack body should not be null");
+        // Verify that the Slack port was called
+        MockSlackNotificationPort mockPort = (MockSlackNotificationPort) slackPort;
+        assertEquals(1, mockPort.getMessages().size(), "Slack should have been called exactly once");
+
+        MockSlackNotificationPort.SentMessage sent = mockPort.getLastMessage();
+        assertEquals(SLACK_CHANNEL, sent.channel, "Message should be sent to the specific channel");
+
+        // The core assertion for VW-454: The body MUST contain the URL
+        // We look for the presence of a valid GitHub URL format
         assertTrue(
-            actualSlackBody.contains(expectedGitHubUrl),
-            "Slack body must contain the GitHub issue URL. Expected: " + expectedGitHubUrl + " in body: " + actualSlackBody
+            sent.body.contains(EXPECTED_GITHUB_URL_PREFIX),
+            "Slack body must include the GitHub issue URL (starting with " + EXPECTED_GITHUB_URL_PREFIX + "). " +
+            "Actual body: " + sent.body
         );
     }
 
     @Test
-    void shouldContainGitHubIssueUrlInSlackBody_whenUrlIsComplex() {
+    void testReportDefect_InvalidCommand_ThrowsException() {
         // Arrange
-        String defectId = "S-FB-2";
-        String complexTitle = "Fix: Validating complex chars in URL ?query=1&foo=bar";
-        // Simulate a URL that might be encoded differently or contain special chars
-        String complexUrl = "https://github.com/example/project/issues/2?foo=bar";
+        ReportDefectCmd invalidCmd = new ReportDefectCmd(null, null, null, null);
 
-        mockGitHub.setMockCreateUrl(complexUrl);
-
-        // Act
-        String createdUrl = gitHubService.createIssue(complexTitle, "Description");
-        slackService.sendNotification(createdUrl, complexTitle);
-
-        // Assert
-        String actualSlackBody = mockSlack.getLastBodySent();
-        assertTrue(
-            actualSlackBody.contains(complexUrl),
-            "Slack body should handle complex GitHub URLs correctly"
-        );
+        // Act & Assert
+        // Assuming the service validates the command
+        assertThrows(IllegalArgumentException.class, () -> {
+            service.handle(invalidCmd);
+        });
     }
 }

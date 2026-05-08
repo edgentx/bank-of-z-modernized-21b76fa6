@@ -2,16 +2,14 @@ package com.example.domain.defect.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.Map;
-
 /**
- * Command to report a defect (VW-454, etc.).
- * Contains context information including the GitHub URL.
+ * Command to trigger the defect reporting workflow via Temporal.
+ * This is the input payload for the saga/workflow.
  */
 public record ReportDefectCmd(
-        String defectId,
-        String title,
-        String description,
-        String githubUrl,
-        Map<String, Object> metadata
+    String defectId,
+    String title,
+    String description,
+    String severity,
+    String component
 ) implements Command {}

@@ -1,11 +1,9 @@
 package com.example.ports;
 
-import com.example.domain.validation.model.SlackNotificationMessage;
-
 /**
- * Port for sending notifications to Slack.
- * Used by the Defect Reporting workflow to notify users.
+ * Port interface for Slack notifications.
+ * Abstraction allows mocking in tests and swapping implementations in production.
  */
 public interface SlackPort {
-    void sendNotification(SlackNotificationMessage message);
+    void postMessage(String channel, String body);
 }

@@ -1,22 +1,27 @@
 package com.example.mocks;
 
+import com.example.domain.shared.Aggregate;
 import com.example.domain.teller.model.TellerSessionAggregate;
-import com.example.domain.teller.repository.TellerSessionRepository;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class InMemoryTellerSessionRepository implements TellerSessionRepository {
+// A simple in-memory repository for testing purposes.
+public class InMemoryTellerSessionRepository {
     private final Map<String, TellerSessionAggregate> store = new HashMap<>();
 
-    @Override
-    public TellerSessionAggregate save(TellerSessionAggregate aggregate) {
+    public void save(TellerSessionAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
-        return aggregate;
     }
 
-    @Override
-    public Optional<TellerSessionAggregate> findById(String id) {
-        return Optional.ofNullable(store.get(id));
+    public TellerSessionAggregate load(String id) {
+        // In a real event-sourced repo, we'd replay events. Here we just return the instance.
+        return Optional.ofNullable(store.get(id)).orElseThrow(() -> new IllegalArgumentException("Session not found: " + id));
+    }
+
+    public TellerSessionAggregate create(String id) {
+        TellerSessionAggregate aggregate = new TellerSessionAggregate(id);
+        store.put(id, aggregate);
+        return aggregate;
     }
 }

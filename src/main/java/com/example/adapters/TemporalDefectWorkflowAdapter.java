@@ -1,53 +1,42 @@
 package com.example.adapters;
 
-import com.example.domain.shared.DefectReportedEvent;
-import com.example.domain.shared.ReportDefectCommand;
+import com.example.domain.shared.DomainEvent;
+import com.example.domain.validation.model.DefectReportedEvent;
+import com.example.domain.validation.model.ReportDefectCommand;
 import com.example.ports.DefectWorkflowPort;
-import io.temporal.spring.boot.WorkflowImpl;
-import io.temporal.workflow.WorkflowMethod;
+import com.example.workflow.DefectReportingWorkflow;
+import io.temporal.client.WorkflowClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 /**
- * Temporal Workflow implementation for reporting defects.
- * This adapter connects the Spring application to the Temporal durable execution layer.
+ * Adapter implementation for DefectWorkflowPort using Temporal.
+ * Bridges the domain/application layer to the Temporal workflow engine.
  */
-@Component
-@WorkflowImpl(taskQueue = "DEFECT_TASK_QUEUE")
+@Service
 public class TemporalDefectWorkflowAdapter implements DefectWorkflowPort {
 
     private static final Logger log = LoggerFactory.getLogger(TemporalDefectWorkflowAdapter.class);
+    private final WorkflowClient workflowClient;
 
-    // Injecting the service manually or via WorkflowStub in a real Temporal setup.
-    // For the purpose of this Story, we simulate the Workflow execution.
-    // In production, Workflows invoke Activities.
-
-    @Autowired
-    private com.example.application.DefectReportingService defectReportingService;
-
-    @Override
-    @WorkflowMethod
-    public String reportDefect(ReportDefectCommand cmd) {
-        log.info("Executing workflow for defect: {}", cmd.defectId());
-
-        // 1. Simulate external GitHub Issue creation
-        String fakeGithubUrl = createGitHubIssue(cmd);
-
-        // 2. Create Domain Event
-        String aggregateId = "agg-" + cmd.defectId();
-        DefectReportedEvent event = new DefectReportedEvent(aggregateId, cmd.defectId(), fakeGithubUrl);
-
-        // 3. Trigger downstream notification
-        // (In real Temporal, this might be an Activity or a Signal)
-        defectReportingService.handleDefectReported(event);
-
-        return fakeGithubUrl;
+    public TemporalDefectWorkflowAdapter(WorkflowClient workflowClient) {
+        this.workflowClient = workflowClient;
     }
 
-    private String createGitHubIssue(ReportDefectCommand cmd) {
-        // Simulation of GitHub API call
-        return "https://github.com/example/issues/" + cmd.defectId().replace("-", "");
+    @Override
+    public void reportDefect(ReportDefectCommand command) {
+        log.info("Adapter: Triggering defect report for {}", command.defectId());
+
+        // Create a workflow stub
+        DefectReportingWorkflow workflow = workflowClient.newWorkflowStub(
+            DefectReportingWorkflow.class,
+            "Defect-" + command.defectId()
+        );
+
+        // Execute workflow (synchronously for this demo, or async via WorkflowClient.start)
+        // Using synchronous execution for immediate feedback in this context.
+        String result = workflow.reportDefect(command);
+        log.info("Workflow result: {}", result);
     }
 }

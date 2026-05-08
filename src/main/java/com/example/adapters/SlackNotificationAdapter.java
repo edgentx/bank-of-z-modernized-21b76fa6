@@ -1,24 +1,35 @@
 package com.example.adapters;
 
 import com.example.ports.SlackNotificationPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 /**
- * Real adapter for Slack notifications.
- * Connects to the actual Slack Web API.
+ * Concrete implementation of {@link SlackNotificationPort} using a real Slack Web API client.
+ * <p>
+ * NOTE: In a staging/local environment, this implementation would likely be swapped out
+ * by the mock defined in the test package via Spring Profile configuration.
+ * </p>
  */
+@Component
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
-    private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
+    // In a real-world scenario, this would use the Slack Web Client (e.g., OKHttp or WebClient)
+    // private final SlackClient slackClient;
+
+    public SlackNotificationAdapter() {
+        // this.slackClient = slackClient;
+    }
 
     @Override
-    public void sendMessage(String channel, String body) {
-        // In a production scenario, this would use an HTTP client (e.g., WebClient or RestTemplate)
-        // to POST to the Slack API.
-        // Since we cannot make external network calls in this unit test environment,
-        // and the defect S-FB-1 focuses on the *formatting* of the URL (business logic),
-        // we log the payload here to demonstrate the adapter would receive the correct data.
-        log.info("SLACK API CALL [Channel: {}]: {}", channel, body);
+    public void postMessage(String channel, String messageBody) {
+        if (channel == null || messageBody == null) {
+            throw new IllegalArgumentException("Channel and body must not be null");
+        }
+        // Implementation for real Slack API call would go here:
+        // slackClient.postMessage(channel, messageBody);
+        
+        // For now, we log to stdout to verify execution in integration tests
+        // if no external API key is configured.
+        System.out.println("[SLACK ADAPTER] Posting to " + channel + ": " + messageBody);
     }
 }

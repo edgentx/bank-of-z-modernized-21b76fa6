@@ -6,20 +6,18 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Domain Event emitted when a Teller successfully navigates to a new menu.
+ * Event emitted when a teller successfully navigates to a new menu context.
  */
 public record MenuNavigatedEvent(
-        String aggregateId,
-        String tellerId,
-        String targetMenuId,
-        String action,
-        Instant occurredAt
+    String eventId,
+    String aggregateId,
+    String menuId,
+    String action,
+    Instant occurredAt
 ) implements DomainEvent {
 
-    public MenuNavigatedEvent {
-        if (aggregateId == null || aggregateId.isBlank()) {
-            throw new IllegalArgumentException("aggregateId cannot be null");
-        }
+    public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, menuId, action, occurredAt);
     }
 
     @Override

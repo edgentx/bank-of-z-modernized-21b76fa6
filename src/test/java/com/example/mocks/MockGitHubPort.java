@@ -1,25 +1,32 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
-import java.util.ArrayList;
-import java.util.List;
 
 public class MockGitHubPort implements GitHubPort {
-    private final List<String> createdIssues = new ArrayList<>();
-    private String mockUrl = "https://github.com/test/repo/issues/1";
+
+    private String baseUrlFormat = "https://github.com/example/bank/issues/%s";
 
     @Override
-    public String createIssue(String title, String body) {
-        System.out.println("[MOCK] Creating GitHub Issue: " + title);
-        createdIssues.add(title);
-        return mockUrl;
+    public String generateIssueUrl(String issueId) {
+        if (issueId == null || issueId.isBlank()) {
+            throw new IllegalArgumentException("Issue ID cannot be null");
+        }
+        // Simulating simple ID logic for testing: extract number if present, or use ID directly
+        String normalizedId = issueId.replace("VW-", "");
+        if (!normalizedId.matches("\\d+")) {
+             // If it's not just digits, we just append it for the mock to be generic
+             return "https://github.com/example/bank/issues/" + issueId;
+        }
+        return String.format(baseUrlFormat, normalizedId);
     }
 
-    public void setMockUrl(String url) {
-        this.mockUrl = url;
+    @Override
+    public String createIssue(String title, String description) {
+        // Returns a fake URL for the created issue
+        return "https://github.com/example/bank/issues/999";
     }
 
-    public List<String> getCreatedIssues() {
-        return createdIssues;
+    public void setBaseUrlFormat(String format) {
+        this.baseUrlFormat = format;
     }
 }

@@ -3,10 +3,8 @@ package com.example.domain.tellsession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
-/**
- * Domain event emitted when a Teller successfully navigates to a new menu.
- */
 public record MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {

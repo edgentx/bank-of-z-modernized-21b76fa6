@@ -1,15 +1,12 @@
 package com.example.steps;
 
-import io.cucumber.spring.CucumberContextConfiguration;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
-import org.springframework.test.context.ContextConfiguration;
+import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectClasses;
+import org.junit.platform.suite.api.Suite;
 
-/**
- * Test Suite configuration for running VW-454 Glue code.
- */
-@CucumberContextConfiguration
-@SpringBootTest(classes = VW454TestConfig.class)
+@Suite
+@IncludeEngines("cucumber")
+@SelectClasses(VW454Steps.class)
 public class VW454TestSuite {
-    // Configuration class handles the mock beans
+    // JUnit 5 Suite to run Cucumber tests
 }

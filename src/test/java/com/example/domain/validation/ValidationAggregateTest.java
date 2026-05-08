@@ -1,44 +1,48 @@
 package com.example.domain.validation;
 
-import com.example.domain.validation.model.*;
+import com.example.domain.validation.model.DefectReportedEvent;
+com.example.domain.validation.model.ReportDefectCmd;
+import com.example.domain.validation.model.ValidationAggregate;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for ValidationAggregate.
+ * Covers the logic of defect reporting and event emission.
+ */
 class ValidationAggregateTest {
 
     @Test
-    void shouldReportDefect() {
-        ValidationAggregate aggregate = new ValidationAggregate("val-1");
-        ReportDefectCmd cmd = new ReportDefectCmd("val-1", "Summary", "Desc", "LOW");
+    void testReportDefectGeneratesGitHubUrl() {
+        // Given
+        var aggregate = new ValidationAggregate("v-force-360");
+        var cmd = new ReportDefectCmd("v-force-360", "Test Description", "LOW");
 
+        // When
         var events = aggregate.execute(cmd);
 
-        assertFalse(events.isEmpty());
-        assertTrue(aggregate.isReported());
-        assertEquals("Summary", aggregate.getSummary());
+        // Then
+        assertFalse(events.isEmpty(), "Should emit an event");
+        var event = events.get(0);
+        assertInstanceOf(DefectReportedEvent.class, event);
+        
+        var defectEvent = (DefectReportedEvent) event;
+        assertNotNull(defectEvent.issueUrl(), "Issue URL must not be null");
+        assertTrue(defectEvent.issueUrl().startsWith("https://github.com"), 
+            "Issue URL must be a GitHub link");
+        assertTrue(defectEvent.issueUrl().contains("v-force-360"), 
+            "Issue URL must contain the aggregate ID");
     }
 
     @Test
-    void shouldLinkGitHubIssue() {
-        ValidationAggregate aggregate = new ValidationAggregate("val-1");
-        // Pre-condition: Report defect
-        aggregate.execute(new ReportDefectCmd("val-1", "S", "D", "LOW"));
-        
-        String url = "https://github.com/bank-of-z/issues/123";
-        var events = aggregate.execute(new LinkGitHubIssueCmd("val-1", url));
+    void testReportDefectRequiresDescription() {
+        // Given
+        var aggregate = new ValidationAggregate("v-force-360");
+        var cmd = new ReportDefectCmd("v-force-360", "", "LOW");
 
-        assertEquals(1, events.size());
-        assertTrue(events.get(0) instanceof GitHubIssueLinkedEvent);
-        assertEquals(url, aggregate.getGithubIssueUrl());
-    }
-
-    @Test
-    void shouldThrowExceptionWhenLinkingWithoutReporting() {
-        ValidationAggregate aggregate = new ValidationAggregate("val-1");
-        
-        assertThrows(IllegalStateException.class, () -> {
-            aggregate.execute(new LinkGitHubIssueCmd("val-1", "http://github.com/..."));
-        });
+        // When & Then
+        assertThrows(IllegalArgumentException.class, () -> aggregate.execute(cmd),
+            "Should throw on blank description");
     }
 }

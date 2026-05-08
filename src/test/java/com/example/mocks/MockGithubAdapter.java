@@ -3,34 +3,26 @@ package com.example.mocks;
 import com.example.ports.GithubPort;
 
 /**
- * Mock implementation of GithubPort for testing.
- * Allows tests to define the URL that should be returned by createIssue.
+ * Mock implementation of GithubPort.
+ * Returns predictable URLs without calling GitHub API.
  */
 public class MockGithubAdapter implements GithubPort {
 
-    private String mockUrl;
-    private String lastTitle;
-    private String lastBody;
-
-    public void setMockUrl(String url) {
-        this.mockUrl = url;
-    }
+    private String mockUrlPrefix = "https://github.com/mock-org/issues/";
+    private int callCount = 0;
 
     @Override
     public String createIssue(String title, String body) {
-        this.lastTitle = title;
-        this.lastBody = body;
-        if (mockUrl == null) {
-            throw new RuntimeException("Mock Github Adapter not initialized with a URL");
-        }
-        return mockUrl;
+        callCount++;
+        // Simulate a deterministic URL generation based on call count
+        return mockUrlPrefix + callCount;
     }
 
-    public String getLastTitle() {
-        return lastTitle;
+    public int getCallCount() {
+        return callCount;
     }
 
-    public String getLastBody() {
-        return lastBody;
+    public void setMockUrlPrefix(String prefix) {
+        this.mockUrlPrefix = prefix;
     }
 }

@@ -5,24 +5,19 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record DefectReportedEvent(
-    String defectId,
-    String title,
-    String severity,
+    String aggregateId,
     String githubUrl,
+    String severity,
+    String component,
     Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
         return "DefectReported";
     }
-
-    @Override
-    public String aggregateId() {
-        return defectId();
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    
+    // Constructor wrapper to generate ID if needed, though record handles it
+    public static DefectReportedEvent create(String id, String url, String severity, String component) {
+        return new DefectReportedEvent(id, url, severity, component, Instant.now());
     }
 }

@@ -4,6 +4,9 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
+/**
+ * Event emitted when a customer is deleted.
+ */
 public record CustomerDeletedEvent(String customerId, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {

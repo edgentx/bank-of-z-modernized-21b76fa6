@@ -3,18 +3,17 @@ package com.example.domain.validation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.UUID;
 
 /**
  * Event emitted when a defect is reported.
  */
 public record DefectReportedEvent(
-        String aggregateId,
-        String defectId,
-        String severity,
-        String summary,
-        Map<String, Object> details,
-        Instant occurredAt
+    String defectId,
+    String title,
+    String severity,
+    String githubIssueUrl,
+    Instant occurredAt
 ) implements DomainEvent {
 
     @Override
@@ -24,7 +23,7 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return defectId;
     }
 
     @Override

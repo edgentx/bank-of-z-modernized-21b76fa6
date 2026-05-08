@@ -2,26 +2,16 @@ package com.example.ports;
 
 /**
  * Port interface for sending Slack notifications.
- * Abstraction used to allow mocking in tests without real I/O.
+ * This isolates the domain logic from the concrete Slack API implementation.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends a message to a specific Slack channel.
+     * Sends a notification about a defect to Slack.
      *
-     * @param channel The Slack channel ID or name (e.g., "#vforce360-issues").
-     * @param messageBody The body content of the message.
-     * @throws IllegalArgumentException if channel or body is invalid.
-     * @throws RuntimeException if the external API call fails.
+     * @param channel The Slack channel ID or name.
+     * @param message The main message content.
+     * @param githubIssueUrl The URL of the created GitHub issue (must be included in body).
      */
-    void sendMessage(String channel, String messageBody);
-
-    /**
-     * Retrieves the last message sent to the specified channel.
-     * Used primarily in test mocks to verify behavior.
-     *
-     * @param channel The channel identifier.
-     * @return The last message body, or null if no message has been sent.
-     */
-    String getLastMessage(String channel);
+    void sendDefectNotification(String channel, String message, String githubIssueUrl);
 }

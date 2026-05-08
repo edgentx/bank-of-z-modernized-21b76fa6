@@ -6,15 +6,14 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record TellerSessionEndedEvent(
-        String aggregateId,
-        Instant occurredAt
+    String aggregateId,
+    Instant occurredAt
 ) implements DomainEvent {
-    public TellerSessionEndedEvent(String aggregateId) {
-        this(aggregateId, Instant.now());
+    public TellerSessionEndedEvent {
+        // Validate
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
     }
-
-    @Override
-    public String type() {
-        return "session.ended";
-    }
+    @Override public String type() { return "session.ended"; }
+    @Override public String aggregateId() { return aggregateId; }
+    @Override public Instant occurredAt() { return occurredAt; }
 }

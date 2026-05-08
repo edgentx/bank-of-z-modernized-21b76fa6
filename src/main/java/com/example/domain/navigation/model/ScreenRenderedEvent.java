@@ -4,22 +4,29 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.Map;
 
-public record ScreenRenderedEvent(
-    String aggregateId,
-    String type,
-    Instant occurredAt,
-    String screenId,
-    String deviceType,
-    Map<String, Object> inputData
-) implements DomainEvent {
+public class ScreenRenderedEvent implements DomainEvent {
 
-    public ScreenRenderedEvent(String aggregateId, String screenId, String deviceType, Map<String, Object> inputData) {
-        this(aggregateId, "screen.rendered", Instant.now(), screenId, deviceType, inputData);
+    private final String aggregateId;
+    private final String screenId;
+    private final String deviceType;
+    private final Instant occurredAt;
+    private final String status;
+    private final String message;
+    private final Map<String, Object> layoutSnapshot;
+
+    public ScreenRenderedEvent(String aggregateId, String screenId, String deviceType, Instant occurredAt, String status, String message, Map<String, Object> layoutSnapshot) {
+        this.aggregateId = aggregateId;
+        this.screenId = screenId;
+        this.deviceType = deviceType;
+        this.occurredAt = occurredAt;
+        this.status = status;
+        this.message = message;
+        this.layoutSnapshot = layoutSnapshot;
     }
 
     @Override
     public String type() {
-        return type;
+        return "screen.rendered";
     }
 
     @Override
@@ -31,4 +38,10 @@ public record ScreenRenderedEvent(
     public Instant occurredAt() {
         return occurredAt;
     }
+
+    public String getScreenId() { return screenId; }
+    public String getDeviceType() { return deviceType; }
+    public String getStatus() { return status; }
+    public String getMessage() { return message; }
+    public Map<String, Object> getLayoutSnapshot() { return layoutSnapshot; }
 }

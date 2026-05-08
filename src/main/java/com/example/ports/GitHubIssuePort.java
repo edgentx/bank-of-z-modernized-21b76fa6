@@ -1,17 +1,17 @@
 package com.example.ports;
 
+import java.util.Optional;
+
 /**
  * Port for interacting with GitHub issues.
- * Used to generate the URL required for the defect report.
  */
 public interface GitHubIssuePort {
 
     /**
-     * Creates a new issue on GitHub.
+     * Retrieves the browser URL for a specific GitHub issue ID.
      *
-     * @param title The issue title.
-     * @param description The issue description/body.
-     * @return The HTML URL of the created issue (e.g., "https://github.com/org/repo/issues/454").
+     * @param issueId The internal or external issue ID.
+     * @return Optional containing the URL if found.
      */
-    String createIssue(String title, String description);
+    Optional<String> getIssueUrl(String issueId);
 }

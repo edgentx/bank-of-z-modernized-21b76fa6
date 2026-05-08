@@ -1,9 +1,13 @@
 package com.example.domain.legacybridge.model;
 
 import com.example.domain.shared.Command;
+
 import java.time.Instant;
 import java.util.Objects;
 
+/**
+ * Command to update an existing routing rule configuration.
+ */
 public record UpdateRoutingRuleCmd(
         String routeId,
         String ruleId,

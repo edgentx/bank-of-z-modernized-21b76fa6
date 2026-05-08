@@ -5,17 +5,26 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Event emitted when user input has been successfully validated
- * against the legacy BMS map constraints.
+ * Domain event emitted when screen input has been successfully validated.
  */
 public record ScreenInputValidatedEvent(
-    String aggregateId,
-    String screenId,
-    Map<String, String> inputFields,
-    Instant occurredAt
+        String aggregateId,
+        String screenId,
+        Map<String, String> inputFields,
+        Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
         return "input.validated";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

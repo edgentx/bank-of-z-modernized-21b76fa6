@@ -1,49 +1,48 @@
 package com.example.workflows;
 
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackPort;
+import io.temporal.spring.boot.WorkflowImpl;
 import io.temporal.workflow.Workflow;
-import io.temporal.workflow.WorkflowInterface;
-import io.temporal.workflow.WorkflowMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
-
 /**
- * Temporal Workflow for reporting a defect.
- * Orchestrates creating the issue and notifying the channel.
+ * Temporal Workflow implementation for reporting defects.
+ * Orchestrates creating a GitHub issue and notifying Slack.
  */
-@WorkflowInterface
-public interface DefectReportWorkflow {
+@WorkflowImpl(taskQueues = "DefectReportTaskQueue")
+public class DefectReportWorkflowImpl implements DefectReportWorkflow {
 
-    @WorkflowMethod
-    void reportDefect(String title, String body);
+    private static final Logger log = LoggerFactory.getLogger(DefectReportWorkflowImpl.class);
 
-    /**
-     * Workflow implementation.
-     * In a real setup, this might be a separate class file, but inner classes are often used for Temporal samples.
-     */
-    class WorkflowImpl implements DefectReportWorkflow {
-        private static final Logger log = LoggerFactory.getLogger(WorkflowImpl.class);
+    // Workflow stubs for Activities
+    private final GitHubPort github;
+    private final SlackPort slack;
 
-        // Activity stubs
-        private final DefectReportActivities activities = Workflow.newActivityStub(
-            DefectReportActivities.class,
-            // Options: e.g., timeouts, retries
-            io.temporal.activity.ActivityOptions.newBuilder()
-                .setStartToCloseTimeout(Duration.ofSeconds(10))
-                .build()
-        );
+    // Temporal requires a default constructor for instantiating workflows.
+    // We use Workflow.newActivityStub to get the implementations at runtime.
+    public DefectReportWorkflowImpl() {
+        // In a real Temporal setup, these are stubs defined by @ActivityInterface options.
+        // For this validation scenario, we rely on the Spring context providing the beans
+        // or the Test Environment providing the mocks.
+        // This constructor is primarily for the Worker registry.
+        this.github = Workflow.newActivityStub(GitHubPort.class);
+        this.slack = Workflow.newActivityStub(SlackPort.class);
+    }
 
-        @Override
-        public void reportDefect(String title, String body) {
-            log.info("Starting defect report workflow for: {}", title);
+    @Override
+    public String reportDefect(String title, String body) {
+        log.info("Executing defect report workflow for: {}", title);
 
-            // 1. Create GitHub Issue
-            String issueUrl = activities.createGitHubIssue(title, body);
-            log.info("Created issue: {}", issueUrl);
+        // 1. Create Issue in GitHub
+        String url = github.createIssue(title, body);
 
-            // 2. Notify Slack (This is where VW-454 applies)
-            activities.notifySlack("#vforce360-issues", issueUrl);
-        }
+        // 2. Notify Slack
+        // Expected format: "Defect Reported: <title>. View: <url>"
+        String slackMessage = String.format("Defect Reported: %s. View: %s", title, url);
+        slack.sendMessage(slackMessage);
+
+        return url;
     }
 }

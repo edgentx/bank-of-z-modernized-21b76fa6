@@ -1,5 +1,6 @@
 package com.example.steps;
 
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.tellersession.model.EndSessionCmd;
 import com.example.domain.tellersession.model.SessionEndedEvent;
@@ -11,61 +12,38 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class S20Steps {
-
-    private final TellerSessionRepository repository = new InMemoryTellerSessionRepository();
     private TellerSessionAggregate aggregate;
-    private Exception caughtException;
+    private final TellerSessionRepository repository = new InMemoryTellerSessionRepository();
+    private Exception capturedException;
     private List<DomainEvent> resultEvents;
 
     @Given("a valid TellerSession aggregate")
     public void aValidTellerSessionAggregate() {
         UUID id = UUID.randomUUID();
         aggregate = new TellerSessionAggregate(id);
-        aggregate.markAuthenticated("teller-123"); // Valid defaults
+        aggregate.markAuthenticated(); // Valid implies authenticated
         repository.save(aggregate);
     }
 
-    @And("a valid sessionId is provided")
+    @Given("a valid sessionId is provided")
     public void aValidSessionIdIsProvided() {
-        // Implicitly handled by aggregate creation, but can verify here
+        // Handled by the aggregate initialization in the previous step
         assertNotNull(aggregate.id());
     }
-
-    @When("the EndSessionCmd command is executed")
-    public void theEndSessionCmdCommandIsExecuted() {
-        EndSessionCmd cmd = new EndSessionCmd(UUID.fromString(aggregate.id()), "teller-123");
-        try {
-            // Reload to ensure we act on persisted state (simulation)
-            TellerSessionAggregate agg = repository.findById(UUID.fromString(aggregate.id())).orElseThrow();
-            resultEvents = agg.execute(cmd);
-            // Save uncommitted events would happen here in a real app
-            repository.save(agg);
-        } catch (Exception e) {
-            caughtException = e;
-        }
-    }
-
-    @Then("a session.ended event is emitted")
-    public void aSessionEndedEventIsEmitted() {
-        assertNull(caughtException, "Should not have thrown exception");
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof SessionEndedEvent);
-    }
-
-    // --- Negative Scenarios ---
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
     public void aTellerSessionAggregateThatViolatesAuthentication() {
         UUID id = UUID.randomUUID();
         aggregate = new TellerSessionAggregate(id);
-        aggregate.markUnauthenticated(); // Violation
+        aggregate.markUnauthenticated(); // Violate authentication
         repository.save(aggregate);
     }
 
@@ -73,8 +51,9 @@ public class S20Steps {
     public void aTellerSessionAggregateThatViolatesTimeout() {
         UUID id = UUID.randomUUID();
         aggregate = new TellerSessionAggregate(id);
-        aggregate.markAuthenticated("teller-123");
-        aggregate.markTimedOut(); // Violation
+        aggregate.markAuthenticated();
+        // Set last activity to 2 hours ago to violate timeout (default is 30 mins)
+        aggregate.setLastActivity(Instant.now().minus(Duration.ofHours(2)));
         repository.save(aggregate);
     }
 
@@ -82,14 +61,37 @@ public class S20Steps {
     public void aTellerSessionAggregateThatViolatesNavigationState() {
         UUID id = UUID.randomUUID();
         aggregate = new TellerSessionAggregate(id);
-        aggregate.markAuthenticated("teller-123");
-        aggregate.markNavigationInvalid(); // Violation
+        aggregate.markAuthenticated();
+        // Explicitly invalidate the state to simulate the violation
+        aggregate.invalidateNavigationState();
         repository.save(aggregate);
+    }
+
+    @When("the EndSessionCmd command is executed")
+    public void theEndSessionCmdCommandIsExecuted() {
+        try {
+            // Reload from repo to ensure we are testing a fresh instance if needed, or use direct
+            // Here we use the instance we set up, simulating a command handler execution
+            Command cmd = new EndSessionCmd(aggregate.id());
+            resultEvents = aggregate.execute(cmd);
+        } catch (Exception e) {
+            capturedException = e;
+        }
+    }
+
+    @Then("a session.ended event is emitted")
+    public void aSessionEndedEventIsEmitted() {
+        assertNull(capturedException, "Should not have thrown an exception");
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof SessionEndedEvent);
+        SessionEndedEvent event = (SessionEndedEvent) resultEvents.get(0);
+        assertEquals(aggregate.id(), event.aggregateId());
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(caughtException, "Expected exception was not thrown");
-        assertTrue(caughtException instanceof IllegalStateException);
+        assertNotNull(capturedException, "Expected an exception to be thrown");
+        assertTrue(capturedException instanceof IllegalStateException);
     }
 }

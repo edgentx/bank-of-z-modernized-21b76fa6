@@ -1,10 +1,10 @@
 package com.example.steps;
 
-import com.example.domain.legacybridge.model.EvaluateRoutingCmd;
-import com.example.domain.legacybridge.model.LegacyTransactionRoute;
-import com.example.domain.legacybridge.model.RoutingEvaluatedEvent;
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import io.cucumber.java.en.And;
+import com.example.domain.transaction.model.EvaluateRoutingCmd;
+import com.example.domain.transaction.model.LegacyTransactionRoute;
+import com.example.domain.transaction.model.RoutingEvaluatedEvent;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -17,93 +17,65 @@ import static org.junit.jupiter.api.Assertions.*;
 public class S23Steps {
 
     private LegacyTransactionRoute aggregate;
+    private String transactionType;
+    private Map<String, Object> payload;
     private List<DomainEvent> resultEvents;
-    private Exception caughtException;
+    private Exception capturedException;
 
     @Given("a valid LegacyTransactionRoute aggregate")
-    public void aValidLegacyTransactionRouteAggregate() {
+    public void a_valid_legacy_transaction_route_aggregate() {
         aggregate = new LegacyTransactionRoute("route-123");
     }
 
-    @And("a valid transactionType is provided")
-    public void aValidTransactionTypeIsProvided() {
-        // Context setup handled in 'When'
+    @Given("a valid transactionType is provided")
+    public void a_valid_transaction_type_is_provided() {
+        this.transactionType = "TRANSFER";
     }
 
-    @And("a valid payload is provided")
-    public void aValidPayloadIsProvided() {
-        // Context setup handled in 'When'
+    @Given("a valid payload is provided")
+    public void a_valid_payload_is_provided() {
+        this.payload = Map.of("amount", 100);
     }
 
     @When("the EvaluateRoutingCmd command is executed")
-    public void theEvaluateRoutingCmdCommandIsExecuted() {
-        EvaluateRoutingCmd cmd = new EvaluateRoutingCmd(
-                "route-123",
-                "DOMESTIC_TRANSFER",
-                Map.of("amount", 100),
-                "v1.0"
-        );
-        resultEvents = aggregate.execute(cmd);
-    }
-
-    @Then("a routing.evaluated event is emitted")
-    public void aRoutingEvaluatedEventIsEmitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof RoutingEvaluatedEvent);
-        
-        RoutingEvaluatedEvent event = (RoutingEvaluatedEvent) resultEvents.get(0);
-        assertEquals("routing.evaluated", event.type());
-        assertNotNull(event.targetSystem());
-    }
-
-    @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.")
-    public void aLegacyTransactionRouteAggregateThatViolatesExactlyOneBackend() {
-        aggregate = new LegacyTransactionRoute("route-bad-dual");
-    }
-
-    @When("the EvaluateRoutingCmd command is executed for dual processing violation")
-    public void theEvaluateRoutingCmdCommandIsExecutedForDualProcessingViolation() {
-        // Simulating logic that might result in no target or invalid target
-        // Since the aggregate logic is hard-coded to valid states, we verify the invariant protection exists
-        // by potentially triggering a different failure or simply checking the aggregate's state protection.
-        // However, to test the specific rejection, we would invoke the command such that logic fails.
-        // In this simplified model, the aggregate forces a decision. To test the rejection:
-        caughtException = assertThrows(IllegalStateException.class, () -> {
-             // We can't easily force the internal logic to fail without mocking internal state or
-             // modifying the command. For BDD, we assume the logic *could* fail if state was bad.
-             // Here we verify the mechanism exists by triggering a different error if needed,
-             // or checking the success path handles valid data correctly (tested above).
-             // To strictly satisfy the scenario, we can check that if we COULD create an ambiguous state, it fails.
-             // Since the current implementation hardcodes the decision, we test the NULL case scenario below.
-             throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
-        });
-    }
-
-    @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback.")
-    public void aLegacyTransactionRouteAggregateThatViolatesVersioning() {
-        aggregate = new LegacyTransactionRoute("route-bad-version");
-    }
-
-    @When("the EvaluateRoutingCmd command is executed for versioning violation")
-    public void theEvaluateRoutingCmdCommandIsExecutedForVersioningViolation() {
-        EvaluateRoutingCmd cmd = new EvaluateRoutingCmd(
-                "route-bad-version",
-                "DOMESTIC_TRANSFER",
-                Map.of(),
-                null // Violates versioning invariant
-        );
-        
+    public void the_evaluate_routing_cmd_command_is_executed() {
         try {
-            aggregate.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            caughtException = e;
+            Command cmd = new EvaluateRoutingCmd("route-123", transactionType, payload);
+            resultEvents = aggregate.execute(cmd);
+        } catch (Exception e) {
+            capturedException = e;
         }
     }
 
+    @Then("a routing.evaluated event is emitted")
+    public void a_routing_evaluated_event_is_emitted() {
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof RoutingEvaluatedEvent);
+        RoutingEvaluatedEvent event = (RoutingEvaluatedEvent) resultEvents.get(0);
+        assertEquals("routing.evaluated", event.type());
+        assertNotNull(event.targetSystem()); // "MODERN" or "LEGACY"
+    }
+
+    @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.")
+    public void a_legacy_transaction_route_aggregate_that_violates_uniqueness() {
+        aggregate = new LegacyTransactionRoute("route-123");
+        // Simulate that it is already routed
+        aggregate.setAlreadyRouted("MODERN");
+    }
+
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(caughtException);
-        assertTrue(caughtException instanceof IllegalArgumentException || caughtException instanceof IllegalStateException);
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(capturedException);
+        // Checking for the specific invariant violation message is good practice
+        assertTrue(capturedException.getMessage().contains("Dual-processing") || 
+                   capturedException.getMessage().contains("already been routed"));
+    }
+
+    @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback.")
+    public void a_legacy_transaction_route_aggregate_that_violates_versioning() {
+        aggregate = new LegacyTransactionRoute("route-123");
+        // Simulate an invalid version state
+        aggregate.setInvalidRulesVersion(0); // 0 or negative is invalid
     }
 }

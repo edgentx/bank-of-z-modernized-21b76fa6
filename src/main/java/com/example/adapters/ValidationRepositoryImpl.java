@@ -2,24 +2,17 @@ package com.example.adapters;
 
 import com.example.domain.defect.model.DefectAggregate;
 import com.example.domain.defect.repository.DefectRepository;
-import org.springframework.stereotype.Component;
-
-import java.util.HashMap;
+import org.springframework.stereotype.Repository;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
-import java.util.Optional;
 
-/**
- * In-memory implementation of DefectRepository.
- * Placeholder for a real persistent store (e.g., MongoDB/DB2).
- */
-@Component
+@Repository
 public class ValidationRepositoryImpl implements DefectRepository {
-
-    private final Map<String, DefectAggregate> store = new HashMap<>();
+    private final Map<String, DefectAggregate> store = new ConcurrentHashMap<>();
 
     @Override
-    public void save(DefectAggregate defect) {
-        store.put(defect.id(), defect);
+    public void save(DefectAggregate aggregate) {
+        store.put(aggregate.id(), aggregate);
     }
 
     @Override

@@ -3,12 +3,10 @@ package com.example.domain.vforce;
 import com.example.ports.SlackNotifierPort;
 
 /**
- * Proxy for the Temporal Workflow Worker logic.
- * This class mimics the production behavior of reporting a defect.
- * In the real system, this would be orchestrated via Temporal Activities.
+ * Service for reporting defects to VForce360 Slack channel.
+ * Acts as a proxy for the Temporal Workflow Worker logic.
  * 
- * NOTE: This is a STUB used to satisfy the Red Phase requirement.
- * It intentionally does NOT contain the GitHub URL logic yet.
+ * Fix for S-FB-1: Ensures the GitHub URL is included in the Slack body.
  */
 public class DefectReportService {
 
@@ -25,9 +23,9 @@ public class DefectReportService {
      * @param githubUrl The URL to the GitHub issue (passed in to simulate retrieval)
      */
     public void reportDefect(String defectId, String githubUrl) {
-        // TEMPORARY IMPLEMENTATION (Missing the URL fix)
-        // This is the RED phase baseline.
-        String body = "Defect reported: " + defectId + ". Please check internal dashboard.";
+        // S-FB-1 FIX: Include the GitHub URL in the body
+        // Expected Format: "Defect reported: VW-454. GitHub issue: <url>"
+        String body = "Defect reported: " + defectId + ". GitHub issue: " + githubUrl;
         
         // Post to Slack
         slackNotifier.postMessage("#vforce360-issues", body);

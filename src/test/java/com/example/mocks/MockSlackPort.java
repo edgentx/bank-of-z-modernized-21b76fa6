@@ -1,20 +1,29 @@
 package com.example.mocks;
 
 import com.example.ports.SlackPort;
+import com.example.domain.validation.model.SlackNotificationMessage;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Mock implementation of SlackPort for testing.
+ * Captures messages sent to Slack for assertion.
+ */
 public class MockSlackPort implements SlackPort {
-    public List<String> channels = new ArrayList<>();
-    public List<String> messages = new ArrayList<>();
+
+    private final List<SlackNotificationMessage> sentMessages = new ArrayList<>();
 
     @Override
-    public void sendMessage(String channel, String text) {
-        channels.add(channel);
-        messages.add(text);
+    public void sendNotification(SlackNotificationMessage message) {
+        // Instead of calling the real API, just store the message
+        this.sentMessages.add(message);
     }
 
-    public String getLastMessage() {
-        return messages.get(messages.size() - 1);
+    public List<SlackNotificationMessage> getSentMessages() {
+        return sentMessages;
+    }
+
+    public void reset() {
+        sentMessages.clear();
     }
 }

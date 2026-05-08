@@ -4,110 +4,97 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
+
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
- * ScreenMap Aggregate
- * Handles the logic for rendering screen layouts based on device constraints and user inputs.
- * Enforces legacy BMS (Basic Mapping Support) field length constraints.
+ * Aggregate Root for ScreenMap navigation.
+ * Handles the rendering of UI layouts based on device type and legacy BMS constraints.
  */
 public class ScreenMap extends AggregateRoot {
 
-    private final String screenMapId;
-    private String currentLayoutId;
-    private DeviceType lastDeviceType;
+    private final String screenId;
+    private String layoutId;
+    private DeviceType currentDevice;
 
-    // Legacy BMS Constraints
-    private static final int MAX_FIELD_LENGTH = 80; // Typical 3270 screen width constraint
-
-    public ScreenMap(String screenMapId) {
-        this.screenMapId = screenMapId;
+    public ScreenMap(String screenId) {
+        this.screenId = screenId;
     }
 
     @Override
     public String id() {
-        return screenMapId;
+        return screenId;
     }
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
         if (cmd instanceof RenderScreenCmd c) {
-            return renderScreen(c);
+            return handleRenderScreen(c);
         }
         throw new UnknownCommandException(cmd);
     }
 
-    private List<DomainEvent> renderScreen(RenderScreenCmd cmd) {
-        // Scenario: Successfully execute RenderScreenCmd & Invariants
-        // 1. Validate mandatory input fields
-        if (cmd.screenId() == null || cmd.screenId().isBlank()) {
-            throw new IllegalArgumentException("ScreenId cannot be null or blank");
-        }
-        if (cmd.layoutId() == null || cmd.layoutId().isBlank()) {
-            throw new IllegalArgumentException("LayoutId cannot be null or blank");
-        }
-        if (cmd.inputFields() == null) {
-            throw new IllegalArgumentException("InputFields map cannot be null");
-        }
+    private List<DomainEvent> handleRenderScreen(RenderScreenCmd cmd) {
+        // 1. Validate Mandatory Fields (Scenario 2)
+        // We interpret "inputFields()" (from errors) as the input provided.
+        // We interpret the constraints as validationRules.
+        // Check if any mandatory rule is missing from the input.
+        Set<String> providedFields = cmd.inputFields().stream()
+                .map(RenderScreenCmd.FieldSpec::name)
+                .collect(Collectors.toSet());
 
-        // 2. Validate Field Lengths (BMS Constraints)
-        // Also checks that input fields are not empty (Mandatory validation)
-        if (cmd.inputFields().isEmpty()) {
-            throw new IllegalArgumentException("All mandatory input fields must be validated before screen submission: Map cannot be empty");
-        }
-
-        for (Map.Entry<String, String> entry : cmd.inputFields().entrySet()) {
-            String value = entry.getValue();
-            if (value != null && value.length() > MAX_FIELD_LENGTH) {
-                throw new IllegalArgumentException(
-                    "Field lengths must strictly adhere to legacy BMS constraints during the transition period: " +
-                    "field '" + entry.getKey() + "' exceeds " + MAX_FIELD_LENGTH + " characters."
-                );
+        for (RenderScreenCmd.ValidationRule rule : cmd.validationRules()) {
+            // Check if the rule implies mandatory (e.g., if it's a critical field)
+            // In this domain logic, we assume any validation rule present implies the field should be present if inputFields are being processed.
+            // Or more accurately based on Scenario 2: "mandatory input fields must be validated".
+            // We will treat fields in validationRules as mandatory for the context of this validation.
+            if (!providedFields.contains(rule.fieldName())) {
+                // If a rule exists for a field, it must be in the input fields to pass validation.
+                throw new IllegalArgumentException("Mandatory field validation failed: " + rule.fieldName() + " is required but missing.");
             }
         }
 
-        // Create Event
-        // We widen the Map<String, String> to Map<String, Object> for the event state
-        Map<String, Object> presentationState = new HashMap<>(cmd.inputFields());
-        // Add metadata to the state
-        presentationState.put("screenId", cmd.screenId());
-        presentationState.put("layoutId", cmd.layoutId());
-        
-        // Note: The error log showed String vs DeviceType comparison. 
-        // We ensure cmd.deviceType() is used as the Enum.
-        if (cmd.deviceType() == DeviceType.TERMINAL_3270) {
-             presentationState.put("renderMode", "BMS_COMPATIBLE");
-        } else {
-             presentationState.put("renderMode", "HTML5_RESPONSIVE");
+        // 2. Validate BMS Legacy Constraints (Scenario 3)
+        for (RenderScreenCmd.FieldSpec field : cmd.inputFields()) {
+            // Find constraint for this field
+            cmd.validationRules().stream()
+                .filter(r -> r.fieldName().equals(field.name()))
+                .findFirst()
+                .ifPresent(rule -> {
+                    if (field.length() > rule.maxLength()) {
+                        throw new IllegalStateException(
+                            String.format("Field length violation: %s length %d exceeds BMS constraint %d",
+                                    field.name(), field.length(), rule.maxLength())
+                        );
+                    }
+                });
         }
 
+        // 3. Generate Layout ID
+        String generatedLayoutId = generateLayoutId(cmd.screenId(), cmd.deviceType());
+        this.layoutId = generatedLayoutId;
+        this.currentDevice = cmd.deviceType();
+
+        // 4. Create Event
         ScreenRenderedEvent event = new ScreenRenderedEvent(
-            this.id(),
-            cmd.screenId(),
-            cmd.deviceType(),
-            cmd.layoutId(),
-            presentationState,
-            Instant.now()
+                this.screenId,
+                cmd.screenId(),
+                cmd.deviceType(),
+                generatedLayoutId,
+                Instant.now()
         );
 
-        this.currentLayoutId = cmd.layoutId();
-        this.lastDeviceType = cmd.deviceType();
-        
         addEvent(event);
         incrementVersion();
-        
         return List.of(event);
     }
 
-    // Getters for testing/projections
-    public String getCurrentLayoutId() {
-        return currentLayoutId;
-    }
-
-    public DeviceType getLastDeviceType() {
-        return lastDeviceType;
+    private String generateLayoutId(String screenId, DeviceType deviceType) {
+        // Fix for Error: incomparable types: java.lang.String and com.example.domain.navigation.model.DeviceType
+        // The previous code likely did screenId == deviceType (unlikely) or passed a String where Enum was expected.
+        return screenId + "-" + deviceType.name().toLowerCase();
     }
 }

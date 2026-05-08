@@ -1,41 +1,47 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Stores sent messages in memory for verification.
+ * Captures messages sent to Slack to verify their content without
+ * making actual network calls.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<SentMessage> messages = new ArrayList<>();
-    private boolean shouldFail = false;
-
-    public record SentMessage(String channel, String body) {}
+    private final List<String> sentMessages = new ArrayList<>();
 
     @Override
-    public String sendMessage(String channel, String messageBody) {
-        if (shouldFail) {
+    public void sendMessage(String messageBody) {
+        // In a real mock, we might track specific calls, but capturing the body
+        // is sufficient for verifying defect reports.
+        this.sentMessages.add(messageBody);
+    }
+
+    @Override
+    public String getLastMessageBody() {
+        if (sentMessages.isEmpty()) {
             return null;
         }
-        // Simulate Slack API returning a timestamp
-        String timestamp = "" + System.currentTimeMillis();
-        messages.add(new SentMessage(channel, messageBody));
-        return timestamp;
+        return sentMessages.get(sentMessages.size() - 1);
     }
 
-    public List<SentMessage> getMessages() {
-        return new ArrayList<>(messages);
+    /**
+     * Helper method for tests to verify if the Slack body contains the GitHub URL.
+     * Directly implements the AC: "Slack body includes GitHub issue: <url>"
+     *
+     * @param url The expected GitHub URL.
+     * @return true if the URL is found in the last message body.
+     */
+    public boolean doesLastMessageContainUrl(String url) {
+        String body = getLastMessageBody();
+        return body != null && body.contains(url);
     }
 
-    public void reset() {
-        messages.clear();
-        shouldFail = false;
-    }
-
-    public void setShouldFail(boolean shouldFail) {
-        this.shouldFail = shouldFail;
+    public void clear() {
+        sentMessages.clear();
     }
 }

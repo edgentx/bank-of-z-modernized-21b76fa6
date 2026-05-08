@@ -5,41 +5,37 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Captures sent messages to verify content and channel in assertions.
+ * Mock implementation of SlackNotificationPort.
+ * Captures messages sent to Slack for assertion in tests.
  */
 public class MockSlackNotification implements SlackNotificationPort {
 
-    public final List<SentMessage> messages = new ArrayList<>();
+    public static class SentMessage {
+        public final String projectId;
+        public final String defectId;
+        public final String summary;
+        public final String description;
+
+        public SentMessage(String projectId, String defectId, String summary, String description) {
+            this.projectId = projectId;
+            this.defectId = defectId;
+            this.summary = summary;
+            this.description = description;
+        }
+    }
+
+    private final List<SentMessage> messages = new ArrayList<>();
 
     @Override
-    public void sendMessage(String channel, String messageBody) {
-        // Simulate basic validation found in real clients
-        if (channel == null || channel.isBlank()) {
-            throw new IllegalArgumentException("Channel cannot be null or empty");
-        }
-        if (messageBody == null) {
-            throw new IllegalArgumentException("Message body cannot be null");
-        }
-        
-        this.messages.add(new SentMessage(channel, messageBody));
+    public void sendDefectReport(String projectId, String defectId, String summary, String description) {
+        messages.add(new SentMessage(projectId, defectId, summary, description));
     }
 
-    public record SentMessage(String channel, String body) {}
+    public List<SentMessage> getMessages() {
+        return messages;
+    }
 
-    public void reset() {
+    public void clear() {
         messages.clear();
-    }
-
-    public boolean wasMessageSentTo(String channel) {
-        return messages.stream().anyMatch(m -> m.channel().equals(channel));
-    }
-
-    public String getLastBodyForChannel(String channel) {
-        return messages.stream()
-                .filter(m -> m.channel().equals(channel))
-                .reduce((a, b) -> b) // get last
-                .orElseThrow(() -> new IllegalStateException("No message sent to channel: " + channel))
-                .body();
     }
 }

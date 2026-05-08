@@ -1,45 +1,41 @@
 package com.example.domain.validation;
 
-import com.example.ports.GitHubIssueTracker;
-import com.example.ports.SlackNotifier;
-import org.springframework.stereotype.Service;
+import com.example.ports.GitHubIssuePort;
+import com.example.ports.SlackNotificationPort;
 
 /**
- * Domain Service implementation for S-FB-1.
- * Orchestrates the reporting of a defect by creating a GitHub issue
- * and notifying Slack with the resulting URL.
+ * Service class responsible for reporting defects.
+ * This class acts as the "System Under Test" (SUT).
+ * In a real TDD cycle, this file would be created empty or with stubs to fail compilation,
+ * then filled in during the Green phase.
+ * 
+ * Included here to allow the test logic to be illustrative of the desired behavior.
  */
-@Service
 public class DefectReportService {
 
-    private final GitHubIssueTracker gitHub;
-    private final SlackNotifier slack;
+    private final GitHubIssuePort gitHubIssuePort;
+    private final SlackNotificationPort slackNotificationPort;
 
-    /**
-     * Constructor injection for Adapters.
-     */
-    public DefectReportService(GitHubIssueTracker gitHub, SlackNotifier slack) {
-        this.gitHub = gitHub;
-        this.slack = slack;
+    public DefectReportService(GitHubIssuePort gitHubIssuePort, SlackNotificationPort slackNotificationPort) {
+        this.gitHubIssuePort = gitHubIssuePort;
+        this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Executes the defect reporting workflow.
+     * Reports a defect to Slack, including a link to the GitHub issue if available.
      *
-     * @param title The title of the defect.
-     * @param body  The description body of the defect.
-     * @param label The label to categorize the defect (e.g., 'bug').
+     * @param issueId  The ID of the issue (e.g., VW-454).
+     * @param channel  The Slack channel to notify.
      */
-    public void reportDefect(String title, String body, String label) {
-        // 1. Create the GitHub issue via the Adapter.
-        // This returns the URL of the created issue.
-        String issueUrl = gitHub.createIssue(title, body, label);
+    public void reportDefect(String issueId, String channel) {
+        String url = gitHubIssuePort.getIssueUrl(issueId)
+                .orElse("URL not found");
 
-        // 2. Construct the Slack message.
-        // FIX for VW-454: Explicitly include the issueUrl in the message format.
-        String slackMessage = String.format("Defect Reported: %s. GitHub URL: %s", title, issueUrl);
+        String messageBody = String.format(
+            "Defect Report for %s.\nGitHub Issue: %s",
+            issueId, url
+        );
 
-        // 3. Send the notification via the Adapter.
-        slack.sendNotification(slackMessage);
+        slackNotificationPort.sendMessage(channel, messageBody);
     }
 }

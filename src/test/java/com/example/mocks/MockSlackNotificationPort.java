@@ -6,34 +6,32 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to Slack to verify content without calling the real API.
+ * Captures messages to memory for assertion.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> sentMessages = new ArrayList<>();
-    private boolean failNextSend = false;
+    public static class Message {
+        public final String channel;
+        public final String body;
 
-    @Override
-    public boolean sendNotification(String message) {
-        if (failNextSend) {
-            throw new RuntimeException("Simulated Slack API failure");
+        public Message(String channel, String body) {
+            this.channel = channel;
+            this.body = body;
         }
-        if (message == null || message.isBlank()) {
-            throw new IllegalArgumentException("Message cannot be empty");
-        }
-        sentMessages.add(message);
-        return true;
     }
 
-    public List<String> getSentMessages() {
-        return new ArrayList<>(sentMessages);
+    private final List<Message> messages = new ArrayList<>();
+
+    @Override
+    public void sendMessage(String channel, String body) {
+        this.messages.add(new Message(channel, body));
+    }
+
+    public List<Message> getMessages() {
+        return messages;
     }
 
     public void clear() {
-        sentMessages.clear();
-    }
-
-    public void setFailNextSend(boolean fail) {
-        this.failNextSend = fail;
+        messages.clear();
     }
 }

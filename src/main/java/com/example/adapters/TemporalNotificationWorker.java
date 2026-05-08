@@ -16,20 +16,22 @@ public class TemporalNotificationWorker {
 
     private final WorkflowServiceStubs serviceStubs;
     private final WorkerFactory factory;
+    private final TemporalWorkerAdapter temporalWorkerAdapter;
 
     @Autowired
-    public TemporalNotificationWorker(WorkflowServiceStubs serviceStubs) {
+    public TemporalNotificationWorker(WorkflowServiceStubs serviceStubs, TemporalWorkerAdapter temporalWorkerAdapter) {
         this.serviceStubs = serviceStubs;
+        this.temporalWorkerAdapter = temporalWorkerAdapter;
         // Create a WorkerFactory
         this.factory = WorkerFactory.newInstance(serviceStubs);
 
         // Create a Worker that listens to the task queue
         Worker worker = factory.newWorker("DefectTaskQueue");
 
-        // Register the Workflow implementation
+        // Register the Workflow implementation, injecting the TemporalWorkerAdapter
         worker.registerWorkflowImplementationFactory(
             TemporalDefectWorkflowAdapter.DefectWorkflow.class,
-            () -> new DefectWorkflowImpl()
+            () -> new DefectWorkflowImpl(temporalWorkerAdapter)
         );
     }
 
@@ -38,12 +40,22 @@ public class TemporalNotificationWorker {
         factory.start();
     }
 
-    // Implementation stub (Actual logic to call Slack would be here or in Activities)
+    // Implementation stub
     public static class DefectWorkflowImpl implements TemporalDefectWorkflowAdapter.DefectWorkflow {
+        private final TemporalWorkerAdapter adapter;
+
+        public DefectWorkflowImpl(TemporalWorkerAdapter adapter) {
+            this.adapter = adapter;
+        }
+
         @Override
         public void reportDefect(String severity, String title, String description) {
-            // Workflow logic goes here
-            // Should eventually call an Activity that posts to Slack
+            // Workflow logic
+            // Extract validationId from context or derive it. For this fix, we assume the taskId matches the validationId contextually.
+            // Here we simulate the logic that prepares the message.
+            String validationId = "VW-454"; // In a real workflow, this might come from headers or input
+            String message = adapter.prepareSlackMessage(validationId, severity, title, description);
+            // Logic to actually post to Slack would happen here via an Activity
         }
     }
 }

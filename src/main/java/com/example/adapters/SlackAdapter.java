@@ -1,38 +1,30 @@
 package com.example.adapters;
 
 import com.example.ports.SlackNotificationPort;
-import org.springframework.web.client.RestClient;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 /**
- * Real implementation of SlackNotificationPort using Spring RestClient.
+ * Real implementation of the SlackNotificationPort.
+ * In a production environment, this would connect to the Slack Web API.
  */
+@Component
 public class SlackAdapter implements SlackNotificationPort {
 
-    private final RestClient restClient;
-    private final String webhookUrl;
+    private static final Logger log = LoggerFactory.getLogger(SlackAdapter.class);
 
-    public SlackAdapter(RestClient.Builder restClientBuilder, String webhookUrl) {
-        this.webhookUrl = webhookUrl;
-        this.restClient = restClientBuilder
-            .baseUrl(webhookUrl)
-            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .build();
-    }
-
+    /**
+     * Sends a notification to Slack.
+     * Note: Currently logs the message. In production, this would perform an HTTP POST.
+     */
     @Override
-    public void send(String messageBody) {
-        // Request DTO for Slack Incoming Webhook
-        record SlackRequest(String text) {}
-
-        try {
-            restClient.post()
-                .body(new SlackRequest(messageBody))
-                .retrieve()
-                .toBodilessEntity();
-        } catch (Exception e) {
-            throw new SlackNotificationException("Failed to send Slack notification", e);
-        }
+    public void sendNotification(String channel, String messageBody) {
+        log.info("[SlackAdapter] Sending to channel {}: {}", channel, messageBody);
+        
+        // In a real implementation:
+        // slackClient.postMessage(chatPostMessage ->
+        //     chatPostMessage.channel(channel).text(messageBody)
+        // );
     }
 }

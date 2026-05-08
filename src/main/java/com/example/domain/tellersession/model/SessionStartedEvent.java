@@ -3,7 +3,11 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
+/**
+ * Event emitted when a teller session is successfully started.
+ */
 public record SessionStartedEvent(
     String aggregateId,
     String tellerId,
@@ -16,12 +20,12 @@ public record SessionStartedEvent(
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 }

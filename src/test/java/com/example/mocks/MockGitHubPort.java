@@ -3,28 +3,19 @@ package com.example.mocks;
 import com.example.ports.GitHubPort;
 import java.util.Optional;
 
-/**
- * Mock implementation of GitHubPort for testing.
- */
 public class MockGitHubPort implements GitHubPort {
-
-    private String simulatedUrl = "https://github.com/example/repo/issues/1";
-    private boolean shouldFail = false;
+    private boolean shouldReturnUrl = true;
+    private String simulatedUrl;
 
     @Override
-    public Optional<String> createIssue(String title, String body) {
-        if (shouldFail) {
-            return Optional.empty();
+    public Optional<String> createIssue(String title, String description, String component) {
+        if (shouldReturnUrl) {
+            return Optional.of(simulatedUrl != null ? simulatedUrl : "https://github.com/test/issues/1");
         }
-        // Simulate that GitHub returns a valid URL
-        return Optional.of(simulatedUrl);
+        return Optional.empty();
     }
 
     public void setSimulatedUrl(String url) {
         this.simulatedUrl = url;
-    }
-
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
     }
 }

@@ -1,35 +1,21 @@
 package com.example.workers;
 
-import com.example.domain.validation.model.ReportDefectCmd;
-import com.example.domain.validation.service.ValidationService;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackPort;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
-import org.springframework.stereotype.Component;
 
 /**
- * Temporal Activity interface definition for Defect Reporting.
+ * Temporal Activity Interface for Defect Reporting.
+ * Wraps external port calls to ensure they are executed within the activity context.
  */
 @ActivityInterface
 public interface ReportDefectActivity {
 
     @ActivityMethod
-    void reportDefect(ReportDefectCmd cmd);
+    String reportDefect(String summary, String description, String slackChannel);
 
-    /**
-     * Implementation wrapper that connects the Temporal Activity interface to the Domain Service.
-     * Registered as a Bean to be picked up by the Temporal Worker.
-     */
-    @Component
-    class ReportDefectActivityImpl implements ReportDefectActivity {
-        private final ValidationService validationService;
-
-        public ReportDefectActivityImpl(ValidationService validationService) {
-            this.validationService = validationService;
-        }
-
-        @Override
-        public void reportDefect(ReportDefectCmd cmd) {
-            validationService.reportDefect(cmd);
-        }
-    }
+    // Expose ports for the implementation (injected via Workflow)
+    // In a real setup, these might be passed directly to the activity method
+    // or the Activity implementation class would hold references to the Port beans.
 }

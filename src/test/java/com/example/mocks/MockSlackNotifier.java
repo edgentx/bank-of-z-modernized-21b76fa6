@@ -1,27 +1,22 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotifier;
+import java.util.ArrayList;
+import java.util.List;
 
-import java.util.Map;
-
+/**
+ * Mock implementation of SlackNotifier for testing.
+ */
 public class MockSlackNotifier implements SlackNotifier {
-    public String lastWebhookUrl;
-    public String lastText;
-    public Map<String, Object> lastAttachments;
-    public boolean notificationSent = false;
+
+    public final List<String> messages = new ArrayList<>();
 
     @Override
-    public void sendNotification(String webhookUrl, String text, Map<String, Object> attachments) {
-        this.lastWebhookUrl = webhookUrl;
-        this.lastText = text;
-        this.lastAttachments = attachments;
-        this.notificationSent = true;
+    public void sendNotification(String message) {
+        messages.add(message);
     }
 
-    public void reset() {
-        this.lastWebhookUrl = null;
-        this.lastText = null;
-        this.lastAttachments = null;
-        this.notificationSent = false;
+    public String getLastMessage() {
+        return messages.get(messages.size() - 1);
     }
 }

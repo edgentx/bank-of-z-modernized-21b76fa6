@@ -1,17 +1,23 @@
 package com.example.ports;
 
 /**
- * Port for sending Slack notifications.
- * Used in VForce360 integration workflows.
+ * Port for sending notifications to Slack.
+ * Used by the temporal workflow to report defects.
  */
 public interface SlackNotificationPort {
 
     /**
      * Sends a message to a configured Slack channel.
      *
-     * @param channel The Slack channel ID or name (e.g., "#vforce360-issues").
-     * @param messageBody The content of the message.
-     * @return The timestamp of the posted message, or null if sending failed.
+     * @param messageBody The formatted content of the message.
      */
-    String sendMessage(String channel, String messageBody);
+    void sendMessage(String messageBody);
+
+    /**
+     * Retrieves the last message body sent to Slack.
+     * This is primarily used for verification in testing environments.
+     *
+     * @return The last sent message body, or null if no message has been sent.
+     */
+    String getLastMessageBody();
 }

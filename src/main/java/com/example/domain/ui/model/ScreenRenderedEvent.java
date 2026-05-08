@@ -3,16 +3,14 @@ package com.example.domain.ui.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.Objects;
 
-/**
- * Event emitted when a screen layout is successfully generated.
- */
 public record ScreenRenderedEvent(
-        String aggregateId,
-        DeviceType deviceType,
-        Instant occurredAt
+    String aggregateId,
+    String deviceType,
+    String layout,
+    Instant occurredAt
 ) implements DomainEvent {
-
     @Override
     public String type() {
         return "screen.rendered";

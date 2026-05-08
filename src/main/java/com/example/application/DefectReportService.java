@@ -1,58 +1,50 @@
 package com.example.application;
 
-import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.config.SlackConfig;
+import com.example.domain.shared.ReportDefectCmd;
 import com.example.ports.SlackNotificationPort;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
+import java.util.logging.Logger;
 
 /**
- * Application Service handling the defect reporting workflow.
- * Orchestrates the domain logic and external notifications.
+ * Application Service handling the logic for defect reporting.
+ * This acts as the bridge between the temporal workflow (or API layer)
+ * and the infrastructure adapters (Slack).
  */
 @Service
 public class DefectReportService {
 
-    private final SlackNotificationPort slackNotificationPort;
+    private static final Logger LOG = Logger.getLogger(DefectReportService.class.getName());
 
-    // Constructor injection of the Port (Adapter Pattern)
-    public DefectReportService(SlackNotificationPort slackNotificationPort) {
+    private final SlackNotificationPort slackNotificationPort;
+    private final SlackConfig config;
+
+    public DefectReportService(SlackNotificationPort slackNotificationPort, SlackConfig config) {
         this.slackNotificationPort = slackNotificationPort;
+        this.config = config;
     }
 
     /**
-     * Handles the reporting of a defect.
-     * Generates the domain event, persists it (in memory for this phase), and notifies Slack.
+     * Handles the ReportDefectCmd.
+     * Validates the input, formats the message using the configured template,
+     * and dispatches it via the port.
      *
      * @param cmd The command containing defect details.
-     * @return The ID of the generated defect.
      */
-    public String reportDefect(ReportDefectCmd cmd) {
-        String defectId = UUID.randomUUID().toString();
-        DefectAggregate aggregate = new DefectAggregate(defectId);
+    public void reportDefect(ReportDefectCmd cmd) {
+        if (cmd == null || cmd.githubUrl() == null || cmd.githubUrl().isBlank()) {
+            throw new IllegalArgumentException("GitHub URL is required to report a defect.");
+        }
 
-        // Execute domain logic
-        var events = aggregate.execute(cmd);
-
-        // In a real app, we would persist events here via EventStorePort.
-        // For S-FB-1, we react to the event immediately.
-        events.forEach(event -> {
-            if (event instanceof com.example.domain.defect.model.DefectReportedEvent reportedEvent) {
-                notifySlack(reportedEvent);
-            }
-        });
-
-        return defectId;
+        String messageBody = formatMessage(cmd.title(), cmd.githubUrl());
+        slackNotificationPort.send(messageBody);
     }
 
-    private void notifySlack(com.example.domain.defect.model.DefectReportedEvent event) {
-        // Expected format: "GitHub issue: <url>"
-        String messageBody = "Defect Reported for Project: " + event.projectId() + "\n" +
-                            "Severity: " + event.severity() + "\n" +
-                            "GitHub issue: " + event.githubIssueUrl();
-
-        // Channel determined by requirements/story context
-        slackNotificationPort.sendMessage("#vforce360-issues", messageBody);
+    private String formatMessage(String title, String url) {
+        // Use the configured template from SlackConfig
+        return config.getMessageTemplate()
+                .replace("{title}", title != null ? title : "Unknown Defect")
+                .replace("{url}", url);
     }
 }

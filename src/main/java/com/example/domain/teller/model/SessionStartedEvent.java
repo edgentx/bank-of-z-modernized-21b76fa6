@@ -6,7 +6,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Domain event emitted when a teller session is successfully started.
+ * Event emitted when a teller session is successfully started.
  */
 public record SessionStartedEvent(
     String aggregateId,
@@ -14,20 +14,19 @@ public record SessionStartedEvent(
     String terminalId,
     Instant occurredAt
 ) implements DomainEvent {
-
     public SessionStartedEvent {
+        // Ensure aggregateId is present
         if (aggregateId == null || aggregateId.isBlank()) {
             throw new IllegalArgumentException("aggregateId cannot be null");
         }
     }
 
-    @Override
-    public String type() {
-        return "session.started";
+    public SessionStartedEvent(String sessionId, String tellerId, String terminalId) {
+        this(sessionId, tellerId, terminalId, Instant.now());
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String type() {
+        return "teller.session.started";
     }
 }

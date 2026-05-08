@@ -2,15 +2,8 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.UUID;
-
 /**
- * Command to end an active TellerSession.
+ * Command to end an existing teller session.
+ * Records the intent to terminate the session.
  */
-public record EndSessionCmd(String sessionId) implements Command {
-    public EndSessionCmd {
-        if (sessionId == null || sessionId.isBlank()) {
-            throw new IllegalArgumentException("sessionId cannot be null or blank");
-        }
-    }
-}
+public record EndSessionCmd(String sessionId, String tellerId) implements Command {}

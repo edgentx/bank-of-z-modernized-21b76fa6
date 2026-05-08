@@ -9,15 +9,28 @@ public record SessionStartedEvent(
     String aggregateId,
     String tellerId,
     String terminalId,
-    Instant startedAt
+    Instant occurredAt
 ) implements DomainEvent {
+    public SessionStartedEvent {
+        // Ensure defaults if needed, though constructor handles it.
+    }
+
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId) {
+        this(aggregateId, tellerId, terminalId, Instant.now());
+    }
+
     @Override
     public String type() {
         return "session.started";
     }
 
     @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
     public Instant occurredAt() {
-        return startedAt;
+        return occurredAt;
     }
 }

@@ -2,10 +2,12 @@ package com.example.ports;
 
 import com.example.domain.validation.model.ValidationAggregate;
 
+import java.util.Optional;
+
 /**
- * Repository Port for Validation Aggregate.
+ * Port interface for Validation Repository.
  */
 public interface ValidationRepositoryPort {
-    ValidationAggregate load(String id);
-    void save(ValidationAggregate aggregate);
+    ValidationAggregate save(ValidationAggregate aggregate);
+    Optional<ValidationAggregate> findById(String id);
 }

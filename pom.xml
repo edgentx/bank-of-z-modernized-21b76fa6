@@ -13,8 +13,7 @@
     <temporal.version>1.22.0</temporal.version>
   </properties>
   <dependencies>
-    <!-- Temporal SDK (Spring Boot Starter is often a custom dependency, using standard SDK here) -->
-    <!-- Rule 9a: io.temporal is NOT in the standard Spring Boot BOM list. We MUST define version. -->
+    <!-- Temporal SDK -->
     <dependency>
       <groupId>io.temporal</groupId>
       <artifactId>temporal-sdk</artifactId>

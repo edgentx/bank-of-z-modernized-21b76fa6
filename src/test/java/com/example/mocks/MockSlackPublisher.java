@@ -1,43 +1,38 @@
 package com.example.mocks;
 
-import com.example.domain.validation.ports.SlackPublisher;
-
-import java.util.HashMap;
-import java.util.Map;
+import com.example.ports.SlackPublisher;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Mock implementation of SlackPublisher for testing.
- * Captures published messages to verify content without calling the real API.
+ * Captures published messages to verify content without external I/O.
  */
 public class MockSlackPublisher implements SlackPublisher {
 
-    private String lastChannel;
-    private Map<String, String> lastMessage = new HashMap<>();
+    public static class PublishedMessage {
+        public final String channel;
+        public final String body;
+
+        public PublishedMessage(String channel, String body) {
+            this.channel = channel;
+            this.body = body;
+        }
+    }
+
+    private final List<PublishedMessage> messages = new ArrayList<>();
 
     @Override
-    public void publishMessage(String channel, Map<String, String> message) {
-        this.lastChannel = channel;
-        this.lastMessage = message;
+    public void publish(String channel, String body) {
+        // Capture the call for assertions
+        this.messages.add(new PublishedMessage(channel, body));
     }
 
-    public String getLastChannel() {
-        return lastChannel;
-    }
-
-    public Map<String, String> getLastMessage() {
-        return lastMessage;
-    }
-
-    public String getLastMessageBody() {
-        return lastMessage.get("text");
-    }
-
-    public boolean lastMessageContains(String substring) {
-        return lastMessage.get("text") != null && lastMessage.get("text").contains(substring);
+    public List<PublishedMessage> getMessages() {
+        return messages;
     }
 
     public void reset() {
-        this.lastChannel = null;
-        this.lastMessage.clear();
+        messages.clear();
     }
 }

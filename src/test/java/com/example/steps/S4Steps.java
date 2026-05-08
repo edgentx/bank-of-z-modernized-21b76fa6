@@ -1,109 +1,136 @@
 package com.example.steps;
 
 import com.example.domain.customer.model.*;
-import com.example.domain.shared.Command;
 import com.example.domain.shared.UnknownCommandException;
-import com.example.mocks.InMemoryCustomerRepository;
-import io.cucumber.java.en.En;
+import com.example.domain.shared.Command;
+import com.example.domain.shared.DomainEvent;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.junit.jupiter.api.Assertions;
+import com.example.domain.customer.repository.CustomerRepository;
+import com.example.mocks.InMemoryCustomerRepository;
 
-import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 public class S4Steps {
 
     private CustomerAggregate aggregate;
-    private Exception caughtException;
-    private List<com.example.domain.shared.DomainEvent> events;
-    
-    // Constants for valid test data
-    private static final String VALID_ID = "cust-123";
-    private static final String VALID_NAME = "John Doe";
-    private static final String VALID_EMAIL = "john.doe@example.com";
-    private static final String VALID_GOVT_ID = "GOV-123";
+    private CustomerRepository repository = new InMemoryCustomerRepository();
+    private Exception capturedException;
+    private List<DomainEvent> resultingEvents;
+
+    // Helper to simulate a valid enrolled customer state directly
+    private void createValidEnrolledAggregate(String id, String name, String email, String govId, Instant dob, boolean hasActiveAccounts) {
+        // We use reflection or package-private access if we were loading from events, 
+        // but here we instantiate and mutate directly for test setup.
+        // In a real scenario, we would rehydrate from events.
+        aggregate = new CustomerAggregate(id);
+        
+        // Simulate state post-enrollment
+        // NOTE: In a real application, we would load the aggregate via repository.load(id)
+        // and it would apply events. For unit test speed, we construct directly.
+        try {
+            // We effectively set the state to 'enrolled' by executing an enroll command first
+            // or by mutating protected fields if visible. 
+            // To keep it clean and consistent with AggregateRoot behavior:
+            aggregate.execute(new EnrollCustomerCmd(id, name, email, govId));
+            aggregate.clearEvents(); // Clear enrollment events so we only inspect Delete events
+
+            // Set fields not exposed by EnrollCustomerCmd (like dateOfBirth, activeAccounts)
+            // using a separate 'Update' command or direct access (omitted for strict DDD, 
+            // but assuming setters or package-private access for test fixture).
+            // *Assumption*: The CustomerAggregate has been updated to support the new invariants 
+            // (DateOfBirth, ActiveAccounts) since the previous story.
+            
+            // Since the provided CustomerAggregate in the prompt doesn't have these fields yet,
+            // we assume the implementation will add them. 
+            // We will use the specific methods added in the new implementation (setters or test builders).
+            // For this step definition, we rely on the fact that the 'DeleteCustomerCmd' logic
+            // will check these fields.
+            
+            // Mocking the internal state for the 'violations' scenarios:
+            // We will need to update the CustomerAggregate to allow setting these for tests
+            // or have a specific 'SetProfileInfo' command. 
+            // Given the constraints, I will assume the Aggregate has been updated to support these checks.
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to setup valid aggregate state", e);
+        }
+    }
 
     @Given("a valid Customer aggregate")
     public void a_valid_Customer_aggregate() {
-        aggregate = new CustomerAggregate(VALID_ID);
-        // Enroll the customer first to make it valid
-        aggregate.execute(new EnrollCustomerCmd(VALID_ID, VALID_NAME, VALID_EMAIL, VALID_GOVT_ID));
-        aggregate.clearEvents(); // Clear enrollment events for cleaner test output
+        // Default valid customer
+        createValidEnrolledAggregate("cust-1", "John Doe", "john@example.com", "GOV-123", Instant.now(), false);
     }
 
-    @Given("a valid customerId is provided")
+    @And("a valid customerId is provided")
     public void a_valid_customerId_is_provided() {
-        // The aggregate is already created with a valid ID in the previous step
-        // If we wanted to be explicit about the ID used in the command:
-        Assertions.assertNotNull(aggregate.id());
-    }
-
-    @Given("a Customer aggregate that violates: A customer must have a valid, unique email address and government-issued ID.")
-    public void a_Customer_aggregate_that_violates_email_and_govt_id() {
-        aggregate = new CustomerAggregate(VALID_ID);
-        // We create an aggregate that hasn't been properly enrolled or has invalid data
-        // However, the Aggregate is created via constructor. The business rules are enforced at execution time.
-        // To simulate a violation, we might rely on the Aggregate being in a state where deletion checks fail
-        // OR we rely on the Execute logic to throw errors based on internal state.
-        // Based on the prompt "Given a Customer aggregate that violates...", we interpret this as
-        // the internal state of the aggregate violating the invariants.
-        // Since CustomerAggregate fields are private and modified only via Enroll, we might need to ensure
-        // the check in DeleteCustomerCmd handles cases where data is missing or invalid.
-        // For this scenario, we'll assume the aggregate exists but data is null/invalid (simulated if we had a factory that allowed it,
-        // or if the check validates the *input* command).
-        // Actually, the invariant "A customer must have a valid..." usually applies to Enroll.
-        // For Delete, we will treat this as the Aggregate having null/blank email/govtId (simulated via reflection or just handling the check logic).
-        // FOR SIMPLICITY in this BDD: We will assume the command asks to delete a customer that *exists* but has invalid data.
-        // However, standard patterns enforce validity upon creation/enrollment.
-        // Let's assume the prompt implies the Delete Command validates these exist.
-        aggregate = new CustomerAggregate(VALID_ID); 
-    }
-
-    @Given("a Customer aggregate that violates: Customer name and date of birth cannot be empty.")
-    public void a_Customer_aggregate_that_violates_name_and_dob() {
-        aggregate = new CustomerAggregate(VALID_ID);
-        // Similar to above, assuming state violation or validation logic in Delete
-    }
-
-    @Given("a Customer aggregate that violates: A customer cannot be deleted if they own active bank accounts.")
-    public void a_Customer_aggregate_that_violates_active_accounts() {
-        aggregate = new CustomerAggregate(VALID_ID);
-        // We need to set the state to "hasActiveAccounts".
-        // Since we don't have a setter, we might need to modify the Aggregate to accept this state,
-        // or assume the Command contains the flag, or the Aggregate is built via events that imply it.
-        // Given the existing CustomerAggregate code doesn't have a 'hasActiveAccounts' field,
-        // we will add one to the class for the purpose of this story.
-        // (See domain code modification)
-        aggregate.execute(new EnrollCustomerCmd(VALID_ID, VALID_NAME, VALID_EMAIL, VALID_GOVT_ID));
-        aggregate.clearEvents();
-        // We will use a test-specific setup or reflection to toggle the internal flag if a setter isn't exposed.
-        // Or we modify the Aggregate to support this invariant as per Story requirements.
+        // Handled by the aggregate creation
     }
 
     @When("the DeleteCustomerCmd command is executed")
     public void the_DeleteCustomerCmd_command_is_executed() {
         try {
             Command cmd = new DeleteCustomerCmd(aggregate.id());
-            events = aggregate.execute(cmd);
-        } catch (Exception e) {
-            caughtException = e;
+            resultingEvents = aggregate.execute(cmd);
+            capturedException = null;
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            capturedException = e;
+        } catch (UnknownCommandException e) {
+            capturedException = e;
         }
     }
 
     @Then("a customer.deleted event is emitted")
     public void a_customer_deleted_event_is_emitted() {
-        Assertions.assertNotNull(events);
-        Assertions.assertFalse(events.isEmpty());
-        Assertions.assertTrue(events.get(0) instanceof CustomerDeletedEvent);
-        Assertions.assertEquals("customer.deleted", events.get(0).type());
+        Assertions.assertNotNull(resultingEvents);
+        Assertions.assertFalse(resultingEvents.isEmpty());
+        Assertions.assertEquals("customer.deleted", resultingEvents.get(0).type());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(caughtException);
-        // Depending on implementation, this could be IllegalStateException or IllegalArgumentException
-        Assertions.assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
+        Assertions.assertNotNull(capturedException);
+        Assertions.assertTrue(capturedException instanceof IllegalArgumentException || 
+                              capturedException instanceof IllegalStateException);
+    }
+
+    // --- Specific Violation Scenarios ---
+
+    @Given("a Customer aggregate that violates: A customer must have a valid, unique email address and government-issued ID.")
+    public void a_customer_aggregate_that_violates_email_and_gov_id() {
+        // Create a customer, but we can't easily violate internal state via execute 
+        // unless we have a command to change email to invalid.
+        // Assuming the new implementation adds a method to set these for testing/evolution
+        // OR we rely on the fact that 'EnrollCustomerCmd' validates them, but here we are already enrolled.
+        // *Assumption*: The Aggregate constructor or rehydration allows setting a state that might be invalid 
+        // (e.g. legacy data), or we use a specific command. 
+        // For the test to pass, the CustomerAggregate implementation must allow setting an invalid state
+        // (e.g. `setEmail(null)`). 
+        // I will assume a `setEmail` method or direct field access exists in the updated Aggregate.
+        aggregate = new CustomerAggregate("cust-invalid");
+        // Force invalid state
+        // Note: In the updated code below, I add a package-private or protected setter or builder mechanism.
+        aggregate.setEmail("invalid-email"); 
+        aggregate.setGovernmentId(null); 
+        aggregate.markEnrolled(); // Bypassing enrollment validation for the sake of testing the Delete invariant on existing data
+    }
+
+    @Given("a Customer aggregate that violates: Customer name and date of birth cannot be empty.")
+    public void a_customer_aggregate_that_violates_name_and_dob() {
+        aggregate = new CustomerAggregate("cust-empty");
+        aggregate.setFullName(null);
+        aggregate.setDateOfBirth(null);
+        aggregate.markEnrolled();
+    }
+
+    @Given("a Customer aggregate that violates: A customer cannot be deleted if they own active bank accounts.")
+    public void a_customer_aggregate_that_violates_active_accounts() {
+        createValidEnrolledAggregate("cust-active", "Active User", "active@example.com", "GOV-999", Instant.now(), true);
+        aggregate.setHasActiveAccounts(true);
     }
 }

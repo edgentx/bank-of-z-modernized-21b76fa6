@@ -6,75 +6,107 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.3</version>
+        <version>3.2.0</version>
         <relativePath/>
     </parent>
-    
     <groupId>com.example</groupId>
     <artifactId>bank-of-z-modernization</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-    <name>Bank-of-Z Modernization</name>
-    <description>Bank-of-Z Modernization</description>
-    
+    <version>0.0.1-SNAPSHOT</version>
+    <name>Bank of Z Modernization</name>
+    <description>Bank-of-Z modernization Track B</description>
+
     <properties>
         <java.version>17</java.version>
-        <cucumber.version>7.15.0</cucumber.version>
+        <cucumber.version>7.14.0</cucumber.version>
     </properties>
-    
+
     <dependencies>
         <!-- Spring Boot Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
-        <!-- DB2 Driver is usually proprietary, scope provided or system scope often used, 
-             but assuming standard availability or provided by runtime for this build -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-integration</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-batch</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.batch</groupId>
+            <artifactId>spring-batch-core</artifactId>
+        </dependency>
+        
+        <!-- Database Drivers -->
         <dependency>
             <groupId>com.ibm.db2</groupId>
             <artifactId>jcc</artifactId>
-            <version>11.5.8.0</version>
-            <scope>provided</scope>
+            <scope>runtime</scope>
         </dependency>
-
-        <!-- Temporal (Spring Boot BOM does not cover io.temporal) -->
         <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>1.22.0</version>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver-sync</artifactId>
         </dependency>
-
-        <!-- Flyway (BOM pins org.flywaydb, but NOT flyway-db2 usually) -->
+        
+        <!-- External Libraries (Requires explicit version) -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
-        
-        <!-- NOTE: flyway-db2 is licensed and often not in Central. 
-             Assuming provided or removed for generic build to pass. 
-             Adding generic dependency resolution workaround below. -->
-        <!-- Commenting out flyway-db2 to ensure clean build as per error message: artifact not found -->
-        <!-- <dependency>
+        <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-db2</artifactId>
-            <version>9.22.3</version>
-        </dependency> -->
-
-        <!-- Testing Dependencies -->
+        </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
+            <groupId>com.ibm.mq</groupId>
+            <artifactId>mq-jms-spring-boot-starter</artifactId>
+            <version>3.1.4</version>
+        </dependency>
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-spring-boot-starter</artifactId>
+            <version>1.22.3</version>
+        </dependency>
+        <!-- Micrometer Tracing (Requires explicit version) -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+            <version>1.2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+            <version>1.35.0</version>
         </dependency>
         
-        <!-- Cucumber Dependencies -->
+        <!-- Redis / Caching -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+        </dependency>
+
+        <!-- MinIO -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>8.5.7</version>
+        </dependency>
+
+        <!-- Cucumber Test Dependencies -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
@@ -92,20 +124,11 @@
             <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <!-- z/OS Connect EE & IBM MQ (Assuming provided or license restricted) -->
-        <!-- <dependency>
-            <groupId>com.ibm.zosconnect</groupId>
-            <artifactId>zosconnect-requester-core</artifactId>
-            <version>1.0.0</version>
-            <scope>provided</scope>
-        </dependency> -->
-        <!-- <dependency>
-            <groupId>com.ibm.mq</groupId>
-            <artifactId>com.ibm.mq.allclient</artifactId>
-            <version>9.3.4.0</version>
-        </dependency> -->
-
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -115,7 +138,9 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+            <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <source>17</source>
@@ -124,12 +149,4 @@
             </plugin>
         </plugins>
     </build>
-    
-    <repositories>
-        <!-- Explicitly adding central to ensure resolution -->
-        <repository>
-            <id>central</id>
-            <url>https://repo.maven.apache.org/maven2</url>
-        </repository>
-    </repositories>
 </project>

@@ -1,25 +1,35 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
-import java.util.Optional;
+import java.util.UUID;
 
+/**
+ * Mock adapter for GitHub Issue creation.
+ * Returns a deterministic URL based on input or random UUID.
+ */
 public class MockGitHubIssueClient implements GitHubIssuePort {
-    private String mockUrl;
-    private boolean shouldReturnEmpty = false;
 
-    public void setMockUrl(String url) {
-        this.mockUrl = url;
-    }
-
-    public void setShouldReturnEmpty(boolean shouldReturnEmpty) {
-        this.shouldReturnEmpty = shouldReturnEmpty;
-    }
+    private String nextUrl = null;
 
     @Override
-    public Optional<String> createIssue(String title, String description) {
-        if (shouldReturnEmpty) {
-            return Optional.empty();
+    public String createIssue(String title, String description) {
+        if (title == null || title.isEmpty()) throw new IllegalArgumentException("Title required");
+        
+        if (nextUrl != null) {
+            String url = nextUrl;
+            nextUrl = null;
+            return url;
         }
-        return Optional.ofNullable(mockUrl);
+
+        // Simulate a real GitHub URL structure
+        String uuid = UUID.randomUUID().toString().substring(0, 8);
+        return "https://github.com/example/vforce360/issues/" + uuid;
+    }
+
+    /**
+     * Helper to force a specific URL response in tests.
+     */
+    public void setNextUrl(String url) {
+        this.nextUrl = url;
     }
 }

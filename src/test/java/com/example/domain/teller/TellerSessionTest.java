@@ -1,94 +1,107 @@
 package com.example.domain.teller;
 
-import static org.junit.jupiter.api.Assertions.*;
-import java.time.Instant;
-import java.util.List;
-
-import com.example.domain.shared.DomainEvent;
-import com.example.domain.teller.model.*;
-
+import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.teller.model.SessionStartedEvent;
+import com.example.domain.teller.model.StartSessionCmd;
+import com.example.domain.teller.model.TellerSessionAggregate;
 import org.junit.jupiter.api.Test;
 
-public class TellerSessionTest {
+import java.time.Instant;
 
-  // S-18 AC: Successfully execute StartSessionCmd
-  @Test
-  public void test_execute_StartSessionCmd_emits_SessionStartedEvent() {
-    // Arrange
-    String sessionId = "session-1";
-    String tellerId = "teller-101";
-    String terminalId = "term-A";
-    TellerSession aggregate = new TellerSession(sessionId);
-    StartSessionCmd cmd = new StartSessionCmd(sessionId, tellerId, terminalId);
+import static org.junit.jupiter.api.Assertions.*;
 
-    // Act
-    List<DomainEvent> events = aggregate.execute(cmd);
+/**
+ * TDD Test Suite for S-18: TellerSession StartSessionCmd.
+ * These tests MUST FAIL initially (Red Phase) until the aggregate implementation is added.
+ */
+class TellerSessionTest {
 
-    // Assert
-    assertEquals(1, events.size(), "Should emit exactly one event");
-    DomainEvent event = events.get(0);
-    assertTrue(event instanceof SessionStartedEvent, "Event should be SessionStartedEvent");
-    SessionStartedEvent started = (SessionStartedEvent) event;
-    assertEquals(sessionId, started.aggregateId());
-    assertEquals(tellerId, started.tellerId());
-    assertEquals(terminalId, started.terminalId());
-    assertNotNull(started.occurredAt());
-  }
+    // Scenario: Successfully execute StartSessionCmd
+    @Test
+    void shouldEmitSessionStartedEvent_whenValidCommandProvided() {
+        // Given
+        String sessionId = "TS-123";
+        String tellerId = "USER-001";
+        String terminalId = "T-TERM-01";
+        TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
+        StartSessionCmd cmd = new StartSessionCmd(tellerId, terminalId, Instant.now().plusSeconds(3600));
 
-  // S-18 AC: Rejected — A teller must be authenticated to initiate a session.
-  @Test
-  public void test_execute_StartSessionCmd_rejects_unauthenticated_teller() {
-    // Arrange
-    String sessionId = "session-2";
-    String tellerId = null; // Violation: Teller not authenticated/valid
-    String terminalId = "term-B";
-    TellerSession aggregate = new TellerSession(sessionId);
-    StartSessionCmd cmd = new StartSessionCmd(sessionId, tellerId, terminalId);
+        // When
+        var events = aggregate.execute(cmd);
 
-    // Act & Assert
-    Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-      aggregate.execute(cmd);
-    });
-    assertTrue(exception.getMessage().contains("tellerId"));
-  }
+        // Then
+        assertFalse(events.isEmpty(), "Should emit an event");
+        assertTrue(events.get(0) instanceof SessionStartedEvent, "Should be SessionStartedEvent");
+        
+        SessionStartedEvent event = (SessionStartedEvent) events.get(0);
+        assertEquals(sessionId, event.aggregateId());
+        assertEquals(tellerId, event.tellerId());
+        assertEquals(terminalId, event.terminalId());
+        assertNotNull(event.occurredAt());
+    }
 
-  // S-18 AC: Rejected — Sessions must timeout after a configured period of inactivity.
-  @Test
-  public void test_execute_StartSessionCmd_rejects_timeout_configuration_violation() {
-    // Arrange
-    // Simulation of a command attempting to start a session that is already in an invalid state
-    // or context that violates timeout rules immediately (e.g. improper parameters)
-    String sessionId = "session-3";
-    String tellerId = "teller-102";
-    String terminalId = ""; // Violation: Empty terminalId implies invalid context/timeout config
-    TellerSession aggregate = new TellerSession(sessionId);
-    StartSessionCmd cmd = new StartSessionCmd(sessionId, tellerId, terminalId);
+    // Scenario: StartSessionCmd rejected — A teller must be authenticated
+    // The description implies the Command should carry auth state, or we simulate the aggregate checking a precondition.
+    // Assuming the Command carries the flag based on 'violates: A teller must be authenticated'.
+    @Test
+    void shouldThrowError_whenTellerNotAuthenticated() {
+        // Given
+        String sessionId = "TS-404";
+        // isAuthenticated = false
+        StartSessionCmd cmd = new StartSessionCmd("U-1", "T-1", Instant.now(), false);
+        TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
 
-    // Act & Assert
-    Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-      aggregate.execute(cmd);
-    });
-    assertTrue(exception.getMessage().contains("terminalId"));
-  }
+        // When / Then
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+            aggregate.execute(cmd);
+        });
+        assertTrue(ex.getMessage().contains("authenticated"), "Error message should mention authentication");
+    }
 
-  // S-18 AC: Rejected — Navigation state must accurately reflect the current operational context.
-  @Test
-  public void test_execute_StartSessionCmd_rejects_invalid_navigation_context() {
-    // Arrange
-    String sessionId = "session-4";
-    // Start a session first
-    TellerSession aggregate = new TellerSession(sessionId);
-    StartSessionCmd cmd1 = new StartSessionCmd(sessionId, "teller-103", "term-C");
-    aggregate.execute(cmd1);
+    // Scenario: StartSessionCmd rejected — Sessions must timeout after a configured period
+    // Violation: The requested timeout period exceeds the system configuration.
+    @Test
+    void shouldThrowError_whenTimeoutConfigInvalid() {
+        // Given
+        String sessionId = "TS-500";
+        // Requesting 10 hours, assuming max is 1 hour (3600s)
+        StartSessionCmd cmd = new StartSessionCmd("U-1", "T-1", Instant.now().plusSeconds(36000), true);
+        TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
 
-    // Try to start again (Violation: Navigation state mismatch)
-    StartSessionCmd cmd2 = new StartSessionCmd(sessionId, "teller-103", "term-C");
+        // When / Then
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            aggregate.execute(cmd);
+        });
+        assertTrue(ex.getMessage().contains("timeout") || ex.getMessage().contains("inactive"), 
+            "Error message should mention timeout policy");
+    }
 
-    // Act & Assert
-    // Aggregate should reject duplicate start or context mismatch
-    Exception exception = assertThrows(IllegalStateException.class, () -> {
-      aggregate.execute(cmd2);
-    });
-    assertTrue(exception.getMessage().contains("already started"));
-  }
+    // Scenario: StartSessionCmd rejected — Navigation state must be accurate
+    // Violation: Navigation state provided is invalid or null.
+    @Test
+    void shouldThrowError_whenNavigationStateInvalid() {
+        // Given
+        String sessionId = "TS-NAV";
+        // isValidNavigationState = false
+        StartSessionCmd cmd = new StartSessionCmd("U-1", "T-1", Instant.now().plusSeconds(3600), true, false);
+        TellerSessionAggregate aggregate = new TellerSessionAggregate(sessionId);
+
+        // When / Then
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+            aggregate.execute(cmd);
+        });
+        assertTrue(ex.getMessage().contains("Navigation") || ex.getMessage().contains("context"), 
+            "Error message should mention Navigation state");
+    }
+
+    @Test
+    void shouldRejectUnknownCommands() {
+        // Given
+        TellerSessionAggregate aggregate = new TellerSessionAggregate("TS-UNK");
+        
+        // When / Then
+        assertThrows(UnknownCommandException.class, () -> {
+            aggregate.execute(new Object() {}); // Fake command
+        });
+    }
 }

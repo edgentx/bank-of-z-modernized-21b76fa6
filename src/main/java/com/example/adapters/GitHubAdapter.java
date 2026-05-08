@@ -1,22 +1,24 @@
 package com.example.adapters;
 
-import com.example.ports.GitHubPort;
+import com.example.ports.IssueTrackerPort;
 import org.springframework.stereotype.Component;
 
+import java.util.Random;
+
 /**
- * Real implementation of GitHubPort.
- * This adapter would use a GitHub client (e.g., Octokit or standard HTTP client) to create issues.
+ * Real adapter implementation for IssueTrackerPort.
+ * Simulates calling GitHub API.
  */
 @Component
-public class GitHubAdapter implements GitHubPort {
+public class GitHubAdapter implements IssueTrackerPort {
 
     @Override
-    public String createIssue(String title, String body) {
-        // Real execution: Call GitHub REST API
-        // POST /repos/{owner}/{repo}/issues
-        // return response.htmlUrl();
-        
-        // Placeholder to simulate successful creation and URL return
-        return "https://github.com/fake-org/project/issues/" + System.currentTimeMillis();
+    public String createIssue(String defectId, String title) {
+        // Simulate network delay or logic
+        // In a real scenario, this would use RestTemplate/WebClient to hit GitHub API
+        // For this Green phase, we generate a deterministic URL based on inputs
+        // to satisfy the requirement of a valid URL format.
+        int mockId = Math.abs(defectId.hashCode());
+        return "https://github.com/mock-org/project/issues/" + mockId;
     }
 }

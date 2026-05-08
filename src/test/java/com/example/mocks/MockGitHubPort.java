@@ -1,30 +1,27 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
+import org.springframework.stereotype.Component;
 
-import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Mock implementation of GitHubPort for testing.
+ * Mock implementation for GitHub API.
+ * Returns predictable data without making network calls.
  */
+@Component
 public class MockGitHubPort implements GitHubPort {
-    private String configuredUrl;
-    private boolean shouldReturnEmpty = false;
+
+    private final Map<String, String> issueStore = new HashMap<>();
+
+    public MockGitHubPort() {
+        // Initialize with some dummy data consistent with the story
+        issueStore.put("VW-454", "https://github.com/bank-of-z/issues/454");
+    }
 
     @Override
-    public Optional<String> getIssueUrl(String issueId) {
-        if (shouldReturnEmpty) {
-            return Optional.empty();
-        }
-        // If no specific URL is configured, return a deterministic mock URL based on ID
-        return Optional.ofNullable(configuredUrl != null ? configuredUrl : "https://github.com/mock/issues/" + issueId);
-    }
-
-    public void setMockUrl(String url) {
-        this.configuredUrl = url;
-    }
-
-    public void setReturnEmpty(boolean isEmpty) {
-        this.shouldReturnEmpty = isEmpty;
+    public String getIssueUrl(String issueId) {
+        return issueStore.getOrDefault(issueId, "https://github.com/bank-of-z/issues/unknown");
     }
 }

@@ -1,5 +1,5 @@
-<!-- Root Project POM (Additions) -->
-<project>
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.example</groupId>
     <artifactId>bank-of-z</artifactId>
@@ -14,7 +14,11 @@
         <java.version>17</java.version>
     </properties>
     <dependencies>
-        <!-- Existing Dependencies assumed to be here -->
+        <!-- Spring Boot Starter Web (for general application context support if needed) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
 
         <!-- JUnit 5 for Testing -->
         <dependency>
@@ -40,15 +44,15 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Spring Test (for @SpringBootTest if needed later, or easier context loading) -->
+        <!-- Spring Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
 
-        <!-- Temporal SDK (Required for workflow testing) -->
-        <!-- Spring Boot BOM does NOT cover io.temporal, so version is explicit -->
+        <!-- Temporal SDK -->
+        <!-- Spring Boot BOM does NOT cover io.temporal -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-sdk</artifactId>
@@ -60,6 +64,14 @@
             <version>1.22.0</version>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>

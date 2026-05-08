@@ -2,14 +2,13 @@ package com.example.domain.legacy.model;
 
 import com.example.domain.shared.Command;
 
+import java.util.Objects;
+
 /**
- * Command to evaluate the routing rules for a transaction.
- * Used to determine if a transaction should be processed by the Legacy or Modern backend.
+ * Command to evaluate the routing for a transaction.
  */
-public record EvaluateRoutingCmd(
-    String transactionId,
-    String transactionType,
-    String payload,
-    String targetSystem, // e.g., "LEGACY", "MODERN"
-    int ruleVersion
-) implements Command {}
+public record EvaluateRoutingCmd(String routeId, String transactionType, String payload, Integer ruleVersion, boolean isDualProcessingCandidate) implements Command {
+    public EvaluateRoutingCmd {
+        Objects.requireNonNull(routeId, "routeId cannot be null");
+    }
+}

@@ -6,15 +6,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record ScreenRenderedEvent(
-        String eventId,
         String aggregateId,
-        String screenId,
-        String renderedLayout,
         String deviceType,
         Instant occurredAt
 ) implements DomainEvent {
-    public ScreenRenderedEvent(String aggregateId, String screenId, String layout, String deviceType, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), aggregateId, screenId, layout, deviceType, occurredAt);
+
+    public ScreenRenderedEvent {
+        // Ensure immutability/validity if needed, though record handles most
     }
 
     @Override

@@ -1,8 +1,12 @@
 package com.example.ports;
 
 /**
- * Port for sending notifications to Slack.
+ * Port for Slack notifications.
  */
 public interface SlackPort {
-    void sendDefectNotification(String summary, String githubIssueUrl);
+    /**
+     * Sends a notification to Slack.
+     * @param messageBody The formatted JSON payload.
+     */
+    void sendNotification(String messageBody);
 }

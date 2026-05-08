@@ -1,14 +1,12 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasspathResource;
-import org.junit.platform.suite.api.Suite;
+import com.example.Application;
+import io.cucumber.spring.CucumberContextConfiguration;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
 
-/**
- * Test Suite to run Cucumber features.
- */
-@Suite
-@IncludeEngines("cucumber")
-@SelectClasspathResource("features")
-public class CucumberTestSuite {
-}
+// Ideally we avoid loading the full application context for unit domain tests,
+// but to enable @Autowired repositories in Steps easily:
+@CucumberContextConfiguration
+@SpringBootTest(classes = Application.class)
+public class CucumberTestSuite {}

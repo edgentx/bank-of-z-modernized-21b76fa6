@@ -5,8 +5,8 @@ import com.example.ports.GitHubIssuePort;
 import com.example.ports.SlackNotificationPort;
 
 /**
- * Temporal Workflow implementation (Stub for TDD Red Phase).
- * This implementation intentionally fails the AC to satisfy the "Red" phase requirement.
+ * Temporal Workflow implementation for defect reporting.
+ * Orchestrates the generation of GitHub links and Slack notifications.
  */
 public class ValidationWorkflowImpl implements ValidationWorkflow {
 
@@ -20,9 +20,18 @@ public class ValidationWorkflowImpl implements ValidationWorkflow {
 
     @Override
     public void reportDefect(ReportDefectCmd cmd) {
-        // Intentionally incorrect implementation to trigger test failure.
-        // This mimics the "Actual Behavior" where the link is missing.
-        String brokenMessage = "Defect Reported: " + cmd.title();
-        slack.sendMessage(brokenMessage);
+        // 1. Obtain the GitHub URL for the defect
+        String githubUrl = github.getIssueUrl(cmd.defectId());
+
+        // 2. Construct the Slack message body including the URL
+        // Format: "Defect Reported: [Title] - GitHub Issue: <url>"
+        String messageBody = String.format(
+            "Defect Reported: %s\nGitHub Issue: %s",
+            cmd.title(),
+            githubUrl
+        );
+
+        // 3. Send the notification
+        slack.sendMessage(messageBody);
     }
 }

@@ -1,16 +1,18 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.ConfigurationParameter;
-import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasspathResource;
-import org.junit.platform.suite.api.Suite;
+import io.cucumber.junit.Cucumber;
+import io.cucumber.junit.CucumberOptions;
+import org.junit.runner.RunWith;
 
-import static io.cucumber.junit.platform.engine.CucumberJUnitPlatformParameters.GLUE_PROPERTY_NAME;
-
-@Suite
-@IncludeEngines("cucumber")
-@SelectClasspathResource("features")
-@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
+/**
+ * Test Runner for VW-454 Regression.
+ * Place this file in src/test/java to be picked up by Maven/IntelliJ.
+ */
+@RunWith(Cucumber.class)
+@CucumberOptions(
+    features = {"features/VW-454.feature"},
+    glue = {"com.example.steps"},
+    plugin = {"pretty", "html:target/cucumber-report/VW454"}
+)
 public class VW454TestSuite {
-    // JUnit 5 Suite wrapper for Cucumber
 }

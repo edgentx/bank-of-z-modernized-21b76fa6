@@ -2,22 +2,22 @@ package com.example.ports;
 
 /**
  * Port for sending notifications to Slack.
- * Used by the defect reporting workflow.
+ * Used to verify that the correct content (specifically GitHub URLs) is sent.
  */
 public interface SlackNotificationPort {
     
     /**
-     * Sends a notification payload to a Slack channel.
-     *
-     * @param channel The Slack channel ID or name.
-     * @param messageBody The formatted message body to send.
-     * @throws IllegalArgumentException if messageBody is null/blank.
+     * Sends a message to a Slack channel.
+     * @param channelId The target channel.
+     * @param messageBody The content of the message.
      */
-    void sendNotification(String channel, String messageBody);
+    void sendMessage(String channelId, String messageBody);
 
     /**
-     * Returns the last message body sent to the specific channel.
-     * Helper method for testing state.
+     * Retrieves the last message body sent to a specific channel.
+     * Used primarily for testing/verification to satisfy the defect requirements.
+     * @param channelId The target channel.
+     * @return The last message body string, or null if no message exists.
      */
-    String getLastMessageBody(String channel);
+    String getLastMessageBody(String channelId);
 }

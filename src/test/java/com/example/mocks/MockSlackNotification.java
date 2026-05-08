@@ -1,25 +1,30 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages to verify content without real I/O.
+ * Stores messages in memory instead of calling the real Slack API.
  */
 public class MockSlackNotification implements SlackNotificationPort {
+
     private final List<String> messages = new ArrayList<>();
 
     @Override
-    public void sendMessage(String messageBody) {
-        // In a real test spy, we might throw exceptions if configured to do so.
-        // For now, just capture the message.
-        this.messages.add(messageBody);
+    public void send(String message) {
+        // Simulate successful send by storing the message
+        this.messages.add(message);
     }
 
-    public List<String> getMessages() {
-        return new ArrayList<>(messages);
+    @Override
+    public String getLastMessage() {
+        if (messages.isEmpty()) {
+            return null;
+        }
+        return messages.get(messages.size() - 1);
     }
 
     public void clear() {

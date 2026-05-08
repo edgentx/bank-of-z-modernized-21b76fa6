@@ -1,16 +1,15 @@
 package com.example.application;
 
-import com.example.vforce.shared.ReportDefectCommand;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackPort;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 
-/**
- * Temporal Activity Interface for Defect Reporting.
- * This fixes the build error regarding missing interfaces.
- */
 @ActivityInterface
 public interface DefectReportingActivities {
-    
     @ActivityMethod
-    void reportDefect(ReportDefectCommand command);
+    String createGitHubIssue(String title, String body);
+
+    @ActivityMethod
+    void notifySlack(String channel, String message);
 }

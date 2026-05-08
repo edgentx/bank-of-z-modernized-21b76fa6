@@ -4,11 +4,12 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to report a defect.
- * S-FB-1: Validating VW-454 — GitHub URL in Slack body.
+ * Used by the Temporal workflow to initiate the reporting process.
  */
 public record ReportDefectCmd(
-    String defectId,
+    String projectId,
+    String severity,
+    String component,
     String title,
-    String description,
-    String githubUrl
+    String description
 ) implements Command {}

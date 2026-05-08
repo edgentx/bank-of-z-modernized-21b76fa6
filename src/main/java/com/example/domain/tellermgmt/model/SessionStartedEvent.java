@@ -6,9 +6,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event emitted when a Teller successfully starts a session.
+ * Event emitted when a teller session is successfully started.
  */
 public record SessionStartedEvent(
+        String eventId,
         String aggregateId,
         String tellerId,
         String terminalId,
@@ -16,19 +17,20 @@ public record SessionStartedEvent(
 ) implements DomainEvent {
 
     public SessionStartedEvent {
-        // Defensive validation
-        if (aggregateId == null || aggregateId.isBlank()) {
-            throw new IllegalArgumentException("aggregateId required");
+        if (eventId == null || eventId.isBlank()) {
+            eventId = UUID.randomUUID().toString();
         }
+        if (occurredAt == null) {
+            occurredAt = Instant.now();
+        }
+    }
+
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, tellerId, terminalId, occurredAt);
     }
 
     @Override
     public String type() {
-        return "SessionStartedEvent";
-    }
-
-    // Factory method to ensure consistent IDs if needed, though constructor usually suffices
-    public static SessionStartedEvent create(String sessionId, String tellerId, String terminalId) {
-        return new SessionStartedEvent(sessionId, tellerId, terminalId, Instant.now());
+        return "session.started";
     }
 }

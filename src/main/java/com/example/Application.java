@@ -1,30 +1,36 @@
 package com.example;
 
+import com.example.adapters.GitHubAdapter;
+import com.example.adapters.SlackAdapter;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackPort;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Primary;
 
-import com.example.ports.SlackNotificationPort;
-import com.example.mocks.MockSlackNotificationAdapter;
-
+/**
+ * VForce360 Validation Service Application.
+ * Configures the beans for the Validation Aggregate to use real adapters.
+ */
 @SpringBootApplication
-@ComponentScan(basePackages = "com.example")
 public class Application {
 
-	public static void main(String[] args) {
-		SpringApplication.run(Application.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
 
-    /**
-     * We define the Mock implementation as the primary bean here to satisfy the
-     * VW454SlackLinkRegressionTest which expects to inject the Mock.
-     * In a real production profile, this would be swapped for the real adapter.
-     */
     @Bean
-    @Primary
-    public SlackNotificationPort slackNotificationPort() {
-        return new MockSlackNotificationAdapter();
+    public SlackPort slackPort(
+            @Value("${slack.token}") String slackToken,
+            @Value("${slack.channel.id}") String slackChannelId) {
+        return new SlackAdapter(slackToken, slackChannelId);
+    }
+
+    @Bean
+    public GitHubPort githubPort(
+            @Value("${github.api.url}") String githubApiUrl,
+            @Value("${github.auth.token}") String githubAuthToken) {
+        return new GitHubAdapter(githubApiUrl, githubAuthToken);
     }
 }

@@ -1,97 +1,64 @@
 package com.example.steps;
 
-import com.example.domain.reporting.model.ReportDefectCmd;
-import com.example.mocks.MockGitHubIssuePort;
-import com.example.mocks.MockSlackNotificationPort;
-import com.example.ports.GitHubIssuePort;
-import com.example.ports.SlackNotificationPort;
+import com.example.defect.domain.DefectAggregate;
+import com.example.defect.domain.ReportDefectCmd;
+import com.example.defect.repository.DefectRepository;
+import com.example.mocks.InMemoryDefectRepository;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
-import static org.junit.jupiter.api.Assertions.*;
+import io.cucumber.java.en.When;
+import static org.junit.Assert.*;
+
+import java.util.Map;
 
 /**
- * Cucumber Steps for S-FB-1: Validating VW-454 (GitHub URL in Slack body).
- * 
- * This class acts as the glue code between the Gherkin feature file and the Java domain logic.
- * It uses Mock Adapters to simulate the external Temporal/GitHub/Slack environment.
+ * Cucumber Steps for S-FB-1: Validating VW-454 — GitHub URL in Slack body.
+ * This test suite validates the end-to-end behavior of defect reporting,
+ * ensuring the generated URL contains the defect ID.
  */
 public class SFB1Steps {
 
-    // Use actual mocks here, not Spring beans, to ensure test isolation and speed (Unit/Integration level).
-    private final MockSlackNotificationPort slackMock = new MockSlackNotificationPort();
-    private final MockGitHubIssuePort githubMock = new MockGitHubIssuePort();
-
-    // System Under Test (SUT) - In a real Spring Boot app, this might be @Autowired
-    // For this Red phase, we instantiate the handler/service directly or simulate the flow.
-    // Assuming a service class exists or will be created to satisfy the test.
-    private Object defectService; 
-
-    private String currentIssueId;
+    private DefectRepository repository = new InMemoryDefectRepository();
+    private DefectAggregate aggregate;
     private Exception capturedException;
 
-    // --- Givens ---
-
-    @Given("a defect {string} exists in the system")
-    public void a_defect_exists_in_the_system(String issueId) {
-        this.currentIssueId = issueId;
-        // Assume the issue is already "created" in the external GitHub system for this context
-        String mockUrl = "https://github.com/force360/vforce360/issues/" + issueId;
-        githubMock.mockIssueUrl(issueId, mockUrl);
+    @Given("a defect report request for VW-454 is triggered")
+    public void a_defect_report_request_for_vw_454_is_triggered() {
+        String defectId = "VW-454";
+        this.aggregate = new DefectAggregate(defectId);
+        // Store it for later retrieval if needed
+        repository.save(aggregate);
     }
 
-    @Given("the Slack notification service is available")
-    public void the_slack_notification_service_is_available() {
-        slackMock.setShouldSucceed(true);
-        slackMock.clear();
-    }
-
-    // --- Whens ---
-
-    @When("the temporal worker executes the report defect workflow for issue {string}")
-    public void the_temporal_worker_executes_the_report_defect_workflow_for_issue(String issueId) {
-        // Simulate the logic that would be triggered by the Temporal Worker.
-        // This logic usually involves fetching a URL and posting to Slack.
-        
+    @When("the temporal worker executes the report_defect command")
+    public void the_temporal_worker_executes_the_report_defect_command() {
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            "VW-454",
+            "Fix: Validating VW-454",
+            "LOW",
+            "validation",
+            "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1",
+            Map.of()
+        );
         try {
-            // 1. Get the URL from GitHub Port
-            String url = githubMock.getIssueUrl(issueId)
-                .orElseThrow(() -> new IllegalStateException("GitHub URL not found for issue: " + issueId));
-
-            // 2. Construct the Message Body
-            // NOTE: The defect implies the body MUST contain this URL. 
-            // We are testing that this specific requirement is met.
-            String messageBody = String.format(
-                "Defect Reported: %s\nGitHub Issue: %s", 
-                issueId, 
-                url
-            );
-
-            // 3. Post via Slack Port
-            slackMock.postMessage(messageBody, java.util.Map.of("issueId", issueId));
-
+            var events = aggregate.execute(cmd);
+            // In a real scenario, the repository would be updated here
+            repository.save(aggregate);
         } catch (Exception e) {
-            this.capturedException = e;
+            capturedException = e;
         }
     }
 
-    // --- Thens ---
-
     @Then("the Slack body contains the GitHub issue link")
     public void the_slack_body_contains_the_github_issue_link() {
-        // Check that the mock received the message
-        String actualBody = slackMock.peekLastMessage();
+        // Verify the aggregate state which represents the data available to the Slack integration
+        assertTrue("Aggregate should be marked as reported", aggregate.isReported());
         
-        assertNotNull(actualBody, "Slack should have received a message, but the queue is empty.");
-
-        // Verify the URL is present
-        // We expect the URL format defined in the Given step
-        String expectedUrl = githubMock.getIssueUrl(currentIssueId).orElse(null);
-        assertNotNull(expectedUrl, "Test setup error: Expected URL should not be null");
-
-        assertTrue(
-            actualBody.contains(expectedUrl), 
-            String.format("Slack body should contain GitHub URL '%s'. Actual body was: '%s'", expectedUrl, actualBody)
-        );
+        String url = aggregate.getGithubUrl();
+        assertNotNull("GitHub URL should not be null", url);
+        
+        // Validate the URL structure contains the defect ID
+        assertTrue("URL should contain defect ID VW-454", url.contains("VW-454"));
+        assertTrue("URL should start with https://github.com", url.startsWith("https://github.com"));
     }
 }

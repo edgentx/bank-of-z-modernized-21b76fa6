@@ -2,4 +2,7 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
 
-public record NavigateMenuCmd(String sessionId, String menuId, String action) implements Command {}
+/**
+ * Command to navigate between screens in the teller UI.
+ */
+public record NavigateMenuCmd(String sessionId, String currentContext, String targetMenuId, String action) implements Command {}

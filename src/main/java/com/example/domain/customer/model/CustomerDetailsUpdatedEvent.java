@@ -4,7 +4,18 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
-public record CustomerDetailsUpdatedEvent(String customerId, String email, String sortCode, Instant occurredAt) implements DomainEvent {
+/**
+ * Event published when customer details are updated.
+ * S-3: Implement UpdateCustomerDetailsCmd.
+ */
+public record CustomerDetailsUpdatedEvent(
+    String customerId,
+    String fullName,
+    String emailAddress,
+    String sortCode,
+    Instant occurredAt
+) implements DomainEvent {
+
     @Override
     public String type() {
         return "customer.details.updated";
@@ -13,5 +24,10 @@ public record CustomerDetailsUpdatedEvent(String customerId, String email, Strin
     @Override
     public String aggregateId() {
         return customerId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

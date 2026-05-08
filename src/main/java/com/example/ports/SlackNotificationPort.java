@@ -1,16 +1,24 @@
 package com.example.ports;
 
 /**
- * Port for sending Slack notifications.
- * Abstraction for the actual Slack WebClient.
+ * Port interface for sending notifications to Slack.
  */
 public interface SlackNotificationPort {
+
+    /**
+     * Sends a message body to a specific Slack channel.
+     *
+     * @param channel The target channel.
+     * @param body    The content of the message.
+     */
+    void sendMessage(String channel, String body);
     
     /**
-     * Sends a message to a specific channel.
-     * 
-     * @param channel The target channel (e.g., #vforce360-issues).
-     * @param messageBody The formatted body content.
+     * Helper to retrieve the last message sent to a specific channel for verification.
+     * Note: This is typically implemented by mocks, but kept in the interface
+     * to allow stateful in-memory verification if needed without casting.
      */
-    void sendMessage(String channel, String messageBody);
+    default String getLastMessageBody(String channel) {
+        throw new UnsupportedOperationException("Not implemented in production adapter.");
+    }
 }

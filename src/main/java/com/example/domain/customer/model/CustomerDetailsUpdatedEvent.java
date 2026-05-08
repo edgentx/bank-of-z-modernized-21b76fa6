@@ -1,20 +1,21 @@
 package com.example.domain.customer.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
-import java.util.Optional;
 
 /**
- * Event emitted when a customer's details are successfully updated.
- * S-3: Implement UpdateCustomerDetailsCmd on Customer.
+ * Domain event emitted when a customer's details are successfully updated.
  */
 public record CustomerDetailsUpdatedEvent(
-        String customerId,
-        String fullName,
-        String emailAddress,
-        String sortCode,
-        Instant occurredAt
+    String customerId,
+    String fullName,
+    String emailAddress,
+    String sortCode,
+    String dateOfBirth,
+    Instant occurredAt
 ) implements DomainEvent {
+
     @Override
     public String type() {
         return "customer.details.updated";

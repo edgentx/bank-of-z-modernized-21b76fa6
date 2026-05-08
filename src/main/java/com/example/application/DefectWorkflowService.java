@@ -1,56 +1,71 @@
 package com.example.application;
 
-import com.example.domain.vforce360.model.DefectAggregate;
-import com.example.domain.vforce360.model.ReportDefectCmd;
-import com.example.ports.DefectRepositoryPort;
-import com.example.ports.SlackNotifierPort;
+import com.example.domain.defect.DefectAggregate;
+import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.ports.SlackNotificationPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 /**
- * Application Service handling the Defect Reporting workflow.
- * Orchestrates the Aggregate, Repository, and Slack Notification.
- * Story S-FB-1: Validates GitHub URL in Slack body.
+ * Service handling the business logic for reporting defects.
+ * In a full Temporal setup, this would be the Workflow Implementation.
  */
 @Service
 public class DefectWorkflowService {
 
-    private final DefectRepositoryPort defectRepository;
-    private final SlackNotifierPort slackNotifier;
+    private static final Logger logger = LoggerFactory.getLogger(DefectWorkflowService.class);
+    private static final String SLACK_CHANNEL = "#vforce360-issues";
 
-    public DefectWorkflowService(DefectRepositoryPort defectRepository, SlackNotifierPort slackNotifier) {
-        this.defectRepository = defectRepository;
-        this.slackNotifier = slackNotifier;
+    private final SlackNotificationPort slackNotificationPort;
+
+    // Constructor injection of the Port
+    public DefectWorkflowService(SlackNotificationPort slackNotificationPort) {
+        this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Entry point for the defect reporting workflow.
-     * 1. Loads/Creates Aggregate.
-     * 2. Executes Command.
-     * 3. Persists Aggregate.
-     * 4. Publishes Notification with GitHub URL.
+     * Entry point for the temporal worker / client trigger.
      */
     public void reportDefect(ReportDefectCmd cmd) {
-        // Load or Create aggregate
-        DefectAggregate aggregate = defectRepository.findById(cmd.defectId());
-        if (aggregate == null) {
-            aggregate = new DefectAggregate(cmd.defectId());
-        }
+        logger.info("Executing _report_defect for ID: {}", cmd.defectId());
 
-        // Execute logic
-        aggregate.execute(cmd);
+        // 1. Execute Domain Logic
+        DefectAggregate aggregate = new DefectAggregate(cmd.defectId());
+        var events = aggregate.execute(cmd);
 
-        // Persist state
-        defectRepository.save(aggregate);
+        // 2. Process Events (Side effects)
+        events.forEach(event -> {
+            if (event instanceof com.example.domain.defect.model.DefectReportedEvent) {
+                handleDefectReported((com.example.domain.defect.model.DefectReportedEvent) event);
+            }
+        });
+    }
 
-        // Publish Event / Notify Slack
-        // Construct the body ensuring the URL is present
-        String githubUrl = aggregate.getGithubIssueUrl();
-        
-        StringBuilder bodyBuilder = new StringBuilder();
-        bodyBuilder.append("Defect Reported: ").append(aggregate.getTitle()).append("\n");
-        bodyBuilder.append("Status: Validation Failed\n");
-        bodyBuilder.append("GitHub issue: ").append(githubUrl); // CRITICAL FIX FOR S-FB-1
+    private void handleDefectReported(com.example.domain.defect.model.DefectReportedEvent event) {
+        logger.info("Defect Reported: {} - {}", event.defectId(), event.title());
+        notifySlack(event);
+    }
 
-        slackNotifier.sendMessage("#vforce360-issues", bodyBuilder.toString());
+    private void notifySlack(com.example.domain.defect.model.DefectReportedEvent event) {
+        // Format the Slack body including the GitHub URL
+        // The metadata map is expected to contain the 'gitHubIssueUrl'
+        Map<String, String> meta = event.metadata();
+        String url = meta.getOrDefault("gitHubIssueUrl", "URL_NOT_PROVIDED");
+
+        String body = String.format(
+                "Defect Reported: *%s*\n" +
+                "ID: %s\n" +
+                "Description: %s\n" +
+                "GitHub Issue: %s",
+                event.title(),
+                event.defectId(),
+                event.description() != null ? event.description() : "No description",
+                url
+        );
+
+        slackNotificationPort.postMessage(SLACK_CHANNEL, body);
     }
 }

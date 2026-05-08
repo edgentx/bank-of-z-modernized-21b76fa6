@@ -1,15 +1,14 @@
 package com.example;
 
-import com.example.domain.reconciliation.ReportDefectActivitiesImpl;
-import com.example.domain.reconciliation.ReportDefectWorkflowImpl;
+import com.example.adapters.GitHubAdapter;
+import com.example.adapters.SlackAdapter;
+import com.example.domain.validation.ReportDefectWorkflow;
+import com.example.ports.GitHubPort;
 import com.example.ports.SlackNotificationPort;
-import io.temporal.spring.boot.TemporalOptionsCustomizer;
-import io.temporal.worker.WorkerFactoryOptions;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-
-import java.util.Collections;
+import org.springframework.web.client.RestClient;
 
 @SpringBootApplication
 public class Application {
@@ -18,28 +17,26 @@ public class Application {
         SpringApplication.run(Application.class, args);
     }
 
-    /**
-     * Registers the Temporal Worker with the necessary workflow and activity implementations.
-     * Wires the MockSlackNotificationPort (or real adapter in prod) into the Activity.
-     */
     @Bean
-    public TemporalOptionsCustomizer<WorkerFactoryOptions> workerFactoryOptionsCustomizer(
-            SlackNotificationPort slackNotificationPort) {
-
-        return (options -> {
-            // Register Workflow
-            options.setWorkerOptions(options.getWorkerOptions().toBuilder()
-                    .build());
-            return options;
-        });
+    public RestClient.Builder restClientBuilder() {
+        return RestClient.builder();
     }
 
-    /**
-     * Bean definition for the Activity implementation.
-     * This allows Temporal to instantiate the Activity with the correct Port dependencies.
-     */
+    // Port definitions
     @Bean
-    public ReportDefectActivitiesImpl reportDefectActivities(SlackNotificationPort slackNotificationPort) {
-        return new ReportDefectActivitiesImpl(slackNotificationPort);
+    public GitHubPort gitHubPort(RestClient.Builder builder) {
+        return new GitHubAdapter(builder);
+    }
+
+    @Bean
+    public SlackNotificationPort slackNotificationPort(RestClient.Builder builder) {
+        String webhookUrl = System.getenv().getOrDefault("SLACK_WEBHOOK_URL", "https://hooks.slack.com/mock");
+        return new SlackAdapter(builder, webhookUrl);
+    }
+
+    // Workflow Bean
+    @Bean
+    public ReportDefectWorkflow reportDefectWorkflow(GitHubPort gitHubPort, SlackNotificationPort slackPort) {
+        return new ReportDefectWorkflow(gitHubPort, slackPort);
     }
 }

@@ -3,61 +3,85 @@ package com.example.adapters;
 import com.example.ports.SlackNotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Real-world implementation of SlackNotificationPort using WebClient.
- * Connects to Slack API to post messages.
+ * Real implementation of the Slack Notification Port.
+ * Connects to the Slack Web API to post messages.
+ * Implements Adapter pattern to decouple domain from infrastructure.
  */
 @Component
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
-    private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
-    private static final String SLACK_API_BASE = "https://slack.com/api";
+    private static final Logger logger = LoggerFactory.getLogger(SlackNotificationAdapter.class);
 
-    private final WebClient webClient;
-    private final String botToken;
+    @Value("${vforce360.slack.webhook.url}")
+    private String webhookUrl;
 
-    /**
-     * Constructs the adapter.
-     *
-     * @param webClientBuilder The WebClient builder (injected by Spring)
-     * @param botToken         The Slack Bot Token (OAuth token starting with xoxb-)
-     */
-    public SlackNotificationAdapter(WebClient.Builder webClientBuilder, String botToken) {
-        this.botToken = botToken;
-        this.webClient = webClientBuilder
-                .baseUrl(SLACK_API_BASE)
+    private final HttpClient httpClient;
+    // In-memory storage for verification purposes in synchronous/test flows.
+    // In a purely async distributed system, this would be handled by an outbox store.
+    private final Map<String, String> lastMessages = new HashMap<>();
+
+    public SlackNotificationAdapter() {
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
                 .build();
     }
 
     @Override
-    public void postMessage(String channel, String message) {
+    public boolean sendMessage(String channel, String messageBody) {
         try {
-            // In a real scenario, we would decode the block kit JSON or post simple text.
-            // Here we post a simple message to the chat.postMessage endpoint.
-            String response = webClient.post()
-                    .uri("/api/chat.postMessage")
-                    .headers(h -> h.setBearerAuth(botToken))
-                    .bodyValue(new SlackPostRequest(channel, message))
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block(); // Block for synchronous execution in this workflow step
+            // Construct the JSON payload for Slack
+            // Note: We explicitly map the channel in the payload even if using a webhook that might be bound to one.
+            String jsonPayload = String.format(
+                    "{\"channel\": \"%s\", \"text\": \"%s\", \"link_names\": true}",
+                    channel,
+                    escapeJson(messageBody)
+            );
 
-            log.info("Slack response: {}", response);
-        } catch (WebClientResponseException e) {
-            log.error("Failed to post to Slack: {} - {}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new RuntimeException("Failed to post notification to Slack", e);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(webhookUrl))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            boolean success = response.statusCode() == 200;
+            if (success) {
+                lastMessages.put(channel, messageBody);
+                logger.info("Successfully posted message to Slack channel {}", channel);
+            } else {
+                logger.error("Failed to post message to Slack. Status: {}, Body: {}", response.statusCode(), response.body());
+            }
+            return success;
+
         } catch (Exception e) {
-            log.error("Error during Slack notification", e);
-            throw new RuntimeException("Error during Slack notification", e);
+            logger.error("Error sending Slack notification", e);
+            return false;
         }
     }
 
-    /**
-     * DTO for Slack API Post Message request.
-     */
-    private record SlackPostRequest(String channel, String text) {}
+    @Override
+    public String getLastMessageBody(String channel) {
+        return lastMessages.get(channel);
+    }
+
+    private String escapeJson(String text) {
+        // Basic JSON escaping for the message body
+        return text.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
+    }
 }

@@ -2,19 +2,19 @@ package com.example.domain.defect.model;
 
 import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
+import java.util.UUID;
 
 /**
- * Event published when a defect is reported to VForce360.
- * Contains the metadata required to generate the notification.
+ * Domain event emitted when a defect is successfully reported to Slack/GitHub.
  */
 public record DefectReportedEvent(
         String aggregateId,
-        String title,
-        String description,
+        String defectId,
         String githubUrl,
-        String channel,
+        String slackChannel,
         Instant occurredAt
 ) implements DomainEvent {
+
     @Override
     public String type() {
         return "DefectReported";

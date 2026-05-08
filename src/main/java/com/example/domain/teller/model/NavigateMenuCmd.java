@@ -2,23 +2,20 @@ package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
 
-import java.time.Instant;
-import java.util.UUID;
-
 /**
- * Command to navigate the teller interface to a new menu or screen.
- * Mirrors legacy 3270 data flow (AID keys + screen cursor).
+ * Command for S-19: NavigateMenuCmd.
+ * Routes the teller to a different menu or screen based on input.
  */
-public record NavigateMenuCmd(
-        String sessionId,
-        String targetMenuId,
-        String action, // e.g. ENTER, PF3, PF12, CLEAR
-        Instant timestamp
-) implements Command {
+public record NavigateMenuCmd(String sessionId, String menuId, String action) implements Command {
     public NavigateMenuCmd {
-        if (sessionId == null || sessionId.isBlank()) throw new IllegalArgumentException("sessionId required");
-        if (targetMenuId == null || targetMenuId.isBlank()) throw new IllegalArgumentException("targetMenuId required");
-        if (action == null || action.isBlank()) throw new IllegalArgumentException("action required");
-        if (timestamp == null) throw new IllegalArgumentException("timestamp required");
+        if (sessionId == null || sessionId.isBlank()) {
+            throw new IllegalArgumentException("sessionId required");
+        }
+        if (menuId == null || menuId.isBlank()) {
+            throw new IllegalArgumentException("menuId required");
+        }
+        if (action == null || action.isBlank()) {
+            throw new IllegalArgumentException("action required");
+        }
     }
 }

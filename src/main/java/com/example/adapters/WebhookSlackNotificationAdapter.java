@@ -3,28 +3,18 @@ package com.example.adapters;
 import com.example.domain.shared.SlackMessageValidator;
 import org.springframework.stereotype.Component;
 
-/**
- * Adapter responsible for sending notifications to Slack.
- * This adapter enforces validation logic before sending.
- */
+import java.util.regex.Pattern;
+
 @Component
-public class WebhookSlackNotificationAdapter {
+public class WebhookSlackNotificationAdapter implements SlackMessageValidator {
 
-    private final SlackMessageValidator validator;
+    private static final Pattern GITHUB_URL_PATTERN = Pattern.compile("https://github\\.com/[\\w.-]+/[\\w.-]+/issues/\\d+");
 
-    public WebhookSlackNotificationAdapter(SlackMessageValidator validator) {
-        this.validator = validator;
-    }
-
-    /**
-     * Posts a message to the configured Slack webhook.
-     * @param body The message body.
-     * @throws IllegalArgumentException if validation fails.
-     */
-    public void post(String body) {
-        if (!validator.containsGitHubUrl(body)) {
-            throw new IllegalArgumentException("Slack body validation failed: GitHub URL missing");
+    @Override
+    public boolean isValid(String messageBody) {
+        if (messageBody == null) {
+            return false;
         }
-        // Actual Slack HTTP call would go here
+        return GITHUB_URL_PATTERN.matcher(messageBody).find();
     }
 }

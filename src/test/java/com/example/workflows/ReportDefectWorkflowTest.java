@@ -1,109 +1,165 @@
 package com.example.workflows;
 
 import com.example.application.DefectReportingActivity;
-import io.temporal.testing.TestWorkflowRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.Mockito;
+import com.example.domain.vforce360.model.ReportDefectCmd;
+import com.example.domain.vforce360.repository.VForce360Repository;
+import com.example.mocks.InMemoryVForce360Repository;
+import com.example.steps.S17Steps; // Reusing existing naming pattern
+import io.temporal.testing.TestWorkflowEnvironment;
+import io.temporal.worker.Worker;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit test for ReportDefectWorkflow.
- * Verifies the orchestration logic (Workflow) using TestWorkflowRule and mocked Activities.
+ * RED PHASE TESTS for S-FB-1: Validating VW-454 — GitHub URL in Slack body.
+ * 
+ * Tests verify that triggering the defect reporting workflow results in a Slack body
+ * containing the GitHub issue link.
  */
 public class ReportDefectWorkflowTest {
 
-    // Mock Activity implementation
-    @Mock
-    private DefectReportingActivity mockActivity;
+    private TestWorkflowEnvironment testEnvironment;
+    private Worker worker;
+    private InMemoryVForce360Repository mockRepository;
+    private MockSlackService mockSlackService;
 
-    /**
-     * JUnit4 Rule for Temporal Workflow testing.
-     * Manages the lifecycle of the workflow execution in memory.
-     */
-    @Rule
-    public TestWorkflowRule testWorkflowRule =
-            TestWorkflowRule.newBuilder()
-                    .addWorkflowActivityImplementations(
-                            new ReportDefectWorkflowImpl(), // Workflow Under Test
-                            new MockDefectReportingActivity() // Mock Activity Implementation
-                    )
-                    .setDoNotStart(true) // Manual control if needed, though constructor usually starts it.
-                    .build();
+    @BeforeEach
+    public void setUp() {
+        // Set up Temporal test environment
+        testEnvironment = TestWorkflowEnvironment.newInstance();
+        worker = testEnvironment.newWorker("TASK_QUEUE_NAME");
+        
+        // Initialize Mocks
+        mockRepository = new InMemoryVForce360Repository();
+        mockSlackService = new MockSlackService();
 
-    /**
-     * Custom Mock Activity injected into the test rule.
-     * We define this inner class to simulate the behavior of the Activity
-     * without connecting to real external services (GitHub/Slack).
-     */
-    public static class MockDefectReportingActivity implements DefectReportingActivity {
-        private String simulatedGitHubUrl = "https://github.com/example/repo/issues/123";
-        private boolean lastPostSuccess = false;
-        private String lastSlackBody;
+        // Register Workflow and Activity implementations
+        ReportDefectWorkflowImpl workflow = new ReportDefectWorkflowImpl();
+        DefectReportingActivityImpl activity = new DefectReportingActivityImpl(mockRepository, mockSlackService);
 
-        @Override
-        public boolean postToSlack(String channel, String body) {
-            this.lastSlackBody = body;
-            this.lastPostSuccess = true;
-            // Simulate successful API call
-            return true;
-        }
+        worker.registerWorkflowImplementationTypes(ReportDefectWorkflowImpl.class);
+        worker.registerActivitiesImplementations(activity);
 
-        @Override
-        public String createGitHubIssue(String title, String body) {
-            // Simulate returning a valid URL
-            return simulatedGitHubUrl;
-        }
+        testEnvironment.start();
+    }
 
-        public String getLastSlackBody() {
-            return lastSlackBody;
-        }
+    @AfterEach
+    public void tearDown() {
+        testEnvironment.close();
     }
 
     @Test
-    public void testReportDefect_includesGitHubUrlInSlackBody() {
+    @org.junit.jupiter.api.DisplayName("VW-454: Slack body should contain GitHub issue URL")
+    public void testSlackBodyContainsGitHubUrl() throws ExecutionException, InterruptedException {
         // Arrange
-        String defectTitle = "VW-454: Validation Error";
-        String defectBody = "The validation logic is missing a check.";
+        String defectId = "S-FB-1";
+        String expectedGitHubUrl = "https://github.com/crypto-bank-of-z/issues/454";
+        String slackChannel = "#vforce360-issues";
 
-        // Get the instance of the mock activity to verify interactions later
-        MockDefectReportingActivity activityMock = (MockDefectReportingActivity) 
-            testWorkflowRule.getTypedActivityOptions(DefectReportingActivity.class);
-        
-        // Create a fresh mock instance to assert against, or capture the one used by the rule.
-        // In TestWorkflowRule, we can directly cast the implementation if we registered it.
-        MockDefectReportingActivity spyActivity = new MockDefectReportingActivity();
-        
-        // Re-initialize rule with specific mock instance we can spy on
-        TestWorkflowRule rule = TestWorkflowRule.newBuilder()
-                .addWorkflowActivityImplementations(new ReportDefectWorkflowImpl(), spyActivity)
-                .build();
+        ReportDefectWorkflow workflowStub = testEnvironment.newWorkflowStub(ReportDefectWorkflow.class);
         
         // Act
-        ReportDefectWorkflow workflow = rule.newWorkflowStub(ReportDefectWorkflow.class);
-        String resultUrl = workflow.reportDefect(defectTitle, defectBody);
+        // Trigger _report_defect via temporal-worker exec
+        workflowStub.reportDefect(defectId, expectedGitHubUrl, slackChannel);
+
+        // Allow async processing
+        Thread.sleep(500); 
 
         // Assert
-        // 1. Verify GitHub URL is returned
-        assertNotNull("Workflow should return a GitHub URL", resultUrl);
-        assertTrue("URL should contain github.com", resultUrl.contains("github.com"));
-
-        // 2. Verify Slack was called
-        // 3. Verify Slack body contains the GitHub URL (Acceptance Criteria)
-        String slackBody = spyActivity.getLastSlackBody();
-        assertNotNull("Slack body should not be null", slackBody);
+        // Verify Slack body contains GitHub issue: <url>
+        assertTrue(mockSlackService.wasCalled(), "Slack service should have been triggered");
+        String lastBody = mockSlackService.getLastMessageBody();
+        assertNotNull(lastBody, "Slack message body should not be null");
+        
+        // The core validation: Check for the URL in the body
         assertTrue(
-            "Slack body must contain the GitHub issue link. Body was: " + slackBody,
-            slackBody.contains(resultUrl)
+            lastBody.contains(expectedGitHubUrl),
+            "Slack body should contain the GitHub URL. Body was: " + lastBody
         );
+        
+        // Regression check for VW-454
+        assertTrue(
+            lastBody.contains("GitHub issue:") || lastBody.contains("Issue:"),
+            "Slack body should indicate it is a GitHub issue link"
+        );
+    }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("Regression: Workflow fails if GitHub URL is invalid")
+    public void testRegressionInvalidUrl() {
+        // Arrange
+        String defectId = "S-FB-2";
+        String invalidUrl = "not-a-url";
+        
+        ReportDefectWorkflow workflowStub = testEnvironment.newWorkflowStub(ReportDefectWorkflow.class);
+
+        // Act & Assert
+        assertThrows(Exception.class, () -> {
+            workflowStub.reportDefect(defectId, invalidUrl, "#random");
+        }, "Workflow should fail validation for invalid URL format");
+    }
+
+    // --- Mocks & Stubs required for this Test ---
+
+    /**
+     * Mock Adapter for Slack Service.
+     * Captures output for verification.
+     */
+    public static class MockSlackService {
+        private boolean called = false;
+        private String lastMessageBody;
+        private String lastChannel;
+
+        public void postMessage(String channel, String body) {
+            this.called = true;
+            this.lastChannel = channel;
+            this.lastMessageBody = body;
+            System.out.println("[MockSlack] Posted to " + channel + ": " + body);
+        }
+
+        public boolean wasCalled() {
+            return called;
+        }
+
+        public String getLastMessageBody() {
+            return lastMessageBody;
+        }
+        
+        public String getLastChannel() {
+            return lastChannel;
+        }
+    }
+
+    /**
+     * Concrete implementation of Activity for testing.
+     * Delegates to Mock Repositories.
+     */
+    public static class DefectReportingActivityImpl implements DefectReportingActivity {
+        private final VForce360Repository repository;
+        private final MockSlackService slackService;
+
+        public DefectReportingActivityImpl(VForce360Repository repository, MockSlackService slackService) {
+            this.repository = repository;
+            this.slackService = slackService;
+        }
+
+        @Override
+        public String reportToVForce360(String defectId, String githubUrl, String slackChannel) {
+            // 1. Domain Logic
+            // In a real scenario, we might load the aggregate.
+            // Here we simulate the reporting.
+            
+            // 2. Slack Logic
+            String body = String.format("Defect Reported: GitHub issue: %s", githubUrl);
+            slackService.postMessage(slackChannel, body);
+            
+            return "OK";
+        }
     }
 }

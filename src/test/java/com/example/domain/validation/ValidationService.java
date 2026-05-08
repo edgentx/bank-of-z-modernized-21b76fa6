@@ -1,46 +1,26 @@
 package com.example.domain.validation;
 
+import com.example.ports.GitHubIssuePort;
 import com.example.ports.SlackNotificationPort;
-import org.springframework.stereotype.Service;
 
 /**
- * Service handling defect reporting logic for the Validation domain.
- * S-FB-1: Implements defect reporting logic to ensure Slack body contains GitHub URL.
+ * Service implementation (placeholder to be implemented).
+ * This class is required to compile the tests, but will be empty/throw exceptions
+ * until the implementation phase (Green).
  */
-@Service
 public class ValidationService {
 
-    private final SlackNotificationPort slackNotificationPort;
+    private final SlackNotificationPort slackPort;
+    private final GitHubIssuePort githubPort;
 
-    public ValidationService(SlackNotificationPort slackNotificationPort) {
-        this.slackNotificationPort = slackNotificationPort;
+    public ValidationService(SlackNotificationPort slackPort, GitHubIssuePort githubPort) {
+        this.slackPort = slackPort;
+        this.githubPort = githubPort;
     }
 
-    /**
-     * Reports a defect to the external monitoring system (Slack).
-     * Formats the message to strictly include the GitHub URL.
-     *
-     * @param cmd The command containing defect details.
-     */
-    public void reportDefect(DefectReportedCommand cmd) {
-        if (cmd == null) {
-            throw new IllegalArgumentException("DefectReportedCommand cannot be null");
-        }
-        if (cmd.githubUrl() == null || cmd.githubUrl().isBlank()) {
-            throw new IllegalArgumentException("GitHub URL is required for defect reporting");
-        }
-
-        // Construct the message body. 
-        // Format: "Defect reported: {defectId}\nLink: <url>"
-        // Using Slack link formatting <url|optional_text> or just <url>
-        String messageBody = String.format(
-            "Defect Reported: %s\nSeverity: %s\nProject: %s\nGitHub Issue: <%s>",
-            cmd.defectId(),
-            cmd.severity(),
-            cmd.projectId(),
-            cmd.githubUrl()
-        );
-
-        this.slackNotificationPort.send(messageBody);
+    public void reportDefect(String id, String title, String description) {
+        // TODO: Implement logic to create GitHub issue and post to Slack
+        // This logic should satisfy the tests in SlackNotificationServiceTest
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 }

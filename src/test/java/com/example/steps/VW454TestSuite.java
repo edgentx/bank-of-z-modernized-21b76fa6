@@ -1,17 +1,16 @@
 package com.example.steps;
 
-import io.cucumber.junit.platform.engine.Cucumber;
 import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasspathResource;
+import org.junit.platform.suite.api.SelectClasses;
 import org.junit.platform.suite.api.Suite;
 
 /**
- * Test Suite configuration for VW-454 Regression Tests.
+ * Test Suite for VW-454 Regression.
+ * Groups the Cucumber steps for execution.
  */
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features/VW-454.feature")
-@Cucumber
+@SelectClasses(VW454Steps.class)
 public class VW454TestSuite {
-    // Suite configuration
+    // Suite class to run the tests
 }

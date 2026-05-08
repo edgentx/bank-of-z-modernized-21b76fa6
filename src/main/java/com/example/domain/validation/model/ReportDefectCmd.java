@@ -1,14 +1,12 @@
 package com.example.domain.validation.model;
 
 import com.example.domain.shared.Command;
+import java.time.Instant;
 
-/**
- * Command to report a defect via the VForce360 diagnostic workflow.
- * Part of Story S-FB-1: Validating VW-454.
- */
 public record ReportDefectCmd(
-        String defectId,
-        String description,
-        String severity,
-        String githubUrl
+    String validationId,
+    String title,
+    Severity severity,
+    String component,
+    Instant occurredAt
 ) implements Command {}

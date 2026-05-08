@@ -1,27 +1,27 @@
 package com.example.config;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import com.example.ports.SlackNotificationPort;
+import com.example.mocks.InMemorySlackNotificationPort;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 /**
- * Configuration properties for Slack integration.
- * Supports customization of the message template and link behavior.
+ * Configuration for Slack Notification adapters.
+ * Defaults to the InMemory implementation if no specific real adapter is configured.
  */
 @Configuration
-@ConfigurationProperties(prefix = "slack")
 public class SlackConfig {
 
     /**
-     * Template used to format the message body.
-     * Supported placeholders: {title}, {url}
+     * Provides the InMemory (Mock) adapter.
+     * This is the default bean, allowing tests to run without real network calls.
+     * The 'real' adapter is loaded via @ConditionalOnProperty in its own class definition.
      */
-    private String messageTemplate = "Defect Reported: {title}\nLink: <{url}|View Issue>";
-
-    public String getMessageTemplate() {
-        return messageTemplate;
-    }
-
-    public void setMessageTemplate(String messageTemplate) {
-        this.messageTemplate = messageTemplate;
+    @Bean
+    @ConditionalOnMissingBean
+    public SlackNotificationPort slackNotificationPort() {
+        return new InMemorySlackNotificationPort();
     }
 }

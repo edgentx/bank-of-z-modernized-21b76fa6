@@ -3,10 +3,10 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
 /**
- * Event emitted when a teller session is successfully started.
+ * Event emitted when a Teller session is successfully started.
  */
 public record SessionStartedEvent(
         String aggregateId,
@@ -14,16 +14,18 @@ public record SessionStartedEvent(
         String terminalId,
         Instant occurredAt
 ) implements DomainEvent {
-
     public SessionStartedEvent {
-        Objects.requireNonNull(aggregateId, "aggregateId cannot be null");
-        Objects.requireNonNull(tellerId, "tellerId cannot be null");
-        Objects.requireNonNull(terminalId, "terminalId cannot be null");
-        Objects.requireNonNull(occurredAt, "occurredAt cannot be null");
+        // Validation for strict correctness
+        if (aggregateId == null || aggregateId.isBlank()) throw new IllegalArgumentException("aggregateId required");
+        if (occurredAt == null) occurredAt = Instant.now();
     }
 
     @Override
     public String type() {
         return "session.started";
+    }
+
+    public static SessionStartedEvent create(String aggregateId, String tellerId, String terminalId) {
+        return new SessionStartedEvent(aggregateId, tellerId, terminalId, Instant.now());
     }
 }

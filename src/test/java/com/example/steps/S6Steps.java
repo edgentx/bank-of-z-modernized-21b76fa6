@@ -1,8 +1,9 @@
 package com.example.steps;
 
-import com.example.domain.account.model.*;
+import com.example.domain.account.model.AccountAggregate;
+import com.example.domain.account.model.AccountStatusUpdatedEvent;
+import com.example.domain.account.model.UpdateAccountStatusCmd;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -15,79 +16,81 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class S6Steps {
 
-    // Context variables
     private AccountAggregate account;
-    private String providedAccountNumber;
-    private AccountStatus providedNewStatus;
+    private Exception caughtException;
     private List<DomainEvent> resultEvents;
-    private Exception thrownException;
-
-    // Constants for testing
-    private static final BigDecimal MIN_BALANCE = new BigDecimal("100.00");
+    private String testAccountNumber;
+    private AccountAggregate.AccountStatus testNewStatus;
 
     @Given("a valid Account aggregate")
-    public void aValidAccountAggregate() {
-        // Setup: Account Number, Active Status, Balance > Min, Min Balance
-        this.account = new AccountAggregate("ACC-123", AccountStatus.ACTIVE, new BigDecimal("500.00"), MIN_BALANCE);
+    public void a_valid_account_aggregate() {
+        account = new AccountAggregate("acct-123");
+        account.setAccountNumber("ACC-001");
+        account.setStatus(AccountAggregate.AccountStatus.ACTIVE);
+        account.setBalance(BigDecimal.valueOf(1000));
+    }
+
+    @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
+    public void a_account_aggregate_that_violates_balance() {
+        account = new AccountAggregate("acct-low-balance");
+        account.setAccountNumber("ACC-LOW");
+        account.setStatus(AccountAggregate.AccountStatus.ACTIVE);
+        account.setBalance(BigDecimal.valueOf(10)); // Assumed below minimum for this type
+    }
+
+    @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
+    public void a_account_aggregate_that_violates_status() {
+        account = new AccountAggregate("acct-inactive");
+        account.setAccountNumber("ACC-INACTIVE");
+        account.setStatus(AccountAggregate.AccountStatus.FROZEN);
+        account.setBalance(BigDecimal.valueOf(1000));
+    }
+
+    @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
+    public void a_account_aggregate_that_violates_immutability() {
+        account = new AccountAggregate("acct-immutable");
+        account.setAccountNumber("ACC-ORIG");
+        account.setStatus(AccountAggregate.AccountStatus.ACTIVE);
     }
 
     @And("a valid accountNumber is provided")
-    public void aValidAccountNumberIsProvided() {
-        this.providedAccountNumber = "ACC-123";
+    public void a_valid_account_number_is_provided() {
+        this.testAccountNumber = "ACC-001";
     }
 
     @And("a valid newStatus is provided")
-    public void aValidNewStatusIsProvided() {
-        this.providedNewStatus = AccountStatus.FROZEN;
+    public void a_valid_new_status_is_provided() {
+        this.testNewStatus = AccountAggregate.AccountStatus.FROZEN;
     }
 
     @When("the UpdateAccountStatusCmd command is executed")
-    public void theUpdateAccountStatusCmdCommandIsExecuted() {
+    public void the_update_account_status_cmd_command_is_executed() {
         try {
-            var cmd = new UpdateAccountStatusCmd(providedAccountNumber, providedNewStatus);
+            // If scenarios didn't explicitly set these in 'And', set defaults for the command
+            if (testAccountNumber == null) testAccountNumber = account.getAccountNumber();
+            if (testNewStatus == null) testNewStatus = AccountAggregate.AccountStatus.FROZEN;
+
+            UpdateAccountStatusCmd cmd = new UpdateAccountStatusCmd(account.id(), testAccountNumber, testNewStatus);
             resultEvents = account.execute(cmd);
         } catch (Exception e) {
-            thrownException = e;
+            caughtException = e;
         }
     }
 
     @Then("a account.status.updated event is emitted")
-    public void aAccountStatusUpdatedEventIsEmitted() {
-        assertNull(thrownException, "Should not have thrown an exception");
-        assertNotNull(resultEvents, "Events list should not be null");
-        assertEquals(1, resultEvents.size(), "Should emit exactly one event");
-        assertTrue(resultEvents.get(0) instanceof AccountStatusUpdatedEvent, "Event should be AccountStatusUpdatedEvent");
-    }
-
-    // --- Negative Scenarios ---
-
-    @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
-    public void aAccountAggregateThatViolatesBalance() {
-        // Balance 50, Min 100. Trying to close (requires balance check in command logic per AC)
-        this.account = new AccountAggregate("ACC-LOW", AccountStatus.ACTIVE, new BigDecimal("50.00"), MIN_BALANCE);
-        this.providedAccountNumber = "ACC-LOW";
-        this.providedNewStatus = AccountStatus.CLOSED; // Closing triggers balance check
-    }
-
-    @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
-    public void aAccountAggregateThatViolatesStatus() {
-        // Status is FROZEN, trying to update
-        this.account = new AccountAggregate("ACC-FRZ", AccountStatus.FROZEN, new BigDecimal("500.00"), MIN_BALANCE);
-        this.providedAccountNumber = "ACC-FRZ";
-        this.providedNewStatus = AccountStatus.CLOSED;
-    }
-
-    @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
-    public void aAccountAggregateThatViolatesImmutableNumber() {
-        this.account = new AccountAggregate("ACC-ORIG", AccountStatus.ACTIVE, new BigDecimal("500.00"), MIN_BALANCE);
-        this.providedAccountNumber = "ACC-FAKE"; // Mismatch
-        this.providedNewStatus = AccountStatus.FROZEN;
+    public void a_account_status_updated_event_is_emitted() {
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof AccountStatusUpdatedEvent);
+        AccountStatusUpdatedEvent event = (AccountStatusUpdatedEvent) resultEvents.get(0);
+        assertEquals("account.status.updated", event.type());
+        assertEquals(testNewStatus, event.newStatus());
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(thrownException, "Exception should be thrown");
-        // We accept IllegalStateException or IllegalArgumentException as domain errors
-        assertTrue(thrownException instanceof IllegalStateException || thrownException instanceof IllegalArgumentException);
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(caughtException);
+        // In a real app, might be a specific DomainException, but RuntimeException or IllegalStateException is fine for this level
+        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
     }
 }

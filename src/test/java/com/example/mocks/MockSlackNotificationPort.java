@@ -1,33 +1,51 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to Slack for verification.
+ * Records messages posted to channels to verify behavior without real I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static final String DEFAULT_CHANNEL = "#vforce360-issues";
+    public static class PostedMessage {
+        public final String channel;
+        public final String body;
 
-    public record MessageRequest(String channelId, String body) {}
+        public PostedMessage(String channel, String body) {
+            this.channel = channel;
+            this.body = body;
+        }
+    }
 
-    private final List<MessageRequest> messages = new ArrayList<>();
+    private final List<PostedMessage> postedMessages = new ArrayList<>();
 
     @Override
-    public void sendMessage(String channelId, String messageBody) {
-        messages.add(new MessageRequest(channelId, messageBody));
+    public void postMessage(String channel, String body) {
+        this.postedMessages.add(new PostedMessage(channel, body));
     }
 
-    public List<MessageRequest> getMessages() {
-        return messages;
+    public List<PostedMessage> getPostedMessages() {
+        return postedMessages;
     }
 
-    public String getLastMessageBody() {
-        if (messages.isEmpty()) return null;
-        return messages.get(messages.size() - 1).body();
+    /**
+     * Helper to verify if a message was posted to a specific channel.
+     */
+    public boolean wasPostedTo(String channel) {
+        return postedMessages.stream().anyMatch(m -> m.channel.equals(channel));
+    }
+
+    /**
+     * Helper to find the last message body sent to a specific channel.
+     */
+    public String getLastBodyForChannel(String channel) {
+        return postedMessages.stream()
+                .filter(m -> m.channel.equals(channel))
+                .reduce((a, b) -> b)
+                .map(m -> m.body)
+                .orElse(null);
     }
 }

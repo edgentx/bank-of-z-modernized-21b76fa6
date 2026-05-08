@@ -1,5 +1,4 @@
 Feature: Implement StartSessionCmd on TellerSession (user-interface-navigation)
-
   Feature: StartSessionCmd
 
     Scenario: Successfully execute StartSessionCmd

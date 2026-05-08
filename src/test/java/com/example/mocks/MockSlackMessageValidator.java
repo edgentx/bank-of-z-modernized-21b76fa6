@@ -3,25 +3,15 @@ package com.example.mocks;
 import com.example.domain.shared.SlackMessageValidator;
 
 /**
- * Mock implementation of SlackMessageValidator for testing purposes.
- * Can be configured to return true/false based on test needs.
+ * Mock adapter for SlackMessageValidator.
+ * Used in tests to simulate Slack validation logic without external calls.
  */
 public class MockSlackMessageValidator implements SlackMessageValidator {
 
-    private boolean shouldPass;
-
-    public MockSlackMessageValidator(boolean shouldPass) {
-        this.shouldPass = shouldPass;
-    }
-
     @Override
-    public boolean isValid(String messageBody) {
-        // Basic mock behavior: return configured boolean.
-        // A real implementation might check for substrings, but for tests, we control the outcome.
-        return this.shouldPass;
-    }
-
-    public void setShouldPass(boolean shouldPass) {
-        this.shouldPass = shouldPass;
+    public boolean containsGitHubIssueUrl(String messageBody) {
+        if (messageBody == null) return false;
+        // Simple heuristic for a valid GitHub URL
+        return messageBody.contains("https://github.com/") || messageBody.contains("http://github.com/");
     }
 }

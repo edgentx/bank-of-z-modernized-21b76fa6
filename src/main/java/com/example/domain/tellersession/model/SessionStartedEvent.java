@@ -5,14 +5,24 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-public record SessionStartedEvent(
-    String aggregateId,
-    String tellerId,
-    String terminalId,
-    Instant occurredAt
-) implements DomainEvent {
-    public SessionStartedEvent {
-        // Ensure occurredAt is set if not provided, though here we enforce it at construction site
+/**
+ * Domain event published when a teller session is successfully started.
+ * S-18: session.started
+ */
+public class SessionStartedEvent implements DomainEvent {
+
+    private final String aggregateId;
+    private final String tellerId;
+    private final String terminalId;
+    private final String navigationContext;
+    private final Instant occurredAt;
+
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, String navigationContext, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.tellerId = tellerId;
+        this.terminalId = terminalId;
+        this.navigationContext = navigationContext;
+        this.occurredAt = occurredAt;
     }
 
     @Override
@@ -29,4 +39,8 @@ public record SessionStartedEvent(
     public Instant occurredAt() {
         return occurredAt;
     }
+
+    public String tellerId() { return tellerId; }
+    public String terminalId() { return terminalId; }
+    public String navigationContext() { return navigationContext; }
 }

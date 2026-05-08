@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 public record OpenAccountCmd(
     String accountId,
     String customerId,
-    String accountType,
+    AccountAggregate.AccountType accountType,
     BigDecimal initialDeposit,
     String sortCode
 ) implements Command {}

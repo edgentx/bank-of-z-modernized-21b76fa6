@@ -1,76 +1,76 @@
 package com.example.steps;
 
 import com.example.domain.validation.model.ReportDefectCmd;
-import com.example.domain.validation.model.ValidationAggregate;
-import com.example.mocks.MockGithubAdapter;
-import com.example.mocks.MockSlackNotifier;
-import com.example.ports.GithubPort;
-import com.example.ports.SlackNotifier;
-import io.cucumber.java.en.Given;
-import io.cucumber.java.en.When;
-import io.cucumber.java.en.Then;
+import com.example.domain.validation.service.DefectReportService;
+import com.example.mocks.MockSlackNotificationPort;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * BDD Steps for defect VW-454.
- * Validates that when a defect is reported, the resulting Slack notification
- * contains the URL to the created GitHub issue.
+ * Regression Test for VW-454.
+ * Verifies that when a defect is reported, the Slack notification body
+ * includes the GitHub issue URL.
  */
 public class VW454ValidationSteps {
 
-    private ValidationAggregate validationAggregate;
-    private MockGithubAdapter githubAdapter;
-    private MockSlackNotifier slackNotifier;
+    private MockSlackNotificationPort slackPort;
+    private DefectReportService defectReportService;
 
-    // Constants derived from the story/project context
-    private final String VALIDATION_ID = "vw-454-validation";
-    private final String EXPECTED_GITHUB_URL = "https://github.com/egdcrypto-bank-of-z/issues/454";
-
-    @Given("a validation workflow is triggered for defect VW-454")
-    public void a_validation_workflow_is_triggered() {
-        validationAggregate = new ValidationAggregate(VALIDATION_ID);
-        
-        // Inject Mocks
-        githubAdapter = new MockGithubAdapter();
-        githubAdapter.setMockUrl(EXPECTED_GITHUB_URL);
-        
-        slackNotifier = new MockSlackNotifier();
+    @BeforeEach
+    public void setUp() {
+        // Initialize Mock Adapter
+        slackPort = new MockSlackNotificationPort();
+        // Initialize Service with mock dependencies
+        defectReportService = new DefectReportService(slackPort);
     }
 
-    @When("the defect report is processed via temporal-worker exec")
-    public void the_defect_report_is_processed() {
-        // Simulate the temporal worker execution:
-        // 1. Logic would call GithubAdapter to create an issue
-        String createdUrl = githubAdapter.createIssue("VW-454 Defect", "Body content");
-        
-        // 2. Logic would command the Validation Aggregate with the result
-        // (Assuming the Command includes the URL returned from Github)
-        ReportDefectCmd cmd = new ReportDefectCmd(VALIDATION_ID, createdUrl);
-        
-        // 3. Execute command
-        validationAggregate.execute(cmd);
-        
-        // 4. Logic would format and send Slack notification
-        String messageBody = String.format(
-            "Validation complete. Issue created: %s", 
-            validationAggregate.getGithubIssueUrl()
+    @Test
+    public void testReportDefect_ShouldContainGitHubUrl() {
+        // Given
+        String defectId = "VW-454";
+        String title = "GitHub URL in Slack body (end-to-end)";
+        String expectedUrl = "https://github.com/example/issues/" + defectId;
+
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            defectId,
+            title,
+            "Slack body includes GitHub issue link",
+            "LOW",
+            "validation"
         );
-        slackNotifier.send(messageBody);
+
+        // When
+        defectReportService.report(cmd);
+
+        // Then
+        String actualBody = slackPort.getLastMessageBody();
+        assertNotNull(actualBody, "Slack body should not be null");
+        
+        // Strict assertion for the URL presence
+        assertTrue(
+            actualBody.contains(expectedUrl),
+            "Slack body must contain the GitHub issue URL: " + expectedUrl + "\nActual: " + actualBody
+        );
     }
 
-    @Then("the Slack body contains the GitHub issue link")
-    public void the_slack_body_contains_github_link() {
-        // Verify: The mock adapter should have received the message
-        String sentMessage = slackNotifier.getLastMessage();
-        
-        assertNotNull(sentMessage, "Slack should have received a message");
-        assertTrue(
-            sentMessage.contains(EXPECTED_GITHUB_URL), 
-            "Slack body must contain the specific GitHub Issue URL"
+    @Test
+    public void testReportDefect_SlackBodyShouldContainPrefix() {
+        // Given
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            "VW-454",
+            "Test Defect",
+            "Checking URL format",
+            "LOW",
+            "validation"
         );
-        assertTrue(
-            sentMessage.contains("github.com"),
-            "Slack body must contain a github.com domain"
-        );
+
+        // When
+        defectReportService.report(cmd);
+
+        // Then
+        String actualBody = slackPort.getLastMessageBody();
+        assertTrue(actualBody.contains("GitHub issue:"), "Body should indicate the context of the URL");
     }
 }

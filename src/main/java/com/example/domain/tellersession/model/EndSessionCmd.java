@@ -1,9 +1,10 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
+import java.util.UUID;
 
 /**
- * Command to terminate an active teller session.
- * Corresponds to Story S-20.
+ * Command to end a teller session.
  */
-public record EndSessionCmd(String sessionId) implements Command {}
+public record EndSessionCmd(UUID sessionId, String tellerId) implements Command {
+}

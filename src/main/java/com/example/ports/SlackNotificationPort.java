@@ -1,17 +1,17 @@
 package com.example.ports;
 
-import com.example.domain.validation.model.SlackNotificationPostedEvent;
-
 /**
  * Port interface for sending Slack notifications.
- * This decouples the domain logic from the specific Slack client implementation.
+ * Used to decouple the domain logic from the specific Slack implementation.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends the event payload to the configured Slack channel.
+     * Sends a notification message to a configured Slack channel.
      *
-     * @param event The domain event containing the message body and metadata.
+     * @param channel The target channel (e.g. "#vforce360-issues").
+     * @param messageBody The content of the message.
+     * @return true if sending was considered successful, false otherwise.
      */
-    void send(SlackNotificationPostedEvent event);
+    boolean send(String channel, String messageBody);
 }

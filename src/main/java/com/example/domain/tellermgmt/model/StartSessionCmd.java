@@ -2,14 +2,14 @@ package com.example.domain.tellermgmt.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.Objects;
-
 /**
- * Command to initiate a new Teller Session.
- * Assumes prior authentication checks have passed or are verified during execution.
+ * Command to initiate a Teller Session.
+ * Validated invariants: Authentication (valid tellerId), Context (valid terminalId).
  */
-public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {
+public record StartSessionCmd(String aggregateId, String tellerId, String terminalId) implements Command {
     public StartSessionCmd {
-        Objects.requireNonNull(sessionId, "sessionId must not be null");
+        if (aggregateId == null || aggregateId.isBlank()) throw new IllegalArgumentException("aggregateId required");
+        if (tellerId == null || tellerId.isBlank()) throw new IllegalArgumentException("tellerId required");
+        if (terminalId == null || terminalId.isBlank()) throw new IllegalArgumentException("terminalId required");
     }
 }

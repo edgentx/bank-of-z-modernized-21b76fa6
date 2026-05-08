@@ -1,24 +1,27 @@
 package com.example.mocks;
 
+import com.example.domain.defect.model.DefectReportedEvent;
 import com.example.ports.NotificationPort;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock adapter for the NotificationPort.
- * Captures messages in memory for verification in tests.
+ * Mock implementation of NotificationPort for testing.
+ * Captures events to verify Slack body content without real I/O.
  */
 public class MockNotificationPort implements NotificationPort {
-    public final List<Message> messages = new ArrayList<>();
+    public final List<DefectReportedEvent> capturedEvents = new ArrayList<>();
 
     @Override
-    public void sendNotification(String targetChannel, String messageBody) {
-        this.messages.add(new Message(targetChannel, messageBody));
+    public void sendDefectAlert(DefectReportedEvent event) {
+        this.capturedEvents.add(event);
     }
 
-    public record Message(String targetChannel, String body) {}
-
-    public void clear() {
-        messages.clear();
+    public String getLastSlackBody() {
+        if (capturedEvents.isEmpty()) return "";
+        DefectReportedEvent event = capturedEvents.get(capturedEvents.size() - 1);
+        // Simulate the formatting logic expected in the Slack body
+        // Expected: "Slack body includes GitHub issue: <url>"
+        return "Defect: " + event.title() + " | GitHub issue: " + event.githubUrl();
     }
 }

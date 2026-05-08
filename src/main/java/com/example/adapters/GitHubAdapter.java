@@ -1,30 +1,50 @@
 package com.example.adapters;
 
 import com.example.ports.GitHubPort;
-import org.springframework.stereotype.Component;
-
-import java.util.UUID;
+import org.springframework.web.client.RestClient;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 
 /**
- * Real implementation of GitHubPort.
- * This would normally use HTTP client (e.g., WebClient or OkHttp) to call the GitHub API.
- * For the scope of this defect fix, we focus on the interface contract.
+ * Real implementation of GitHubPort using Spring RestClient.
  */
-@Component
 public class GitHubAdapter implements GitHubPort {
 
-    private final String repositoryUrl;
+    private final RestClient restClient;
+    private static final String API_URL = "https://api.github.com/repos/bank-of-z/core/issues";
 
-    public GitHubAdapter() {
-        // In a real app, this comes from application.properties
-        this.repositoryUrl = "https://github.com/bank-of-z/vforce360/issues/";
+    public GitHubAdapter(RestClient.Builder restClientBuilder) {
+        // In a real scenario, authorization tokens and specific config
+        // would be injected here.
+        this.restClient = restClientBuilder
+            .baseUrl(API_URL)
+            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .build();
     }
 
     @Override
     public String createIssue(String title, String body) {
-        // TODO: Implement actual HTTP POST to GitHub API using WebClient.
-        // Return a predictable mock URL format based on the repository URL.
-        // This satisfies the contract without requiring a live API key for the unit test context.
-        return repositoryUrl + UUID.randomUUID();
+        // Request DTO
+        record CreateIssueRequest(String title, String body) {}
+
+        try {
+            // Response DTO (extracting HTML_URL from GitHub response)
+            // GitHub response: {"html_url": "https://github.com/...", "id": 1, ...}
+            record GitHubIssueResponse(String html_url) {}
+
+            ResponseEntity<GitHubIssueResponse> response = restClient.post()
+                .body(new CreateIssueRequest(title, body))
+                .retrieve()
+                .toEntity(GitHubIssueResponse.class);
+
+            if (response.getBody() != null && response.getBody().html_url() != null) {
+                return response.getBody().html_url();
+            }
+            throw new GitHubException("Invalid response from GitHub API", null);
+
+        } catch (Exception e) {
+            throw new GitHubException("Failed to create GitHub issue", e);
+        }
     }
 }

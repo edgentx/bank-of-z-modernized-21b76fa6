@@ -3,18 +3,18 @@ package com.example.domain.userinterface.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Map;
 
+/**
+ * Event emitted when a screen is successfully rendered.
+ */
 public record ScreenRenderedEvent(
         String aggregateId,
         String screenId,
         String deviceType,
+        String layout,
         Instant occurredAt
 ) implements DomainEvent {
-    public ScreenRenderedEvent {
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
-        if (occurredAt == null) occurredAt = Instant.now();
-    }
 
     @Override
     public String type() {

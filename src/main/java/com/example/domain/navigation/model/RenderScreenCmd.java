@@ -1,11 +1,6 @@
 package com.example.domain.navigation.model;
 
 import com.example.domain.shared.Command;
+import java.util.Map;
 
-public record RenderScreenCmd(
-    String aggregateId,
-    String screenId,
-    String deviceType,
-    String layoutMetadata,
-    java.util.Map<String, Object> inputData
-) implements Command {}
+public record RenderScreenCmd(String screenMapId, String screenId, String deviceType, Map<String, String> fields) implements Command {}

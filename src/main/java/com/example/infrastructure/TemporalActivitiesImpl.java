@@ -15,9 +15,8 @@ public class TemporalActivitiesImpl {
     }
 
     public String generateSlackBody(String title, String url) {
-        // Simulate logic that might fail VW-454
-        String body = "Issue: " + title + " - " + url;
-        return body;
+        // Logic included to ensure the URL is in the body
+        return "Defect: " + title + " - Link: <" + url + ">";
     }
 
     public void sendSlackNotification(String message) {

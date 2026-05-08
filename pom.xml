@@ -9,30 +9,42 @@
         <version>3.2.0</version>
         <relativePath/>
     </parent>
+    
     <groupId>com.example</groupId>
     <artifactId>legacy-bridge</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>Legacy Bridge</name>
-    <description>Demo project for Spring Boot and Legacy Integration</description>
-
+    <version>1.0.0-SNAPSHOT</version>
+    <name>Legacy Bridge Domain</name>
+    <description>Bank of Z Modernization - Legacy Bridge Layer</description>
+    
     <properties>
         <java.version>17</java.version>
         <cucumber.version>7.14.0</cucumber.version>
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Dependencies (Managed by BOM) -->
+        <!-- Spring Boot Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- Testing Dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <!-- Cucumber Dependencies (Explicit Version required) -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite</artifactId>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- Cucumber Dependencies -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
@@ -46,8 +58,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-suite</artifactId>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-spring</artifactId>
+            <version>${cucumber.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -66,7 +79,11 @@
                     <target>17</target>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M5</version>
+            </plugin>
         </plugins>
     </build>
-
 </project>

@@ -1,8 +1,9 @@
 package com.example.domain.account.model;
 
+/**
+ * Account Status enumeration.
+ */
 public enum AccountStatus {
     ACTIVE,
-    DORMANT,
-    CLOSED,
-    FROZEN
+    CLOSED
 }

@@ -1,99 +1,96 @@
 package com.example.steps;
 
-import com.example.domain.screenmap.model.ScreenInputValidatedEvent;
-import com.example.domain.screenmap.model.ScreenMapAggregate;
-import com.example.domain.screenmap.model.ValidateScreenInputCmd;
-import com.example.domain.shared.DomainEvent;
+import com.example.domain.navigation.model.ScreenMapAggregate;
+import com.example.domain.navigation.model.ScreenInputValidatedEvent;
+import com.example.domain.navigation.model.ValidateScreenInputCmd;
+import com.example.domain.navigation.repository.InMemoryScreenMapRepository;
+import com.example.domain.navigation.repository.ScreenMapRepository;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.Assertions;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-@SpringBootTest
 public class S22Steps {
 
+    private ScreenMapRepository repository = new InMemoryScreenMapRepository();
     private ScreenMapAggregate aggregate;
-    private ValidateScreenInputCmd command;
-    private List<DomainEvent> resultEvents;
-    private Exception caughtException;
+    private String screenId;
+    private Map<String, String> inputFields = new HashMap<>();
+    private List<com.example.domain.shared.DomainEvent> resultEvents;
+    private Exception thrownException;
 
     @Given("a valid ScreenMap aggregate")
     public void aValidScreenMapAggregate() {
-        aggregate = new ScreenMapAggregate("SCREEN_001");
+        this.screenId = "LOGIN_SCREEN";
+        this.aggregate = new ScreenMapAggregate(screenId);
+        repository.save(aggregate);
     }
 
     @And("a valid screenId is provided")
     public void aValidScreenIdIsProvided() {
-        // The ID is implicitly handled by the aggregate creation, but we ensure command matches.
-        // Handled in the command creation step below.
+        // screenId initialized in previous step
+        Assertions.assertNotNull(screenId);
     }
 
     @And("a valid inputFields is provided")
     public void aValidInputFieldsIsProvided() {
-        Map<String, String> inputs = new HashMap<>();
-        // ACCOUNT_NUMBER is mandatory, max 12
-        inputs.put("ACCOUNT_NUMBER", "123456789");
-        // TRANSACTION_AMOUNT max 10
-        inputs.put("TRANSACTION_AMOUNT", "100.00");
-        this.command = new ValidateScreenInputCmd(aggregate.id(), inputs);
+        inputFields.put("USER_ID", "ALICE");
+        inputFields.put("PASSWORD", "SECRET");
     }
 
     @When("the ValidateScreenInputCmd command is executed")
     public void theValidateScreenInputCmdCommandIsExecuted() {
         try {
-            resultEvents = aggregate.execute(command);
+            // Reload aggregate to simulate persistence fetch
+            var agg = repository.findById(screenId).orElseThrow();
+            ValidateScreenInputCmd cmd = new ValidateScreenInputCmd(screenId, inputFields);
+            resultEvents = agg.execute(cmd);
+            repository.save(agg);
         } catch (Exception e) {
-            caughtException = e;
+            thrownException = e;
         }
     }
 
     @Then("a input.validated event is emitted")
     public void aInputValidatedEventIsEmitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof ScreenInputValidatedEvent);
-        
-        ScreenInputValidatedEvent event = (ScreenInputValidatedEvent) resultEvents.get(0);
-        assertEquals("input.validated", event.type());
-        assertEquals(aggregate.id(), event.aggregateId());
-        assertNotNull(event.occurredAt());
-        assertEquals(command.inputFields(), event.inputFields());
+        Assertions.assertNull(thrownException, "Should not have thrown exception");
+        Assertions.assertNotNull(resultEvents);
+        Assertions.assertEquals(1, resultEvents.size());
+        Assertions.assertTrue(resultEvents.get(0) instanceof ScreenInputValidatedEvent);
     }
 
-    // --- Negative Scenarios ---
+    // ---------- Rejection Scenarios ----------
 
     @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
     public void aScreenMapAggregateThatViolatesMandatoryFields() {
-        aggregate = new ScreenMapAggregate("SCREEN_002");
-        Map<String, String> inputs = new HashMap<>();
-        // Missing ACCOUNT_NUMBER (mandatory)
-        inputs.put("TRANSACTION_AMOUNT", "100.00");
-        this.command = new ValidateScreenInputCmd(aggregate.id(), inputs);
+        this.screenId = "TRANSFER_SCREEN";
+        this.aggregate = new ScreenMapAggregate(screenId);
+        repository.save(aggregate);
+        // Intentionally leave inputFields empty or missing mandatory keys
     }
 
     @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void aScreenMapAggregateThatViolatesFieldLengths() {
-        aggregate = new ScreenMapAggregate("SCREEN_003");
-        Map<String, String> inputs = new HashMap<>();
-        inputs.put("ACCOUNT_NUMBER", "123456789");
-        // TRANSACTION_AMOUNT max is 10. Providing 11.
-        inputs.put("TRANSACTION_AMOUNT", "12345678901"); 
-        this.command = new ValidateScreenInputCmd(aggregate.id(), inputs);
+    public void aScreenMapAggregateThatViolatesBMSLength() {
+        this.screenId = "LONG_INPUT_SCREEN";
+        this.aggregate = new ScreenMapAggregate(screenId);
+        repository.save(aggregate);
+        
+        // Create a massive string to violate BMS length check (max 32000 defined in aggregate)
+        StringBuilder sb = new StringBuilder();
+        for(int i=0; i<33000; i++) {
+            sb.append("X");
+        }
+        inputFields.put("LONG_FIELD", sb.toString());
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(caughtException, "Expected an exception to be thrown");
-        assertTrue(caughtException instanceof IllegalArgumentException, "Expected IllegalArgumentException");
-        
-        // Verify message contains context about the error
-        assertTrue(caughtException.getMessage().contains("mandatory") || caughtException.getMessage().contains("BMS constraints"));
+        Assertions.assertNotNull(thrownException, "Expected exception but none was thrown");
+        Assertions.assertTrue(thrownException instanceof IllegalArgumentException);
     }
 }

@@ -2,22 +2,15 @@ package com.example.ports;
 
 /**
  * Port for sending Slack notifications.
- * Used to decouple the domain logic from the specific Slack implementation.
+ * This abstraction allows us to mock Slack in tests without external network calls.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends a notification to a Slack channel.
+     * Sends a notification to a configured Slack channel.
      *
-     * @param channel The target channel (e.g. "#vforce360-issues").
-     * @param body    The message body content.
-     * @throws SlackNotificationException if the notification fails.
+     * @param channel The target channel (e.g., "#vforce360-issues")
+     * @param messageBody The content of the message (formatted text)
      */
-    void sendNotification(String channel, String body);
-
-    class SlackNotificationException extends RuntimeException {
-        public SlackNotificationException(String message) {
-            super(message);
-        }
-    }
+    void sendNotification(String channel, String messageBody);
 }

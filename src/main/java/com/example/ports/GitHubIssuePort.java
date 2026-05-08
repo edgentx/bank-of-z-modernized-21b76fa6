@@ -3,17 +3,17 @@ package com.example.ports;
 import java.util.Optional;
 
 /**
- * Port interface for interacting with GitHub issues.
- * Used to decouple the domain logic from the GitHub API client.
+ * Port interface for creating GitHub issues.
+ * Used to abstract the GitHub API client.
  */
 public interface GitHubIssuePort {
 
     /**
-     * Creates a new issue in the configured repository.
+     * Creates a GitHub issue for the given repository and title.
      *
-     * @param title The title of the issue.
-     * @param body The body content of the issue.
+     * @param repo The repository identifier (e.g., "owner/repo").
+     * @param title The issue title.
      * @return An Optional containing the HTML URL of the created issue, or empty if creation failed.
      */
-    Optional<String> createIssue(String title, String body);
+    Optional<String> createIssue(String repo, String title);
 }

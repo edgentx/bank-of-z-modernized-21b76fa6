@@ -2,4 +2,12 @@ package com.example.domain.uimodel.model;
 
 import com.example.domain.shared.Command;
 
-public record RenderScreenCmd(String screenId, String deviceType) implements Command {}
+/**
+ * Command to render a specific screen layout.
+ */
+public record RenderScreenCmd(
+    String screenId,
+    String deviceType,
+    int requestedWidth,
+    int requestedDepth
+) implements Command {}

@@ -1,39 +1,80 @@
 package com.example.adapters;
 
 import com.example.ports.GitHubPort;
+import okhttp3.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.util.Optional;
 
 /**
- * Real implementation of GitHubPort.
- * In a production environment, this would use a WebClient (e.g., OkHttp or RestTemplate)
- * to call the GitHub API.
+ * Default implementation of the GitHub Port.
+ * Uses OkHttp to create issues via GitHub API.
  */
 @Component
 public class GitHubAdapter implements GitHubPort {
 
-    private final String githubApiUrl;
+    private final OkHttpClient client;
+    private final String apiUrl;
+    private final String authToken;
 
-    public GitHubAdapter() {
-        // Default constructor for Spring/Reflection usage
-        this.githubApiUrl = "https://api.github.com";
+    public GitHubAdapter(
+            @Value("${github.api.url}") String apiUrl,
+            @Value("${github.auth.token}") String authToken) {
+        this.apiUrl = apiUrl;
+        this.authToken = authToken;
+        this.client = new OkHttpClient();
     }
 
     @Override
-    public Optional<String> createIssue(String title, String body) {
-        // Implementation Note: This is a stub for the real adapter logic.
-        // Actual implementation would involve:
-        // 1. Constructing a JSON payload.
-        // 2. POSTing to githubApiUrl/repos/{owner}/{repo}/issues.
-        // 3. Parsing the response to extract the HTML URL.
-        // 4. Returning Optional.of(url) or Optional.empty() on failure.
+    public Optional<String> createIssue(String title, String description) {
+        // Construct JSON payload for GitHub Issue API
+        // { "title": "...", "body": "..." }
+        String jsonPayload = "{"
+            + "\"title\": \"" + escape(title) + "\", "
+            + "\"body\": \"" + escape(description) + "\""
+            + "}";
+
+        RequestBody body = RequestBody.create(
+            jsonPayload,
+            MediaType.get("application/json; charset=utf-8")
+        );
+
+        Request request = new Request.Builder()
+            .url(apiUrl)
+            .addHeader("Authorization", "Bearer " + authToken)
+            .addHeader("Accept", "application/vnd.github+json")
+            .post(body)
+            .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (response.isSuccessful() && response.body() != null) {
+                // Parse the HTML URL from the response body
+                // Ideally use Jackson, but doing simple string extraction to avoid extra dependencies/configs
+                String responseBody = response.body().string();
+                String urlKey = "html_url";
+                int urlIndex = responseBody.indexOf(urlKey);
+                if (urlIndex != -1) {
+                    int start = responseBody.indexOf("\"", urlIndex + urlKey.length()) + 1;
+                    int end = responseBody.indexOf("\"", start);
+                    if (end > start) {
+                        return Optional.of(responseBody.substring(start, end));
+                    }
+                }
+                // Fallback if parsing fails but request was 200 OK
+                return Optional.of(apiUrl.replace("/api/v3/repos", "") + "/issues"); // Crude fallback
+            }
+        } catch (IOException e) {
+            // Return empty on failure as per contract
+            return Optional.empty();
+        }
         
-        // For the purpose of defect validation VW-454 in a modernized context,
-        // we assume a successful creation of an issue and return a placeholder URL
-        // derived from the title or body if specific ID parsing isn't available.
-        
-        // Simulating a successful call returning a URL
-        return Optional.of("https://github.com/example/bank/issues/" + System.currentTimeMillis());
+        return Optional.empty();
+    }
+
+    private String escape(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\"").replace("\n", "\\n").replace("\r", "");
     }
 }

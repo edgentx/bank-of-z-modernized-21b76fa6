@@ -1,92 +1,46 @@
 package com.example.domain.teller.model;
 
-import com.example.domain.shared.AggregateRoot;
-import com.example.domain.shared.Command;
-import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.tellersession.model.TellerSessionAggregate;
+import com.example.domain.shared.Aggregate;
 
-import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
+import java.util.UUID;
 
 /**
- * TellerSession Aggregate
- * Manages the state of a teller's interaction with the system.
+ * Legacy Wrapper / facade for the TellerSessionAggregate.
+ * S-18: Exposes the domain logic via legacy-compatible method names.
  */
-public class TellerSession extends AggregateRoot {
+public class TellerSession {
+    private final TellerSessionAggregate aggregate;
 
-    private final String sessionId;
-    private boolean isAuthenticated = false;
-    private boolean isTimedOut = false;
-    private Instant lastActivityAt;
-    private String currentNavigationState;
-
-    // Constructor for a new aggregate
-    public TellerSession(String sessionId) {
-        this.sessionId = sessionId;
-        this.lastActivityAt = Instant.now(); // Defaults to now
-        this.currentNavigationState = "HOME";
+    public TellerSession() {
+        this.aggregate = new TellerSessionAggregate(UUID.randomUUID().toString());
     }
 
-    @Override
-    public String id() {
-        return sessionId;
+    public TellerSession(TellerSessionAggregate aggregate) {
+        this.aggregate = aggregate;
     }
 
-    @Override
-    public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof StartSessionCmd c) {
-            return startSession(c);
-        }
-        throw new UnknownCommandException(cmd);
+    public String getId() {
+        return aggregate.id();
     }
 
-    private List<DomainEvent> startSession(StartSessionCmd cmd) {
-        // Invariant: A teller must be authenticated to initiate a session.
-        // In this domain context, we assume the aggregate holds auth status.
-        if (!isAuthenticated) {
-            throw new IllegalStateException("A teller must be authenticated to initiate a session.");
-        }
-
-        // Invariant: Sessions must timeout after a configured period of inactivity.
-        if (isTimedOut) {
-            throw new IllegalStateException("Sessions must timeout after a configured period of inactivity.");
-        }
-
-        // Invariant: Navigation state must accurately reflect the current operational context.
-        // Example check: Navigation state must be clean/home to start a new session logic, or valid.
-        if (currentNavigationState == null || currentNavigationState.equals("INVALID")) {
-            throw new IllegalStateException("Navigation state must accurately reflect the current operational context.");
-        }
-
-        // Business Logic
-        var event = new SessionStartedEvent(sessionId, cmd.tellerId(), cmd.terminalId(), Instant.now());
-        
-        // Apply state changes
-        // this.isAuthenticated = true; // Already true
-        this.lastActivityAt = event.occurredAt();
-        this.currentNavigationState = "ACTIVE_SESSION";
-
-        addEvent(event);
-        incrementVersion();
-        return List.of(event);
+    public boolean isActive() {
+        return aggregate.isActive();
     }
 
-    // Package-private setters for testing violation scenarios
-    void setUnauthenticated() {
-        this.isAuthenticated = false;
+    public void markAuthenticated() {
+        aggregate.markAuthenticated();
     }
 
-    void setTimedOut() {
-        this.isTimedOut = true;
+    public void startSession(String tellerId, String terminalId) {
+        // Bridge legacy method to new Command pattern
+        var cmd = new com.example.domain.tellersession.model.StartSessionCmd(aggregate.id(), tellerId, terminalId);
+        aggregate.execute(cmd);
     }
 
-    void setInvalidNavigationState() {
-        this.currentNavigationState = "INVALID";
-    }
-
-    public boolean isSessionActive() {
-        return isAuthenticated && !isTimedOut;
+    // Expose underlying aggregate for repository persistence
+    public TellerSessionAggregate getAggregate() {
+        return aggregate;
     }
 }

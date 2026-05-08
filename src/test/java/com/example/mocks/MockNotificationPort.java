@@ -1,21 +1,23 @@
 package com.example.mocks;
 
+import com.example.domain.notification.model.NotificationAggregate;
 import com.example.ports.NotificationPort;
-import java.util.ArrayList;
-import java.util.List;
 
 public class MockNotificationPort implements NotificationPort {
-    public List<String> messages = new ArrayList<>();
-    public String lastChannel;
+    private boolean called = false;
+    private NotificationAggregate lastNotification;
 
     @Override
-    public void send(String channel, String message) {
-        System.out.println("[MOCK] Sending to " + channel + ": " + message);
-        this.lastChannel = channel;
-        this.messages.add(message);
+    public void send(NotificationAggregate notification) {
+        this.called = true;
+        this.lastNotification = notification;
     }
 
-    public String getLastMessage() {
-        return messages.isEmpty() ? null : messages.get(messages.size() - 1);
+    public boolean isCalled() {
+        return called;
+    }
+
+    public NotificationAggregate getLastNotification() {
+        return lastNotification;
     }
 }

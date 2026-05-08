@@ -1,38 +1,33 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Captures messages to verify content without external I/O.
+ * Mock adapter for Slack Notification Port.
+ * Captures messages in memory for verification in tests.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class SentMessage {
-        public final String channel;
-        public final String body;
+    public final List<String> sentMessages = new ArrayList<>();
+    private boolean shouldSucceed = true;
 
-        public SentMessage(String channel, String body) {
-            this.channel = channel;
-            this.body = body;
-        }
+    public void setShouldSucceed(boolean shouldSucceed) {
+        this.shouldSucceed = shouldSucceed;
     }
-
-    private final List<SentMessage> messages = new ArrayList<>();
 
     @Override
-    public void sendMessage(String channel, String body) {
-        // Capture the message data for assertions
-        this.messages.add(new SentMessage(channel, body));
+    public boolean sendNotification(String messageBody) {
+        if (shouldSucceed) {
+            sentMessages.add(messageBody);
+            return true;
+        }
+        return false;
     }
 
-    public List<SentMessage> getMessages() {
-        return new ArrayList<>(messages);
-    }
-
-    public void reset() {
-        messages.clear();
+    public boolean wasCalledWith(String substring) {
+        return sentMessages.stream().anyMatch(msg -> msg.contains(substring));
     }
 }

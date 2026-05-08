@@ -1,22 +1,18 @@
 package com.example.ports;
 
+import java.util.Map;
+
 /**
- * Port interface for sending notifications to Slack.
- * Implementations will handle the actual HTTP webhook calls.
+ * Port for sending notifications to Slack.
+ * Used by the domain logic to decouple from the actual Slack client implementation.
  */
 public interface SlackNotificationPort {
-
     /**
-     * Sends a notification to the configured Slack channel.
+     * Posts a message to the configured Slack channel.
      *
-     * @param messageBody The formatted message body to send.
-     * @throws SlackNotificationException if the notification fails.
+     * @param body The content of the message.
+     * @param metadata Additional context (e.g., issue URLs, timestamps).
+     * @return true if the API accepted the request, false otherwise.
      */
-    void send(String messageBody) throws SlackNotificationException;
-
-    class SlackNotificationException extends RuntimeException {
-        public SlackNotificationException(String message, Throwable cause) {
-            super(message, cause);
-        }
-    }
+    boolean postMessage(String body, Map<String, String> metadata);
 }

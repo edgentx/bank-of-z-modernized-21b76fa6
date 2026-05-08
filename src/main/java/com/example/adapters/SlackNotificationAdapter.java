@@ -1,57 +1,30 @@
 package com.example.adapters;
 
-import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.ports.SlackNotificationPort;
+import com.example.ports.VForce360NotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-
 /**
- * Real implementation of the Slack Notification Port.
- * This adapter is responsible for formatting the Slack message payload
- * ensuring the GitHub URL is present in the body.
+ * Real adapter implementation for VForce360NotificationPort.
+ * In a production environment, this would use a Slack WebClient or similar HTTP client
+ * to post the message to a webhook.
+ * 
+ * For the purpose of this modernization module, we log the action to simulate
+ * the side effect, ensuring the system behavior is verifiable.
  */
 @Component
-public class SlackNotificationAdapter implements SlackNotificationPort {
+public class SlackNotificationAdapter implements VForce360NotificationPort {
 
     private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
-    private static final String CHANNEL = "#vforce360-issues";
 
     @Override
-    public void sendDefectNotification(ReportDefectCmd cmd, URI gitHubIssueUrl) {
-        if (cmd == null) {
-            throw new IllegalArgumentException("ReportDefectCmd cannot be null");
-        }
-        if (gitHubIssueUrl == null) {
-            throw new IllegalArgumentException("GitHub Issue URL cannot be null");
-        }
-
-        log.info("Sending defect notification for project: {}", cmd.projectId());
-
-        // Construct the Slack message body
-        // Fix for VW-454: Ensure the URL is explicitly appended to the body
-        StringBuilder body = new StringBuilder();
-        body.append("*Defect Reported*\n");
-        body.append("Project: ").append(cmd.projectId()).append("\n");
-        body.append("Title: ").append(cmd.title()).append("\n");
-        body.append("Description: ").append(cmd.description()).append("\n");
+    public void reportDefect(String defectId, String message) {
+        // Simulated external call
+        // In production: webClient.post().uri(webhookUrl).body(message).send();
+        log.info("Sending Slack notification for defect {}: [{}], message body: \n{}", defectId, defectId, message);
         
-        // Critical Fix: Append the GitHub Issue URL
-        body.append("GitHub Issue: <").append(gitHubIssueUrl).append("|View Issue>\n");
-
-        // In a real scenario, this would use WebClient or SlackClient to POST to the API
-        // e.g., webClient.post().uri(slackWebhookUrl).body(payload).retrieve();
-        Map<String, Object> payload = Map.of(
-            "channel", CHANNEL,
-            "body", body.toString()
-        );
-
-        log.debug("Prepared Slack payload: {}", payload);
-        
-        // Simulate sending or persisting the event (Async handling would happen here)
+        // Logic to connect to IBM MQ or Temporal activity could go here if required
+        // by the wider architecture, but the Port interface abstracts this away.
     }
 }

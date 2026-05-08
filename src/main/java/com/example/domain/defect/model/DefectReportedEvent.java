@@ -3,15 +3,9 @@ package com.example.domain.defect.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
-/**
- * Domain event emitted when a defect is successfully reported to Slack.
- */
-public record DefectReportedEvent(
-        String defectId,
-        String messageBody,
-        Instant occurredAt
-) implements DomainEvent {
+public record DefectReportedEvent(String aggregateId, String title, String severity, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
         return "DefectReported";
@@ -19,7 +13,7 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return defectId;
+        return aggregateId;
     }
 
     @Override

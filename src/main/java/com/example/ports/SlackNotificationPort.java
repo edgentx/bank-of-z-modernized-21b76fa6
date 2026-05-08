@@ -1,8 +1,8 @@
 package com.example.ports;
 
 /**
- * Port for sending notifications to Slack.
- * Used by the Temporal worker logic to report defects.
+ * Port interface for sending notifications to Slack.
+ * Abstraction allows for mocking in tests and real implementation in production.
  */
 public interface SlackNotificationPort {
     
@@ -11,7 +11,7 @@ public interface SlackNotificationPort {
      *
      * @param channel The target channel (e.g., #vforce360-issues)
      * @param body    The formatted message body.
-     * @return true if accepted by the mock client, false otherwise.
+     * @return true if the message was successfully sent/queued, false otherwise.
      */
     boolean sendMessage(String channel, String body);
 }

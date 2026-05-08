@@ -1,30 +1,29 @@
 package com.example.config;
 
-import com.example.adapters.GitHubAdapter;
-import com.example.adapters.SlackNotificationAdapter;
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackNotificationPort;
+import com.example.mocks.MockSlackAdapter;
+import com.example.mocks.MockTemporalWorkflowAdapter;
+import com.example.ports.SlackPort;
+import com.example.ports.TemporalWorkflowPort;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 
-/**
- * Configuration class to wire up Ports and Adapters.
- */
 @TestConfiguration
 public class PortConfiguration {
-
-    // In a real Spring Boot app, @Component scanning on the Adapters is enough.
-    // This explicit config is often useful for swapping mocks during tests
-    // if @MockBean is not desired.
-
+    
+    // This configuration ensures that the Mock adapters are used within the test context
+    // satisfying the requirement for "Real adapters must implement the same interface" 
+    // while allowing the Mocks defined in the test folder to be injected.
+    
     @Bean
-    public SlackNotificationPort slackNotificationPort() {
-        return new SlackNotificationAdapter();
+    @Primary
+    public SlackPort slackPort(MockSlackAdapter adapter) {
+        return adapter;
     }
 
     @Bean
-    public GitHubPort gitHubPort() {
-        return new GitHubAdapter("https://github.com/fake-repo/issues");
+    @Primary
+    public TemporalWorkflowPort temporalWorkflowPort(MockTemporalWorkflowAdapter adapter) {
+        return adapter;
     }
 }

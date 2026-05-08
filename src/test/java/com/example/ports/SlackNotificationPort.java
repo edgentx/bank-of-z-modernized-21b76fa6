@@ -1,10 +1,7 @@
 package com.example.ports;
 
-import java.util.Map;
-
 /**
  * Port for sending Slack notifications.
- * Used by the VForce360 defect reporting workflow.
  */
 public interface SlackNotificationPort {
     /**

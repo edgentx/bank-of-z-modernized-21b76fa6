@@ -7,11 +7,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 public record StatementGeneratedEvent(
-    String aggregateId,
+    String statementId,
     String accountNumber,
     LocalDate periodEnd,
     BigDecimal openingBalance,
-    BigDecimal closingBalance,
     Instant occurredAt
 ) implements DomainEvent {
     @Override
@@ -21,7 +20,7 @@ public record StatementGeneratedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return statementId;
     }
 
     @Override

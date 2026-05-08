@@ -1,50 +1,44 @@
 package com.example.domain.validation;
 
-import com.example.ports.GitHubIssuePort;
 import com.example.ports.SlackNotificationPort;
-import org.springframework.stereotype.Service;
 
 /**
- * Service implementation for reporting defects.
- * Orchestrates creating a GitHub issue and notifying Slack.
+ * Service to handle defect reporting logic.
+ * This is the System Under Test (SUT).
+ * In a real scenario, this would be called by the Temporal worker activity.
  */
-@Service
 public class ValidationService {
 
-    private final SlackNotificationPort slackPort;
-    private final GitHubIssuePort githubPort;
+    private final SlackNotificationPort slackNotifier;
 
-    public ValidationService(SlackNotificationPort slackPort, GitHubIssuePort githubPort) {
-        this.slackPort = slackPort;
-        this.githubPort = githubPort;
+    public ValidationService(SlackNotificationPort slackNotifier) {
+        this.slackNotifier = slackNotifier;
     }
 
     /**
-     * Reports a defect by creating a GitHub issue and posting a notification to Slack.
-     *
-     * @param id          The defect ID (e.g., "S-FB-1").
-     * @param title       The title of the defect/issue.
-     * @param description Additional description details.
+     * Processes a defect report and sends a notification to Slack.
+     * 
+     * @param defectId The ID of the defect (e.g. "VW-454")
+     * @param githubUrl The URL to the GitHub issue.
      */
-    public void reportDefect(String id, String title, String description) {
-        // 1. Create the issue in GitHub
-        String issueUrl = githubPort.createIssue(title, description);
-
-        // 2. Construct the Slack message body
-        // Requirement: The body must include the GitHub issue URL formatted as <url> for auto-linking.
-        StringBuilder messageBody = new StringBuilder();
-        messageBody.append("Defect Reported: ").append(title).append("\n");
-        messageBody.append("ID: ").append(id).append("\n");
-
-        if (issueUrl != null && !issueUrl.isEmpty()) {
-            // VW-454: Slack link formatting standard
-            messageBody.append("GitHub Issue: <").append(issueUrl).append(">");
-        } else {
-            // Fallback if GitHub creation did not return a URL
-            messageBody.append("GitHub Issue: Link generation pending or failed.");
+    public void reportDefect(String defectId, String githubUrl) {
+        // Construct the Slack message body
+        // Note: In the RED phase, we assume this logic exists or write the test for it.
+        // This implementation is intentionally simplified or incorrect to ensure tests fail initially
+        // or defined as an interface/stub if we are strictly TDDing the class structure.
+        
+        StringBuilder payloadBuilder = new StringBuilder();
+        payloadBuilder.append("{");
+        payloadBuilder.append("\"text\": \"New Defect Reported: ").append(defectId).append("\"");
+        
+        // The bug states that the URL might be missing. 
+        // The test asserts it IS present.
+        if (githubUrl != null) {
+            payloadBuilder.append(", \"details\": \"").append(githubUrl).append("\"");
         }
+        
+        payloadBuilder.append("}");
 
-        // 3. Send the notification
-        slackPort.sendMessage(messageBody.toString());
+        slackNotifier.send(payloadBuilder.toString());
     }
 }

@@ -1,29 +1,19 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
-/**
- * Event published when a teller session is successfully started.
- */
 public record SessionStartedEvent(
-        String aggregateId,
-        String tellerId,
-        String terminalId,
-        Instant occurredAt
+  String aggregateId,
+  String eventType,
+  String tellerId,
+  String terminalId,
+  Instant occurredAt
 ) implements DomainEvent {
-
-    public SessionStartedEvent {
-        Objects.requireNonNull(aggregateId, "aggregateId cannot be null");
-        Objects.requireNonNull(tellerId, "tellerId cannot be null");
-        Objects.requireNonNull(terminalId, "terminalId cannot be null");
-        Objects.requireNonNull(occurredAt, "occurredAt cannot be null");
-    }
-
-    @Override
-    public String type() {
-        return "session.started";
-    }
+  public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
+    this(aggregateId, "SessionStartedEvent", tellerId, terminalId, occurredAt);
+  }
+  @Override public String type() { return eventType; }
+  @Override public String aggregateId() { return aggregateId; }
 }

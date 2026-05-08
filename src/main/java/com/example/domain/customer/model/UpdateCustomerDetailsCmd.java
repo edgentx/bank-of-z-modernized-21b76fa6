@@ -3,13 +3,12 @@ package com.example.domain.customer.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to update customer contact/personal details.
- * S-3: Implement UpdateCustomerDetailsCmd on Customer.
+ * Command to update contact information or personal details for an existing customer.
  */
 public record UpdateCustomerDetailsCmd(
         String customerId,
+        String fullName,
         String emailAddress,
-        String sortCode,
-        String fullName,     // Optional: allows validating "cannot be empty" scenarios
-        String dateOfBirth   // Optional: allows validating DOB scenarios
-) implements Command {}
+        String sortCode
+) implements Command {
+}

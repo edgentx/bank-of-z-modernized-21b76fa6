@@ -1,21 +1,41 @@
 package com.example.config;
 
-import com.example.defect.ReportDefectWorkflow;
-import com.example.ports.GitHubPort;
+import com.example.domain.defect.model.DefectAggregate;
 import com.example.ports.SlackNotificationPort;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Configuration for Defect Reporting components.
- * Instantiates the workflow with available port implementations.
- */
 @Configuration
 public class DefectWorkflowConfig {
 
+    /**
+     * Real-world configuration for Slack Notification Port.
+     * In a real environment, this would inject the production SlackAdapter.
+     * For the purposes of this defect fix, we conditionally wire a mock or real adapter.
+     */
     @Bean
-    public ReportDefectWorkflow reportDefectWorkflow(GitHubPort gitHubPort, SlackNotificationPort slackNotificationPort) {
-        return new ReportDefectWorkflow(gitHubPort, slackNotificationPort);
+    @ConditionalOnProperty(
+        name = "app.slack.provider", 
+        havingValue = "real", 
+        matchIfMissing = false
+    )
+    public SlackNotificationPort realSlackAdapter() {
+        return new com.example.adapters.SlackAdapter();
+    }
+
+    /**
+     * Configuration for the unit test scenario. 
+     * Note: In Spring Boot tests, this bean is often overridden by @MockBean,
+     * but we provide a default noop implementation to prevent startup failures if tests run without mocks.
+     */
+    @Bean
+    @ConditionalOnProperty(
+        name = "app.slack.provider", 
+        havingValue = "mock", 
+        matchIfMissing = true
+    )
+    public SlackNotificationPort mockSlackAdapter() {
+        return new com.example.mocks.MockSlackNotificationPort();
     }
 }

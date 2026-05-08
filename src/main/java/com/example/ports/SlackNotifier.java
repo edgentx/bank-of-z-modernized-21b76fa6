@@ -1,14 +1,15 @@
 package com.example.ports;
 
 /**
- * Port interface for sending notifications to Slack.
- * Used by the Validation Aggregate to externalize side effects.
+ * Port interface for Slack notifications.
+ * Used to decouple the domain logic from the specific Slack implementation.
  */
 public interface SlackNotifier {
-    
     /**
-     * Sends a notification message to a configured Slack channel.
-     * @param messageBody The formatted message to send.
+     * Sends a message to a specific Slack channel.
+     *
+     * @param channel The channel ID or name (e.g., "#vforce360-issues")
+     * @param message The message body
      */
-    void sendNotification(String messageBody);
+    void send(String channel, String message);
 }

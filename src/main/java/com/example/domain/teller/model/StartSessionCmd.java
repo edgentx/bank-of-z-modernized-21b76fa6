@@ -3,12 +3,10 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to initiate a teller session.
- * Context: Story S-18 (Teller Session Management).
+ * Command to initiate a Teller Session.
+ * Part of Story S-18.
  */
 public record StartSessionCmd(
-    String tellerId,
-    String terminalId,
-    boolean isAuthenticated, // Simplified auth flag for testing
-    boolean isTimeoutConfigured
+        String tellerId,
+        String terminalId
 ) implements Command {}

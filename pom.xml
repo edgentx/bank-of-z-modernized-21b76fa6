@@ -9,77 +9,57 @@
         <version>3.2.0</version>
         <relativePath/>
     </parent>
-
+    
     <groupId>com.example</groupId>
     <artifactId>bank-of-z-modernization</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>bank-of-z-modernization</name>
-    <description>Bank of Z Legacy Modernization Track B</description>
-
+    <description>Bank of Z Modernization</description>
+    
     <properties>
         <java.version>17</java.version>
-        <cucumber.version>7.14.0</cucumber.version>
+        <flyway.version>10.10.0</flyway.version>
     </properties>
-
+    
     <dependencies>
-        <!-- Spring Boot Starters -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
+        
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
+        
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-integration</artifactId>
         </dependency>
+
+        <!-- Temporal SDK not in Spring Boot BOM, typically needs explicit version or temporal-spring-boot-starter if available -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-batch</artifactId>
-        </dependency>
-        
-        <!-- Database Drivers -->
-        <dependency>
-            <groupId>com.ibm.db2</groupId>
-            <artifactId>jcc</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        
-        <!-- IBM MQ -->
-        <dependency>
-            <groupId>com.ibm.mq</groupId>
-            <artifactId>com.ibm.mq.allclient</artifactId>
-            <version>9.3.4.0</version>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.jms</groupId>
-            <artifactId>jakarta.jms-api</artifactId>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-spring-boot-starter</artifactId>
+            <version>1.22.0</version>
         </dependency>
 
-        <!-- Redis -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-
-        <!-- MinIO -->
-        <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-            <version>8.5.6</version>
-        </dependency>
-
-        <!-- Flyway -->
+        <!-- Flyway for DB2 (Migration) -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -87,55 +67,50 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-db2</artifactId>
+            <version>${flyway.version}</version>
         </dependency>
 
-        <!-- Temporal -->
+        <!-- IBM MQ & Connect EE stubs (usually local JARs or specific IBM repo, assuming stub provided for compilation) -->
         <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>1.22.3</version>
+            <groupId>com.ibm.mq</groupId>
+            <artifactId>com.ibm.mq.allclient</artifactId>
+            <version>9.3.5.0</version>
         </dependency>
 
-        <!-- OpenTelemetry -->
+        <!-- CICS/IMS Gateway (Assuming dependency for compilation) -->
         <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-otel</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <version>1.32.0</version>
+            <groupId>com.ibm.cics</groupId>
+            <artifactId>com.ibm.cics.server.invocation</artifactId>
+            <version>1.0.0</version> <!-- Placeholder version -->
         </dependency>
 
-        <!-- Testing -->
+        <!-- Testing Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>7.14.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit-platform-engine</artifactId>
+            <version>7.14.0</version>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-java</artifactId>
-            <version>${cucumber.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>${cucumber.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-spring</artifactId>
-            <version>${cucumber.version}</version>
-            <scope>test</scope>
-        </dependency>
+
     </dependencies>
 
     <build>
@@ -146,4 +121,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>

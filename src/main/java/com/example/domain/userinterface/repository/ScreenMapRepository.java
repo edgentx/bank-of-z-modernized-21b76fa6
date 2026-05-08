@@ -6,5 +6,5 @@ import java.util.Optional;
 
 public interface ScreenMapRepository {
     void save(ScreenMapAggregate aggregate);
-    Optional<ScreenMapAggregate> findById(String id);
+    Optional<ScreenMapAggregate> findById(String screenId);
 }

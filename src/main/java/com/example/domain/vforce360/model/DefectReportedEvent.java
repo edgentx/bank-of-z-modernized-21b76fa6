@@ -2,7 +2,6 @@ package com.example.domain.vforce360.model;
 
 import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
-import java.util.UUID;
 
 public record DefectReportedEvent(
     String aggregateId,

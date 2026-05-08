@@ -4,15 +4,14 @@ import com.example.domain.shared.Command;
 import java.time.Instant;
 
 /**
- * Command to initiate a new Teller Session.
- * Contains the necessary authentication and context data.
+ * Command to initiate a teller session following successful authentication.
+ * Accepts primitive types and value objects to avoid coupling to client DTOs.
  */
 public record StartSessionCmd(
-        String sessionId,
         String tellerId,
         String terminalId,
-        boolean authenticated,
-        String initialContext,
-        Instant timestamp
+        boolean isAuthenticated,
+        Instant timestamp,
+        String initialContext
 ) implements Command {
 }

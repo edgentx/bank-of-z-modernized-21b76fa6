@@ -1,64 +1,47 @@
 package com.example.adapters;
 
 import com.example.ports.SlackNotificationPort;
+import com.slack.api.methods.MethodsClient;
+import com.slack.api.methods.SlackApiException;
+import com.slack.api.methods.request.chat.ChatPostMessageRequest;
+import com.slack.api.methods.response.chat.ChatPostMessageResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
+import java.io.IOException;
 
 /**
- * Real adapter for sending notifications to Slack.
- * Uses Java 11+ HttpClient to post messages to a Slack Webhook.
+ * Real adapter for posting messages to Slack.
+ * Uses the official Slack API Client.
  */
-@Component
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
     private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
-    private final HttpClient httpClient;
-    private final String webhookUrl;
+    private final MethodsClient slackMethodsClient;
 
-    public SlackNotificationAdapter(@Value("${slack.webhook.url}") String webhookUrl) {
-        this.webhookUrl = webhookUrl;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
+    public SlackNotificationAdapter(MethodsClient slackMethodsClient) {
+        this.slackMethodsClient = slackMethodsClient;
     }
 
     @Override
-    public void send(String payload) {
-        if (payload == null || payload.isBlank()) {
-            throw new IllegalArgumentException("Payload cannot be empty");
-        }
-
-        // In a real scenario, we might wrap the text in a JSON structure expected by Slack API.
-        // For this defect validation, we are primarily concerned that the text contains the URL.
-        String jsonBody = String.format("{\"text\": \"%s\"}", payload.replace("\"", "\\\""));
+    public boolean postMessage(String channel, String body) {
+        ChatPostMessageRequest request = ChatPostMessageRequest.builder()
+                .channel(channel)
+                .text(body)
+                .build();
 
         try {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(webhookUrl))
-                    .timeout(Duration.ofSeconds(10))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() != 200) {
-                log.error("Slack notification failed with status {}: {}", response.statusCode(), response.body());
-                throw new RuntimeException("Failed to send Slack notification: " + response.statusCode());
+            ChatPostMessageResponse response = slackMethodsClient.chatPostMessage(request);
+            if (response.isOk()) {
+                log.info("Successfully posted message to Slack channel {}", channel);
+                return true;
+            } else {
+                log.error("Failed to post message to Slack: {} - {}", response.getError(), response.getWarning());
+                return false;
             }
-
-            log.info("Slack notification sent successfully.");
-        } catch (Exception e) {
-            log.error("Error sending Slack notification", e);
-            throw new RuntimeException("Slack service unavailable", e);
+        } catch (IOException | SlackApiException e) {
+            log.error("Exception while calling Slack API", e);
+            return false;
         }
     }
 }

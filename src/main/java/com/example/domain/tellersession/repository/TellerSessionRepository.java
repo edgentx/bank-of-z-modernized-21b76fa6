@@ -4,9 +4,6 @@ import com.example.domain.tellersession.model.TellerSessionAggregate;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Repository interface for TellerSessionAggregate.
- */
 public interface TellerSessionRepository {
     void save(TellerSessionAggregate aggregate);
     Optional<TellerSessionAggregate> findById(UUID id);

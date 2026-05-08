@@ -6,15 +6,27 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackPort for testing.
- * Records payloads to verify behavior without calling I/O.
+ * Captures sent messages for verification.
  */
 public class MockSlackPort implements SlackPort {
-    public final List<CapturedCall> calls = new ArrayList<>();
+
+    private final List<String> sentMessages = new ArrayList<>();
 
     @Override
-    public void sendNotification(String webhookUrl, String jsonPayload) {
-        calls.add(new CapturedCall(webhookUrl, jsonPayload));
+    public void sendMessage(String message) {
+        System.out.println("[MockSlack] Sending: " + message);
+        sentMessages.add(message);
     }
 
-    public record CapturedCall(String url, String payload) {}
+    public List<String> getSentMessages() {
+        return new ArrayList<>(sentMessages);
+    }
+
+    public boolean containsMessage(String fragment) {
+        return sentMessages.stream().anyMatch(msg -> msg.contains(fragment));
+    }
+
+    public void reset() {
+        sentMessages.clear();
+    }
 }

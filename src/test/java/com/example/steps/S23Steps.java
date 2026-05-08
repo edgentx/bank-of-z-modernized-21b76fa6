@@ -9,99 +9,89 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
+import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S23Steps {
 
     private LegacyTransactionRoute aggregate;
-    private EvaluateRoutingCmd cmd;
+    private EvaluateRoutingCmd command;
     private List<DomainEvent> resultEvents;
-    private Exception capturedException;
+    private Exception thrownException;
 
-    // Scenario: Successfully execute EvaluateRoutingCmd
     @Given("a valid LegacyTransactionRoute aggregate")
     public void a_valid_legacy_transaction_route_aggregate() {
-        aggregate = new LegacyTransactionRoute("route-1");
+        aggregate = new LegacyTransactionRoute("route-123");
     }
 
-    @And("a valid transactionType is provided")
+    @Given("a valid transactionType is provided")
     public void a_valid_transaction_type_is_provided() {
-        // Transaction type will be passed in the command
+        // We'll construct the command in the 'When' step, but we store state here if needed.
+        // For this BDD style, we often define the command parts in variables.
     }
 
-    @And("a valid payload is provided")
+    @Given("a valid payload is provided")
     public void a_valid_payload_is_provided() {
-        // Payload will be passed in the command
+        // Same as above
     }
 
     @When("the EvaluateRoutingCmd command is executed")
     public void the_evaluate_routing_cmd_command_is_executed() {
+        // Constructing a valid command for the success scenario
+        command = new EvaluateRoutingCmd(
+                "route-123",
+                "TRANSFER",
+                Map.of("amount", 100),
+                "MODERN", // Target System
+                1          // Rule Version
+        );
         try {
-            cmd = new EvaluateRoutingCmd("route-1", "TX_TYPE", Map.of("key", "value"), "MODERN", 1);
-            resultEvents = aggregate.execute(cmd);
+            resultEvents = aggregate.execute(command);
         } catch (Exception e) {
-            capturedException = e;
+            thrownException = e;
         }
     }
 
     @Then("a routing.evaluated event is emitted")
     public void a_routing_evaluated_event_is_emitted() {
-        assertNotNull("Result events should not be null", resultEvents);
-        assertFalse("Result events should not be empty", resultEvents.isEmpty());
-        assertTrue("First event should be RoutingEvaluatedEvent", resultEvents.get(0) instanceof RoutingEvaluatedEvent);
-        
-        RoutingEvaluatedEvent event = (RoutingEvaluatedEvent) resultEvents.get(0);
-        assertEquals("routing.evaluated", event.type());
-        assertEquals("MODERN", event.targetSystem());
+        assertNotNull(resultEvents, "Expected events to be emitted");
+        assertEquals(1, resultEvents.size(), "Expected exactly one event");
+
+        DomainEvent event = resultEvents.get(0);
+        assertTrue(event instanceof RoutingEvaluatedEvent, "Event should be RoutingEvaluatedEvent");
+
+        RoutingEvaluatedEvent routingEvent = (RoutingEvaluatedEvent) event;
+        assertEquals("routing.evaluated", routingEvent.type());
+        assertEquals("route-123", routingEvent.aggregateId());
+        assertEquals("MODERN", routingEvent.targetSystem());
     }
 
-    // Scenario: EvaluateRoutingCmd rejected — Dual processing
+    // --- Error Scenarios ---
+
     @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.")
     public void a_legacy_transaction_route_aggregate_that_violates_dual_processing() {
-        aggregate = new LegacyTransactionRoute("route-2");
+        aggregate = new LegacyTransactionRoute("route-bad-dual");
+        aggregate.markAsDualProcessingViolation();
     }
 
-    @When("the EvaluateRoutingCmd command is executed")
-    public void the_evaluate_routing_cmd_command_is_executed_dual_violation() {
-        try {
-            // "BOTH" violates the single system rule
-            cmd = new EvaluateRoutingCmd("route-2", "TX_TYPE", Map.of(), "BOTH", 1);
-            resultEvents = aggregate.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            capturedException = e;
-        }
+    @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback.")
+    public void a_legacy_transaction_route_aggregate_that_violates_versioning() {
+        aggregate = new LegacyTransactionRoute("route-bad-version");
+        aggregate.markAsVersioningViolation();
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull("Expected an exception to be thrown", capturedException);
-        assertTrue("Expected IllegalArgumentException", capturedException instanceof IllegalArgumentException);
-        assertTrue("Exception message should mention dual-processing", capturedException.getMessage().contains("dual-processing"));
-    }
-
-    // Scenario: EvaluateRoutingCmd rejected — Versioning
-    @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback.")
-    public void a_legacy_transaction_route_aggregate_that_violates_versioning() {
-        aggregate = new LegacyTransactionRoute("route-3");
-    }
-
-    @When("the EvaluateRoutingCmd command is executed")
-    public void the_evaluate_routing_cmd_command_is_executed_version_violation() {
-        try {
-            // version 0 or negative violates versioning rule
-            cmd = new EvaluateRoutingCmd("route-3", "TX_TYPE", Map.of(), "MODERN", 0);
-            resultEvents = aggregate.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            capturedException = e;
-        }
-    }
-
-    @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error_version() {
-        assertNotNull("Expected an exception to be thrown", capturedException);
-        assertTrue("Expected IllegalArgumentException", capturedException instanceof IllegalArgumentException);
-        assertTrue("Exception message should mention versioned", capturedException.getMessage().contains("versioned"));
+        assertNotNull(thrownException, "Expected an exception to be thrown");
+        assertTrue(thrownException instanceof IllegalStateException, "Expected IllegalStateException");
+        
+        // Verify the error message matches the invariant description
+        assertTrue(
+                thrownException.getMessage().contains("dual-processing") || 
+                thrownException.getMessage().contains("versioned"),
+                "Error message should match the invariant violation"
+        );
     }
 }

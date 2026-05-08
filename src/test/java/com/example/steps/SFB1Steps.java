@@ -1,68 +1,68 @@
 package com.example.steps;
 
-import com.example.domain.validation.model.ReportDefectCmd;
-import com.example.domain.validation.model.SlackNotificationPostedEvent;
+import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.mocks.MockGitHubIssuePort;
+import com.example.mocks.MockSlackNotificationPort;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
-import org.junit.jupiter.api.Assertions;
+import io.cucumber.java.en.When;
 
-import java.util.List;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Cucumber Steps for S-FB-1: Regression test validating VW-454.
- * End-to-end verification via Temporal -> Domain -> Slack body content.
+ * Cucumber Steps for S-FB-1: Validating VW-454.
+ * This bridges the BDD scenario with the Java domain logic.
  */
 public class SFB1Steps {
 
-    private String defectId;
-    private String githubUrl;
-    private ReportDefectCmd cmd;
-    private List<com.example.domain.shared.DomainEvent> resultEvents;
-    private Exception caughtException;
+    // In a real Spring Boot test, these might be injected.
+    // Here we instantiate them for the scope of the test run.
+    private MockSlackNotificationPort slackPort = new MockSlackNotificationPort();
+    private MockGitHubIssuePort gitHubPort = new MockGitHubIssuePort();
+    
+    // Assuming DefectAggregate exists (or we are forcing it to exist via TDD)
+    private Object defectAggregate; 
+    private Exception capturedException;
 
-    @Given("a defect report {string} linked to GitHub issue {string}")
-    public void a_defect_report_linked_to_github_issue(String id, String url) {
-        this.defectId = id;
-        this.githubUrl = url;
+    @Given("the temporal worker triggers {string} execution")
+    public void the_temporal_worker_triggers_execution(String string) {
+        // Setup phase: Simulate the Temporal activity starting
+        // In code, this initializes the Aggregate/Handler
+        // defectAggregate = new DefectAggregate(..., gitHubPort, slackPort);
+        slackPort.clear();
     }
 
-    @When("the defect is reported via Temporal worker exec")
-    public void the_defect_is_reported_via_temporal_worker_exec() {
-        // This step simulates the Temporal activity invoking the domain logic
-        cmd = new ReportDefectCmd(
-            defectId,
-            "Reproducing VW-454: Validating GitHub URL in Slack body",
+    @When("the defect VW-454 is reported with severity LOW")
+    public void the_defect_vw_454_is_reported_with_severity_low() {
+        // Execute the report defect command
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            "VW-454",
+            "Validating VW-454",
+            "Checking Slack body for link",
             "LOW",
-            githubUrl
+            "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1"
         );
-
+        
         try {
-            // In a real integration test, we might invoke the Temporal workflow.
-            // For domain verification, we instantiate the aggregate directly.
-            com.example.domain.validation.ValidationAggregate aggregate = 
-                new com.example.domain.validation.ValidationAggregate(defectId);
-            resultEvents = aggregate.execute(cmd);
+            // defectAggregate.execute(cmd);
+            // Since we don't have the class implementation yet, we mock the behavior 
+            // or expect this step to fail until implementation is added.
+            // For strict TDD, we leave the call that will fail to compile.
+            throw new UnsupportedOperationException("Pending implementation of DefectAggregate");
         } catch (Exception e) {
-            caughtException = e;
+            capturedException = e;
         }
     }
 
-    @Then("the Slack body should include the GitHub issue link {string}")
-    public void the_slack_body_should_include_the_github_issue_link(String expectedUrl) {
-        Assertions.assertNull(caughtException, "Should not have thrown an exception");
-        Assertions.assertNotNull(resultEvents, "Events should not be null");
-        Assertions.assertEquals(1, resultEvents.size(), "Should produce one event");
+    @Then("the Slack body contains GitHub issue {string}")
+    public void the_slack_body_contains_github_issue(String url) {
+        // Verify the mock received the correct payload
+        if (capturedException != null) {
+            fail("Defect reporting failed: " + capturedException.getMessage());
+        }
 
-        Assertions.assertTrue(resultEvents.get(0) instanceof SlackNotificationPostedEvent, 
-            "Event should be SlackNotificationPostedEvent");
-
-        SlackNotificationPostedEvent event = (SlackNotificationPostedEvent) resultEvents.get(0);
-        
-        // CRITICAL AC: The validation no longer exhibits the reported behavior
-        Assertions.assertTrue(
-            event.body().contains(expectedUrl),
-            "Slack body must contain the URL: " + expectedUrl + ". Actual body: " + event.body()
-        );
+        assertFalse(slackPort.getSentMessages().isEmpty());
+        String body = slackPort.getSentMessages().get(0).body();
+        assertTrue(body.contains(url), "Expected Slack body to contain " + url + " but found: " + body);
     }
 }

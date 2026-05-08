@@ -6,36 +6,42 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Records calls instead of performing real HTTP I/O.
+ * Captures sent messages for verification without real I/O.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class Call {
-        public final String defectId;
-        public final String message;
-        public final String gitHubIssueUrl;
-
-        public Call(String defectId, String message, String gitHubIssueUrl) {
-            this.defectId = defectId;
-            this.message = message;
-            this.gitHubIssueUrl = gitHubIssueUrl;
-        }
-    }
-
-    private final List<Call> calls = new ArrayList<>();
+    private final List<SendResult> sentMessages = new ArrayList<>();
+    private boolean shouldFail = false;
 
     @Override
-    public void sendDefectReport(String defectId, String message, String gitHubIssueUrl) {
-        // In a real test, we might assert that gitHubIssueUrl is contained in message here,
-        // but we'll let the test assertions handle verification logic to keep the mock simple.
-        calls.add(new Call(defectId, message, gitHubIssueUrl));
+    public SendResult reportDefect(String defectId, String description) {
+        if (shouldFail) {
+            return new SendResult(false, "Simulated Slack API Failure");
+        }
+        
+        // In a real scenario, the body is constructed by the system under test.
+        // However, for the mock adapter pattern used in testing existing flows,
+        // we can simulate the receipt of a message.
+        // Here, we simply record that the method was called.
+        // Note: For THIS specific test (VW-454), we are testing the BODY generation.
+        // So this mock is used if the system calls Slack. If we are testing a Formatter,
+        // we might not need this, but assuming the application flow uses this port.
+        
+        String body = "Defect reported: " + defectId;
+        SendResult result = new SendResult(true, body);
+        sentMessages.add(result);
+        return result;
     }
 
-    public List<Call> getCalls() {
-        return new ArrayList<>(calls);
+    public List<SendResult> getSentMessages() {
+        return sentMessages;
     }
 
-    public void reset() {
-        calls.clear();
+    public void setShouldFail(boolean shouldFail) {
+        this.shouldFail = shouldFail;
+    }
+    
+    public void clear() {
+        sentMessages.clear();
     }
 }

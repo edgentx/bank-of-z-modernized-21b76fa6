@@ -3,13 +3,13 @@ package com.example.domain.defect.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to trigger the defect reporting workflow via Temporal.
- * This is the input payload for the saga/workflow.
+ * Command to report a defect (VW-454).
+ * Triggered via temporal-worker exec.
  */
 public record ReportDefectCmd(
     String defectId,
+    String projectId,
     String title,
     String description,
-    String severity,
-    String component
+    String severity
 ) implements Command {}

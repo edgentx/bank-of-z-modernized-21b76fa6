@@ -3,24 +3,24 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Set;
+import java.util.UUID;
 
 public record SessionStartedEvent(
-    String sessionId,
+    String aggregateId,
     String tellerId,
     String terminalId,
-    Set<String> roles,
-    String operationalContext,
     Instant occurredAt
 ) implements DomainEvent {
+    public SessionStartedEvent {
+        // Ensure aggregateId is never null
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId cannot be null");
+    }
+
     @Override
     public String type() {
-        return "session.started";
+        return "teller.session.started";
     }
-    @Override
-    public String aggregateId() {
-        return sessionId;
-    }
+
     @Override
     public Instant occurredAt() {
         return occurredAt;

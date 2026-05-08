@@ -4,29 +4,26 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.3.4</version>
+    <version>3.2.0</version>
     <relativePath/>
   </parent>
-  
   <groupId>com.example</groupId>
-  <artifactId>egdcrypto-bank-of-z-modernized-21b76fa6</artifactId>
+  <artifactId>teller-domain</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>egdcrypto-bank-of-z-modernized</name>
-  <description>Demo project for Spring Boot</description>
-  
+  <name>teller-domain</name>
+  <description>Teller Session Domain Project</description>
   <properties>
     <java.version>17</java.version>
-    <cucumber.version>7.18.1</cucumber.version>
+    <cucumber.version>7.14.0</cucumber.version>
   </properties>
-
   <dependencies>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-jpa</artifactId>
+      <artifactId>spring-boot-starter</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
     <dependency>
       <groupId>com.ibm.db2</groupId>
@@ -47,12 +44,6 @@
     <dependency>
       <groupId>io.cucumber</groupId>
       <artifactId>cucumber-junit-platform-engine</artifactId>
-      <version>${cucumber.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.cucumber</groupId>
-      <artifactId>cucumber-spring</artifactId>
       <version>${cucumber.version}</version>
       <scope>test</scope>
     </dependency>

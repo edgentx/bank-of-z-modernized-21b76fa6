@@ -5,15 +5,21 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Domain event emitted when a teller session is successfully started.
+ */
 public record SessionStartedEvent(
-        String aggregateId,
-        String tellerId,
-        String terminalId,
-        Instant occurredAt
+    String aggregateId,
+    String tellerId,
+    String terminalId,
+    Instant occurredAt
 ) implements DomainEvent {
+
     public SessionStartedEvent {
-        // Ensure defaults if null, though record constructor handles this
-        if (occurredAt == null) occurredAt = Instant.now();
+        Objects.requireNonNull(aggregateId);
+        Objects.requireNonNull(tellerId);
+        Objects.requireNonNull(terminalId);
+        Objects.requireNonNull(occurredAt);
     }
 
     @Override

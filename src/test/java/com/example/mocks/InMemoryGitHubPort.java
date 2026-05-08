@@ -1,29 +1,24 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
-import java.util.Optional;
 
 /**
- * In-memory mock implementation of {@link GitHubPort} for testing.
+ * Mock adapter for GitHub interactions.
+ * Returns a deterministic URL string without network calls.
  */
 public class InMemoryGitHubPort implements GitHubPort {
 
-    private String nextIssueUrl = "https://github.com/example/repo/issues/1";
-    private boolean simulateFailure = false;
+    private int callCount = 0;
 
     @Override
-    public Optional<String> createIssue(String title, String body) {
-        if (simulateFailure) {
-            return Optional.empty();
-        }
-        return Optional.of(nextIssueUrl);
+    public String createIssue(String title, String body) {
+        this.callCount++;
+        // Simulate a successful API call returning a valid URL structure
+        // We append a dummy ID based on call count to ensure uniqueness if needed
+        return "http://github.com/example/repo/issues/" + System.currentTimeMillis();
     }
 
-    public void setNextIssueUrl(String url) {
-        this.nextIssueUrl = url;
-    }
-
-    public void setSimulateFailure(boolean simulateFailure) {
-        this.simulateFailure = simulateFailure;
+    public int getCallCount() {
+        return callCount;
     }
 }

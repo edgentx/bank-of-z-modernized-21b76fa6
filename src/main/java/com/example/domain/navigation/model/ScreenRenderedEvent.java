@@ -1,20 +1,20 @@
 package com.example.domain.navigation.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Map;
 
 /**
  * Domain event emitted when a screen is successfully rendered.
  */
 public record ScreenRenderedEvent(
-        String aggregateId,
-        String screenId,
-        String deviceType,
-        Instant occurredAt
+    String aggregateId,
+    String screenId,
+    DeviceType deviceType,
+    String layoutId,
+    Map<String, Object> presentationState,
+    Instant occurredAt
 ) implements DomainEvent {
-
     @Override
     public String type() {
         return "screen.rendered";

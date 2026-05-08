@@ -2,38 +2,33 @@ package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
- * Mock adapter for Slack notifications.
- * Stores messages in memory for verification during testing.
- * Implements the required Port interface.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Stores the last sent payload in memory to allow assertions.
  */
 public class MockSlackNotificationAdapter implements SlackNotificationPort {
 
-    private final Map<String, String> sentMessages = new HashMap<>();
+    private String lastPayload;
+    private boolean called = false;
 
     @Override
-    public void sendMessage(String channel, String messageBody) {
-        // Simulate network latency or processing if necessary
-        // For TDD, we store it simply.
-        sentMessages.put(channel, messageBody);
+    public boolean send(String payload) {
+        this.lastPayload = payload;
+        this.called = true;
+        // Always return true to simulate success in happy path tests
+        return true;
     }
 
-    @Override
-    public String getLastMessageBody(String channel) {
-        return sentMessages.get(channel);
+    public boolean wasCalled() {
+        return called;
     }
 
-    /**
-     * Helper method for tests to verify if a message was sent.
-     */
-    public boolean hasReceivedMessage(String channel) {
-        return sentMessages.containsKey(channel);
+    public String getLastPayload() {
+        return lastPayload;
     }
 
-    public void clear() {
-        sentMessages.clear();
+    public void reset() {
+        this.lastPayload = null;
+        this.called = false;
     }
 }

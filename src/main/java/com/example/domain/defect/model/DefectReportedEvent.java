@@ -3,8 +3,15 @@ package com.example.domain.defect.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
-public record DefectReportedEvent(String aggregateId, String defectId, String channelId, String messageBody, Instant occurredAt) implements DomainEvent {
+public record DefectReportedEvent(
+    String defectId,
+    String title,
+    String description,
+    String githubUrl,
+    Instant occurredAt
+) implements DomainEvent {
     @Override
     public String type() {
         return "DefectReported";
@@ -12,11 +19,11 @@ public record DefectReportedEvent(String aggregateId, String defectId, String ch
 
     @Override
     public String aggregateId() {
-        return aggregateId();
+        return defectId;
     }
 
     @Override
     public Instant occurredAt() {
-        return occurredAt();
+        return occurredAt;
     }
 }

@@ -5,5 +5,8 @@ import com.example.domain.shared.Command;
 public record NavigateMenuCmd(
     String sessionId,
     String menuId,
-    String action
+    String action,
+    String contextState,
+    String tellerId,
+    long lastActivityTimestamp
 ) implements Command {}

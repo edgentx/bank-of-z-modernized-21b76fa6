@@ -6,26 +6,41 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages to memory instead of calling the real Slack API.
+ * Captures messages to verify the content and presence of the GitHub URL.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> sentMessages = new ArrayList<>();
+    public static class PostedMessage {
+        public final String channelId;
+        public final String body;
+
+        public PostedMessage(String channelId, String body) {
+            this.channelId = channelId;
+            this.body = body;
+        }
+    }
+
+    private final List<PostedMessage> messages = new ArrayList<>();
 
     @Override
-    public void sendMessage(String message) {
-        sentMessages.add(message);
+    public void postMessage(String channelId, String body) {
+        System.out.println("[MockSlack] Captured message for channel " + channelId + ": " + body);
+        this.messages.add(new PostedMessage(channelId, body));
     }
 
-    public List<String> getSentMessages() {
-        return new ArrayList<>(sentMessages);
-    }
-
-    public boolean containsUrl(String url) {
-        return sentMessages.stream().anyMatch(msg -> msg.contains(url));
+    public List<PostedMessage> getMessages() {
+        return messages;
     }
 
     public void clear() {
-        sentMessages.clear();
+        messages.clear();
+    }
+
+    /**
+     * Helper to verify if the GitHub URL was included in the last message body.
+     */
+    public boolean lastMessageContainsUrl(String expectedUrl) {
+        if (messages.isEmpty()) return false;
+        return messages.get(messages.size() - 1).body.contains(expectedUrl);
     }
 }

@@ -6,6 +6,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * In-memory implementation of TellerSessionRepository for testing.
+ */
 public class InMemoryTellerSessionRepository implements TellerSessionRepository {
 
     private final Map<String, TellerSessionAggregate> store = new HashMap<>();

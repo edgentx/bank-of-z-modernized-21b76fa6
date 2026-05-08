@@ -1,17 +1,17 @@
 package com.example.ports;
 
 /**
- * Port interface for GitHub Issue interactions.
- * Used for creating defect links in Slack notifications.
+ * Port interface for interacting with GitHub Issues.
+ * Used by the domain logic to decouple from the specific GitHub API implementation.
  */
 public interface GitHubPort {
 
     /**
-     * Creates a defect issue in GitHub and returns the URL.
+     * Creates a new issue in the repository.
      *
-     * @param title The title of the defect
-     * @param body The body content of the defect
-     * @return The HTML URL to the created GitHub issue
+     * @param title The title of the issue (usually the Defect ID + Title)
+     * @param description The description body
+     * @return The URL of the created issue
      */
-    String createDefectIssue(String title, String body);
+    String createIssue(String title, String description);
 }

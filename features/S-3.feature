@@ -1,4 +1,4 @@
-Feature: UpdateCustomerDetailsCmd
+Feature: Implement UpdateCustomerDetailsCmd on Customer (customer-management)
 
   Scenario: Successfully execute UpdateCustomerDetailsCmd
     Given a valid Customer aggregate

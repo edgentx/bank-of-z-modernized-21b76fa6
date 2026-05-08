@@ -1,39 +1,33 @@
 package com.example.domain.defect.service;
 
-import com.example.domain.validation.model.ValidationAggregate;
-import com.example.ports.ValidationRepositoryPort;
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.domain.defect.repository.DefectRepository;
 import org.springframework.stereotype.Service;
-import java.util.Optional;
 
-/**
- * Service for handling Defect operations.
- * Temporal workflows or controllers can interact with the domain through this service.
- */
+import java.util.UUID;
+
 @Service
 public class DefectService {
 
-    private final ValidationRepositoryPort repository;
+    private final DefectRepository defectRepository;
 
-    public DefectService(ValidationRepositoryPort repository) {
-        this.repository = repository;
+    public DefectService(DefectRepository defectRepository) {
+        this.defectRepository = defectRepository;
     }
 
     /**
-     * Handles the reporting of a defect via the Validation Aggregate.
-     * Ensures the GitHub URL is captured (S-FB-1).
+     * Handles the logic to report a defect.
+     * Corresponds to Triggering _report_defect via temporal-worker exec.
      */
-    public ValidationAggregate reportDefect(String validationId, String defectId, String title, String githubUrl) {
-        Optional<ValidationAggregate> aggregateOpt = repository.findById(validationId);
+    public DefectAggregate reportDefect(String title, String description, String githubUrl) {
+        String defectId = UUID.randomUUID().toString();
+        DefectAggregate aggregate = new DefectAggregate(defectId);
+        ReportDefectCmd cmd = new ReportDefectCmd(defectId, title, description, githubUrl, null);
         
-        // If aggregate doesn't exist, we create a new one (simplified for this defect fix).
-        // In a full CQRS flow, we might load from history or create new.
-        ValidationAggregate aggregate = aggregateOpt.orElseGet(() -> new ValidationAggregate(validationId));
-
-        // Execute the command
-        var cmd = new ValidationAggregate.ReportDefectCommand(validationId, defectId, title, githubUrl);
         aggregate.execute(cmd);
-
-        // Save state
-        return repository.save(aggregate);
+        defectRepository.save(aggregate);
+        
+        return aggregate;
     }
 }

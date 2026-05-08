@@ -17,11 +17,33 @@ public class DefectReportingService {
 
     /**
      * Reports the defect to the external monitoring system (Slack).
+     * Formats the message body to include the defect details and the GitHub issue URL.
      *
      * @param cmd The command containing defect details.
      */
     public void reportDefect(ReportDefectCommand cmd) {
-        // Intentionally blank implementation for Red Phase.
-        // The test VW454RegressionTest should fail because this doesn't send anything yet.
+        if (cmd == null) {
+            throw new IllegalArgumentException("ReportDefectCommand cannot be null");
+        }
+
+        // Format the GitHub URL as a Slack link (<url|text>) or simply (<url>) for auto-linking.
+        // Based on VW-454 test expectation: we expect the raw URL enclosed in angle brackets.
+        String formattedGithubUrl = (cmd.githubUrl() != null) ? "<" + cmd.githubUrl() + ">" : "No GitHub URL provided";
+
+        // Construct the message body
+        String body = String.format(
+            "*New Defect Reported*\n" +
+            "*Project ID:* %s\n" +
+            "*Title:* %s\n" +
+            "*Description:* %s\n" +
+            "*GitHub Issue:* %s",
+            cmd.projectId(),
+            cmd.title(),
+            cmd.description(),
+            formattedGithubUrl
+        );
+
+        // Delegate to the port (adapter)
+        slackNotificationPort.send(body);
     }
 }

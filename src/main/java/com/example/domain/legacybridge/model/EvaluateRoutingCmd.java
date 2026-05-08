@@ -1,14 +1,16 @@
 package com.example.domain.legacybridge.model;
 
 import com.example.domain.shared.Command;
+
 import java.util.Map;
 
 /**
- * Command to evaluate the routing destination for a transaction.
- * Used by S-23: EvaluateRoutingCmd on LegacyTransactionRoute.
+ * Command to evaluate routing rules for a legacy transaction.
+ * Used to determine if a request should be routed to the Modern platform or the Legacy system.
  */
 public record EvaluateRoutingCmd(
-    String routeId,
-    String transactionType,
-    Map<String, Object> payload
+        String routeId,
+        String transactionType,
+        Map<String, Object> payload,
+        String targetRulesVersion // Fixed from previous compilation errors
 ) implements Command {}

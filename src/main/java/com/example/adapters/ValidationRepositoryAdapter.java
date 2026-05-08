@@ -1,29 +1,26 @@
 package com.example.adapters;
 
-import com.example.domain.validation.model.ValidationAggregate;
-import com.example.ports.ValidationRepositoryPort;
-import org.springframework.stereotype.Component;
+import com.example.domain.validation.Validation;
+import com.example.domain.validation.repository.ValidationRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * In-memory implementation of the ValidationRepositoryPort.
- * NOTE: In a real production environment, this would interact with the persistence layer.
- */
-@Component
-public class ValidationRepositoryAdapter implements ValidationRepositoryPort {
+@Repository
+public class ValidationRepositoryAdapter implements ValidationRepository {
 
-    private final Map<String, ValidationAggregate> store = new HashMap<>();
+    private final Map<String, Validation> store = new HashMap<>();
 
     @Override
-    public void save(ValidationAggregate aggregate) {
-        store.put(aggregate.id(), aggregate);
+    public Validation save(Validation validation) {
+        store.put(validation.getId(), validation);
+        return validation;
     }
 
     @Override
-    public Optional<ValidationAggregate> findById(String id) {
+    public Optional<Validation> findById(String id) {
         return Optional.ofNullable(store.get(id));
     }
 }

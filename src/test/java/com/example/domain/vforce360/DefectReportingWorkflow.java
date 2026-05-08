@@ -6,11 +6,11 @@ import com.example.domain.vforce360.model.ReportDefectCommand;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
- * Mock implementation of the Workflow/Logic.
- * This file represents the 'Implementation Under Test' context.
- * Currently contains stubs to ensure tests fail (Red phase).
+ * Implementation of the Defect Reporting Workflow.
+ * Satisfies requirements for Story S-FB-1 (VW-454).
  */
 public class DefectReportingWorkflow {
 
@@ -23,12 +23,25 @@ public class DefectReportingWorkflow {
     }
 
     public void execute(ReportDefectCommand cmd) {
-        // TODO: Implement logic to satisfy VW-454
         // 1. Get URL from GitHubPort
+        Optional<String> urlOpt = gitHubPort.getIssueUrl(cmd.defectId());
+
         // 2. Construct Slack Body
-        // 3. Send via SlackNotificationPort
+        StringBuilder body = new StringBuilder();
+        body.append("Defect Report: ").append(cmd.defectId());
         
-        // Intentional Red Phase Stub:
-        // sendNotification(new HashMap<>()); // This would fail the specific body assertion
+        if (urlOpt.isPresent()) {
+            body.append("\nGitHub Issue: ").append(urlOpt.get());
+        } else {
+            body.append("\n(GitHub Issue URL not found for ID: ").append(cmd.defectId()).append(")");
+        }
+
+        body.append("\nDescription: ").append(cmd.description());
+
+        // 3. Send via SlackNotificationPort
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("text", body.toString());
+        
+        this.slackNotificationPort.sendNotification(payload);
     }
 }

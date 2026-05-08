@@ -1,37 +1,45 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures sent messages to verify body formatting without real webhooks.
+ * Captures posted messages in a thread-safe queue for verification.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> sentMessages = new ArrayList<>();
-    private boolean shouldFail = false;
+    private final BlockingQueue<String> postedBodies = new ArrayBlockingQueue<>(100);
+    private boolean shouldSucceed = true;
 
     @Override
-    public void send(String messageBody) throws SlackNotificationException {
-        if (shouldFail) {
-            throw new SlackNotificationException("Simulated Slack API failure", new RuntimeException());
-        }
-        sentMessages.add(messageBody);
+    public boolean postMessage(String body, Map<String, String> metadata) {
+        // In a real scenario, we might want to capture metadata too, but the defect focuses on the body content.
+        postedBodies.offer(body);
+        return shouldSucceed;
     }
 
-    public List<String> getSentMessages() {
-        return sentMessages;
+    /**
+     * Retrieves the last message sent to Slack (blocking with timeout).
+     */
+    public String getLastMessage() throws InterruptedException {
+        return postedBodies.take(); // Throws exception if empty (good for failing tests)
     }
 
-    public void reset() {
-        sentMessages.clear();
-        shouldFail = false;
+    /**
+     * Retrieves the last message sent to Slack (non-blocking).
+     */
+    public String peekLastMessage() {
+        return postedBodies.peek();
     }
 
-    public void setShouldFail(boolean shouldFail) {
-        this.shouldFail = shouldFail;
+    public void setShouldSucceed(boolean shouldSucceed) {
+        this.shouldSucceed = shouldSucceed;
+    }
+
+    public void clear() {
+        postedBodies.clear();
     }
 }

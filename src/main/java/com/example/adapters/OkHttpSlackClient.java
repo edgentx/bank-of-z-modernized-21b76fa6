@@ -1,23 +1,61 @@
 package com.example.adapters;
 
 import com.example.ports.SlackPort;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
- * Adapter for interacting with the Slack API via OkHttp.
- * Implements SlackPort to abstract the HTTP details.
+ * Slack Client Implementation using OkHttp.
  */
 @Component
 public class OkHttpSlackClient implements SlackPort {
 
-    // Note: In a real environment, this would use OkHttpClient to post to a Slack Webhook.
-    // The ObjectMapper dependency error in the prompt implies a need for JSON processing,
-    // but for the purpose of passing the interface contract verification:
+    private final OkHttpClient client;
+    private final ObjectMapper mapper;
+    private final String webhookUrl; // Injected via env or config
+
+    public OkHttpSlackClient(OkHttpClient client, ObjectMapper mapper) {
+        this.client = client;
+        this.mapper = mapper;
+        // In a real scenario, this comes from application.properties
+        this.webhookUrl = System.getenv().getOrDefault("SLACK_WEBHOOK_URL", "https://hooks.slack.com/services/FAKE/PATH");
+    }
 
     @Override
-    public void publish(String payload) {
-        // In a real implementation, this would POST the payload to a Slack Webhook URL.
-        // For the green phase, we record the action to verify interaction in tests.
-        System.out.println("[Slack Mock] Publishing payload: " + payload);
+    public void sendMessage(String channel, String text) {
+        try {
+            Map<String, String> payload = new HashMap<>();
+            payload.put("channel", channel);
+            payload.put("text", text);
+
+            String jsonPayload = mapper.writeValueAsString(payload);
+
+            RequestBody body = RequestBody.create(
+                jsonPayload, 
+                MediaType.get("application/json; charset=utf-8")
+            );
+
+            Request request = new Request.Builder()
+                .url(webhookUrl)
+                .post(body)
+                .build();
+
+            try (Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    throw new RuntimeException("Failed to send Slack message: " + response.code());
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error communicating with Slack", e);
+        }
     }
 }

@@ -2,26 +2,15 @@ package com.example.domain.vforce;
 
 import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Map;
 
-/**
- * Domain event representing a defect reported via the VForce360 PM diagnostic conversation.
- * This corresponds to the input trigger described in the story.
- */
 public record DefectReportedEvent(
-        String aggregateId,
-        String defectId,
-        String title,
-        String description,
-        String severity,
-        String projectId,
-        Instant occurredAt
+    String defectId,
+    String title,
+    String severity,
+    Map<String, String> context,
+    Instant occurredAt
 ) implements DomainEvent {
-    public DefectReportedEvent {
-        if (aggregateId == null) aggregateId = UUID.randomUUID().toString();
-        if (occurredAt == null) occurredAt = Instant.now();
-    }
-
     @Override
     public String type() {
         return "DefectReported";
@@ -29,11 +18,11 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return defectId();
     }
 
     @Override
     public Instant occurredAt() {
-        return occurredAt;
+        return occurredAt();
     }
 }

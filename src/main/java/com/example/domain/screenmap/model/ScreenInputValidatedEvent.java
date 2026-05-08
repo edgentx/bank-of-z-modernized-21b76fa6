@@ -4,18 +4,16 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 import java.util.Map;
-import java.util.UUID;
 
+/**
+ * Domain event emitted when user input is successfully validated against the screen map.
+ * Signals that the UI layer can proceed to route the command to the backend.
+ */
 public record ScreenInputValidatedEvent(
-        String eventId,
-        String screenId,
+        String aggregateId,
         Map<String, String> inputFields,
         Instant occurredAt
 ) implements DomainEvent {
-
-    public ScreenInputValidatedEvent(String screenId, Map<String, String> inputFields, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), screenId, inputFields, occurredAt);
-    }
 
     @Override
     public String type() {
@@ -24,7 +22,7 @@ public record ScreenInputValidatedEvent(
 
     @Override
     public String aggregateId() {
-        return screenId;
+        return aggregateId;
     }
 
     @Override

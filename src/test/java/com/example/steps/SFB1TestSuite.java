@@ -11,5 +11,5 @@ import org.junit.runner.RunWith;
     plugin = {"pretty", "html:target/cucumber-report/S-FB-1.html"}
 )
 public class SFB1TestSuite {
-    // This class runs the feature file for the FB-1 Defect
+    // This suite runs the feature file for S-FB-1
 }

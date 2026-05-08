@@ -3,29 +3,17 @@ package com.example.domain.legacy.model;
 import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 
-/**
- * Event emitted when a routing rule is successfully updated.
- */
 public record RoutingUpdatedEvent(
-        String aggregateId,
-        String ruleId,
-        String newTarget,
-        Instant effectiveDate,
-        Instant occurredAt
+    String aggregateId,
+    String type,
+    Instant occurredAt,
+    String routeId,
+    String ruleId,
+    String newTarget,
+    Instant effectiveDate,
+    int rulesVersion
 ) implements DomainEvent {
-
-    @Override
-    public String type() {
-        return "RoutingUpdated";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public RoutingUpdatedEvent(String routeId, String ruleId, String newTarget, Instant effectiveDate, int rulesVersion) {
+        this(routeId, "RoutingUpdated", Instant.now(), routeId, ruleId, newTarget, effectiveDate, rulesVersion);
     }
 }

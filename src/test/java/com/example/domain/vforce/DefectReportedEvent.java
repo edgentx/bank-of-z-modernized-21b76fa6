@@ -4,6 +4,9 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.Map;
 
+/**
+ * Event emitted when a defect is reported.
+ */
 public record DefectReportedEvent(
     String defectId,
     String title,

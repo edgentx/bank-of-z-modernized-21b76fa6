@@ -1,18 +1,17 @@
 package com.example.steps;
 
-import io.cucumber.junit.Cucumber;
-import io.cucumber.junit.CucumberOptions;
-import org.junit.runner.RunWith;
+import io.cucumber.junit.platform.engine.Cucumber;
+import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectClasspathResource;
+import org.junit.platform.suite.api.Suite;
 
 /**
- * Test Runner for VW-454 Regression.
- * Place this file in src/test/java to be picked up by Maven/IntelliJ.
+ * Test Suite for VW-454 Regression.
+ * Located in e2e/regression/ equivalent location via the resource selector.
  */
-@RunWith(Cucumber.class)
-@CucumberOptions(
-    features = {"features/VW-454.feature"},
-    glue = {"com.example.steps"},
-    plugin = {"pretty", "html:target/cucumber-report/VW454"}
-)
+@Suite
+@IncludeEngines("cucumber")
+@SelectClasspathResource("features/VW-454.feature") // Assumes feature file is placed in resources/features
 public class VW454TestSuite {
+    // Suite configuration is handled by annotations
 }

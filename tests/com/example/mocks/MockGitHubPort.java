@@ -1,29 +1,21 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
-import com.example.vforce.github.IssueLink;
-import com.example.vforce.shared.ReportDefectCommand;
 
 /**
- * Mock implementation of GitHubPort for testing.
- * Returns predictable URLs without calling GitHub API.
+ * Mock implementation of GitHubPort.
+ * Simulates creating a GitHub issue.
  */
 public class MockGitHubPort implements GitHubPort {
-    private final IssueLink mockLink;
-    private int createCallCount = 0;
-
-    public MockGitHubPort(String mockUrl) {
-        this.mockLink = new IssueLink(mockUrl);
-    }
+    private String nextIssueUrl = "https://github.com/mocks/issues/1";
 
     @Override
-    public IssueLink createIssue(ReportDefectCommand command) {
-        // Simulate HTTP latency
-        createCallCount++;
-        return mockLink;
+    public String createIssue(String title, String description) {
+        // Simulate returning a valid URL
+        return nextIssueUrl;
     }
 
-    public int getCreateCallCount() {
-        return createCallCount;
+    public void setNextIssueUrl(String url) {
+        this.nextIssueUrl = url;
     }
 }

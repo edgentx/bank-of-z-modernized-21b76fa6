@@ -1,15 +1,14 @@
 package com.example.steps;
 
-import io.cucumber.junit.Cucumber;
-import io.cucumber.junit.CucumberOptions;
-import org.junit.runner.RunWith;
+import io.cucumber.junit.platform.engine.Cucumber;
+import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectClasspathResource;
+import org.junit.platform.suite.api.Suite;
 
-@RunWith(Cucumber.class)
-@CucumberOptions(
-        features = "../../features/S-FB-1.feature",
-        glue = {"com.example.steps"},
-        plugin = {"pretty", "html:target/cucumber-report.html"}
-)
+@Suite
+@IncludeEngines("cucumber")
+@SelectClasspathResource("features")
+@Cucumber
 public class VW454TestSuite {
-    // Test suite entry point for Cucumber
+    // Test suite configuration
 }

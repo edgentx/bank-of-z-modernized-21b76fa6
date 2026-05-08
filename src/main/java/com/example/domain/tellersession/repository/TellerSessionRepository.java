@@ -1,10 +1,9 @@
 package com.example.domain.tellersession.repository;
 
-import com.example.domain.tellersession.model.TellerSession;
+import com.example.domain.tellersession.model.TellerSessionAggregate;
 import java.util.Optional;
-import java.util.UUID;
 
 public interface TellerSessionRepository {
-    TellerSession save(TellerSession aggregate);
-    Optional<TellerSession> findById(UUID id);
+    void save(TellerSessionAggregate aggregate);
+    Optional<TellerSessionAggregate> findById(String id);
 }

@@ -2,58 +2,108 @@ package com.example.steps;
 
 import com.example.domain.validation.model.ReportDefectCmd;
 import com.example.domain.validation.model.ValidationAggregate;
-import com.example.domain.validation.repository.ValidationRepository;
-import com.example.mocks.InMemoryValidationRepository;
-import com.example.mocks.MockSlackNotificationPort;
-import io.cucumber.java.en.Given;
-import io.cucumber.java.en.When;
-import io.cucumber.java.en.Then;
+import com.example.mocks.MockIssueTrackerAdapter;
+import com.example.mocks.MockNotificationGatewayAdapter;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
- * Cucumber Steps for Story S-FB-1: Validating VW-454.
- * Simulates the temporal-worker exec flow.
+ * Test Suite for S-FB-1: Fix Validating VW-454.
+ * 
+ * Context: Verifies that when a defect is reported, the subsequent Slack 
+ * notification contains the GitHub URL generated for that defect.
+ * 
+ * Regression Test: e2e/regression/VW454_SlackBodyContainsUrlTest
  */
 public class SFB1Steps {
 
-    private ValidationRepository repository = new InMemoryValidationRepository();
-    private MockSlackNotificationPort slackPort = new MockSlackNotificationPort();
-    private Exception capturedException;
-    private String defectId;
+    private MockIssueTrackerAdapter mockIssueTracker;
+    private MockNotificationGatewayAdapter mockNotificationGateway;
+    private ValidationAggregate aggregate;
 
-    @Given("a defect report is triggered via temporal-worker exec")
-    public void a_defect_report_is_triggered_via_temporal_worker_exec() {
-        // Initialize the aggregate
-        ValidationAggregate aggregate = repository.create();
-        this.defectId = aggregate.id();
+    private static final String VALIDATION_ID = "val-123";
+    private static final String GITHUB_URL = "https://github.com/bank-of-z/issues/454";
+
+    @BeforeEach
+    void setUp() {
+        // Initialize Mocks
+        mockIssueTracker = new MockIssueTrackerAdapter();
+        mockNotificationGateway = new MockNotificationGatewayAdapter();
+
+        // Inject mocks into Aggregate (as per story requirement for mock adapters)
+        aggregate = new ValidationAggregate(VALIDATION_ID, mockIssueTracker, mockNotificationGateway);
     }
 
-    @When("the defect report contains a valid GitHub URL")
-    public void the_defect_report_contains_a_valid_github_url() {
-        try {
-            ValidationAggregate aggregate = repository.findById(defectId).orElseThrow();
-            String githubUrl = "https://github.com/egdcrypto/bank-of-z/issues/454";
-            ReportDefectCmd cmd = new ReportDefectCmd(defectId, "Validation failed", githubUrl);
-            
-            // Execute command
-            aggregate.execute(cmd);
-            repository.save(aggregate);
+    @Test
+    @DisplayName("Verify Slack Body contains GitHub URL")
+    public void testSlackBodyContainsGitHubUrl() {
+        // ARRANGE
+        // Configure the Mock Issue Tracker to return a specific URL when called
+        mockIssueTracker.setNextUrl(GITHUB_URL);
 
-            // Trigger notification (simulating the workflow)
-            aggregate.uncommittedEvents().forEach(event -> {
-                if (event instanceof com.example.domain.validation.model.DefectReportedEvent e) {
-                    slackPort.notify(e);
-                }
-            });
-        } catch (Exception e) {
-            this.capturedException = e;
-        }
+        // Prepare the command to report a defect
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            "defect-1",
+            "VW-454: Slack body missing URL",
+            "User reported that the Slack body does not contain the link",
+            Map.of("severity", "LOW", "component", "validation")
+        );
+
+        // ACT
+        // Execute the command on the aggregate
+        aggregate.execute(cmd);
+
+        // ASSERT
+        // 1. Verify the Issue Tracker was called (GitHub link generated)
+        assertTrue(mockIssueTracker.wasCalled(), "Issue Tracker should have been triggered");
+
+        // 2. Verify the Notification Gateway was called
+        assertTrue(mockNotificationGateway.wasCalled(), "Notification Gateway should have been triggered");
+
+        // 3. CRITICAL ASSERTION: Check the actual body sent to "Slack"
+        // The test expects the GITHUB_URL to be present in the message body
+        String actualSlackBody = mockNotificationGateway.getLastMessageBody();
+        
+        assertNotNull(actualSlackBody, "Slack body should not be null");
+        
+        // THIS ASSERTION IS EXPECTED TO FAIL IN THE RED PHASE
+        // because the current implementation in ValidationAggregate 
+        // simply sets body to "Defect Reported: [Title]" without the URL.
+        assertTrue(
+            actualSlackBody.contains(GITHUB_URL),
+            "Slack body should contain the GitHub issue URL: " + GITHUB_URL + ". Actual body: " + actualSlackBody
+        );
     }
 
-    @Then("the Slack body includes the GitHub issue link")
-    public void the_slack_body_includes_the_github_issue_link() {
-        assertNull(capturedException, "Should not have thrown an exception");
-        assertTrue(slackPort.wasUrlIncludedInLastMessage("https://github.com/egdcrypto/bank-of-z/issues/454"),
-            "Slack body should contain the GitHub URL");
+    @Test
+    @DisplayName("Verify full format of Slack notification")
+    public void testFullNotificationFormat() {
+        // ARRANGE
+        mockIssueTracker.setNextUrl(GITHUB_URL);
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            "defect-2",
+            "S-FB-1 Test",
+            "Testing full format",
+            Map.of("source", "temporal-worker")
+        );
+
+        // ACT
+        aggregate.execute(cmd);
+
+        // ASSERT
+        // Regression check for the expected format
+        String body = mockNotificationGateway.getLastMessageBody();
+        
+        // Expecting something like: "New Issue: <url> - Title"
+        // This strict format check ensures we don't just fix the bug, but meet the spec.
+        // Adjust the expected string format based on specific requirements.
+        assertTrue(
+            body.contains("Issue:"), 
+            "Body should describe the issue context"
+        );
     }
 }

@@ -17,7 +17,7 @@ public class InMemoryStatementRepository implements StatementRepository {
     }
 
     @Override
-    public Optional<StatementAggregate> findById(String id) {
-        return Optional.ofNullable(store.get(id));
+    public StatementAggregate findById(String id) {
+        return store.get(id);
     }
 }

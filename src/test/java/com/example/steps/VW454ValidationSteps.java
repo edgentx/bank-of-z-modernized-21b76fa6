@@ -1,81 +1,67 @@
 package com.example.steps;
 
-import com.example.domain.shared.SlackMessageValidator;
-import com.example.mocks.MockGitHubPort;
-import com.example.mocks.MockSlackPort;
-import com.example.ports.GitHubPort;
-import com.example.ports.SlackPort;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import com.example.adapters.TemporalDefectWorkflowAdapter;
+import com.example.adapters.TemporalWorkerAdapter;
+import com.example.domain.validation.model.ValidationAggregate;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.When;
+import io.cucumber.java.en.Then;
+import io.temporal.testing.TestWorkflowEnvironment;
+import io.temporal.worker.Worker;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Test Suite for VW-454 Regression.
- * Verifies that when a defect is reported, the resulting Slack notification
- * contains the link to the created GitHub issue.
+ * E2E Regression Test for VW-454: GitHub URL in Slack body.
+ * Verifies that the Temporal Worker logic correctly formats the Slack message
+ * with the GitHub issue link when a defect is reported.
  */
+@ExtendWith(SpringExtension.class)
+@SpringBootTest
 public class VW454ValidationSteps {
 
-    private GitHubPort gitHubPort;
-    private SlackPort slackPort;
-    private SlackMessageValidator validator;
+    @Autowired
+    private TemporalWorkerAdapter temporalWorkerAdapter;
 
-    @BeforeEach
-    public void setUp() {
-        gitHubPort = new MockGitHubPort();
-        slackPort = new MockSlackPort();
-        // In a real Spring Boot app, this might be injected or instantiated manually
-        validator = new com.example.infrastructure.SlackMessageValidatorImpl();
+    @Autowired
+    private ValidationAggregate validationAggregate;
+
+    private String actualSlackBody;
+
+    @Given("a defect is reported via temporal-worker exec")
+    public void a_defect_is_reported_via_temporal_worker_exec() {
+        // We simulate the internal execution that would happen inside the Temporal Worker
+        // triggered by the TemporalDefectWorkflowAdapter.
+        String validationId = "VW-454";
+        String severity = "LOW";
+        String title = "Validating VW-454 — GitHub URL in Slack body";
+        String description = "Checking for the link line";
+
+        // Call the adapter method that processes the domain event and prepares the message
+        this.actualSlackBody = temporalWorkerAdapter.prepareSlackMessage(validationId, severity, title, description);
     }
 
-    @Test
-    public void testSlackMessageContainsGitHubUrl_EndToEnd() {
-        // 1. Setup Data
-        String defectTitle = "VW-454 Regression Test";
-        String defectDescription = "This is a test to verify the GitHub link is present.";
-        String targetChannel = "#vforce360-issues";
-
-        // 2. Execute Workflow Logic (simulated)
-        // Step A: Create GitHub Issue
-        String githubUrl = gitHubPort.createIssue(defectTitle, defectDescription);
-        assertNotNull(githubUrl, "GitHub URL should be generated");
-
-        // Step B: Send Slack Notification
-        // Logic under test: The body MUST include the githubUrl
-        StringBuilder slackBody = new StringBuilder();
-        slackBody.append("*New Defect Reported:*");
-        slackBody.append("\n*Title:* ").append(defectTitle);
-        // CRITICAL FIX for VW-454: Append the URL
-        slackBody.append("\n*GitHub Issue:* ").append(githubUrl); 
-        
-        boolean sent = slackPort.sendMessage(targetChannel, slackBody.toString());
-        assertTrue(sent, "Message should be sent successfully");
-
-        // 3. Verification (Red Phase Expectation)
-        // Retrieve the message from the mock
-        MockSlackPort mockSlack = (MockSlackPort) slackPort;
-        var messages = mockSlack.getMessages();
-        assertFalse(messages.isEmpty(), "Slack should have received a message");
-
-        String actualMessageBody = messages.get(0).body;
-        
-        // ASSERTION: This validates the specific defect VW-454 requirement.
-        // If the implementation fails to append the URL, this test fails.
-        assertTrue(
-            actualMessageBody.contains(githubUrl),
-            "Slack body must contain the GitHub Issue URL (" + githubUrl + ").\nActual Body: " + actualMessageBody
-        );
-
-        // Additionally, use the Validator Interface to confirm structure compliance
-        assertTrue(validator.containsGitHubReference(actualMessageBody), 
-            "Validator confirms GitHub reference is missing in Slack body");
+    @When("the workflow processes the report")
+    public void the_workflow_processes_the_report() {
+        // Logic handled in the 'Given' step for this stateless validation
+        // but we ensure the body is not null.
+        assertNotNull(actualSlackBody, "Slack body should not be null after processing");
     }
 
-    @Test
-    public void testValidatorDetectsMissingUrl() {
-        String invalidBody = "Defect reported. No link here.";
-        assertFalse(validator.containsGitHubReference(invalidBody), 
-            "Validator should return false for body without URL");
+    @Then("the Slack body contains GitHub issue link")
+    public void the_slack_body_contains_github_issue_link() {
+        // The expected behavior is a link like <https://github.com/.../VW-454|Link> or similar
+        assertTrue(actualSlackBody.contains("GitHub Issue:"), "Body should mention 'GitHub Issue'");
+        assertTrue(actualSlackBody.contains("github.com"), "Body should contain github.com domain");
+        assertTrue(actualSlackBody.contains("VW-454"), "Body should contain the Issue ID VW-454");
+        
+        // Verify the Slack link format syntax <url|text>
+        assertTrue(actualSlackBody.contains("<"), "Body should contain Slack link opening tag");
+        assertTrue(actualSlackBody.contains(">"), "Body should contain Slack link closing tag");
     }
 }

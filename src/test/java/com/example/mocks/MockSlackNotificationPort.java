@@ -1,36 +1,34 @@
 package com.example.mocks;
 
-import com.example.domain.shared.slack.SlackNotificationPort;
+import com.example.ports.SlackNotificationPort;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages posted during the test lifecycle for assertion.
+ * Captures messages sent to Slack for assertion.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class PostedMessage {
+    public static class SentMessage {
         public final String channel;
         public final String body;
 
-        public PostedMessage(String channel, String body) {
+        public SentMessage(String channel, String body) {
             this.channel = channel;
             this.body = body;
         }
     }
 
-    private final List<PostedMessage> messages = new ArrayList<>();
+    private final List<SentMessage> messages = new ArrayList<>();
 
     @Override
-    public boolean postMessage(String channel, String body) {
-        // Simulate basic validation logic found in real adapters
-        if (channel == null || body == null) return false;
-        messages.add(new PostedMessage(channel, body));
-        return true;
+    public void sendMessage(String channel, String body) {
+        // Store the message instead of calling the real API
+        this.messages.add(new SentMessage(channel, body));
     }
 
-    public List<PostedMessage> getMessages() {
+    public List<SentMessage> getMessages() {
         return messages;
     }
 
@@ -38,7 +36,8 @@ public class MockSlackNotificationPort implements SlackNotificationPort {
         messages.clear();
     }
 
-    public boolean containsUrl(String url) {
-        return messages.stream().anyMatch(msg -> msg.body.contains(url));
+    public SentMessage getLastMessage() {
+        if (messages.isEmpty()) return null;
+        return messages.get(messages.size() - 1);
     }
 }

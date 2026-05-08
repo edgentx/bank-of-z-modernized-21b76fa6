@@ -2,23 +2,33 @@ package com.example.domain.vforce360.model;
 
 import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
-import java.util.List;
+import java.util.UUID;
 
 /**
- * Event emitted when a defect is successfully reported and tracked.
+ * Event published when a defect is reported.
  */
 public record DefectReportedEvent(
-    String type,
     String aggregateId,
-    Instant occurredAt,
     String defectId,
-    String title,
-    String severity,
-    String component,
-    String projectId,
-    String githubUrl
+    String githubUrl,
+    Instant occurredAt
 ) implements DomainEvent {
-    public DefectReportedEvent {
-        if (type == null) type = "DefectReported";
+    public DefectReportedEvent(String defectId, String githubUrl, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), defectId, githubUrl, occurredAt);
+    }
+
+    @Override
+    public String type() {
+        return "DefectReported";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

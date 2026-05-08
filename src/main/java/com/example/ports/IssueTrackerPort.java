@@ -1,16 +1,19 @@
 package com.example.ports;
 
-import com.example.domain.validation.model.IssueUrl;
+import java.util.Map;
 
 /**
- * Port for interacting with external issue tracking systems (e.g., GitHub).
+ * Port for creating issues in an external tracker (e.g. GitHub/Jira).
+ * This interface must be implemented by the production adapter and mocked in tests.
  */
 public interface IssueTrackerPort {
+
     /**
-     * Creates a new issue in the tracker system.
-     * @param title Title of the issue
-     * @param body Body content of the issue
-     * @return The URL of the created issue
+     * Creates a new issue ticket.
+     *
+     * @param title The title of the defect
+     * @param body The body content of the defect
+     * @return A Map containing the response details, specifically 'url'
      */
-    IssueUrl createIssue(String title, String body);
+    Map<String, String> createIssue(String title, String body);
 }

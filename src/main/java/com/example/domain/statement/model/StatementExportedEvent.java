@@ -7,10 +7,20 @@ import java.time.Instant;
 public record StatementExportedEvent(
     String aggregateId,
     String format,
-    String artifactLocation,
     Instant occurredAt
 ) implements DomainEvent {
-  @Override public String type() { return "statement.exported"; }
-  @Override public String aggregateId() { return aggregateId(); }
-  @Override public Instant occurredAt() { return occurredAt(); }
+    @Override
+    public String type() {
+        return "statement.exported";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
 }

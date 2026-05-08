@@ -1,90 +1,72 @@
 package com.example.e2e.regression;
 
-import com.example.mocks.MockGitHubRepository;
-import com.example.mocks.MockSlackNotifier;
-import com.example.ports.GitHubRepository;
-import com.example.ports.SlackNotifier;
+import com.example.domain.validation.model.DefectReportedEvent;
+import com.example.domain.validation.model.ReportDefectCmd;
+import com.example.domain.validation.model.ValidationAggregate;
+import com.example.mocks.MockSlackNotificationPort;
+import com.example.ports.SlackNotificationPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * End-to-End Regression Test for S-FB-1: Validating VW-454 — GitHub URL in Slack body.
- * <p>
- * Scenario: Trigger _report_defect via temporal-worker exec (simulated here)
- * Expected: Slack body includes GitHub issue: <url>
+ * Regression test for S-FB-1.
+ * AC: Regression test added to e2e/regression/ covering this scenario
+ * 
+ * Scenario:
+ * 1. Trigger _report_defect via temporal-worker exec (simulated here by Aggregate execution)
+ * 2. Verify Slack body contains GitHub issue link
  */
 public class SFB1RegressionTest {
 
-    private MockGitHubRepository gitHubRepo;
-    private MockSlackNotifier slackNotifier;
+    private MockSlackNotificationPort mockSlack;
 
     @BeforeEach
     void setUp() {
-        gitHubRepo = new MockGitHubRepository();
-        slackNotifier = new MockSlackNotifier();
+        mockSlack = new MockSlackNotificationPort();
     }
 
     @Test
-    void testReportDefectFlow_ShouldIncludeGitHubUrlInSlackBody() {
-        // 1. Setup Inputs
-        String defectTitle = "VW-454: Missing GitHub URL in Slack";
-        String defectBody = "Severity: LOW\nComponent: validation";
+    void validateVW454_GitHubUrlInSlackBody() {
+        // Arrange
+        // Simulating the Temporal worker triggering the report
+        ValidationAggregate aggregate = new ValidationAggregate("S-FB-1");
+        ReportDefectCmd cmd = new ReportDefectCmd(
+            "S-FB-1",
+            "Fix: Validating VW-454",
+            "Slack body should include GitHub issue",
+            "LOW",
+            "validation"
+        );
 
-        // 2. Execute the "Workflow" (Simulating Temporal Activity/Worker logic)
-        String githubUrl = gitHubRepo.createIssue(defectTitle, defectBody);
-        String slackMessage = formatSlackMessage(defectTitle, githubUrl);
-        slackNotifier.send(slackMessage);
-
-        // 3. Verify GitHub Issue was created (Precondition)
-        assertNotNull(githubUrl, "GitHub URL should not be null");
-        assertTrue(githubUrl.startsWith("http"), "GitHub URL should be a valid link");
-
-        // 4. Verify Slack Notification Behavior (The Actual Bug Fix Validation)
-        List<String> sentMessages = slackNotifier.getSentMessages();
-        assertFalse(sentMessages.isEmpty(), "Slack should have received a message");
-
-        String actualSlackBody = sentMessages.get(0);
+        // Act
+        // 1. Trigger the defect reporting workflow logic
+        var events = aggregate.execute(cmd);
         
-        // AC: The validation no longer exhibits the reported behavior (missing link)
+        // Extract the URL from the domain event (Simulating the projection/service layer preparing the Slack message)
+        assertTrue(events.size() > 0, "Event should be raised");
+        DefectReportedEvent event = (DefectReportedEvent) events.get(0);
+        String githubUrl = event.githubIssueUrl();
+        
+        String slackBody = String.format("Defect Reported: %s\nGitHub Issue: %s", event.title(), githubUrl);
+        
+        // 2. Send to Slack (using mock)
+        mockSlack.sendNotification("#vforce360-issues", slackBody);
+
+        // Assert
+        // Verify the Slack body contains the GitHub issue link
+        assertEquals(1, mockSlack.sentBodies.size(), "One notification should be sent");
+        
+        String capturedBody = mockSlack.sentBodies.get(0);
         assertTrue(
-            actualSlackBody.contains(githubUrl),
-            "Slack body must include the GitHub issue URL. Bug VW-454 is NOT fixed."
+            capturedBody.contains("https://github.com/"), 
+            "Slack body must contain a GitHub URL"
         );
-
-        // 5. Regression Test: Verify format context
-        assertTrue(actualSlackBody.contains(defectTitle), "Slack body should reference the issue title");
-    }
-
-    @Test
-    void testReportDefectFlow_MissingUrl_ShouldFailAssertion() {
-        // This test demonstrates the "Failure" case if the implementation is broken.
-        // We manually simulate a broken implementation where the URL is omitted.
-        
-        String defectTitle = "VW-454 Regression Check";
-        String githubUrl = "http://github.com/fake-repo/issues/404";
-
-        // Simulating the BUG: Sending a message without the URL
-        String brokenSlackMessage = "Issue Created: " + defectTitle + " (Link omitted)"; 
-        slackNotifier.send(brokenSlackMessage);
-
-        List<String> sentMessages = slackNotifier.getSentMessages();
-        String actualSlackBody = sentMessages.get(0);
-
-        assertFalse(
-            actualSlackBody.contains(githubUrl), 
-            "Regression check: Broken implementation correctly fails validation."
+        assertTrue(
+            capturedBody.contains("/issues/"), 
+            "Slack body must contain an issue link"
         );
-    }
-
-    /**
-     * Helper to simulate the message formatting logic that would exist in the Temporal Worker.
-     * This acts as the "System Under Test" for the formatting logic.
-     */
-    private String formatSlackMessage(String title, String url) {
-        return "Defect Report: " + title + "\nGitHub Issue: " + url;
     }
 }

@@ -1,11 +1,14 @@
 package com.example.defect.repository;
 
-import com.example.defect.domain.DefectAggregate;
+import com.example.domain.defect.model.DefectAggregate;
+
+import java.util.Optional;
 
 /**
  * Repository interface for Defect Aggregates.
+ * Adapters must implement this to persist defect state.
  */
 public interface DefectRepository {
     void save(DefectAggregate aggregate);
-    DefectAggregate findById(String defectId);
+    Optional<DefectAggregate> findById(String defectId);
 }

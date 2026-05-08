@@ -1,9 +1,11 @@
 package com.example.domain.validation.port;
 
+import com.example.domain.validation.model.SlackMessageBody;
+
 /**
- * Port for Slack notification operations.
- * Used to decouple the domain from the actual Slack WebClient.
+ * Port for sending notifications to Slack.
+ * Abstracts the Slack API interaction from the domain logic.
  */
 public interface SlackNotificationPort {
-    String sendMessage(SlackMessage message);
+    void send(SlackMessageBody body);
 }

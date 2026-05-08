@@ -1,14 +1,12 @@
 package com.example.mocks;
 
-import com.example.domain.uinavigation.model.TellerSessionAggregate;
-import com.example.domain.uinavigation.repository.TellerSessionRepository;
+import com.example.domain.teller.model.TellerSessionAggregate;
+import com.example.domain.teller.repository.TellerSessionRepository;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * In-memory repository for TellerSessionAggregate used in testing.
- */
 public class InMemoryTellerSessionRepository implements TellerSessionRepository {
     private final Map<String, TellerSessionAggregate> store = new HashMap<>();
 
@@ -19,11 +17,14 @@ public class InMemoryTellerSessionRepository implements TellerSessionRepository 
     }
 
     @Override
-    public TellerSessionAggregate findById(String id) {
-        return store.get(id);
+    public Optional<TellerSessionAggregate> findById(String id) {
+        return Optional.ofNullable(store.get(id));
     }
 
-    public void clear() {
-        store.clear();
+    @Override
+    public TellerSessionAggregate create(String id) {
+        var agg = new TellerSessionAggregate(id);
+        store.put(id, agg);
+        return agg;
     }
 }

@@ -1,16 +1,15 @@
-package com.example.domain.vforce;
+package com.example.domain.vforce.service;
 
+import com.example.domain.vforce.model.GitHubIssue;
+import com.example.domain.vforce.model.ReportDefectCommand;
+import com.example.domain.vforce.model.SlackMessage;
 import com.example.domain.vforce.port.GitHubIssuePort;
 import com.example.domain.vforce.port.SlackNotificationPort;
-import com.example.domain.vforce.model.ReportDefectCommand;
-import com.example.domain.vforce.model.GitHubIssue;
 
 /**
- * Temporary Stand-in for the Temporal Workflow implementation.
- * This file represents the code that DOES NOT YET IMPLEMENT the feature correctly (or at all),
- * allowing the test to fail (Red phase).
- * 
- * In the actual repo, this would be the Workflow implementation activity/worker.
+ * Orchestrator for reporting defects.
+ * Corresponds to the Temporal Workflow logic.
+ * This implementation satisfies the test requirements for VW-454.
  */
 public class DefectReportingOrchestrator {
 
@@ -27,15 +26,13 @@ public class DefectReportingOrchestrator {
         GitHubIssue issue = gitHubPort.createIssue(cmd.summary(), cmd.description());
 
         // 2. Prepare Slack Message
-        // TODO: VW-454 Logic is missing here. The current implementation just sends text.
-        // We intentionally leave out the URL formatting to ensure the test fails.
-        
-        String slackBody = "Defect Reported: " + cmd.summary(); 
-        // BUG: Missing issue.getUrl() in the body string construction
+        // FIX for VW-454: Include the GitHub URL in the body.
+        // Format: Defect Reported: <Summary>
+        //         GitHub Issue: <url|Link Text>
+        String issueUrl = issue.url();
+        String slackBody = "Defect Reported: " + cmd.summary() + "\n" +
+                          "GitHub Issue: <" + issueUrl + "|View Issue>";
 
         slackPort.notify(new SlackMessage(slackBody));
     }
-
-    // Inner record for the notification payload
-    public record SlackMessage(String body) {}
 }

@@ -1,10 +1,17 @@
 package com.example.activities;
 
 /**
- * Port interface for Defect Reporting activities.
- * Decouples the workflow logic from the actual implementation of external communications.
+ * Temporal Activity interface for reporting defects.
+ * Wraps the interaction between GitHub creation and Slack notification.
  */
 public interface DefectReportingActivities {
-    String createGitHubIssue(String description);
-    void notifySlack(String messageBody);
+    /**
+     * Reports a defect by creating a GitHub issue and notifying Slack.
+     *
+     * @param defectId The ID of the defect (e.g., VW-454).
+     * @param title The title of the defect.
+     * @param description The description of the defect.
+     * @throws Exception if the workflow fails.
+     */
+    void reportDefect(String defectId, String title, String description) throws Exception;
 }

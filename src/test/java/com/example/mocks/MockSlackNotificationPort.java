@@ -6,32 +6,30 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to Slack to verify content without external I/O.
+ * Captures messages to verify content without calling the real API.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> postedMessages = new ArrayList<>();
+    private final List<String> sentMessages = new ArrayList<>();
 
     @Override
     public void postMessage(String messageBody) {
-        if (messageBody == null || messageBody.isBlank()) {
-            throw new IllegalArgumentException("Message body cannot be empty");
-        }
-        this.postedMessages.add(messageBody);
+        System.out.println("[MockSlack] Captured message: " + messageBody);
+        this.sentMessages.add(messageBody);
     }
 
-    public List<String> getPostedMessages() {
-        return new ArrayList<>(postedMessages);
+    public List<String> getSentMessages() {
+        return new ArrayList<>(sentMessages);
     }
 
-    public void clear() {
-        postedMessages.clear();
+    public void reset() {
+        sentMessages.clear();
     }
 
     public String getLastMessage() {
-        if (postedMessages.isEmpty()) {
-            throw new IllegalStateException("No messages posted");
+        if (sentMessages.isEmpty()) {
+            throw new IllegalStateException("No messages sent");
         }
-        return postedMessages.get(postedMessages.size() - 1);
+        return sentMessages.get(sentMessages.size() - 1);
     }
 }

@@ -1,16 +1,19 @@
 package com.example.ports;
 
 /**
- * Port for sending notifications to Slack.
+ * Port for sending Slack notifications.
+ * Used to verify defect VW-454.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Posts a message to a configured Slack channel.
-     *
-     * @param channel The target channel (e.g. "#vforce360-issues")
-     * @param messageBody The formatted content of the message
-     * @throws IllegalArgumentException if channel or body is invalid
+     * Sends a notification payload to Slack.
+     * @param payload The formatted message body.
      */
-    void postMessage(String channel, String messageBody);
+    void send(String payload);
+
+    /**
+     * Returns the last payload sent to Slack (for test verification).
+     */
+    String getLastSentPayload();
 }

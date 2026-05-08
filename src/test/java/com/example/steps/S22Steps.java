@@ -1,80 +1,57 @@
 package com.example.steps;
 
+import com.example.domain.screenmap.model.ScreenMapAggregate;
+import com.example.domain.screenmap.model.ValidateScreenInputCmd;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.userinterfacenavigation.model.ScreenInputValidatedEvent;
-import com.example.domain.userinterfacenavigation.model.ScreenMapAggregate;
-import com.example.domain.userinterfacenavigation.model.ValidateScreenInputCmd;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S22Steps {
 
-    // Test State
     private ScreenMapAggregate aggregate;
-    private ValidateScreenInputCmd currentCommand;
+    private ValidateScreenInputCmd cmd;
     private List<DomainEvent> resultEvents;
     private Exception thrownException;
 
-    // Constants for Scenarios
-    private static final String SCREEN_ID = "LOGIN_SCREEN";
-    private static final String FIELD_USER = "USERNAME";
-    private static final String FIELD_PASS = "PASSWORD";
-
-    // Setup Data
-    private Set<String> mandatoryFields = new HashSet<>();
-    private Map<String, Integer> lengthConstraints = new HashMap<>();
-    private Map<String, String> inputFields = new HashMap<>();
-
     @Given("a valid ScreenMap aggregate")
-    public void a_valid_screen_map_aggregate() {
-        aggregate = new ScreenMapAggregate("SCREEN_MAP_001");
-        thrownException = null;
-        resultEvents = null;
-        
-        // Common legacy constraints
-        lengthConstraints.put(FIELD_USER, 8);  // BMS constraint
-        lengthConstraints.put(FIELD_PASS, 24); // BMS constraint
+    public void a_valid_ScreenMap_aggregate() {
+        aggregate = new ScreenMapAggregate("SCREEN1");
+        // Configure standard valid fields for the happy path
+        aggregate.configureFields(Map.of(
+            "ACCOUNT", new ScreenMapAggregate.FieldDefinition(true, 10),
+            "AMOUNT", new ScreenMapAggregate.FieldDefinition(true, 12)
+        ));
     }
 
     @And("a valid screenId is provided")
-    public void a_valid_screen_id_is_provided() {
-        // Handled by command construction in @When
+    public void a_valid_screenId_is_provided() {
+        // Handled in context setup, but we ensure cmd uses the correct ID
     }
 
     @And("a valid inputFields is provided")
-    public void a_valid_input_fields_is_provided() {
-        inputFields.put(FIELD_USER, "ALICE"); // Valid length
-        inputFields.put(FIELD_PASS, "password123"); // Valid length
+    public void a_valid_inputFields_is_provided() {
+        // Handled in context setup
     }
 
     @When("the ValidateScreenInputCmd command is executed")
-    public void the_validate_screen_input_cmd_command_is_executed() {
+    public void the_ValidateScreenInputCmd_command_is_executed() {
         try {
-            // Scenario 1 uses valid data setup in @Given
-            if (inputFields.isEmpty() && thrownException == null) {
-                // Default valid data if not overridden by violation steps
-                inputFields.put(FIELD_USER, "ALICE");
-                inputFields.put(FIELD_PASS, "PASS");
+            // Default happy path command construction
+            if (cmd == null) {
+                cmd = new ValidateScreenInputCmd("SCREEN1", Map.of(
+                    "ACCOUNT", "1234567890",
+                    "AMOUNT", "100.00"
+                ));
             }
-            
-            currentCommand = new ValidateScreenInputCmd(
-                SCREEN_ID,
-                inputFields,
-                mandatoryFields,
-                lengthConstraints
-            );
-            
-            resultEvents = aggregate.execute(currentCommand);
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             thrownException = e;
         }
@@ -82,42 +59,41 @@ public class S22Steps {
 
     @Then("a input.validated event is emitted")
     public void a_input_validated_event_is_emitted() {
-        Assertions.assertNull(thrownException, "Should not have thrown an exception: " + thrownException);
-        Assertions.assertNotNull(resultEvents, "Result events list should not be null");
-        Assertions.assertEquals(1, resultEvents.size(), "Should emit exactly one event");
-        Assertions.assertTrue(resultEvents.get(0) instanceof ScreenInputValidatedEvent, "Event should be ScreenInputValidatedEvent");
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertEquals("input.validated", resultEvents.get(0).type());
+        assertNull(thrownException);
+    }
+
+    // --- Negative Scenarios ---
+
+    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
+    public void a_ScreenMap_aggregate_that_violates_All_mandatory_input_fields_must_be_validated() {
+        aggregate = new ScreenMapAggregate("SCREEN2");
+        aggregate.configureFields(Map.of(
+            "TX_ID", new ScreenMapAggregate.FieldDefinition(true, 15) // Mandatory
+        ));
+        // Construct command missing the mandatory field
+        cmd = new ValidateScreenInputCmd("SCREEN2", Map.of()); // Empty input
+    }
+
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void a_ScreenMap_aggregate_that_violates_Field_lengths_must_strictly_adhere() {
+        aggregate = new ScreenMapAggregate("SCREEN3");
+        aggregate.configureFields(Map.of(
+            "SHORT_FIELD", new ScreenMapAggregate.FieldDefinition(false, 5) // Max length 5
+        ));
+        // Construct command exceeding length
+        cmd = new ValidateScreenInputCmd("SCREEN3", Map.of(
+            "SHORT_FIELD", "TOO_LONG_TEXT" // Length > 5
+        ));
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(thrownException, "Expected an exception to be thrown");
-        Assertions.assertTrue(thrownException instanceof IllegalArgumentException, "Expected IllegalArgumentException domain error");
+        assertNotNull(thrownException);
+        assertTrue(thrownException instanceof IllegalStateException);
+        assertTrue(thrownException.getMessage().contains("validation failed"));
+        assertNull(resultEvents);
     }
-
-    // Scenario 2: Violation Setup
-    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void a_screen_map_aggregate_that_violates_mandatory_fields() {
-        // Given a valid aggregate base
-        a_valid_screen_map_aggregate();
-        
-        // And add constraints
-        mandatoryFields.add(FIELD_USER);
-        mandatoryFields.add(FIELD_PASS);
-        
-        // Setup input to violate constraint: PASSWORD is missing
-        inputFields.put(FIELD_USER, "BOB");
-        // PASSWORD is intentionally omitted from inputFields
-    }
-
-    // Scenario 3: Violation Setup
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void a_screen_map_aggregate_that_violates_bms_length() {
-        // Given a valid aggregate base
-        a_valid_screen_map_aggregate();
-        
-        // Setup input to violate constraint: USERNAME exceeds length 8
-        inputFields.put(FIELD_USER, "ALEXANDER_THE_GREAT"); // Length > 8
-        inputFields.put(FIELD_PASS, "SECRET");
-    }
-
 }

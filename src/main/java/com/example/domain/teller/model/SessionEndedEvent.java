@@ -3,17 +3,14 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
+/**
+ * Event emitted when a Teller Session is successfully ended.
+ */
 public record SessionEndedEvent(
         String aggregateId,
         Instant occurredAt
 ) implements DomainEvent {
-    public SessionEndedEvent {
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId cannot be null");
-        if (occurredAt == null) occurredAt = Instant.now();
-    }
-
     @Override
     public String type() {
         return "session.ended";

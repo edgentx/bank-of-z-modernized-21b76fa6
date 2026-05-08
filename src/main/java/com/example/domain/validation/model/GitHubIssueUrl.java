@@ -2,6 +2,7 @@ package com.example.domain.validation.model;
 
 /**
  * Value Object representing a valid GitHub Issue URL.
+ * Enforces format validation to ensure defects are reported with actionable links.
  */
 public class GitHubIssueUrl {
     private final String url;
@@ -19,7 +20,7 @@ public class GitHubIssueUrl {
         // \d+                      - Issue ID (digits)
         // (/)?                     - Optional trailing slash
         // $
-        // Note: Escaped backslashes for Java String compilation.
+        // Note: In Java regex, backslashes must be escaped. \\\d becomes \\d in code, matching \d in regex.
         String regex = "^https?://github\\.com/[^/]+/issues/\\d+/?$";
 
         if (!url.matches(regex)) {

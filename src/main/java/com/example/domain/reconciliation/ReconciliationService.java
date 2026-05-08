@@ -2,14 +2,20 @@ package com.example.domain.reconciliation;
 
 import com.example.domain.reconciliation.model.ReportDefectCmd;
 import com.example.ports.SlackNotificationPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * Domain service handling reconciliation logic.
- * This is the implementation target for the defect S-FB-1.
+ * Domain Service handling Reconciliation logic,
+ * including the '_report_defect' workflow triggered by Temporal.
  */
 @Service
 public class ReconciliationService {
+
+    private static final Logger log = LoggerFactory.getLogger(ReconciliationService.class);
+    private static final String SLACK_CHANNEL = "#vforce360-issues";
+    private static final String GITHUB_ISSUE_BASE_URL = "https://github.com/bank-of-z/issues/";
 
     private final SlackNotificationPort slackNotificationPort;
 
@@ -18,33 +24,29 @@ public class ReconciliationService {
     }
 
     /**
-     * Handles the ReportDefectCmd by formatting a message and sending it to Slack.
-     * 
+     * Executes the defect reporting workflow.
+     * Corresponds to the temporal-worker exec trigger.
+     *
      * @param cmd The command containing defect details.
      */
     public void reportDefect(ReportDefectCmd cmd) {
-        String messageBody = formatSlackMessage(cmd);
-        slackNotificationPort.send(messageBody);
+        log.info("Reporting defect {} to Slack channel {}", cmd.defectId(), SLACK_CHANNEL);
+
+        String messageBody = formatSlackMessage(cmd.defectId());
+
+        slackNotificationPort.sendMessage(SLACK_CHANNEL, messageBody);
     }
 
     /**
-     * Formats the defect report into a Slack message string.
-     * This method ensures the GitHub URL is present as per S-FB-1 requirements.
-     * 
-     * @param cmd The command to format.
-     * @return The formatted string.
+     * Formats the Slack message body ensuring the GitHub issue URL is present.
+     * Fixes defect VW-454.
+     *
+     * @param defectId The ID of the defect (e.g., "VW-454")
+     * @return A string containing the formatted message with the URL.
      */
-    private String formatSlackMessage(ReportDefectCmd cmd) {
-        String id = (cmd.defectId() != null) ? cmd.defectId() : "UNKNOWN";
-        String project = (cmd.projectName() != null) ? cmd.projectName() : "Unknown Project";
-        String desc = (cmd.description() != null) ? cmd.description() : "No description provided.";
-        
-        // Constructing the URL to satisfy the validation requirement
-        String url = "http://github.com/bank-of-z/issues/" + id;
-
-        return String.format(
-            "Defect Detected: %s in project %s. Details: %s. Link: %s",
-            id, project, desc, url
-        );
+    private String formatSlackMessage(String defectId) {
+        // Ensuring the link is explicitly present as per the defect report requirements
+        String url = GITHUB_ISSUE_BASE_URL + defectId;
+        return String.format("Defect reported: %s. View details at %s", defectId, url);
     }
 }

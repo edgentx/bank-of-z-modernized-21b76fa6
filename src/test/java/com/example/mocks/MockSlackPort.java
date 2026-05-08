@@ -4,18 +4,17 @@ import com.example.ports.SlackPort;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Mock implementation of SlackPort for testing.
+ * Records payloads to verify behavior without calling I/O.
+ */
 public class MockSlackPort implements SlackPort {
-
-    // Captured messages to verify behavior in tests
-    public final List<String> sentMessages = new ArrayList<>();
+    public final List<CapturedCall> calls = new ArrayList<>();
 
     @Override
-    public void sendMessage(String message) {
-        // Simulate sending by storing the message
-        this.sentMessages.add(message);
+    public void sendNotification(String webhookUrl, String jsonPayload) {
+        calls.add(new CapturedCall(webhookUrl, jsonPayload));
     }
 
-    public void clear() {
-        this.sentMessages.clear();
-    }
+    public record CapturedCall(String url, String payload) {}
 }

@@ -1,6 +1,5 @@
 package com.example.ports;
 
-import com.example.domain.shared.Command;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -19,7 +18,7 @@ public interface SlackPort {
     CompletableFuture<Void> sendMessage(String channel, String messageBody);
 
     /**
-     * Retrieves the webhook URL or API endpoint being used (for testing/validation purposes).
+     * Retrieves the webhook URL or API endpoint being used.
      */
     String getEndpointUrl();
 }

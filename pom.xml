@@ -1,16 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Bank of Z — Modernizing COBOL/PL/I core banking
+  ~
+  ~ This is the parent POM for the monorepo. It defines the Spring Boot BOM,
+  ~ shared dependencies (DB2, Flyway, OpenTelemetry), and compiler settings.
+  ~
+  ~ BUILD RULES:
+  ~ 1. Spring Boot BOM covers most libs. If you add a dep NOT in the BOM
+  ~    (e.g., io.minio, org.mongodb, redis.clients), you MUST declare <version>.
+  ~ 2. For DB2 migrations, we use Flyway. The DB2 driver is usually a local
+  ~    install, but we define the dependency here for completeness.
+  -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <groupId>com.example</groupId>
     <artifactId>bank-of-z</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>Bank-of-Z Modernization</name>
-    <description>Domain-Driven Design implementation for Bank of Z core legacy migration.</description>
+    <name>Bank of Z</name>
+    <description>Modernizing COBOL/PL/I core banking with Spring Boot</description>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -20,31 +31,32 @@
     </parent>
 
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Specific versions for libs outside Spring Boot BOM -->
+        <flyway.version>9.22.3</flyway.version>
+        <mongodb.version>4.11.1</mongodb.version>
+        <minio.version>8.5.7</minio.version>
+        <redis.version>4.3.1</redis.version>
+        <otel.version>1.31.0</otel.version>
         <cucumber.version>7.14.0</cucumber.version>
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Starters (BOM pinned) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
+        <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -54,29 +66,51 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-batch</artifactId>
         </dependency>
-
-        <!-- IBM MQ (JMS) - Explicit version needed often, but Spring Boot BOM covers basic JMS. Assuming generic JMS + IBM impl if explicit version needed. -->
-        <!-- Note: Actual IBM MQ client libs usually need explicit version if not in Spring Boot BOM, using generic placeholder -->
-        <!-- <dependency>
-            <groupId>com.ibm.mq</groupId>
-            <artifactId>mq-jms-spring-boot-starter</artifactId>
-            <version>3.0.0</version>
-        </dependency> -->
-
-        <!-- Redis (BOM pinned) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.session</groupId>
+            <artifactId>spring-session-data-redis</artifactId>
+        </dependency>
 
-        <!-- DB2 Drivers (BOM pinned usually covers jtds, but db2 specific often outside. Assuming generic jdbc dependency) -->
-        <!-- <dependency>
+        <!-- Database & Drivers -->
+        <!-- NOTE: DB2 driver (com.ibm.db2) is usually proprietary. The pom.xml assumes
+             the jar is installed locally or available in a private repo. -->
+        <dependency>
             <groupId>com.ibm.db2</groupId>
             <artifactId>jcc</artifactId>
             <version>11.5.8.0</version>
-        </dependency> -->
+        </dependency>
+        
+        <!-- Flyway for DB2 schema migration -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-db2</artifactId>
+            <version>${flyway.version}</version>
+        </dependency>
 
-        <!-- OpenTelemetry (BOM pinned via management/io.micrometer) -->
+        <!-- Integration & Messaging -->
+        <dependency>
+            <groupId>com.ibm.mq</groupId>
+            <artifactId>com.ibm.mq.allclient</artifactId>
+            <version>9.3.4.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.integration</groupId>
+            <artifactId>spring-integration-jms</artifactId>
+        </dependency>
+
+        <!-- Observability (OpenTelemetry) -->
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-tracing-bridge-otel</artifactId>
@@ -84,10 +118,22 @@
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <version>1.32.0</version>
+            <version>${otel.version}</version>
         </dependency>
 
-        <!-- Cucumber (BDD) - Explicit version required as groupId is not in BOM closed set -->
+        <!-- Storage -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>${minio.version}</version>
+        </dependency>
+
+        <!-- Testing -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
@@ -101,49 +147,10 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-spring</artifactId>
-            <version>${cucumber.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- JUnit 5 (BOM pinned) -->
-        <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Temporal (SDK) - Explicit version required -->
-        <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-sdk</artifactId>
-            <version>1.22.0</version>
-        </dependency>
-
-        <!-- MinIO (S3 Client) - Explicit version required -->
-        <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-            <version>8.5.7</version>
-        </dependency>
-
-        <!-- Flyway (BOM pinned usually for community, but specific DB drivers often need version) -->
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-db2</artifactId>
-            <version>9.22.3</version>
-        </dependency>
-
     </dependencies>
 
     <build>
@@ -156,22 +163,10 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>17</source>
-                    <target>17</target>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <properties>
-                        <configurationParameters>
-                            cucumber.junit-platform.naming-strategy=long
-                        </configurationParameters>
-                    </properties>
+                    <source>21</source>
+                    <target>21</target>
                 </configuration>
             </plugin>
         </plugins>
     </build>
-
 </project>

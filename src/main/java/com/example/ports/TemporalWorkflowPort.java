@@ -1,17 +1,11 @@
 package com.example.ports;
 
+import com.example.domain.vforce.model.StartVW454ValidationCmd;
+import java.util.concurrent.CompletableFuture;
+
 /**
- * Port interface for Temporal workflow interactions.
- * Real implementation would trigger the Temporal workflow.
- * Test implementation orchestrates the flow synchronously for validation.
+ * Port interface for Temporal Workflow execution.
  */
 public interface TemporalWorkflowPort {
-
-    /**
-     * Simulates triggering the report_defect workflow.
-     * This orchestrates the logic that eventually calls the Slack port.
-     * 
-     * @param issueId The GitHub URL/ID of the issue being reported.
-     */
-    void executeReportDefectWorkflow(String issueId);
+    CompletableFuture<String> executeReportDefectWorkflow(StartVW454ValidationCmd cmd);
 }

@@ -1,34 +1,32 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
-import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Mock implementation of GitHubPort for testing.
- * Simulates GitHub issue creation and URL generation.
+ * Simulates creating issues and returning valid URLs.
  */
 public class MockGitHubPort implements GitHubPort {
-
-    private String nextIssueUrl = "https://github.com/example/repo/issues/1";
-    private boolean shouldFail = false;
+    private final Map<String, String> issues = new HashMap<>();
+    private int counter = 1;
 
     @Override
-    public Optional<String> createIssue(String title, String body) {
-        if (shouldFail) {
-            return Optional.empty();
-        }
-        // Basic validation mirroring real API expectations
-        if (title == null || title.isBlank()) {
-            return Optional.empty();
-        }
-        return Optional.of(nextIssueUrl);
+    public String createIssue(String repository, String title, String body) {
+        String issueId = "ISSUE-" + (counter++);
+        String url = "https://github.com/" + repository + "/issues/" + counter;
+        issues.put(issueId, url);
+        return url;
     }
 
-    public void setNextIssueUrl(String url) {
-        this.nextIssueUrl = url;
+    @Override
+    public String getIssueUrl(String repository, String issueId) {
+        return issues.getOrDefault(issueId, "");
     }
 
-    public void setShouldFail(boolean shouldFail) {
-        this.shouldFail = shouldFail;
+    public void reset() {
+        issues.clear();
+        counter = 1;
     }
 }

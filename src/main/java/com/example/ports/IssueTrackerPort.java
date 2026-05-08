@@ -1,16 +1,17 @@
 package com.example.ports;
 
 /**
- * Port interface for interacting with Issue Tracking systems (e.g., GitHub).
+ * Port interface for reporting defects to external issue trackers (e.g., GitHub).
  */
 public interface IssueTrackerPort {
-
+    
     /**
-     * Creates a new issue in the tracker.
+     * Reports a defect and returns the URL of the created issue.
      *
-     * @param title The title of the issue.
-     * @param description The body content of the issue.
-     * @return The unique URL of the created issue.
+     * @param projectId The ID of the project
+     * @param summary   Summary of the defect
+     * @param description Full description of the defect
+     * @return The URL string to the created issue
      */
-    String createIssue(String title, String description);
+    String reportDefect(String projectId, String summary, String description);
 }

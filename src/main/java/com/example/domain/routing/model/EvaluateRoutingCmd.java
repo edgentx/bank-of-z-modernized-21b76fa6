@@ -4,10 +4,9 @@ import com.example.domain.shared.Command;
 
 import java.util.Map;
 
-public record EvaluateRoutingCmd(
-    String routeId,
-    String transactionType,
-    String payload,
-    String targetSystem,
-    int ruleVersion
-) implements Command {}
+/**
+ * Command to evaluate the routing rules for a specific transaction type.
+ * Part of Story S-23.
+ */
+public record EvaluateRoutingCmd(String routeId, String transactionType, Map<String, Object> payload) implements Command {
+}

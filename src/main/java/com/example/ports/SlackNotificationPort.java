@@ -12,7 +12,7 @@ public interface SlackNotificationPort {
      * @param body    The content of the message.
      */
     void sendMessage(String channel, String body);
-    
+
     /**
      * Helper to retrieve the last message sent to a specific channel for verification.
      * Note: This is typically implemented by mocks, but kept in the interface

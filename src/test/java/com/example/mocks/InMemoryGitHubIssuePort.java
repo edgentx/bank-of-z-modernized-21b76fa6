@@ -1,30 +1,44 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
-import java.util.HashMap;
-import java.util.Map;
+
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Mock implementation of GitHubIssuePort for testing.
- * Simulates creating an issue and returning a URL.
+ * Mock implementation of GitHubIssuePort.
+ * Configurable to return success or failure states to test workflow logic.
  */
 public class InMemoryGitHubIssuePort implements GitHubIssuePort {
 
-    private final Map<String, String> issueUrls = new HashMap<>();
+    private String nextIssueUrl;
+    private final AtomicInteger createIssueCallCount = new AtomicInteger(0);
+
+    public InMemoryGitHubIssuePort() {
+        // Default to a success state
+        this.nextIssueUrl = "https://github.com/fake/repo/issues/1";
+    }
+
+    /**
+     * Sets what URL should be returned by the next call.
+     * Set to null to simulate a failure (Empty Optional).
+     */
+    public void setNextIssueUrl(String url) {
+        this.nextIssueUrl = url;
+    }
+
+    public int getCreateIssueCallCount() {
+        return createIssueCallCount.get();
+    }
 
     @Override
-    public String createIssue(String defectId, String title, String body) {
-        // Simulate GitHub URL generation
-        String url = "https://github.com/example/project/issues/" + defectId;
-        issueUrls.put(defectId, url);
-        return url;
-    }
-
-    public boolean wasIssueCreated(String defectId) {
-        return issueUrls.containsKey(defectId);
-    }
-
-    public String getIssueUrl(String defectId) {
-        return issueUrls.get(defectId);
+    public Optional<String> createIssue(String repo, String title) {
+        createIssueCallCount.incrementAndGet();
+        
+        if (nextIssueUrl == null) {
+            return Optional.empty();
+        }
+        
+        return Optional.of(nextIssueUrl);
     }
 }

@@ -1,28 +1,25 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- * Mock for GitHubPort.
- */
 public class MockGitHubPort implements GitHubPort {
-
-    private String mockIssueUrl = "https://github.com/mock-org/mock-repo/issues/1";
-    private boolean shouldFail = false;
+    private final List<String> createdIssues = new ArrayList<>();
+    private String mockUrl = "https://github.com/test/repo/issues/1";
 
     @Override
-    public String createIssue(String repo, String title, String body) {
-        if (shouldFail) {
-            throw new RuntimeException("GitHub API Error");
-        }
-        return mockIssueUrl;
+    public String createIssue(String title, String body) {
+        System.out.println("[MOCK] Creating GitHub Issue: " + title);
+        createdIssues.add(title);
+        return mockUrl;
     }
 
-    public void setMockIssueUrl(String url) {
-        this.mockIssueUrl = url;
+    public void setMockUrl(String url) {
+        this.mockUrl = url;
     }
 
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
+    public List<String> getCreatedIssues() {
+        return createdIssues;
     }
 }

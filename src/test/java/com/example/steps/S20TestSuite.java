@@ -4,9 +4,12 @@ import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
+/**
+ * Test Suite runner for S-20 Features.
+ * Run this class to execute the Gherkin scenarios.
+ */
 @Suite
 @IncludeEngines("cucumber")
 @SelectClasspathResource("features/S-20.feature")
 public class S20TestSuite {
-    // JUnit 5 Suite to run Cucumber via the JUnit Platform
 }

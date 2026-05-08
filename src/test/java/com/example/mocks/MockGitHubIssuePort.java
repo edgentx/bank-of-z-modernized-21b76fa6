@@ -1,20 +1,27 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
-import org.springframework.stereotype.Component;
 
 /**
- * Mock implementation of the GitHub Port.
- * Allows controlling responses for testing without hitting real GitHub API.
+ * In-memory mock implementation of GitHubIssuePort for testing.
+ * Returns a deterministic URL.
  */
-@Component
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
+    private String mockUrlBase = "https://github.com/fake-org/repo/issues/";
+    private int issueCounter = 1;
+
     @Override
-    public GitHubIssueResponse createIssue(String title, String body, String labels) {
-        // Default mock behavior: Return a dummy URL.
-        // In a real test setup, this can be overridden via a test config or Mockito spies,
-        // but for the purpose of the requested Mock Adapter pattern, we return a valid static object.
-        return new GitHubIssueResponse("https://github.com/bank-of-z/vforce360/issues/MOCK-123");
+    public String createIssue(String title, String description) {
+        // Simulate basic validation
+        if (title == null || title.isBlank()) {
+            throw new IllegalArgumentException("Title cannot be empty");
+        }
+        // Return a deterministic URL based on a counter
+        return mockUrlBase + (issueCounter++);
+    }
+
+    public void reset() {
+        issueCounter = 1;
     }
 }

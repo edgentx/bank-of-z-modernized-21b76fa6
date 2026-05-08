@@ -1,25 +1,24 @@
 package com.example.mocks;
 
 import com.example.ports.SlackPort;
+
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Mock implementation of SlackPort for testing.
- */
 public class MockSlackPort implements SlackPort {
-    public final List<String> sentMessages = new ArrayList<>();
-    public String lastChannel;
+    public final List<String> notifications = new ArrayList<>();
+    public boolean throwException = false;
 
     @Override
-    public void sendNotification(String channel, String messageBody) {
-        this.lastChannel = channel;
-        this.sentMessages.add(messageBody);
+    public void sendDefectNotification(String summary, String githubIssueUrl) {
+        if (throwException) {
+            throw new RuntimeException("Slack API unavailable");
+        }
+        // We store the combination to validate the body content effectively
+        notifications.add("Summary: " + summary + " | URL: " + githubIssueUrl);
     }
 
-    public boolean wasUrlSentTo(String expectedUrl, String channel) {
-        return sentMessages.stream()
-                .filter(msg -> msg.contains(expectedUrl))
-                .anyMatch(msg -> channel.equals(this.lastChannel));
+    public boolean wasCalledWith(String summary, String url) {
+        return notifications.contains("Summary: " + summary + " | URL: " + url);
     }
 }

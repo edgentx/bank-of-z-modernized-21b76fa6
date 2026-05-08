@@ -1,10 +1,8 @@
 package com.example.ports;
 
-import java.util.Map;
-
 /**
- * Port interface for sending notifications to Slack.
+ * Interface for Slack notification operations.
  */
 public interface SlackPort {
-    void sendMessage(Map<String, String> payload);
+    void sendNotification(String message);
 }

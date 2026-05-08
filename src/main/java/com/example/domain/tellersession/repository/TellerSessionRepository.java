@@ -1,6 +1,8 @@
-package com.example.domain.teller.repository;
+package com.example.domain.tellersession.repository;
 
-// This file appears to be a duplicate or misplaced interface from a previous build error.
-// The correct domain package for TellerSession is com.example.domain.tellersession.
-// We keep this empty to prevent 'file exists' errors if it was generated previously,
-// but the active contract is in com.example.domain.tellersession.repository.
+import com.example.domain.tellersession.model.TellerSessionAggregate;
+
+public interface TellerSessionRepository {
+    TellerSessionAggregate save(TellerSessionAggregate aggregate);
+    TellerSessionAggregate findById(String id);
+}

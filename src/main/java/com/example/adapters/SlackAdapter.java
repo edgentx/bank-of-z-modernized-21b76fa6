@@ -1,38 +1,43 @@
 package com.example.adapters;
 
 import com.example.ports.SlackPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 /**
- * Real implementation of the SlackPort.
- * Constructs the Slack message body ensuring the GitHub URL is included.
+ * Real adapter implementation for Slack interactions.
+ * Encapsulates the logic to post messages to Slack channels.
+ * In a live environment, this would use the Slack SDK or a WebClient to hit the Webhook or Chat API.
  */
+@Component
 public class SlackAdapter implements SlackPort {
 
-    private static final String GITHUB_BASE_URL = "https://github.com/bank-of-z/issues/";
+    private static final Logger log = LoggerFactory.getLogger(SlackAdapter.class);
 
+    public SlackAdapter() {
+        // Default constructor for Spring
+    }
+
+    /**
+     * Posts a message to the specified channel.
+     * Logs the interaction to simulate external API call.
+     */
     @Override
-    public void sendDefectNotification(String defectId, String summary, String githubIssueId) {
-        if (defectId == null || defectId.isBlank()) {
-            throw new IllegalArgumentException("defectId cannot be null or empty");
+    public void postMessage(String channelId, String text) {
+        if (channelId == null || channelId.isBlank()) {
+            throw new IllegalArgumentException("Slack Channel ID cannot be null or empty");
         }
-        if (githubIssueId == null || githubIssueId.isBlank()) {
-            throw new IllegalArgumentException("githubIssueId cannot be null or empty");
+        if (text == null || text.isBlank()) {
+            throw new IllegalArgumentException("Slack message text cannot be null or empty");
         }
 
-        // Fix for VW-454: Ensure the body contains the GitHub URL
-        String url = GITHUB_BASE_URL + githubIssueId;
-        String body = String.format(
-            "Defect %s: %s\nSee issue: %s",
-            defectId,
-            summary != null ? summary : "No summary",
-            url
-        );
-
-        // Simulate sending the message to the external API.
-        // In a production system, this would use an HTTP client (e.g., WebClient, RestTemplate).
-        System.out.println("Sending to Slack: " + body);
-
-        // Note: The test suite mocks this interface, but if this adapter is used directly,
-        // this is the logic that must execute.
+        log.info("Posting message to Slack Channel [{}]: {}", channelId, text.replace("\n", " | "));
+        
+        // In a real implementation, we would execute:
+        // slackClient.methods(chatPostMessage -> chatPostMessage
+        //     .channel(channelId)
+        //     .text(text)
+        // );
     }
 }

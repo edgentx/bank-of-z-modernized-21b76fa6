@@ -1,26 +1,21 @@
 package com.example.workflow;
 
-import com.example.domain.validation.model.SlackMessageBody;
+import com.example.application.DefectReportCommand;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
 
 /**
- * Temporal Workflow Interface for reporting a defect.
- * Orchestrates the creation of a GitHub issue and the subsequent Slack notification.
+ * Workflow interface for reporting a defect.
  */
 @WorkflowInterface
 public interface ReportDefectWorkflow {
 
     /**
-     * Executes the defect reporting saga.
-     * 1. Create GitHub Issue
-     * 2. Compose Slack Body with GitHub URL
-     * 3. Notify Slack
+     * Reports a defect. This creates a GitHub issue and sends a Slack notification.
      *
-     * @param title       Title of the defect
-     * @param description Description of the defect
-     * @return The final Slack message body sent (for verification)
+     * @param command The defect details.
+     * @return The URL of the created GitHub issue.
      */
     @WorkflowMethod
-    SlackMessageBody reportDefect(String title, String description);
+    String reportDefect(DefectReportCommand command);
 }

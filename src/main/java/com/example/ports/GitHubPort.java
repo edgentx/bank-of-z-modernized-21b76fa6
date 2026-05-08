@@ -1,21 +1,18 @@
 package com.example.ports;
 
+import java.util.Optional;
+
 /**
- * Port for interacting with GitHub issues/repositories.
- * Used to generate URLs or retrieve metadata.
+ * Port for interacting with GitHub issues.
  */
 public interface GitHubPort {
 
     /**
-     * Generates the standard HTML URL for a GitHub issue.
+     * Creates a new issue in GitHub.
      *
-     * @param issueId The unique identifier (e.g., "VW-454").
-     * @return The full URL to the GitHub issue.
+     * @param title The title of the issue.
+     * @param body  The body content of the issue.
+     * @return The URL of the created issue, or empty if creation failed.
      */
-    String generateIssueUrl(String issueId);
-
-    /**
-     * Returns the base URL of the GitHub repository (e.g., https://github.com/org/repo).
-     */
-    String getRepositoryUrl();
+    Optional<String> createIssue(String title, String body);
 }

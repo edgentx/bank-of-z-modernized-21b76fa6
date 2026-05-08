@@ -2,15 +2,17 @@ package com.example.domain.account.model;
 
 import com.example.domain.shared.DomainEvent;
 
+import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.UUID;
 
 public record AccountStatusUpdatedEvent(
     String aggregateId,
-    String oldStatus,
-    String newStatus,
+    String accountNumber,
+    AccountStatus oldStatus,
+    AccountStatus newStatus,
     Instant occurredAt
 ) implements DomainEvent {
+
     @Override
     public String type() {
         return "account.status.updated";

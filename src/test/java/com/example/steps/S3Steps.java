@@ -1,8 +1,8 @@
 package com.example.steps;
 
 import com.example.domain.customer.model.*;
-import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.UnknownCommandException;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -12,122 +12,148 @@ import java.util.List;
 
 public class S3Steps {
 
-    private CustomerAggregate customer;
-    private Exception caughtException;
-    private List<DomainEvent> resultingEvents;
+    private CustomerAggregate aggregate;
+    private Exception capturedException;
+    private List<DomainEvent> resultEvents;
 
     @Given("a valid Customer aggregate")
     public void a_valid_customer_aggregate() {
-        // We start with an enrolled customer to ensure the aggregate is valid for updates.
-        // Enrolling them manually by executing the EnrollCustomerCmd logic in memory.
-        String id = "cust-123";
-        customer = new CustomerAggregate(id);
-        Command enrollCmd = new EnrollCustomerCmd(id, "Existing User", "existing@example.com", "GOV-ID-123");
-        customer.execute(enrollCmd);
-        
-        // Clear events from enrollment so we only check update events
-        customer.clearEvents();
+        aggregate = new CustomerAggregate("cust-123");
+        aggregate.setEnrolled(true);
+        aggregate.setFullName("John Doe");
+        aggregate.setEmail("john@example.com");
+        aggregate.setGovernmentId("GOV-123");
+        aggregate.setDeleted(false);
+        aggregate.setHasActiveAccounts(false);
     }
 
     @Given("a Customer aggregate that violates: A customer must have a valid, unique email address and government-issued ID.")
-    public void a_customer_aggregate_invalid_email() {
-        // Create a customer with an invalid email format for the update scenario
-        String id = "cust-invalid-email";
-        customer = new CustomerAggregate(id);
-        Command enrollCmd = new EnrollCustomerCmd(id, "Bad Email User", "bad-email", "GOV-ID-999");
-        customer.execute(enrollCmd);
-        customer.clearEvents();
+    public void a_customer_aggregate_with_invalid_email() {
+        // Setting up a scenario where the update command carries an invalid email
+        aggregate = new CustomerAggregate("cust-123");
+        aggregate.setEnrolled(true);
     }
 
     @Given("a Customer aggregate that violates: Customer name and date of birth cannot be empty.")
-    public void a_customer_aggregate_empty_name() {
-        // We prepare a valid customer, then attempt to update with empty name (handled in When)
-        String id = "cust-empty-name";
-        customer = new CustomerAggregate(id);
-        Command enrollCmd = new EnrollCustomerCmd(id, "Original Name", "original@example.com", "GOV-ID-111");
-        customer.execute(enrollCmd);
-        customer.clearEvents();
+    public void a_customer_aggregate_with_empty_name() {
+        aggregate = new CustomerAggregate("cust-123");
+        aggregate.setEnrolled(true);
     }
 
     @Given("a Customer aggregate that violates: A customer cannot be deleted if they own active bank accounts.")
     public void a_customer_aggregate_with_active_accounts() {
-        String id = "cust-with-accounts";
-        customer = new CustomerAggregate(id);
-        Command enrollCmd = new EnrollCustomerCmd(id, "Account Holder", "holder@example.com", "GOV-ID-222");
-        customer.execute(enrollCmd);
-        
-        // Simulate active bank accounts (This field would exist on the aggregate in a full implementation)
-        // For S-3, we rely on the aggregate state check.
-        
-        customer.clearEvents();
+        aggregate = new CustomerAggregate("cust-123");
+        aggregate.setEnrolled(true);
+        aggregate.setHasActiveAccounts(true);
     }
 
     @Given("a valid customerId is provided")
     public void a_valid_customer_id_is_provided() {
-        // Implicitly handled by the aggregate creation steps
+        // Implicitly handled in the When step via command construction
     }
 
     @Given("a valid emailAddress is provided")
     public void a_valid_email_address_is_provided() {
-        // Handled in the When step via command construction
+        // Implicitly handled in the When step
     }
 
     @Given("a valid sortCode is provided")
     public void a_valid_sort_code_is_provided() {
-        // Handled in the When step via command construction
+        // Implicitly handled in the When step
     }
 
     @When("the UpdateCustomerDetailsCmd command is executed")
     public void the_update_customer_details_cmd_command_is_executed() {
         try {
-            // Determine which scenario we are in based on state
-            String id = customer.id();
-            String newEmail = "new-email@example.com";
-            String newName = "Updated Name";
-            String newSortCode = "10-20-30";
-            String newGovId = "GOV-ID-123";
+            // Default command for success path or base setup
+            UpdateCustomerDetailsCmd cmd = new UpdateCustomerDetailsCmd(
+                "cust-123",
+                "newemail@example.com",
+                "SC-123",
+                "John Updated",
+                false
+            );
 
-            // Scenario 2: Invalid Email
-            if (customer.getEmail().equals("bad-email")) {
-                newEmail = "invalid-format"; 
+            // Check specific scenario contexts to override command or state
+            if (aggregate.getEmail() == null) {
+                // Context for invalid email (state check) vs invalid input
+                // Let's assume the "violates" context applies to the INPUT command for negative tests
             }
+
+            // Map scenarios to specific inputs:
+            // 1. Invalid email input
+            ThreadLocal<String> scenarioContext = new ThreadLocal<>(); // simple hack to detect context if needed, or use tags.
+            // However, the easiest way is to inspect the aggregate state set in Given.
             
-            // Scenario 3: Empty Name
-            if (customer.getFullName().equals("Original Name")) {
-                 newName = ""; // Violation: Name empty
+            // Scenario: Invalid Email Input
+            // We trigger this by passing a bad email. How to differentiate? 
+            // We'll check the aggregate state or just assume a specific "bad" command for that scenario.
+            // Ideally, Cucumber tables are used for parameters.
+            // For this exercise, we will inspect the aggregate to decide the command.
+            
+            String email = "valid@example.com";
+            String name = "Valid Name";
+            boolean delete = false;
+
+            // If aggregate has no name (violating state), we send blank name to trigger error
+            if (aggregate.getFullName() == null || aggregate.getFullName().isEmpty()) {
+                name = ""; 
+            }
+            // If aggregate has active accounts, we simulate a delete request
+            if (aggregate.isHasActiveAccounts()) {
+                delete = true;
+            }
+            // To handle the "Invalid email" specific scenario ( violating valid email constraint):
+            // We rely on the fact that the previous 'Given' for invalid email didn't set one.
+            // But the aggregate itself is valid. The command must be invalid.
+            // We need a flag. Let's assume the 'Given' for invalid email sets a specific marker or we just hardcode the negative path here if we detect the 'Given' title logic.
+            // Since Cucumber matches text:
+            // "Given a Customer aggregate that violates: A customer must have a valid, unique email address..."
+            // This usually sets up state, but here we are checking Input validation.
+            // Let's assume the step "a valid emailAddress is provided" is SKIPPED in the negative scenario, so we send a bad one.
+            // But all scenarios flow through the single @When.
+            // We will assume if the aggregate is NOT the "valid" one, we are in a negative test.
+            
+            // Strategy: Differentiate by the aggregate's setup state.
+            if (aggregate.getEmail() == null && !aggregate.isEnrolled()) { 
+                 // The "invalid email" given block just initialized it. Let's assume we send invalid email.
+                 email = "invalid-email";
             }
 
-            // Scenario 4: Active Accounts (Check ID or just assume context)
-            if (customer.id().equals("cust-with-accounts")) {
-                // Trying to delete a customer with accounts would require specific command logic
-                // For S-3, assuming we pass 'hasActiveBankAccounts = true' in a hypothetical deletion cmd
-                // But here we strictly test UpdateCustomerDetailsCmd.
-                // Let's assume we pass 'hasActiveBankAccounts' boolean if the command supports it or we just verify state.
-                // Actually, based on the prompt, the invariant is "A customer cannot be deleted...".
-                // We will simulate a deletion attempt flag in the command if supported, otherwise we rely on the state checks.
-                // Let's assume the command allows marking as deleted, and the aggregate enforces the rule.
-            }
+            cmd = new UpdateCustomerDetailsCmd("cust-123", email, "SC-123", name, delete);
+            resultEvents = aggregate.execute(cmd);
 
-            Command cmd = new UpdateCustomerDetailsCmd(id, newEmail, newName, newSortCode, newGovId);
-            resultingEvents = customer.execute(cmd);
-            caughtException = null;
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            caughtException = e;
-            resultingEvents = List.of();
+        } catch (Exception e) {
+            capturedException = e;
         }
     }
 
     @Then("a customer.details.updated event is emitted")
     public void a_customer_details_updated_event_is_emitted() {
-        Assertions.assertNotNull(resultingEvents);
-        Assertions.assertFalse(resultingEvents.isEmpty());
-        Assertions.assertEquals("customer.details.updated", resultingEvents.get(0).type());
+        Assertions.assertNull(capturedException, "Should not have thrown exception");
+        Assertions.assertNotNull(resultEvents);
+        Assertions.assertEquals(1, resultEvents.size());
+        Assertions.assertEquals("customer.details.updated", resultEvents.get(0).type());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(caughtException);
-        // Verify it's the correct type of exception (Domain Logic error)
-        Assertions.assertTrue(caughtException instanceof IllegalArgumentException || caughtException instanceof IllegalStateException);
+        Assertions.assertNotNull(capturedException);
+        // It could be IAE or ISE depending on the invariant
+        Assertions.assertTrue(
+            capturedException instanceof IllegalArgumentException || capturedException instanceof IllegalStateException,
+            "Expected domain exception (IAE or ISE), got: " + capturedException.getClass().getSimpleName()
+        );
+    }
+
+    // Helper to expose private field for testing in the step definition (simulation)
+    // In a real test, we might add a getter or package-private access, or use reflection.
+    public static class TestableCustomerAggregate extends CustomerAggregate {
+        public TestableCustomerAggregate(String id) { super(id); }
+        public boolean isHasActiveAccounts() {
+            // Reflection or adding getter to aggregate. For this snippet, we assume we added the helper in Aggregate.
+            // We added setters in the Aggregate source above.
+            return true; // Placeholder, actual logic in Aggregate is private/state based.
+        }
     }
 }

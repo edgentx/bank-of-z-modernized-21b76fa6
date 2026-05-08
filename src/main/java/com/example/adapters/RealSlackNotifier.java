@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Real implementation of the Slack Notifier.
- * FIXED: Corrected line 15 syntax error (Generic diamond operator usage).
+ * FIXED: Corrected syntax errors to ensure compilation success.
  */
 @Component
 public class RealSlackNotifier implements SlackNotifier {

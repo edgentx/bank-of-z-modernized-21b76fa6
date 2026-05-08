@@ -1,19 +1,22 @@
 package com.example.domain.account.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Event emitted when a new account is successfully opened.
+ */
 public record AccountOpenedEvent(
-        String aggregateId, // Maps to accountId
+        String aggregateId,
         String customerId,
         String accountType,
-        BigDecimal initialBalance,
+        BigDecimal balance,
         String sortCode,
         Instant occurredAt
 ) implements DomainEvent {
-
     @Override
     public String type() {
         return "account.opened";

@@ -12,8 +12,14 @@ public record GitHubIssueLinkedEvent(
     public String type() {
         return "GitHubIssueLinked";
     }
+
     @Override
     public String aggregateId() {
         return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

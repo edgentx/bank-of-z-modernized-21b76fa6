@@ -6,15 +6,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record SessionEndedEvent(
-        String aggregateId,
-        Instant occurredAt
+    String aggregateId,
+    Instant occurredAt
 ) implements DomainEvent {
-    public SessionEndedEvent {
-        // Validate non-null
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
-        if (occurredAt == null) throw new IllegalArgumentException("occurredAt required");
-    }
-
     public SessionEndedEvent(String aggregateId) {
         this(aggregateId, Instant.now());
     }
@@ -22,5 +16,15 @@ public record SessionEndedEvent(
     @Override
     public String type() {
         return "session.ended";
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
     }
 }

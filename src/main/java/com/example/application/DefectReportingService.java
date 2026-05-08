@@ -37,7 +37,7 @@ public class DefectReportingService {
 
             // Slack Notification Call
             var event = events.get(0);
-            String slackBody = formatSlackBody(event.getGithubUrl(), cmd.severity());
+            String slackBody = formatSlackBody(event.githubUrl(), cmd.severity());
             slackNotificationPort.postMessage("#vforce360-issues", slackBody);
         }
     }

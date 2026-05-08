@@ -1,83 +1,68 @@
 package com.example.steps;
 
-import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.domain.shared.DomainEvent;
+import com.example.domain.validation.model.ReportDefectCmd;
+import com.example.domain.validation.model.SlackNotificationPostedEvent;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import io.cucumber.java.en.Then;
+import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Steps for Story S-FB-1: Validating VW-454 (GitHub URL in Slack body).
- * 
- * This test class is in the RED phase. It assumes the implementation exists
- * but is empty or incorrect, causing assertions to fail.
+ * Cucumber Steps for S-FB-1: Regression test validating VW-454.
+ * End-to-end verification via Temporal -> Domain -> Slack body content.
  */
 public class SFB1Steps {
 
-    private DefectAggregate defectAggregate;
-    private ReportDefectCmd reportCmd;
-    private List<DomainEvent> resultingEvents;
-    private Exception capturedException;
+    private String defectId;
+    private String githubUrl;
+    private ReportDefectCmd cmd;
+    private List<com.example.domain.shared.DomainEvent> resultEvents;
+    private Exception caughtException;
 
-    @Given("a defect is reported with ID {string}")
-    public void a_defect_is_reported_with_id(String defectId) {
-        this.defectAggregate = new DefectAggregate(defectId);
-        this.reportCmd = new ReportDefectCmd(
+    @Given("a defect report {string} linked to GitHub issue {string}")
+    public void a_defect_report_linked_to_github_issue(String id, String url) {
+        this.defectId = id;
+        this.githubUrl = url;
+    }
+
+    @When("the defect is reported via Temporal worker exec")
+    public void the_defect_is_reported_via_temporal_worker_exec() {
+        // This step simulates the Temporal activity invoking the domain logic
+        cmd = new ReportDefectCmd(
             defectId,
-            "GitHub URL missing in Slack body",
+            "Reproducing VW-454: Validating GitHub URL in Slack body",
             "LOW",
-            "validation",
-            "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1",
-            "Checking #vforce360-issues for the link line"
+            githubUrl
         );
-    }
 
-    @When("the defect reporting workflow is executed")
-    public void the_defect_reporting_workflow_is_executed() {
         try {
-            // Execute the command against the aggregate
-            resultingEvents = defectAggregate.execute(reportCmd);
+            // In a real integration test, we might invoke the Temporal workflow.
+            // For domain verification, we instantiate the aggregate directly.
+            com.example.domain.validation.ValidationAggregate aggregate = 
+                new com.example.domain.validation.ValidationAggregate(defectId);
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            capturedException = e;
+            caughtException = e;
         }
     }
 
-    @Then("the resulting event payload contains a valid GitHub URL")
-    public void the_resulting_event_payload_contains_a_valid_github_url() {
-        // Fail if an exception occurred during execution (e.g., missing implementation)
-        if (capturedException != null) {
-            fail("Defect reporting failed with exception: " + capturedException.getMessage());
-        }
-        
-        assertNotNull(resultingEvents, "Resulting events list should not be null");
-        assertFalse(resultingEvents.isEmpty(), "Resulting events list should not be empty");
+    @Then("the Slack body should include the GitHub issue link {string}")
+    public void the_slack_body_should_include_the_github_issue_link(String expectedUrl) {
+        Assertions.assertNull(caughtException, "Should not have thrown an exception");
+        Assertions.assertNotNull(resultEvents, "Events should not be null");
+        Assertions.assertEquals(1, resultEvents.size(), "Should produce one event");
 
-        DomainEvent event = resultingEvents.get(0);
-        // Check for presence of githubUrl field dynamically or via specific event type
-        // Here we verify the behavior (string content) to satisfy the 'Slack body' requirement
-        assertTrue(
-            event.toString().contains("github.com"), 
-            "Event payload should contain a GitHub URL. Event was: " + event
-        );
-    }
+        Assertions.assertTrue(resultEvents.get(0) instanceof SlackNotificationPostedEvent, 
+            "Event should be SlackNotificationPostedEvent");
 
-    @Then("the URL includes the defect ID {string}")
-    public void the_url_includes_the_defect_id(String defectId) {
-        if (capturedException != null) {
-            fail("Cannot verify URL content due to prior exception: " + capturedException.getMessage());
-        }
+        SlackNotificationPostedEvent event = (SlackNotificationPostedEvent) resultEvents.get(0);
         
-        DomainEvent event = resultingEvents.get(0);
-        // Assuming the event has a way to access the URL (implemented in Domain Event)
-        // This assertion verifies the specific format expected for Slack notification
-        assertTrue(
-            event.toString().contains(defectId),
-            "GitHub URL should contain the specific Defect ID: " + defectId
+        // CRITICAL AC: The validation no longer exhibits the reported behavior
+        Assertions.assertTrue(
+            event.body().contains(expectedUrl),
+            "Slack body must contain the URL: " + expectedUrl + ". Actual body: " + event.body()
         );
     }
 }

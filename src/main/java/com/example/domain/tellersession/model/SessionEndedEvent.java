@@ -6,18 +6,20 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event emitted when a teller session is successfully terminated.
+ * Event emitted when a teller session is ended.
  */
 public record SessionEndedEvent(
-    String aggregateId,
+    UUID aggregateId,
+    String type,
     Instant occurredAt
 ) implements DomainEvent {
-    public SessionEndedEvent(String aggregateId) {
-        this(aggregateId, Instant.now());
+
+    public SessionEndedEvent(UUID aggregateId, Instant occurredAt) {
+        this(aggregateId, "session.ended", occurredAt);
     }
 
     @Override
-    public String type() {
-        return "session.ended";
+    public String aggregateId() {
+        return aggregateId.toString();
     }
 }

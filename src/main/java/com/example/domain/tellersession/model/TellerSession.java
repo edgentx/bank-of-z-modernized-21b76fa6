@@ -4,32 +4,23 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
-/**
- * Teller Session Aggregate.
- * Manages the lifecycle of a bank teller's UI session, including authentication,
- * activity tracking, and navigation state validity.
- * 
- * S-20: Implement EndSessionCmd on TellerSession
- */
 public class TellerSession extends AggregateRoot {
 
-    private static final Duration SESSION_TIMEOUT = Duration.ofMinutes(15);
-
     private final String sessionId;
-    private boolean authenticated;
+    private boolean authenticated = false;
+    private boolean active = false;
     private Instant lastActivityAt;
-    private boolean contextValid;
+    private String currentContext;
+
+    // Configured timeout period in minutes (e.g., 15 minutes)
+    private static final long TIMEOUT_MINUTES = 15;
 
     public TellerSession(String sessionId) {
         this.sessionId = sessionId;
-        this.authenticated = false;
         this.lastActivityAt = Instant.now();
-        this.contextValid = true;
     }
 
     @Override
@@ -37,69 +28,89 @@ public class TellerSession extends AggregateRoot {
         return sessionId;
     }
 
+    public void markAuthenticated() {
+        this.authenticated = true;
+        this.active = true;
+        this.lastActivityAt = Instant.now();
+    }
+
+    public void updateContext(String context) {
+        this.currentContext = context;
+        this.lastActivityAt = Instant.now();
+    }
+
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof EndSessionCmd) {
-            return endSession();
+        if (cmd instanceof EndSessionCmd c) {
+            return endSession(c);
         }
         throw new UnknownCommandException(cmd);
     }
 
-    private List<DomainEvent> endSession() {
+    private List<DomainEvent> endSession(EndSessionCmd cmd) {
         // Invariant: A teller must be authenticated to initiate a session.
         if (!authenticated) {
-            throw new IllegalStateException("Cannot end session: Teller is not authenticated.");
+            throw new IllegalStateException("Teller must be authenticated to end a session.");
         }
 
         // Invariant: Sessions must timeout after a configured period of inactivity.
-        if (isSessionTimedOut()) {
-            throw new IllegalStateException("Cannot end session: Session has already timed out due to inactivity.");
+        Instant now = Instant.now();
+        if (lastActivityAt != null && lastActivityAt.plusMillis(TIMEOUT_MINUTES * 60 * 1000).isBefore(now)) {
+            throw new IllegalStateException("Session has timed out due to inactivity.");
         }
 
         // Invariant: Navigation state must accurately reflect the current operational context.
-        if (!contextValid) {
-            throw new IllegalStateException("Cannot end session: Navigation state is invalid or corrupted.");
+        // Here we interpret the violation as the system being in an invalid state (e.g., null context when active)
+        // For the purpose of the test "violates Navigation state", we assume the aggregate sets a specific invalid flag or state.
+        if (this.currentContext == null && this.active) {
+             throw new IllegalStateException("Navigation state (context) is invalid or missing for active session.");
         }
 
-        SessionEndedEvent event = new SessionEndedEvent(this.sessionId);
+        // If session is already ended (inactive), technically idempotent or error depending on spec. Assuming idempotent or valid transition.
+        if (!active) {
+             return List.of(); // Or throw error if strict state machine requires active->ended.
+        }
+
+        var event = new SessionEndedEvent(sessionId, Instant.now());
+        this.active = false;
+        // clear sensitive state
+        this.authenticated = false;
+        this.currentContext = null;
+
         addEvent(event);
         incrementVersion();
-        
-        // Clear sensitive state
-        this.authenticated = false;
-        
         return List.of(event);
     }
 
-    private boolean isSessionTimedOut() {
-        return lastActivityAt != null && 
-               Instant.now().isAfter(lastActivityAt.plus(SESSION_TIMEOUT));
-    }
-
-    // State setters for testing and reconstruction
-    public void markAuthenticated() {
-        this.authenticated = true;
-        this.lastActivityAt = Instant.now();
-    }
-
-    public void setLastActivityAt(Instant time) {
-        this.lastActivityAt = time;
-    }
-
-    public void setContextValid(boolean valid) {
-        this.contextValid = valid;
-    }
-
-    // Getters for assertions
     public boolean isAuthenticated() {
         return authenticated;
+    }
+
+    public boolean isActive() {
+        return active;
     }
 
     public Instant getLastActivityAt() {
         return lastActivityAt;
     }
 
-    public boolean isContextValid() {
-        return contextValid;
+    public void setLastActivityAt(Instant lastActivityAt) {
+        this.lastActivityAt = lastActivityAt;
+    }
+
+    public String getCurrentContext() {
+        return currentContext;
+    }
+
+    public void setCurrentContext(String currentContext) {
+        this.currentContext = currentContext;
+    }
+
+    public void setAuthenticated(boolean authenticated) {
+        this.authenticated = authenticated;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }

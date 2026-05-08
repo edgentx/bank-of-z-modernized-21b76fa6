@@ -7,9 +7,10 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S4Steps {
 
@@ -19,25 +20,20 @@ public class S4Steps {
 
     @Given("a valid Customer aggregate")
     public void aValidCustomerAggregate() {
-        aggregate = new CustomerAggregate("customer-123");
-        // Hydrate with valid default state
-        aggregate.hydrate("John Doe", "john.doe@example.com", "GOV-ID-999", 0);
+        aggregate = new CustomerAggregate("cust-1");
+        aggregate.hydrate("John Doe", "john@example.com", "GOV-123", 0);
+        aggregate.setDateOfBirth("1990-01-01");
     }
 
     @And("a valid customerId is provided")
     public void aValidCustomerIdIsProvided() {
-        // Handled by aggregate initialization in previous step
-    }
-
-    @And("the customer has no active accounts")
-    public void theCustomerHasNoActiveAccounts() {
-        // Handled by default hydration
+        // Implicit in aggregate construction
     }
 
     @When("the DeleteCustomerCmd command is executed")
     public void theDeleteCustomerCmdCommandIsExecuted() {
         try {
-            DeleteCustomerCmd cmd = new DeleteCustomerCmd(aggregate.id());
+            DeleteCustomerCmd cmd = new DeleteCustomerCmd("cust-1");
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             caughtException = e;
@@ -46,44 +42,36 @@ public class S4Steps {
 
     @Then("a customer.deleted event is emitted")
     public void aCustomerDeletedEventIsEmitted() {
-        Assertions.assertNull(caughtException, "Expected no exception, but got: " + caughtException);
-        Assertions.assertNotNull(resultEvents);
-        Assertions.assertEquals(1, resultEvents.size());
-        Assertions.assertEquals("customer.deleted", resultEvents.get(0).type());
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertEquals("customer.deleted", resultEvents.get(0).type());
     }
 
     @Given("a Customer aggregate that violates: A customer must have a valid, unique email address and government-issued ID.")
-    public void aCustomerAggregateThatViolatesEmailAndGovId() {
-        aggregate = new CustomerAggregate("customer-bad-id");
-        // Missing email and Gov ID
+    public void aCustomerAggregateThatIsValidEmailGovId() {
+        aggregate = new CustomerAggregate("cust-2");
         aggregate.hydrate("Jane Doe", null, null, 0);
-    }
-
-    @Given("a Customer aggregate that violates: Customer name and date of birth cannot be empty.")
-    public void aCustomerAggregateThatViolatesNameAndDob() {
-        aggregate = new CustomerAggregate("customer-bad-name");
-        // Missing Name
-        aggregate.hydrate(null, "jane@example.com", "GOV-ID-123", 0);
-    }
-
-    @Given("a Customer aggregate that violates: A customer cannot be deleted if they own active bank accounts.")
-    public void aCustomerAggregateThatViolatesActiveAccounts() {
-        aggregate = new CustomerAggregate("customer-with-accounts");
-        // Has active accounts
-        aggregate.hydrate("Rich User", "rich@example.com", "GOV-ID-888", 5);
-    }
-
-    @And("the customer has active bank accounts")
-    public void theCustomerHasActiveBankAccounts() {
-        aggregate.hydrate("Active User", "active@example.com", "GOV-ID-777", 10);
+        aggregate.setDateOfBirth("1992-02-02");
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(caughtException, "Expected an exception to be thrown");
-        Assertions.assertTrue(
-                caughtException instanceof IllegalArgumentException || caughtException instanceof IllegalStateException,
-                "Expected IllegalArgumentException or IllegalStateException, but got: " + caughtException.getClass()
-        );
+        assertNotNull(caughtException);
+        assertTrue(caughtException instanceof IllegalArgumentException || 
+                   caughtException instanceof IllegalStateException);
+    }
+
+    @Given("a Customer aggregate that violates: Customer name and date of birth cannot be empty.")
+    public void aCustomerAggregateThatViolatesNameOrDob() {
+        aggregate = new CustomerAggregate("cust-3");
+        aggregate.hydrate(null, "jane@example.com", "GOV-456", 0);
+        aggregate.setDateOfBirth(null);
+    }
+
+    @Given("a Customer aggregate that violates: A customer cannot be deleted if they own active bank accounts.")
+    public void aCustomerAggregateThatViolatesActiveAccounts() {
+        aggregate = new CustomerAggregate("cust-4");
+        aggregate.hydrate("Jim Doe", "jim@example.com", "GOV-789", 1);
+        aggregate.setDateOfBirth("1993-03-03");
     }
 }

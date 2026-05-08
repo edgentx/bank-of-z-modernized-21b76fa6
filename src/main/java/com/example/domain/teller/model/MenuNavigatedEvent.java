@@ -1,28 +1,21 @@
 package com.example.domain.teller.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
 
 /**
- * Event emitted when a Teller successfully navigates to a new screen/menu.
- * Used for audit trails and eventual state synchronization with legacy CICS.
+ * Event for S-19: MenuNavigatedEvent.
+ * Emitted when a teller successfully navigates to a new menu.
  */
 public record MenuNavigatedEvent(
-        String aggregateId,
-        String previousMenuId,
-        String targetMenuId,
-        String action,
-        Instant occurredAt
+    String aggregateId,
+    String previousMenuId,
+    String targetMenuId,
+    Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
         return "menu.navigated";
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 
     @Override

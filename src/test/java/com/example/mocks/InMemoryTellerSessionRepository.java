@@ -1,7 +1,7 @@
 package com.example.mocks;
 
-import com.example.domain.uimodel.model.TellerSessionAggregate;
-import com.example.domain.uimodel.repository.TellerSessionRepository;
+import com.example.domain.tellersession.model.TellerSessionAggregate;
+import com.example.domain.tellersession.repository.TellerSessionRepository;
 
 import java.util.HashMap;
 import java.util.Map;

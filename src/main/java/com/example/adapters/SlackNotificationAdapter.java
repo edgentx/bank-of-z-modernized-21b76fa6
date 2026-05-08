@@ -1,43 +1,41 @@
 package com.example.adapters;
 
-import com.example.ports.SlackNotificationPort;
+import com.example.domain.defect.model.DefectReportedEvent;
+import com.example.ports.NotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Real adapter implementation for sending notifications to Slack.
- * In a production environment, this would integrate with the Slack Web API.
+ * Real implementation of the NotificationPort.
+ * In a production environment, this would use the Slack WebClient to post messages.
  */
 @Component
-public class SlackNotificationAdapter implements SlackNotificationPort {
+public class SlackNotificationAdapter implements NotificationPort {
 
     private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
 
-    /**
-     * Sends a message to a configured Slack channel.
-     * <p>
-     * Note: This is a placeholder implementation for the adapter pattern.
-     * Real implementation would use WebClient or a Slack client library to POST to a webhook.
-     *
-     * @param messageBody The formatted content of the message.
-     * @throws IllegalArgumentException if messageBody is null or blank.
-     */
+    // In a real Spring Boot app, you would inject SlackClient here
+    // private final SlackClient slackClient;
+
+    public SlackNotificationAdapter() {
+        // Dependency injection would happen here
+    }
+
     @Override
-    public void sendMessage(String messageBody) {
-        if (messageBody == null || messageBody.isBlank()) {
-            throw new IllegalArgumentException("messageBody cannot be blank");
-        }
+    public void sendDefectAlert(DefectReportedEvent event) {
+        // Construct the Slack message body
+        // Requirement: "Slack body includes GitHub issue: <url>"
+        String messageBody = String.format(
+                "Defect Reported: %s | GitHub issue: %s",
+                event.title(),
+                event.githubUrl()
+        );
 
-        // Log the action to simulate external interaction without dependencies
-        log.info("[Slack Adapter] Sending message: {}", messageBody);
+        // Simulate sending to Slack API
+        log.info("[Slack Outbound] Sending notification: {}", messageBody);
 
-        // Real implementation example:
-        // webClient.post()
-        //     .uri(slackWebhookUrl)
-        //     .bodyValue(BodyInserters.fromValue(Map.of("text", messageBody)))
-     //    .retrieve()
-     //    .bodyToMono(Void.class)
-     //    .block();
+        // Real implementation would be:
+        // slackClient.postMessage(chatId, messageBody);
     }
 }

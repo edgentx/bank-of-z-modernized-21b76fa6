@@ -20,8 +20,6 @@ public class DefectReportService {
     private final GitHubPort gitHubPort;
     private final SlackPort slackPort;
 
-    // In a real Spring + Temporal setup, the Workflow stub is injected via WorkerFactory.
-    // For testing/compilation purposes, we show constructor injection.
     public DefectReportService(ReportDefectWorkflow defectWorkflow, GitHubPort gitHubPort, SlackPort slackPort) {
         this.defectWorkflow = defectWorkflow;
         this.gitHubPort = gitHubPort;

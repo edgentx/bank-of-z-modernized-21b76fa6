@@ -1,80 +1,54 @@
 package com.example.domain.defect;
 
-import com.example.ports.GitHubPort;
+import com.example.domain.defect.model.ReportDefectCmd;
 import com.example.ports.SlackNotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import org.springframework.stereotype.Service;
 
 /**
- * Service responsible for orchestrating the defect reporting workflow.
- * Interacts with domain aggregates and external ports to fulfill the use case.
+ * Domain Service for reporting defects.
+ * Orchestrates the creation of the defect report and notification via Slack.
  */
+@Service
 public class DefectReportingService {
 
     private static final Logger log = LoggerFactory.getLogger(DefectReportingService.class);
-    private final GitHubPort gitHubPort;
     private final SlackNotificationPort slackNotificationPort;
 
-    public DefectReportingService(GitHubPort gitHubPort, SlackNotificationPort slackNotificationPort) {
-        this.gitHubPort = gitHubPort;
+    public DefectReportingService(SlackNotificationPort slackNotificationPort) {
         this.slackNotificationPort = slackNotificationPort;
     }
 
     /**
-     * Handles the ReportDefectCmd by executing the domain logic and notifying external systems.
+     * Handles the ReportDefectCommand.
+     * Constructs the Slack payload ensuring the GitHub URL is present
+     * and delegates sending to the port.
      *
      * @param cmd The command containing defect details.
      */
-    public void report(ReportDefectCmd cmd) {
-        // 1. Transform external DTO to internal domain command
-        ReportDefectCommand domainCmd = new ReportDefectCommand(
-                cmd.defectId(),
-                cmd.issueId(),
-                cmd.summary()
-        );
-
-        // 2. Execute domain logic
-        DefectAggregate aggregate = new DefectAggregate(cmd.defectId());
-        var events = aggregate.execute(domainCmd);
-
-        // 3. Handle side effects (Slack notification)
-        if (!events.isEmpty()) {
-            publishToSlack(cmd);
+    public void reportDefect(ReportDefectCmd cmd) {
+        if (cmd == null) {
+            throw new IllegalArgumentException("Command cannot be null");
         }
-    }
 
-    private void publishToSlack(ReportDefectCmd cmd) {
-        String issueId = cmd.issueId();
-        Optional<String> urlOpt = gitHubPort.getIssueUrl(issueId);
+        log.info("Processing defect report: {}", cmd.defectId());
 
-        String slackBody;
-        if (urlOpt.isPresent()) {
-            String url = urlOpt.get();
-            // S-FB-1: Ensure URL is present in the body
-            slackBody = String.format(
-                    "Defect Reported: %s%nGitHub issue: <%s|%s>",
-                    cmd.summary(),
-                    url,
-                    issueId
-            );
-            log.info("Generated Slack body with URL for issue {}: {}", issueId, slackBody);
+        // Construct the payload for Slack.
+        // Format requirement: "GitHub issue: <url>"
+        StringBuilder payloadBuilder = new StringBuilder();
+        payloadBuilder.append("Defect Reported: ").append(cmd.title() != null ? cmd.title() : "Unknown").append("\n");
+        payloadBuilder.append("Description: ").append(cmd.description() != null ? cmd.description() : "N/A").append("\n");
+        payloadBuilder.append("Severity: ").append(cmd.metadata() != null ? cmd.metadata().getOrDefault("severity", "UNDEFINED") : "UNDEFINED").append("\n");
+        
+        // Critical validation fix for S-FB-1: Ensure URL is appended
+        if (cmd.githubUrl() != null && !cmd.githubUrl().isBlank()) {
+            payloadBuilder.append("GitHub issue: ").append(cmd.githubUrl());
         } else {
-            // Handle missing URL gracefully
-            slackBody = String.format(
-                    "Defect Reported: %s%nGitHub issue: %s (URL unavailable)",
-                    cmd.summary(),
-                    issueId
-            );
-            log.warn("GitHub URL not found for issue {}, sending default message.", issueId);
+            throw new IllegalArgumentException("GitHub URL is mandatory for defect reporting");
         }
 
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("text", slackBody);
-
-        slackNotificationPort.sendMessage("#vforce360-issues", payload);
+        String payload = payloadBuilder.toString();
+        slackNotificationPort.send(payload);
     }
 }

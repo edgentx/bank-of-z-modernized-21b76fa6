@@ -3,9 +3,20 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
-public record TellerSessionActivatedEvent(String aggregateId, Instant occurredAt) implements DomainEvent {
-    @Override public String type() { return "teller.session.activated"; }
-    @Override public String aggregateId() { return aggregateId; }
-    @Override public Instant occurredAt() { return occurredAt; }
+public record TellerSessionActivatedEvent(
+        String aggregateId,
+        String initialMenuId,
+        Instant occurredAt
+) implements DomainEvent {
+    public TellerSessionActivatedEvent {
+        if (aggregateId == null) aggregateId = UUID.randomUUID().toString();
+        if (occurredAt == null) occurredAt = Instant.now();
+    }
+
+    @Override
+    public String type() {
+        return "session.activated";
+    }
 }

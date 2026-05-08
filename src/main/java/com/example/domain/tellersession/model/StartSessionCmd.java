@@ -4,17 +4,26 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to initiate a teller session.
- * Used after successful authentication (Story S-18).
  */
 public record StartSessionCmd(
     String sessionId,
     String tellerId,
     String terminalId,
-    boolean isAuthenticated,
-    boolean validTerminalContext
+    Long timeoutMs // Derived from global config, but passed here for aggregate validation
 ) implements Command {
 
-    public boolean isValidTerminalContext() {
-        return validTerminalContext;
+    public StartSessionCmd {
+        if (sessionId == null || sessionId.isBlank()) {
+            throw new IllegalArgumentException("sessionId cannot be null");
+        }
+        // Default timeout if not specified by the client (command factory)
+        if (timeoutMs == null) {
+            timeoutMs = 360000L; // Default 6 minutes, safe fallback
+        }
+    }
+
+    // Simplified constructor for BDD steps that don't care about config
+    public StartSessionCmd(String sessionId, String tellerId, String terminalId) {
+        this(sessionId, tellerId, terminalId, 360000L);
     }
 }

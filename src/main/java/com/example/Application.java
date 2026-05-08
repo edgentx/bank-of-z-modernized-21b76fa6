@@ -5,18 +5,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 /**
- * Main Application Entry Point.
- * Component scan includes ports, adapters, and domain packages.
+ * Main Spring Boot Application entry point.
  */
 @SpringBootApplication
-@ComponentScan(basePackages = {
-    "com.example.domain", 
-    "com.example.ports", 
-    "com.example.adapters",
-    "com.example.mocks" // Note: mocks package included here for test profile injection
-})
+@ComponentScan(basePackages = {"com.example.domain", "com.example.application", "com.example.ports", "com.example.adapters"})
 public class Application {
+
     public static void main(String[] args) {
-        SpringApplication.run(Application.java, args);
+        SpringApplication.run(Application.class, args);
     }
 }

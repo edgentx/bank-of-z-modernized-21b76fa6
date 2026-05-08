@@ -2,25 +2,29 @@ package com.example.adapters;
 
 import com.example.domain.defect.model.DefectAggregate;
 import com.example.domain.defect.repository.DefectRepository;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-@Repository
+/**
+ * Persistence adapter for DefectAggregate.
+ * Uses an in-memory map for simplicity in this E2E validation scenario,
+ * but implements the repository interface contract.
+ */
+@Component
 public class DefectRepositoryAdapter implements DefectRepository {
 
     private final Map<String, DefectAggregate> store = new HashMap<>();
 
     @Override
-    public DefectAggregate save(DefectAggregate aggregate) {
+    public void save(DefectAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
-        return aggregate;
     }
 
     @Override
-    public DefectAggregate findById(String id) {
-        return store.get(id);
+    public Optional<DefectAggregate> findById(String id) {
+        return Optional.ofNullable(store.get(id));
     }
 }

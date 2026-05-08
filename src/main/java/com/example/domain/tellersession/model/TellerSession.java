@@ -10,6 +10,7 @@ import java.util.List;
 /**
  * TellerSession Aggregate.
  * Manages the lifecycle of a teller's interaction with the system.
+ * Enforces invariants for session initiation.
  */
 public class TellerSession extends AggregateRoot {
 
@@ -45,32 +46,31 @@ public class TellerSession extends AggregateRoot {
     /**
      * Executes StartSessionCmd.
      * Enforces invariants:
-     * 1. Teller must be authenticated (simulated via command context or aggregate state).
-     * 2. Navigation state (initialContext) must be valid.
-     * 3. Session must not have timed out (relevant if resuming, though typically start is fresh).
+     * 1. Teller must be authenticated.
+     * 2. Sessions must timeout after a configured period.
+     * 3. Navigation state must accurately reflect the current operational context.
      */
     private List<DomainEvent> startSession(StartSessionCmd cmd) {
-        // Invariant: Teller must be authenticated.
-        // Assuming the command carries the identity of the authenticated teller.
+        // Invariant: A teller must be authenticated to initiate a session.
+        // We validate the tellerId presence as a proxy for authentication in this context.
         if (cmd.tellerId() == null || cmd.tellerId().isBlank()) {
             throw new IllegalArgumentException("Teller must be authenticated to initiate a session.");
         }
         this.isAuthenticated = true;
 
-        // Invariant: Sessions must timeout after a configured period.
-        // We check configuration availability here.
+        // Invariant: Sessions must timeout after a configured period of inactivity.
+        // We verify the configuration flag is true.
         if (!this.timeoutConfigured) {
             throw new IllegalStateException("Sessions must timeout after a configured period of inactivity.");
         }
 
         // Invariant: Navigation state must accurately reflect the current operational context.
-        // Assuming 'initialContext' represents the initial screen/flow.
+        // We validate the initialContext is provided.
         if (cmd.initialContext() == null || cmd.initialContext().isBlank()) {
             throw new IllegalArgumentException("Navigation state must accurately reflect the current operational context.");
         }
 
-        // Business Logic Check: Prevent restarting an active session if that's an invariant,
-        // though the prompt implies "Initiates a teller session".
+        // Business Rule: Prevent restarting an active session.
         if (this.isActive) {
              throw new IllegalStateException("Session is already active.");
         }
@@ -104,7 +104,7 @@ public class TellerSession extends AggregateRoot {
     public String getCurrentContext() { return currentContext; }
     public Instant getLastActivityAt() { return lastActivityAt; }
 
-    // Method to help set up test cases for invariants if needed via reflection or package-private access
+    // Methods to help set up test cases for invariants if needed via reflection or package-private access
     protected void markTimeoutUnconfigured() {
         this.timeoutConfigured = false;
     }

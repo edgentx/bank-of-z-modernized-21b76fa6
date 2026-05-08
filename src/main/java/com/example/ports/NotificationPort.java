@@ -1,11 +1,18 @@
 package com.example.ports;
 
-import com.example.domain.notification.model.NotificationAggregate;
-
 /**
- * Port interface for sending notifications.
- * Implementations will handle the specifics of Slack, Email, etc.
+ * Port interface for sending notifications (e.g., to Slack).
+ * This decouples the domain logic from the specific notification implementation.
  */
 public interface NotificationPort {
-    void send(NotificationAggregate notification);
+
+    /**
+     * Sends a notification message.
+     *
+     * @param recipient The identifier for the recipient (e.g., channel ID).
+     * @param subject   The subject of the notification.
+     * @param body      The body content of the notification.
+     * @return true if sending was successful, false otherwise.
+     */
+    boolean sendNotification(String recipient, String subject, String body);
 }

@@ -6,11 +6,13 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 public record StatementGeneratedEvent(
-    String aggregateId,
-    String accountNumber,
-    Instant periodEnd,
-    BigDecimal openingBalance,
-    Instant occurredAt
+        String statementId,
+        String accountNumber,
+        Instant periodStart,
+        Instant periodEnd,
+        BigDecimal openingBalance,
+        BigDecimal closingBalance,
+        Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
@@ -19,7 +21,7 @@ public record StatementGeneratedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return statementId;
     }
 
     @Override

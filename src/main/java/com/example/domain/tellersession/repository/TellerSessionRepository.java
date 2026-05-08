@@ -2,9 +2,11 @@ package com.example.domain.tellersession.repository;
 
 import com.example.domain.tellersession.model.TellerSessionAggregate;
 
-import java.util.Optional;
-
+/**
+ * Repository interface for TellerSession aggregates.
+ * Implementations (e.g., in-memory for tests, MongoDB for prod) will handle persistence.
+ */
 public interface TellerSessionRepository {
-    void save(TellerSessionAggregate aggregate);
-    Optional<TellerSessionAggregate> findById(String id);
+    TellerSessionAggregate save(TellerSessionAggregate aggregate);
+    TellerSessionAggregate findById(String sessionId);
 }

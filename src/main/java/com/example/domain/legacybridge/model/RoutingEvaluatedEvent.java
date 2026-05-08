@@ -1,21 +1,20 @@
 package com.example.domain.legacybridge.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.UUID;
 
+/**
+ * Event emitted when a routing decision is successfully evaluated.
+ * S-23: Routing evaluated event.
+ */
 public record RoutingEvaluatedEvent(
-    String eventId,
     String aggregateId,
     String transactionType,
     String targetSystem,
+    int rulesVersion,
     Instant occurredAt
 ) implements DomainEvent {
-    public RoutingEvaluatedEvent {
-        if (eventId == null) eventId = UUID.randomUUID().toString();
-    }
-    @Override public String type() { return "routing.evaluated"; }
-    @Override public String aggregateId() { return aggregateId; }
-    @Override public Instant occurredAt() { return occurredAt; }
+  @Override public String type() { return "routing.evaluated"; }
+  @Override public String aggregateId() { return aggregateId; }
+  @Override public Instant occurredAt() { return occurredAt; }
 }

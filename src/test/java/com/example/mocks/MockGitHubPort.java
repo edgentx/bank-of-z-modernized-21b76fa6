@@ -1,29 +1,23 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 
 /**
- * Mock adapter for GitHub API.
- * In-memory implementation to simulate GitHub behavior during testing.
+ * Mock implementation of GitHubPort for testing.
+ * Returns predictable URLs to verify propagation to Slack.
  */
 public class MockGitHubPort implements GitHubPort {
 
-    private final Map<String, String> issueUrls = new HashMap<>();
+    private String mockUrlBase = "http://github.com/mocked-repo/issues/";
+    private int issueCounter = 1;
 
     @Override
     public String createIssue(String title, String body) {
-        // Simulate GitHub URL generation
-        // Normalize title to key to simulate finding it later
-        String url = "https://github.com/fake-org/repo/issues/" + title.hashCode();
-        issueUrls.put(title, url);
-        return url;
+        // Simulate GitHub API returning a new URL
+        return mockUrlBase + issueCounter++;
     }
 
-    @Override
-    public Optional<String> findIssueUrlByTitle(String title) {
-        return Optional.ofNullable(issueUrls.get(title));
+    public void setMockUrlBase(String url) {
+        this.mockUrlBase = url;
     }
 }

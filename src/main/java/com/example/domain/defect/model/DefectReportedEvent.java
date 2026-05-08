@@ -1,34 +1,21 @@
 package com.example.domain.defect.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 
-/**
- * Event emitted when a defect is reported.
- */
 public record DefectReportedEvent(
-        String defectId,
-        String title,
-        String severity,
-        String component,
-        String description,
-        String gitHubIssueUrl,
-        Instant occurredAt
+    String aggregateId,
+    String title,
+    String severity,
+    String component,
+    String projectId,
+    String githubUrl,
+    Map<String, String> metadata,
+    Instant occurredAt
 ) implements DomainEvent {
-    @Override
-    public String type() {
-        return "DefectReported";
-    }
-
-    @Override
-    public String aggregateId() {
-        return defectId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
+    @Override public String type() { return "DefectReported"; }
+    @Override public String aggregateId() { return aggregateId; }
+    @Override public Instant occurredAt() { return occurredAt; }
 }

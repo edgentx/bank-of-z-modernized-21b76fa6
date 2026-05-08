@@ -9,13 +9,16 @@ import java.util.regex.Pattern;
 public class SlackMessageValidatorImpl implements SlackMessageValidator {
 
     // Regex to match slack formatted links or raw github.com links
-    private static final Pattern GITHUB_PATTERN = Pattern.compile(".*github\.com/.*" , Pattern.CASE_INSENSITIVE);
+    // Uses find() semantics implicitly via Pattern usage in the method
+    private static final Pattern GITHUB_PATTERN = Pattern.compile("github\.com/.*" , Pattern.CASE_INSENSITIVE);
 
     @Override
     public boolean containsGitHubIssueUrl(String messageBody) {
         if (messageBody == null) {
             return false;
         }
-        return GITHUB_PATTERN.matcher(messageBody).matches();
+        // Use matcher.find() to check if the pattern exists anywhere in the string,
+        // rather than matcher.matches() which requires the whole string to match.
+        return GITHUB_PATTERN.matcher(messageBody).find();
     }
 }

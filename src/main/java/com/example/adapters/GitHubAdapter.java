@@ -1,33 +1,67 @@
 package com.example.adapters;
 
 import com.example.ports.GitHubPort;
+import com.google.gson.Gson;
+import okhttp3.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
-import java.util.Optional;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Real implementation of GitHubPort.
- * In a full Spring Boot app, this would use RestTemplate or WebClient to query the GitHub API.
- * For this specific task, it provides a concrete implementation consistent with the pattern.
+ * Real adapter for GitHub Issue creation.
  */
+@Component
 public class GitHubAdapter implements GitHubPort {
 
-    // In a real implementation, inject WebClient/RestTemplate here.
-    // private final WebClient webClient;
+    private static final Logger logger = LoggerFactory.getLogger(GitHubAdapter.class);
+    private final Gson gson = new Gson();
+    private final OkHttpClient client = new OkHttpClient();
 
-    public GitHubAdapter() {
-        // Constructor for DI
-    }
+    @Value("${github.api.url:https://api.github.com/repos/example-org/bank-of-z-modernization/issues}")
+    private String apiUrl;
+
+    @Value("${github.auth.token:}")
+    private String authToken;
 
     @Override
-    public Optional<String> getIssueUrl(String issueId) {
-        // Mock implementation for the sake of the Adapter pattern.
-        // If this were a live app, we would call: webClient.get().uri("/repos/{owner}/{repo}/issues/{id}")...
-        // Since the requirements focus on the defect reporting logic, we return a deterministic URL
-        // to ensure the S-FB-1 test passes when injected via configuration, 
-        // though the specific test suite uses Mocks.
-        
-        // Note: The provided tests use MockGitHubPort, so this logic is primarily 
-        // to satisfy the application context and demonstrate the pattern.
-        return Optional.of("https://github.com/project/issues/" + issueId);
+    public String createIssue(String title, String body, String... labels) {
+        logger.info("Creating GitHub Issue: {}", title);
+
+        Map<String, Object> issueData = new HashMap<>();
+        issueData.put("title", title);
+        issueData.put("body", body);
+        if (labels != null && labels.length > 0) {
+            issueData.put("labels", labels);
+        }
+
+        RequestBody reqBody = RequestBody.create(gson.toJson(issueData), MediaType.parse("application/json; charset=utf-8"));
+        Request request = new Request.Builder()
+                .url(apiUrl)
+                .addHeader("Authorization", "Bearer " + authToken)
+                .addHeader("Accept", "application/vnd.github+json")
+                .post(reqBody)
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (response.isSuccessful() && response.body() != null) {
+                String responseBody = response.body().string();
+                // Parse JSON to get URL
+                Map<String, Object> responseMap = gson.fromJson(responseBody, Map.class);
+                String htmlUrl = (String) responseMap.get("html_url");
+                logger.info("GitHub Issue created successfully: {}", htmlUrl);
+                return htmlUrl;
+            } else {
+                logger.error("Failed to create GitHub Issue: {} {}", response.code(), response.message());
+                throw new RuntimeException("Failed to create GitHub Issue");
+            }
+        } catch (IOException e) {
+            logger.error("IOException while creating GitHub Issue", e);
+            throw new RuntimeException("GitHub API call failed", e);
+        }
     }
 }

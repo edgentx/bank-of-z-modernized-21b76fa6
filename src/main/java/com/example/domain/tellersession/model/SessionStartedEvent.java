@@ -1,14 +1,12 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
 
 public record SessionStartedEvent(
-    String aggregateId,
+    String sessionId,
     String tellerId,
     String terminalId,
-    String authToken,
     Instant occurredAt
 ) implements DomainEvent {
     @Override
@@ -18,7 +16,7 @@ public record SessionStartedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return sessionId;
     }
 
     @Override

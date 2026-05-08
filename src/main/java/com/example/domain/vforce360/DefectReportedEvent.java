@@ -1,20 +1,47 @@
 package com.example.domain.vforce360;
 
+import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
-import java.util.Map;
+import java.util.UUID;
 
 /**
- * Event published when a defect is reported via VForce360.
- * Contains the context required to generate the Slack message and GitHub issue.
+ * Event representing the successful reporting of a defect including GitHub and Slack integration.
  */
-public record DefectReportedEvent(
-        String defectId,
-        String title,
-        String description,
-        String severity,
-        String component,
-        String projectId,
-        String reportedBy,
-        Instant occurredAt,
-        Map<String, String> metadata
-) {}
+public class DefectReportedEvent implements DomainEvent {
+
+    private final String eventId = UUID.randomUUID().toString();
+    private final String aggregateId;
+    private final String githubUrl;
+    private final String slackBody;
+    private final Instant occurredAt;
+
+    public DefectReportedEvent(String aggregateId, String githubUrl, String slackBody, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.githubUrl = githubUrl;
+        this.slackBody = slackBody;
+        this.occurredAt = occurredAt;
+    }
+
+    @Override
+    public String type() {
+        return "DefectReported";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
+
+    public String getGithubUrl() {
+        return githubUrl;
+    }
+
+    public String getSlackBody() {
+        return slackBody;
+    }
+}

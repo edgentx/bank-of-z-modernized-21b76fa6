@@ -1,17 +1,25 @@
 package com.example.ports;
 
 /**
- * Port for sending notifications to Slack.
- * Used to verify GitHub issue links are included in defect reports.
+ * Port interface for sending notifications to Slack.
+ * Concrete implementations will handle the actual HTTP webhook calls.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Sends a message payload to a configured Slack channel.
+     * Sends a message to a configured Slack channel.
      *
-     * @param messageBody The JSON string payload to be sent.
-     * @throws IllegalArgumentException if the messageBody is invalid.
-     * @throws RuntimeException if the external API call fails.
+     * @param channel The target channel (e.g., #vforce360-issues)
+     * @param messageBody The formatted content of the message.
      */
-    void sendMessage(String messageBody);
+    void sendMessage(String channel, String messageBody);
+
+    /**
+     * Retrieves the last message body sent to the specific channel in the current context.
+     * This is primarily used for testing/verification.
+     *
+     * @param channel The target channel.
+     * @return The message body string, or null if no message was sent.
+     */
+    String getLastMessageBody(String channel);
 }

@@ -6,10 +6,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record AccountStatusUpdatedEvent(
-    String aggregateId,
-    String oldStatus,
-    String newStatus,
-    Instant occurredAt
+        String aggregateId,
+        AccountAggregate.AccountStatus oldStatus,
+        AccountAggregate.AccountStatus newStatus,
+        Instant occurredAt
 ) implements DomainEvent {
 
     @Override

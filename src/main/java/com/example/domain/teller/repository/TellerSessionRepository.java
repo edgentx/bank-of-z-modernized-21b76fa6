@@ -1,13 +1,11 @@
-package com.example.domain.tellersession.repository;
+package com.example.domain.teller.repository;
 
-import com.example.domain.teller.repository.TellerSessionRepository;
-import com.example.domain.tellersession.model.TellerSessionAggregate;
-import java.util.Optional;
+import com.example.domain.teller.model.TellerSessionAggregate;
 
 /**
- * Aliased interface to ensure package consistency. 
- * Delegates to the root domain contract.
+ * Repository interface for TellerSession aggregates.
  */
-public interface TellerSessionRepository extends com.example.domain.teller.repository.TellerSessionRepository {
-    // Contract inherited from parent
+public interface TellerSessionRepository {
+    TellerSessionAggregate save(TellerSessionAggregate aggregate);
+    TellerSessionAggregate findById(String id);
 }

@@ -1,37 +1,28 @@
 package com.example.mocks;
 
-import com.example.ports.GitHubPort;
+import com.example.ports.GitHubClientPort;
 import org.springframework.stereotype.Component;
-import java.util.UUID;
 
 /**
- * Mock GitHub Adapter for testing.
- * Returns predictable URLs without making network calls.
+ * Mock adapter for GitHubClientPort.
+ * Returns configurable data without calling the real GitHub API.
  */
 @Component
-public class MockGitHubClient implements GitHubPort {
+public class MockGitHubClient implements GitHubClientPort {
 
-    private boolean createIssueCalled = false;
-    private String lastUrl;
+    private String mockUrl = "https://github.com/example/bank-of-z/issues/1";
+
+    public void setMockIssueUrl(String url) {
+        this.mockUrl = url;
+    }
+
+    public String getMockIssueUrl() {
+        return mockUrl;
+    }
 
     @Override
-    public String createIssue(String repo, String title, String body) {
-        this.createIssueCalled = true;
-        // Simulate GitHub returning a real URL
-        this.lastUrl = "https://github.com/" + repo + "/issues/" + UUID.randomUUID().toString();
-        return this.lastUrl;
-    }
-
-    public boolean wasCreateIssueCalled() {
-        return createIssueCalled;
-    }
-
-    public String getLastGeneratedIssueUrl() {
-        return lastUrl;
-    }
-
-    public void reset() {
-        this.createIssueCalled = false;
-        this.lastUrl = null;
+    public String getIssueUrl(String issueId) {
+        // Return the configured mock URL
+        return mockUrl;
     }
 }

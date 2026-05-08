@@ -1,41 +1,39 @@
 package com.example.adapters;
 
 import com.example.ports.SlackNotificationPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import com.example.ports.dto.SlackMessage;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import java.util.concurrent.CompletableFuture;
 
 /**
- * Real implementation of the Slack Notification Port.
- * Connects to the actual Slack Web API.
- * 
- * Condition: Only loads if 'slack.adapter.enabled' is true (or default production profile).
- * Otherwise, the InMemorySlackNotificationPort (test mock) is used.
+ * Real implementation for Slack notifications.
+ * Uses WebClient to post messages to a Slack Webhook or API.
  */
 @Component
-@ConditionalOnProperty(name = "slack.adapter.enabled", havingValue = "true", matchIfMissing = false)
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
-    private static final Logger logger = LoggerFactory.getLogger(SlackNotificationAdapter.class);
+    private final WebClient webClient;
+    private static final String SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/MOCK/WEBHOOK/URL";
 
-    // Ideally, inject a WebClient or SlackClient here
-    // private final SlackWebhookClient client;
-
-    public SlackNotificationAdapter() {
-        // this.client = client;
+    public SlackNotificationAdapter(WebClient.Builder webClientBuilder) {
+        this.webClient = webClientBuilder
+            .baseUrl(SLACK_WEBHOOK_URL)
+            .build();
     }
 
     @Override
-    public boolean sendMessage(String messageBody) {
-        try {
-            // In a real implementation, this would perform an HTTP POST:
-            // client.postMessage(messageBody);
-            logger.info("[PROD ADAPTER] Sending Slack message: {}", messageBody);
-            return true;
-        } catch (Exception e) {
-            logger.error("Failed to send Slack notification", e);
-            return false;
-        }
+    public CompletableFuture<Void> sendNotification(SlackMessage message) {
+        // Map internal SlackMessage to the specific Slack Webhook JSON structure
+        SlackPayload payload = new SlackPayload(message.channel(), message.body());
+
+        return webClient.post()
+            .bodyValue(payload)
+            .retrieve()
+            .bodyToMono(Void.class)
+            .toFuture();
     }
+
+    private record SlackPayload(String channel, String text) {}
 }

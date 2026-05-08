@@ -2,114 +2,97 @@ package com.example.steps;
 
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.teller.model.*;
-import com.example.domain.teller.repository.TellerSessionRepository;
-import com.example.mocks.InMemoryTellerSessionRepository;
+import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.tellersession.model.MenuNavigatedEvent;
+import com.example.domain.tellersession.model.NavigateMenuCmd;
+import com.example.domain.tellersession.model.TellerSessionAggregate;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Assertions;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 public class S19Steps {
 
-    private TellerSessionRepository repository = new InMemoryTellerSessionRepository();
     private TellerSessionAggregate aggregate;
-    private Exception capturedException;
     private List<DomainEvent> resultEvents;
+    private Exception thrownException;
 
     @Given("a valid TellerSession aggregate")
-    public void a_valid_teller_session_aggregate() {
-        String sessionId = "session-123";
-        aggregate = new TellerSessionAggregate(sessionId);
-        // Seed with session started event to pass basic validation
-        aggregate.apply(new SessionStartedEvent(sessionId, "teller-1", Instant.now()));
-        repository.save(aggregate);
-    }
-
-    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_teller_session_aggregate_that_violates_auth() {
-        String sessionId = "session-unauth";
-        aggregate = new TellerSessionAggregate(sessionId);
-        // Do NOT seed with SessionStartedEvent, implying no auth/session context
-        repository.save(aggregate);
-    }
-
-    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_teller_session_aggregate_that_violates_timeout() {
-        String sessionId = "session-timeout";
-        aggregate = new TellerSessionAggregate(sessionId);
-        // Seed with an old timestamp (simulating timeout)
-        Instant past = Instant.now().minus(Duration.ofMinutes(31));
-        aggregate.apply(new SessionStartedEvent(sessionId, "teller-1", past));
-        repository.save(aggregate);
-    }
-
-    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_teller_session_aggregate_that_violates_state() {
-        // This represents an invalid context for the requested navigation
-        // e.g. trying to navigate to a specific screen without prerequisites
-        // modeled here by invalid input data for the specific command context.
-        // We will enforce this via input validation in the command execution.
-        String sessionId = "session-bad-state";
-        aggregate = new TellerSessionAggregate(sessionId);
-        aggregate.apply(new SessionStartedEvent(sessionId, "teller-1", Instant.now()));
-        repository.save(aggregate);
+    public void aValidTellerSessionAggregate() {
+        aggregate = new TellerSessionAggregate("session-123");
+        aggregate.markAuthenticated(); // By default valid means authenticated
+        aggregate.setCurrentMenu("MAIN_MENU");
     }
 
     @Given("a valid sessionId is provided")
-    public void a_valid_session_id_is_provided() {
-        // Handled by the aggregate setup
+    public void aValidSessionIdIsProvided() {
+        // Handled in aggregate initialization
     }
 
     @Given("a valid menuId is provided")
-    public void a_valid_menu_id_is_provided() {
-        // Handled in the 'When' step command construction
+    public void aValidMenuIdIsProvided() {
+        // Handled in 'When' step command creation
     }
 
     @Given("a valid action is provided")
-    public void a_valid_action_is_provided() {
-        // Handled in the 'When' step command construction
+    public void aValidActionIsProvided() {
+        // Handled in 'When' step command creation
+    }
+
+    @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
+    public void aTellerSessionAggregateThatViolatesAuthentication() {
+        aggregate = new TellerSessionAggregate("session-unauth");
+        // authenticate() is NOT called, defaults to false
+        aggregate.setCurrentMenu("LOGIN_SCREEN");
+    }
+
+    @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
+    public void aTellerSessionAggregateThatViolatesTimeout() {
+        aggregate = new TellerSessionAggregate("session-timeout", Duration.ofSeconds(30));
+        aggregate.markAuthenticated();
+        aggregate.violateTimeout(); // Set last activity way back
+    }
+
+    @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
+    public void aTellerSessionAggregateThatViolatesNavigationState() {
+        aggregate = new TellerSessionAggregate("session-context");
+        aggregate.markAuthenticated();
+        aggregate.setCurrentMenu("CLOSED"); // A state where navigation is locked
     }
 
     @When("the NavigateMenuCmd command is executed")
-    public void the_navigate_menu_cmd_command_is_executed() {
+    public void theNavigateMenuCmdCommandIsExecuted() {
         try {
-            String sessionId = aggregate.id();
-            // Determine inputs based on the scenario context implicitly or explicitly
-            // For simplicity, using valid defaults, relying on aggregate state to trigger rejections
-            String menuId = "MAIN_MENU";
-            String action = "ENTER";
-            
-            // If testing the bad state scenario, we might pass invalid context data
-            if (sessionId.equals("session-bad-state")) {
-                 // Simulate an invalid context request (e.g. target menu requires auth)
-                 menuId = "SECURE_MENU";
-            }
-
-            Command cmd = new NavigateMenuCmd(sessionId, menuId, action);
+            NavigateMenuCmd cmd = new NavigateMenuCmd(aggregate.id(), "ACCOUNTS_SCREEN", "ENTER");
             resultEvents = aggregate.execute(cmd);
-        } catch (Exception e) {
-            capturedException = e;
+        } catch (IllegalStateException | UnknownCommandException e) {
+            thrownException = e;
         }
     }
 
     @Then("a menu.navigated event is emitted")
-    public void a_menu_navigated_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof MenuNavigatedEvent);
-        assertEquals("menu.navigated", resultEvents.get(0).type());
+    public void aMenuNavigatedEventIsEmitted() {
+        Assertions.assertNotNull(resultEvents);
+        Assertions.assertFalse(resultEvents.isEmpty());
+        Assertions.assertTrue(resultEvents.get(0) instanceof MenuNavigatedEvent);
+        
+        MenuNavigatedEvent event = (MenuNavigatedEvent) resultEvents.get(0);
+        Assertions.assertEquals("menu.navigated", event.type());
+        Assertions.assertEquals("ACCOUNTS_SCREEN", event.targetMenuId());
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(capturedException);
-        // We expect IllegalStateException or IllegalArgumentException based on implementation
-        assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
+    public void theCommandIsRejectedWithADomainError() {
+        Assertions.assertNotNull(thrownException);
+        Assertions.assertTrue(thrownException instanceof IllegalStateException);
+    }
+
+    @And("a valid sessionId is provided")
+    public void aValidSessionIdIsProvidedAnd() {
+        // Duplicate mapping for step redundancy in Gherkin
     }
 }

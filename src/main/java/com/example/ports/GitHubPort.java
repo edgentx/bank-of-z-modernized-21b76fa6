@@ -1,9 +1,15 @@
 package com.example.ports;
 
 /**
- * Port interface for GitHub Issue creation.
- * Abstraction allows mocking in tests and swapping implementations in production.
+ * Port for interacting with GitHub (e.g., creating issues).
  */
 public interface GitHubPort {
-    String createIssue(String title, String description);
+    
+    /**
+     * Creates a new issue in the repository.
+     * @param title The issue title.
+     * @param body The issue body description.
+     * @return The URL of the created issue.
+     */
+    String createIssue(String title, String body);
 }

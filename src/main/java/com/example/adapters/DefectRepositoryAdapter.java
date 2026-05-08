@@ -1,18 +1,22 @@
 package com.example.adapters;
 
-import com.example.domain.vforce360.model.DefectAggregate;
-import com.example.ports.DefectRepositoryPort;
-import org.springframework.stereotype.Repository;
-import java.util.concurrent.ConcurrentHashMap;
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.ports.DefectRepository;
+import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 /**
- * In-memory adapter for DefectRepositoryPort.
- * Useful for rapid prototyping or if persistence is not yet required for this context.
+ * In-memory implementation of the DefectRepository.
+ * NOTE: In a real production environment, this would interact with MongoDB (as per VForce360 standards)
+ * or DB2. For the scope of this defect fix and unit testing, an in-memory map is sufficient.
  */
-@Repository
-public class DefectRepositoryAdapter implements DefectRepositoryPort {
-    
-    private final ConcurrentHashMap<String, DefectAggregate> store = new ConcurrentHashMap<>();
+@Component
+public class DefectRepositoryAdapter implements DefectRepository {
+
+    private final Map<String, DefectAggregate> store = new HashMap<>();
 
     @Override
     public void save(DefectAggregate aggregate) {
@@ -20,7 +24,7 @@ public class DefectRepositoryAdapter implements DefectRepositoryPort {
     }
 
     @Override
-    public DefectAggregate findById(String defectId) {
-        return store.get(defectId);
+    public Optional<DefectAggregate> findById(String id) {
+        return Optional.ofNullable(store.get(id));
     }
 }

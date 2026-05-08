@@ -5,7 +5,8 @@ import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
 /**
- * Test Suite to run Cucumber features.
+ * Aggregated Cucumber Suite.
+ * Adding S-21 feature to the suite.
  */
 @Suite
 @IncludeEngines("cucumber")

@@ -1,14 +1,17 @@
 package com.example.ports;
 
+import java.util.Optional;
+
 /**
- * Port for creating GitHub issues via VForce360 API surface.
+ * Port for interacting with GitHub issues.
+ * Used to generate the links required in the Slack notifications.
  */
 public interface GitHubIssuePort {
     /**
-     * Creates a remote issue in GitHub.
-     * @param title The title of the issue.
-     * @param description The description/body.
-     * @return The full URL to the created issue.
+     * Retrieves the public URL of a GitHub issue.
+     *
+     * @param issueId The internal or external ID of the issue.
+     * @return The full HTTPS URL if found, empty otherwise.
      */
-    String createIssue(String title, String description);
+    Optional<String> getIssueUrl(String issueId);
 }

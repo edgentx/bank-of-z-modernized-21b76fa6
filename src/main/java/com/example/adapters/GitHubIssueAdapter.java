@@ -1,26 +1,54 @@
 package com.example.adapters;
 
 import com.example.ports.GitHubIssuePort;
-import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Concrete implementation of GitHubIssuePort.
- * In a real environment, this would use the Octokits or HttpClients.
+ * Real adapter for interacting with GitHub Issues.
+ * Uses Spring's RestTemplate for HTTP communication.
+ * NOTE: This is a simplified implementation. In a real production environment,
+ * you would use a dedicated GitHub client library (e.g., hubspot/github-client) or OkHttp
+ * and handle authentication headers and error parsing more robustly.
  */
-@Component
 public class GitHubIssueAdapter implements GitHubIssuePort {
 
-    private static final Logger logger = LoggerFactory.getLogger(GitHubIssueAdapter.class);
+    private static final Logger log = LoggerFactory.getLogger(GitHubIssueAdapter.class);
+    private final RestTemplate restTemplate;
+    private final String apiUrl;
+
+    public GitHubIssueAdapter(RestTemplate restTemplate, String apiUrl) {
+        this.restTemplate = restTemplate;
+        this.apiUrl = apiUrl;
+    }
 
     @Override
-    public String createIssue(String title, String body) {
-        // Real implementation would use GitHub REST API here.
-        logger.info("[GITHUB MOCK] Creating issue '{}' with body: {}", title, body);
-        
-        // Returning a deterministic dummy URL for the test environment to function.
-        // In a real adapter, we would parse the response URL.
-        return "https://github.com/fake-org/vforce360/issue/1";
+    public String createIssue(String title, String description) {
+        // Construct the JSON payload manually or use a DTO.
+        // Using manual Map construction here to minimize boilerplate class count for this task.
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("title", title);
+        requestBody.put("body", description);
+
+        try {
+            // Post expects a map response containing the 'html_url'
+            Map response = restTemplate.postForObject(apiUrl, requestBody, Map.class);
+
+            if (response != null && response.containsKey("html_url")) {
+                String url = (String) response.get("html_url");
+                log.info("Successfully created GitHub issue at {}", url);
+                return url;
+            } else {
+                log.error("GitHub API response did not contain html_url");
+                return null;
+            }
+        } catch (Exception e) {
+            log.error("Failed to create GitHub issue", e);
+            return null;
+        }
     }
 }

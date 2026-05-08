@@ -1,37 +1,53 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubPort;
-import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Mock implementation for GitHub API interactions.
- * Returns predictable URLs for testing.
+ * Mock implementation of GitHubPort.
+ * Simulates GitHub API calls without network I/O.
  */
-@Component
 public class MockGitHubAdapter implements GitHubPort {
 
-    private String mockUrl = "https://github.com/mock/issues/1";
-    private boolean shouldThrowException = false;
+    private final Map<String, String> database = new HashMap<>();
+    private String forcedUrl = null;
+    private boolean shouldFail = false;
+
+    /**
+     * Configures the mock to return a specific URL on the next call.
+     */
+    public void forceUrl(String url) {
+        this.forcedUrl = url;
+    }
+
+    /**
+     * Configures the mock to throw an exception.
+     */
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
+    }
 
     @Override
-    public String createIssue(String defectCode, String summary, String severity) {
-        if (shouldThrowException) {
-            throw new RuntimeException("GitHub API unavailable");
+    public String createDefectIssue(String title, String body) {
+        if (shouldFail) {
+            throw new RuntimeException("GitHub API simulated failure");
         }
-        // Return a deterministic URL based on input for verification
-        return "https://github.com/fake-repo/issues/" + defectCode.replace("-", "");
+
+        // Generate a stable mock URL based on title if not forced
+        String mockUrl = forcedUrl;
+        if (mockUrl == null) {
+            String issueId = String.valueOf(Math.abs(title.hashCode()));
+            mockUrl = "https://github.com/mock-org/issues/" + issueId;
+        }
+        
+        // Store it
+        database.put(title, mockUrl);
+        return mockUrl;
     }
 
-    public void setMockIssueUrl(String url) {
-        this.mockUrl = url;
-    }
-
-    public void setThrowException(boolean flag) {
-        this.shouldThrowException = flag;
-    }
-
-    public void reset() {
-        this.mockUrl = "https://github.com/mock/issues/1";
-        this.shouldThrowException = false;
+    public String getUrlForTitle(String title) {
+        return database.get(title);
     }
 }

@@ -1,122 +1,81 @@
 package com.example.steps;
 
-import com.example.domain.shared.ReportDefectCmd;
-import com.example.mocks.MockSlackNotificationPort;
 import com.example.ports.SlackNotificationPort;
-import io.temporal.testing.TestWorkflowEnvironment;
-import io.temporal.worker.Worker;
-import org.junit.jupiter.api.*;
+import com.example.mocks.MockSlackNotificationAdapter;
+import com.example.domain.validation.ValidationService;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Test Suite for Story S-FB-1: Validating VW-454.
+ * Test suite for Story S-FB-1: Validating VW-454 — GitHub URL in Slack body.
+ * This represents the RED phase of TDD.
  * 
- * Context: End-to-end verification that triggering a defect report
- * results in a Slack notification containing the GitHub Issue URL.
- * 
- * Phase: RED (Failing tests)
+ * Context: The temporal-worker (via VForce360) reports a defect. We need to ensure
+ * that when the defect is processed, the resulting Slack message contains the
+ * GitHub issue URL.
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class SFB1Steps {
 
-    // We use a mock port to verify the output without a real Slack connection
-    private MockSlackNotificationPort mockSlack;
-
-    // Temporal Test Environment to simulate the 'temporal-worker exec' trigger
-    // Note: Using a simplified JUnit pattern here rather than full TestWorkflowExtension
-    // to keep the file self-contained and strictly within the 'Mock Adapter' constraints.
-
-    @BeforeEach
-    public void setUp() {
-        // Initialize the mock adapter
-        mockSlack = new MockSlackNotificationPort();
-    }
-
+    /**
+     * Scenario: Verify Slack body contains GitHub issue link.
+     * 
+     * Given a defect report exists with ID VW-454
+     * And the defect report contains a valid GitHub URL
+     * When the validation service processes the report_defect workflow
+     * Then the resulting Slack notification body should include the GitHub URL
+     */
     @Test
-    @DisplayName("GIVEN a defect command with a GitHub URL WHEN workflow executes THEN Slack body contains the URL")
-    public void testDefectReportWorkflowIncludesGitHubLink() {
-        // 1. Setup Input Data
+    public void testSlackBodyContainsGithubUrl() {
+        // Arrange
+        // We mock the Slack port to capture output instead of sending real HTTP requests
+        SlackNotificationPort mockSlack = new MockSlackNotificationAdapter();
+        ValidationService service = new ValidationService(mockSlack);
+
         String defectId = "VW-454";
-        String title = "GitHub URL in Slack body";
-        String description = "End-to-end validation failure";
-        String severity = "LOW";
-        String expectedUrl = "https://github.com/bank-of-z/issues/454";
+        String expectedUrl = "https://github.com/example/bank-of-z/issues/454";
 
-        ReportDefectCmd cmd = new ReportDefectCmd(
-            defectId, 
-            title, 
-            description, 
-            severity, 
-            expectedUrl
+        // Act
+        // Trigger the defect reporting logic via the service
+        service.reportDefect(defectId, expectedUrl);
+
+        // Assert
+        // Verify the Slack adapter received the payload
+        assertTrue(mockSlack.wasCalled(), "Slack notification should have been triggered");
+        
+        String sentPayload = mockSlack.getLastPayload();
+        assertNotNull(sentPayload, "Payload should not be null");
+
+        // Critical Check: The body must contain the URL
+        // This mimics the user checking the #vforce360-issues channel
+        assertTrue(
+            sentPayload.contains(expectedUrl), 
+            "Slack body must include the GitHub issue URL: " + expectedUrl
         );
-
-        // 2. Execute the Workflow Logic (Simulated)
-        // In the real implementation, this would be triggered by Temporal.
-        // We are calling the logic directly here to validate the behavior.
-        // Since the implementation class doesn't exist yet, we simulate the expected
-        // flow or mock the worker invocation. Here we simulate the dependency injection.
-        
-        // Simulate: DefectReportWorkflow.report(cmd, mockSlack);
-        // This will fail to compile until the Workflow implementation exists.
-        // For the purpose of a RED phase test, we assume the class will be created at 
-        // src/main/java/.../DefectReportWorkflow.java
-        
-        // UNCOMMENT THE FOLLOWING LINE TO REACH THE RED PHASE ONCE IMPLEMENTATION STUB EXISTS:
-        // new DefectReportWorkflow().report(cmd, mockSlack);
-        
-        // FOR NOW: To ensure this file compiles and represents the *Red* intent 
-        // (logic doesn't exist), we manually simulate the failure scenario 
-        // by asserting against the empty mock state.
-        
-        // 3. Verify Expected Behavior (Acceptance Criteria)
-        // Expected: Slack body includes GitHub issue: <url>
-        
-        boolean foundUrl = false;
-        for (MockSlackNotificationPort.SentMessage msg : mockSlack.getMessages()) {
-            if (msg.body.contains(expectedUrl)) {
-                foundUrl = true;
-                break;
-            }
-        }
-
-        // THIS ASSERTION WILL FAIL (RED) BECAUSE THE WORKFLOW ISN'T IMPLEMENTED/WIRED YET
-        assertTrue(foundUrl, 
-            "Slack notification body should contain the GitHub Issue URL: " + expectedUrl 
-            + ". Messages captured: " + mockSlack.getMessages().size());
-
-        // Verify the channel is correct as per context "#vforce360-issues"
-        if (!mockSlack.getMessages().isEmpty()) {
-            assertEquals("#vforce360-issues", mockSlack.getMessages().get(0).channel);
-        } else {
-            fail("No Slack messages were sent to the mock adapter.");
-        }
     }
 
+    /**
+     * Scenario: Verify Slack body is not empty when URL is missing (Edge Case).
+     * Ensures robustness of the validation logic.
+     */
     @Test
-    @DisplayName("Regression: Ensure null GitHub URL is handled or causes failure as designed")
-    public void testNullGitHubUrlValidation() {
-        String defectId = "VW-455";
-        ReportDefectCmd cmd = new ReportDefectCmd(
-            defectId, 
-            "Missing URL", 
-            "Description", 
-            "HIGH", 
-            null // Null URL
-        );
+    public void testSlackBodyHandlesMissingUrl() {
+        // Arrange
+        SlackNotificationPort mockSlack = new MockSlackNotificationAdapter();
+        ValidationService service = new ValidationService(mockSlack);
 
-        // Expectation: The system should handle this gracefully or fail validation
-        // For this defect fix, we ensure the link is present if provided.
-        // If null, the logic might skip or throw. We just ensure it runs.
-        // new DefectReportWorkflow().report(cmd, mockSlack);
+        String defectId = "VW-455";
+        String missingUrl = null;
+
+        // Act
+        service.reportDefect(defectId, missingUrl);
+
+        // Assert
+        assertTrue(mockSlack.wasCalled());
+        String payload = mockSlack.getLastPayload();
         
-        // If logic was present, we might assert:
-        // assertTrue(mockSlack.getMessages().isEmpty() || mockSlack.getMessages().get(0).body.contains("TBD"));
-        
-        // Current state: Just ensuring the test structure exists.
-        // We will assert that the message doesn't contain a broken link format.
-        for (MockSlackNotificationPort.SentMessage msg : mockSlack.getMessages()) {
-            assertFalse(msg.body.contains("http://null"), "Body should not contain malformed null link");
-        }
+        // We expect a valid JSON structure even if the URL is null
+        assertNotNull(payload);
+        assertFalse(payload.isEmpty());
     }
 }

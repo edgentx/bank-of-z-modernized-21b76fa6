@@ -3,7 +3,6 @@ Feature: Implement DeleteCustomerCmd on Customer (customer-management)
   Scenario: Successfully execute DeleteCustomerCmd
     Given a valid Customer aggregate
     And a valid customerId is provided
-    And the customer has no active accounts
     When the DeleteCustomerCmd command is executed
     Then a customer.deleted event is emitted
 

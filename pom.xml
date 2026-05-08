@@ -22,7 +22,8 @@
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- Aligning Temporal version with the error message to ensure stability -->
-        <temporal.version>1.22.1</temporal.version>
+        <!-- Updating to latest stable 1.x to fix resolution issues -->
+        <temporal.version>1.24.1</temporal.version>
     </properties>
 
     <dependencies>

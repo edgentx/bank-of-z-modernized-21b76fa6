@@ -1,27 +1,15 @@
 package com.example.steps;
 
-import com.example.mocks.MockSlackPort;
-import io.cucumber.spring.CucumberContextConfiguration;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
+import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectClasses;
+import org.junit.platform.suite.api.Suite;
 
 /**
- * Test configuration and runner for S-FB-1.
- * This class sets up the Spring context for Cucumber tests, providing the Mock implementations.
+ * Test Suite for S-FB-1.
+ * Groups the specific step definitions for the regression test.
  */
-@CucumberContextConfiguration
-@SpringBootTest(classes = SFB1TestSuite.TestConfig.class)
+@Suite
+@IncludeEngines("cucumber")
+@SelectClasses(SFB1Steps.class)
 public class SFB1TestSuite {
-
-    @Configuration
-    static class TestConfig {
-        
-        @Bean
-        @Primary
-        public MockSlackPort mockSlackPort() {
-            return new MockSlackPort();
-        }
-    }
 }

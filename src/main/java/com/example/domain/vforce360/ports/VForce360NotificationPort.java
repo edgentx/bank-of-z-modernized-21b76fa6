@@ -1,15 +1,16 @@
 package com.example.domain.vforce360.ports;
 
-import com.example.domain.vforce360.model.DefectReportedEvent;
-
 /**
- * Port for sending notifications to external systems like Slack.
+ * Port interface for VForce360 notifications (Slack).
+ * Abstracts the external Slack API logic.
  */
 public interface VForce360NotificationPort {
+
     /**
-     * Posts a defect report to the configured channel (e.g., Slack).
+     * Posts a message to the configured Slack channel.
      *
-     * @param event The domain event containing defect details.
+     * @param messageBody The body of the message to send.
+     * @throws IllegalArgumentException if the messageBody is invalid.
      */
-    void postDefectNotification(DefectReportedEvent event);
+    void postMessage(String messageBody);
 }

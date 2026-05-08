@@ -1,29 +1,36 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to Slack for assertion.
+ * Mock implementation of SlackNotificationPort.
+ * Stores messages in memory for assertion verification. No real HTTP calls.
  */
 public class InMemorySlackNotificationPort implements SlackNotificationPort {
-    private final List<String> messages = new ArrayList<>();
+
+    // Map Channel -> Message Body
+    private final Map<String, String> messages = new HashMap<>();
 
     @Override
-    public void sendMessage(String body) {
-        messages.add(body);
+    public boolean sendMessage(String channel, String messageBody) {
+        messages.put(channel, messageBody);
+        return true;
     }
 
-    public String getLastMessage() {
-        if (messages.isEmpty()) return null;
-        return messages.get(messages.size() - 1);
+    /**
+     * Checks if a message was sent to a specific channel.
+     */
+    public boolean wasMessageSent(String channel) {
+        return messages.containsKey(channel);
     }
 
-    public List<String> getAllMessages() {
-        return new ArrayList<>(messages);
+    /**
+     * Retrieves the last message body sent to a specific channel.
+     */
+    public String getLastMessageBody(String channel) {
+        return messages.get(channel);
     }
 
     public void clear() {

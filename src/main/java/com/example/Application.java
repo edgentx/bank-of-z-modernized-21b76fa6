@@ -4,6 +4,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import io.temporal.spring.boot.TemporalBootstrapCustomization;
 
+/**
+ * Main Spring Boot Application class.
+ */
 @SpringBootApplication
 public class Application {
 
@@ -11,6 +14,4 @@ public class Application {
         SpringApplication.run(Application.class, args);
     }
 
-    // Temporal Configuration bean needed if not auto-scanned, 
-    // but generally starter handles it. Adding worker support if needed.
 }

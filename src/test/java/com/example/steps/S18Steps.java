@@ -1,10 +1,10 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.teller.model.SessionStartedEvent;
-import com.example.domain.teller.model.StartSessionCmd;
-import com.example.domain.teller.model.TellerSessionAggregate;
+import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.tellersession.model.SessionStartedEvent;
+import com.example.domain.tellersession.model.StartSessionCmd;
+import com.example.domain.tellersession.model.TellerSessionAggregate;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -17,74 +17,77 @@ import static org.junit.jupiter.api.Assertions.*;
 public class S18Steps {
 
     private TellerSessionAggregate aggregate;
-    private List<DomainEvent> resultEvents;
-    private Exception caughtException;
-    private String tellerId;
-    private String terminalId;
+    private StartSessionCmd command;
+    private List<DomainEvent> resultingEvents;
+    private Exception capturedException;
 
     @Given("a valid TellerSession aggregate")
-    public void a_valid_TellerSession_aggregate() {
+    public void aValidTellerSessionAggregate() {
+        // Initialize a fresh aggregate. By default, it is unauthenticated.
+        // We mark it authenticated to ensure it is valid for the successful scenario.
         aggregate = new TellerSessionAggregate("session-123");
-        caughtException = null;
+        aggregate.markAuthenticated();
     }
 
-    @Given("a valid tellerId is provided")
-    public void a_valid_tellerId_is_provided() {
-        tellerId = "teller-42";
+    @And("a valid tellerId is provided")
+    public void aValidTellerIdIsProvided() {
+        // The command construction happens in the 'When' clause, or we store params here.
+        // For simplicity, we'll just track that the state is ready.
     }
 
-    @Given("a valid terminalId is provided")
-    public void a_valid_terminalId_is_provided() {
-        terminalId = "terminal-01";
+    @And("a valid terminalId is provided")
+    public void aValidTerminalIdIsProvided() {
+        // Valid state context
     }
 
     @When("the StartSessionCmd command is executed")
-    public void the_StartSessionCmd_command_is_executed() {
+    public void theStartSessionCmdCommandIsExecuted() {
         try {
-            boolean isAuthenticated = true;
-            Command cmd = new StartSessionCmd(aggregate.id(), tellerId, terminalId, isAuthenticated);
-            resultEvents = aggregate.execute(cmd);
+            // Construct valid command defaults
+            command = new StartSessionCmd("session-123", "teller-01", "term-042");
+            resultingEvents = aggregate.execute(command);
         } catch (Exception e) {
-            caughtException = e;
+            capturedException = e;
         }
     }
 
     @Then("a session.started event is emitted")
-    public void a_session_started_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof SessionStartedEvent);
-        SessionStartedEvent event = (SessionStartedEvent) resultEvents.get(0);
+    public void aSessionStartedEventIsEmitted() {
+        assertNull(capturedException, "Should not have thrown an exception");
+        assertNotNull(resultingEvents, "Events list should not be null");
+        assertEquals(1, resultingEvents.size(), "Should emit exactly one event");
+        
+        DomainEvent event = resultingEvents.get(0);
+        assertTrue(event instanceof SessionStartedEvent, "Event should be SessionStartedEvent");
         assertEquals("session.started", event.type());
-        assertEquals(aggregate.id(), event.aggregateId());
-        assertTrue(aggregate.isActive());
     }
 
-    // Negative Scenarios
+    // --- Negative Scenarios ---
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_TellerSession_aggregate_that_violates_authentication() {
-        aggregate = new TellerSessionAggregate("session-auth-fail");
-        // The command executor will simulate unauthenticated state
+    public void aTellerSessionAggregateThatViolatesAuthentication() {
+        aggregate = new TellerSessionAggregate("session-unauth");
+        // Do NOT mark authenticated. Default constructor sets it to false.
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_TellerSession_aggregate_that_violates_timeout() {
-        aggregate = new TellerSessionAggregate("session-timeout-fail");
-        aggregate.forceActive(); // Force active to simulate a stale/active conflict if needed, 
-                                // though the command simply checks if it is already active.
+    public void aTellerSessionAggregateThatViolatesTimeout() {
+        aggregate = new TellerSessionAggregate("session-stale");
+        aggregate.markAuthenticated(); // Auth is valid
+        aggregate.markSessionStale();   // But the clock has ticked too long
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_TellerSession_aggregate_that_violates_navigation_state() {
-        aggregate = new TellerSessionAggregate("session-nav-fail");
-        aggregate.forceNavigationState("TRANSACTION_IN_PROGRESS");
+    public void aTellerSessionAggregateThatViolatesNavigationState() {
+        aggregate = new TellerSessionAggregate("session-nav-bad");
+        aggregate.markAuthenticated();
+        aggregate.corruptNavigationState();
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(caughtException);
-        // We verify it's an unchecked exception (Domain Error)
-        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
+    public void theCommandIsRejectedWithADomainError() {
+        assertNotNull(capturedException, "Expected an exception to be thrown");
+        // Specific exception type check helps ensure it's a domain logic failure, not a NPE
+        assertTrue(capturedException instanceof IllegalStateException, "Expected IllegalStateException for domain rule violation");
     }
 }

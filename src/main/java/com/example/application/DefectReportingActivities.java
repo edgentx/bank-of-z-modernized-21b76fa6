@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Temporal Activity Implementation for Defect Reporting.
- * Stub to fix compilation.
+ * Orchestrates the creation of a GitHub issue and notification of the URL via Slack.
  */
 @Component
 @ActivityImpl(taskQueues = "DefectReportingTaskQueue")
@@ -23,8 +23,22 @@ public class DefectReportingActivities implements DefectReportingActivityInterfa
 
     @Override
     public String reportDefect(String title, String body) {
-        // Real implementation would call gitHubClient.createIssue(...)
-        // Then slackClient.postMessage(...)
-        return "STUB_ID";
+        // 1. Create the GitHub issue
+        // Assuming a default repo context or that it is injected/configured.
+        // For this defect, the specific repo is less critical than the link flow.
+        String repo = "example/bank-of-z"; 
+        String issueUrl = gitHubClient.createIssue(repo, title, body);
+
+        // 2. Notify Slack with the URL
+        // This ensures the URL is present in the Slack body (Acceptance Criteria)
+        String message = String.format(
+            "Defect Reported: %s\nGitHub Issue: %s",
+            title,
+            issueUrl
+        );
+        
+        slackClient.sendMessage("#vforce360-issues", message);
+
+        return issueUrl;
     }
 }

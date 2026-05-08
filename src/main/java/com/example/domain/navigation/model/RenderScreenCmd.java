@@ -5,13 +5,11 @@ import com.example.domain.shared.Command;
 import java.util.Map;
 
 /**
- * Command to render a specific screen adapted for a device type.
- * Context: S-21 user-interface-navigation.
+ * Command to render a specific screen layout adapted for a device.
  */
 public record RenderScreenCmd(
-        String aggregateId,
+        String screenMapId,
         String screenId,
         String deviceType,
-        Map<String, String> fieldValues
-) implements Command {
-}
+        Map<String, String> context
+) implements Command {}

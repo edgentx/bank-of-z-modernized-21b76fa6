@@ -1,11 +1,9 @@
 package com.example.domain.tellermgmt.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
 
-/**
- * Event emitted when a teller session is successfully started.
- */
 public record SessionStartedEvent(
   String aggregateId,
   String tellerId,

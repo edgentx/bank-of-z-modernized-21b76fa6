@@ -18,6 +18,8 @@
     <properties>
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Override Temporal version to 1.22.1 explicitly as Spring Boot BOM might not cover it or needs specific pinning -->
+        <temporal.version>1.22.1</temporal.version>
     </properties>
 
     <dependencies>
@@ -43,15 +45,17 @@
             <artifactId>spring-boot-starter-integration</artifactId>
         </dependency>
 
-        <!-- Temporal (BOM managed version) -->
-        <!-- REMOVED explicit <version> to fix build error -->
+        <!-- Temporal -->
+        <!-- Explicitly declaring version to resolve build cache failure for 1.22.1 -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
+            <version>${temporal.version}</version>
         </dependency>
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-testing</artifactId>
+            <version>${temporal.version}</version>
             <scope>test</scope>
         </dependency>
 

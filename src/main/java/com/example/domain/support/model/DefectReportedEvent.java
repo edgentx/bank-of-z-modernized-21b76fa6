@@ -10,11 +10,11 @@ import java.util.Map;
  * Contains the GitHub URL and the formatted Slack body.
  */
 public record DefectReportedEvent(
-    String defectId,
-    String githubIssueUrl,
-    String slackBody,
-    Map<String, String> context,
-    Instant occurredAt
+        String defectId,
+        String githubIssueUrl,
+        String slackBody,
+        Map<String, String> context,
+        Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {

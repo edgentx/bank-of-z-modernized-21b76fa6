@@ -1,12 +1,20 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasses;
-import org.junit.platform.suite.api.Suite;
+import org.junit.runner.RunWith;
+import io.cucumber.junit.Cucumber;
+import io.cucumber.junit.CucumberOptions;
 
-@Suite
-@IncludeEngines("cucumber")
-@SelectClasses(VW454Steps.class)
+/**
+ * Test Suite for VW-454 Regression.
+ * Verifies that defect reporting workflows correctly append the GitHub issue link to Slack notifications.
+ */
+@RunWith(Cucumber.class)
+@CucumberOptions(
+    features = "src/test/java/com/example/features/vw-454.feature",
+    glue = {"com.example.steps"},
+    plugin = {"pretty", "html:target/cucumber/vw-454"},
+    monochrome = true
+)
 public class VW454TestSuite {
-    // JUnit 5 Suite configuration to run Cucumber tests
+    // Execution entry point for the test runner
 }

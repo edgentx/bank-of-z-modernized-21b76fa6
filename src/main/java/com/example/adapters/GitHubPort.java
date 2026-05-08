@@ -1,8 +1,10 @@
 package com.example.adapters;
 
+import java.util.Optional;
+
 /**
- * Port interface for GitHub Issue creation.
+ * Port interface for creating GitHub issues.
  */
 public interface GitHubPort {
-    String createIssue(String title, String body);
+    Optional<String> createIssue(String title, String body);
 }

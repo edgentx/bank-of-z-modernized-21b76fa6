@@ -3,7 +3,15 @@ package com.example.domain.uimodel.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to initiate a teller session following successful authentication.
- * Part of Story S-18: TellerSession UI Navigation.
+ * S-18: Command to initiate a Teller Session.
+ * Validations: authenticated Teller, active Terminal, valid timeout config.
  */
-public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {}
+public record StartSessionCmd(
+        String tellerId,
+        String terminalId,
+        boolean isAuthenticated,
+        boolean isTerminalActive,
+        long timeoutMillis,
+        String contextNavState
+) implements Command {
+}

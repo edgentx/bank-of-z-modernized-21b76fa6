@@ -1,29 +1,19 @@
 package com.example.config;
 
-import com.example.ports.NotificationPort;
-import com.example.vforce.adapter.SlackNotificationAdapter;
-import com.example.workflows.DefectReportActivities;
-import com.example.workflows.DefectReportActivitiesImpl;
-import io.temporal.client.WorkflowClient;
-import io.temporal.serviceclient.WorkflowServiceStubs;
-import io.temporal.worker.Worker;
-import io.temporal.worker.WorkerFactory;
+import com.example.domain.validation.port.SlackNotificationPort;
+import com.example.mocks.MockSlackNotificationPort;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 
-/**
- * Configuration class for Temporal Worker and Workflow registration.
- */
-@Configuration
+@TestConfiguration
+@Profile("test")
 public class TemporalConfig {
 
     @Bean
-    public NotificationPort notificationPort() {
-        return new SlackNotificationAdapter();
-    }
-
-    @Bean
-    public DefectReportActivities defectReportActivities(NotificationPort notificationPort) {
-        return new DefectReportActivitiesImpl(notificationPort);
+    @Primary
+    public SlackNotificationPort mockSlackNotificationPort() {
+        return new MockSlackNotificationPort();
     }
 }

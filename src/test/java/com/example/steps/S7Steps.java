@@ -1,14 +1,13 @@
 package com.example.steps;
 
-import com.example.domain.account.model.AccountAggregate;
-import com.example.domain.account.model.CloseAccountCmd;
+import com.example.domain.account.model.*;
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -16,25 +15,70 @@ import java.util.List;
 public class S7Steps {
 
     private AccountAggregate account;
-    private List<DomainEvent> resultEvents;
     private Exception caughtException;
+    private List<DomainEvent> resultEvents;
 
     @Given("a valid Account aggregate")
-    public void a_valid_Account_aggregate() {
-        account = new AccountAggregate("ACC-123");
+    public void aValidAccountAggregate() {
+        // Setup a clean account with zero balance, active status, and valid immutable number
+        String validId = "ACC-12345";
+        account = new AccountAggregate(validId);
+        
+        // Initialize the aggregate to a valid open state via internal reflection or public setters if available.
+        // For this test harness, we simulate a valid state directly.
+        // Since execute is the only entry point in the pattern, we might need a constructor that allows hydration 
+        // or a factory method. Here we assume we can manually set fields for the 'Given' part of a unit test.
+        account.setAccountNumber(validId); // Immutable set once
         account.setBalance(BigDecimal.ZERO);
-        // Status is ACTIVE by default in constructor
+        account.setStatus(AccountAggregate.Status.ACTIVE);
+        account.setMinimumBalance(BigDecimal.ZERO);
     }
 
     @Given("a valid accountNumber is provided")
-    public void a_valid_accountNumber_is_provided() {
-        // Implicitly handled by the account construction in previous step
+    public void aValidAccountNumberIsProvided() {
+        // Implicitly handled by the aggregate setup, but the command carries the number for validation
+    }
+
+    @And("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
+    public void aAccountAggregateThatViolatesMinimumBalance() {
+        account = new AccountAggregate("ACC-DEBT");
+        account.setAccountNumber("ACC-DEBT");
+        account.setBalance(new BigDecimal("50.00"));
+        account.setMinimumBalance(new BigDecimal("100.00"));
+        account.setStatus(AccountAggregate.Status.ACTIVE);
+    }
+
+    @And("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
+    public void aAccountAggregateThatViolatesActiveStatus() {
+        account = new AccountAggregate("ACC-CLOSED");
+        account.setAccountNumber("ACC-CLOSED");
+        account.setBalance(BigDecimal.ZERO);
+        account.setMinimumBalance(BigDecimal.ZERO);
+        account.setStatus(AccountAggregate.Status.CLOSED); // Not active
+    }
+
+    @And("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
+    public void aAccountAggregateThatViolatesImmutableNumber() {
+        account = new AccountAggregate("ORIGINAL-ID");
+        account.setAccountNumber("ORIGINAL-ID");
+        account.setBalance(BigDecimal.ZERO);
+        account.setMinimumBalance(BigDecimal.ZERO);
+        account.setStatus(AccountAggregate.Status.ACTIVE);
     }
 
     @When("the CloseAccountCmd command is executed")
-    public void the_CloseAccountCmd_command_is_executed() {
+    public void theCloseAccountCmdCommandIsExecuted() {
+        Command cmd;
+        
+        if (account.getAccountNumber().equals("ORIGINAL-ID")) {
+            // Scenario: Trying to close with a DIFFERENT account number than the aggregate holds
+            cmd = new CloseAccountCmd("DIFFERENT-ID");
+        } else {
+            // Standard Close command matching the aggregate ID
+            cmd = new CloseAccountCmd(account.getAccountNumber());
+        }
+
         try {
-            CloseAccountCmd cmd = new CloseAccountCmd(account.id());
             resultEvents = account.execute(cmd);
         } catch (Exception e) {
             caughtException = e;
@@ -42,53 +86,23 @@ public class S7Steps {
     }
 
     @Then("a account.closed event is emitted")
-    public void a_account_closed_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertEquals("account.closed", resultEvents.get(0).type());
-    }
-
-    // --- Negative Scenarios ---
-
-    @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
-    public void a_Account_aggregate_that_violates_balance() {
-        account = new AccountAggregate("ACC-999");
-        account.setBalance(new BigDecimal("100.00")); // Non-zero balance
-    }
-
-    @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
-    public void a_Account_aggregate_that_violates_status() {
-        account = new AccountAggregate("ACC-888");
-        account.setBalance(BigDecimal.ZERO);
-        account.setStatus(AccountAggregate.AccountStatus.SUSPENDED); // Not active
-    }
-
-    @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
-    public void a_Account_aggregate_that_violates_immutability() {
-        // The aggregate logic sets immutable=true only upon closure.
-        // To test this rejection (assuming a hypothetical pre-closed state or validation),
-        // we can assume that the 'CloseAccountCmd' itself might be rejected if the number
-        // is already marked immutable in the system (mocked here).
-        // However, based on the aggregate logic, we throw if `immutable` is true.
-        // Since we can't easily set `immutable` true without closing, and we want to test rejection,
-        // we will assume this scenario is handled by a pre-check or state we simulate.
-        // For this aggregate test, we can simulate a "previously closed" account state
-        // by re-activating status but leaving immutable flag true (reflection/edge case).
-        // Or simpler: The prompt implies this is an invariant check.
-        account = new AccountAggregate("ACC-IMMUTABLE") {
-            // Hack to simulate an immutable state for testing the specific error message
-            @Override
-            public List<DomainEvent> execute(Command cmd) {
-                // Force the logic that checks immutability
-                if (true) throw new IllegalStateException("Account numbers must be uniquely generated and immutable.");
-                return super.execute(cmd);
-            }
-        };
+    public void aAccountClosedEventIsEmitted() {
+        Assertions.assertNull(caughtException, "Should not have thrown an exception");
+        Assertions.assertNotNull(resultEvents, "Result events list should not be null");
+        Assertions.assertEquals(1, resultEvents.size(), "Should emit exactly one event");
+        
+        DomainEvent event = resultEvents.get(0);
+        Assertions.assertTrue(event instanceof AccountClosedEvent, "Event should be AccountClosedEvent");
+        Assertions.assertEquals("AccountClosed", event.type());
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(caughtException);
-        assertTrue(caughtException instanceof IllegalStateException);
+    public void theCommandIsRejectedWithADomainError() {
+        Assertions.assertNotNull(caughtException, "Should have thrown an exception");
+        // Verify it's a domain invariant violation (usually IllegalArgumentException or IllegalStateException)
+        Assertions.assertTrue(
+            caughtException instanceof IllegalArgumentException || caughtException instanceof IllegalStateException,
+            "Exception should be a domain error"
+        );
     }
 }

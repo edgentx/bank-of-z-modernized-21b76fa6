@@ -2,8 +2,13 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
 
-/**
- * Command to initiate a teller session.
- * Immutable record carrying the necessary request fields.
- */
-public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {}
+import java.time.Instant;
+
+public record StartSessionCmd(
+        String aggregateId,
+        String tellerId,
+        String terminalId,
+        boolean isAuthenticated,
+        String navigationState,
+        Instant occurredAt
+) implements Command {}

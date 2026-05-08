@@ -7,21 +7,11 @@ import java.util.Map;
 
 public record ScreenInputValidatedEvent(
     String aggregateId,
-    Map<String, String> inputFields,
+    String screenId,
+    Map<String, String> validatedFields,
     Instant occurredAt
 ) implements DomainEvent {
-    @Override
-    public String type() {
-        return "input.validated";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
+    @Override public String type() { return "input.validated"; }
+    @Override public String aggregateId() { return aggregateId; }
+    @Override public Instant occurredAt() { return occurredAt; }
 }

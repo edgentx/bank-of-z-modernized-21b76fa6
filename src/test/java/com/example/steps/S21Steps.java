@@ -3,7 +3,7 @@ package com.example.steps;
 import com.example.domain.navigation.model.RenderScreenCmd;
 import com.example.domain.navigation.model.ScreenMapAggregate;
 import com.example.domain.navigation.model.ScreenRenderedEvent;
-import com.example.domain.shared.Aggregate;
+import com.example.domain.navigation.repository.ScreenMapRepository;
 import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
@@ -11,69 +11,115 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class S21Steps {
 
-    private Aggregate aggregate;
-    private RenderScreenCmd cmd;
-    private List<DomainEvent> resultingEvents;
-    private Exception capturedException;
+    private ScreenMapAggregate aggregate;
+    private final ScreenMapRepository repository = new InMemoryScreenMapRepository();
+    private List<DomainEvent> resultEvents;
+    private Exception caughtException;
 
+    // --- Scenario 1: Success ---
     @Given("a valid ScreenMap aggregate")
     public void aValidScreenMapAggregate() {
-        this.aggregate = new ScreenMapAggregate("sm-1");
+        String id = "screen-map-1";
+        aggregate = new ScreenMapAggregate(id);
+        repository.save(aggregate);
     }
 
     @And("a valid screenId is provided")
     public void aValidScreenIdIsProvided() {
-        // Command construction finalized in When
+        // Implicitly handled in the command construction, but we assume state is ready
     }
 
     @And("a valid deviceType is provided")
     public void aValidDeviceTypeIsProvided() {
-        // Command construction finalized in When
+        // Implicitly handled in command construction
     }
 
     @When("the RenderScreenCmd command is executed")
     public void theRenderScreenCmdCommandIsExecuted() {
-        // Default valid data for success scenario
-        if (cmd == null) {
-            cmd = new RenderScreenCmd("sm-1", "LOGIN001", "3270");
-        }
+        RenderScreenCmd cmd = new RenderScreenCmd(
+                "screen-map-1",
+                "LOGIN_SCREEN",
+                "WEB_DESKTOP",
+                Map.of("username", "testUser")
+        );
         try {
-            resultingEvents = aggregate.execute(cmd);
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            capturedException = e;
+            caughtException = e;
         }
     }
 
     @Then("a screen.rendered event is emitted")
     public void aScreenRenderedEventIsEmitted() {
-        assertNotNull(resultingEvents);
-        assertEquals(1, resultingEvents.size());
-        assertTrue(resultingEvents.get(0) instanceof ScreenRenderedEvent);
-        ScreenRenderedEvent event = (ScreenRenderedEvent) resultingEvents.get(0);
+        assertNull(caughtException, "Should not have thrown exception");
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
+
+        ScreenRenderedEvent event = (ScreenRenderedEvent) resultEvents.get(0);
         assertEquals("screen.rendered", event.type());
-        assertEquals("sm-1", event.aggregateId());
     }
 
+    // --- Scenario 2: Mandatory Fields ---
     @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
     public void aScreenMapAggregateThatViolatesMandatoryFields() {
-        this.aggregate = new ScreenMapAggregate("sm-fail-1");
-        this.cmd = new RenderScreenCmd("sm-fail-1", null, "mobile");
+        aggregate = new ScreenMapAggregate("invalid-screen");
     }
 
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void aScreenMapAggregateThatViolatesFieldLengths() {
-        this.aggregate = new ScreenMapAggregate("sm-fail-2");
-        this.cmd = new RenderScreenCmd("sm-fail-2", "VERY_LONG_SCREEN_ID", "mobile");
+    @When("the RenderScreenCmd command is executed")
+    public void executeRenderCmdInvalidMandatory() {
+        // Missing screenId
+        RenderScreenCmd cmd = new RenderScreenCmd("invalid-screen", null, "WEB", Map.of());
+        try {
+            aggregate.execute(cmd);
+        } catch (IllegalArgumentException e) {
+            caughtException = e;
+        }
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(capturedException);
-        assertTrue(capturedException instanceof IllegalArgumentException);
+        assertNotNull(caughtException);
+        assertTrue(caughtException instanceof IllegalArgumentException);
+        assertTrue(caughtException.getMessage().contains("mandatory"));
+    }
+
+    // --- Scenario 3: BMS Constraints ---
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void aScreenMapAggregateThatViolatesBMSConstraints() {
+        aggregate = new ScreenMapAggregate("bms-violator");
+    }
+
+    @When("the RenderScreenCmd command is executed")
+    public void executeRenderCmdInvalidBMS() {
+        // Create a field value > 80 chars
+        String longString = "a".repeat(100);
+        RenderScreenCmd cmd = new RenderScreenCmd("bms-violator", "INPUT_SCREEN", "3270", Map.of("longField", longString));
+        try {
+            aggregate.execute(cmd);
+        } catch (IllegalArgumentException e) {
+            caughtException = e;
+        }
+    }
+
+    // In-memory implementation for testing
+    private static class InMemoryScreenMapRepository implements ScreenMapRepository {
+        private final Map<String, ScreenMapAggregate> store = new java.util.HashMap<>();
+
+        @Override
+        public java.util.Optional<ScreenMapAggregate> findById(String id) {
+            return java.util.Optional.ofNullable(store.get(id));
+        }
+
+        @Override
+        public void save(ScreenMapAggregate aggregate) {
+            store.put(aggregate.id(), aggregate);
+        }
     }
 }

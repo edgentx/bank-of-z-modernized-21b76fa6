@@ -20,9 +20,4 @@ public record MenuNavigatedEvent(
     public String type() {
         return "menu.navigated";
     }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
 }

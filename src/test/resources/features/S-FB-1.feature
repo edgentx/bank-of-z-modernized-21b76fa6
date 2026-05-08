@@ -1,10 +1,6 @@
-Feature: S-FB-1 Validating VW-454 — GitHub URL in Slack body
+Feature: Defect Reporting End-to-End (S-FB-1)
 
-  As a VForce360 Support Engineer
-  I want defect reports to include the GitHub issue URL in the Slack notification
-  So that I can quickly navigate to the issue from the chat log
-
-  Scenario: Report defect via Temporal worker
-    Given a defect report is generated for issue VW-454
-    When the report_defect workflow executes
-    Then the Slack body includes the GitHub issue URL
+  Scenario: Verify GitHub URL appears in Slack notification
+    Given the system is ready to report defects
+    When the temporal worker executes _report_defect
+    Then the Slack body contains the GitHub issue link

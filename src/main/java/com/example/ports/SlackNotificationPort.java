@@ -1,17 +1,32 @@
 package com.example.ports;
 
 /**
- * Port for sending notifications to Slack.
- * Used by the Temporal workflow logic.
+ * Port for Slack notifications.
+ * Used to verify defect fixes regarding URL formatting.
  */
 public interface SlackNotificationPort {
+    
+    /**
+     * Represents the outcome of a notification send.
+     */
+    class SendResult {
+        private final boolean success;
+        private final String messageBody;
+
+        public SendResult(boolean success, String messageBody) {
+            this.success = success;
+            this.messageBody = messageBody;
+        }
+
+        public boolean isSuccess() { return success; }
+        public String getMessageBody() { return messageBody; }
+    }
 
     /**
-     * Sends a defect report to the configured Slack channel.
-     *
-     * @param defectId The ID of the defect being reported.
-     * @param message The body of the message.
-     * @param gitHubIssueUrl The URL to the GitHub issue (must be included in body).
+     * Sends a defect report to Slack.
+     * @param defectId The ID of the defect (e.g., VW-454)
+     * @param description The description of the defect
+     * @return SendResult containing status and the generated body
      */
-    void sendDefectReport(String defectId, String message, String gitHubIssueUrl);
+    SendResult reportDefect(String defectId, String description);
 }

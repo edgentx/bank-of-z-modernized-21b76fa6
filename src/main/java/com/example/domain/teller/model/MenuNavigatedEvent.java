@@ -16,19 +16,6 @@ public record MenuNavigatedEvent(
             throw new IllegalArgumentException("aggregateId cannot be null");
         }
     }
-
-    @Override
-    public String type() {
-        return "menu.navigated";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
+    @Override public String type() { return "menu.navigated"; }
+    @Override public String aggregateId() { return aggregateId; }
 }

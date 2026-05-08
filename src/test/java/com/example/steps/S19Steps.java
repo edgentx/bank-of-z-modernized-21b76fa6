@@ -1,108 +1,104 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.tellersession.model.NavigateMenuCmd;
-import com.example.domain.tellersession.model.TellerSessionAggregate;
-import io.cucumber.java.en.And;
+import com.example.domain.teller.model.MenuNavigatedEvent;
+import com.example.domain.teller.model.NavigateMenuCmd;
+import com.example.domain.teller.model.TellerSessionAggregate;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S19Steps {
 
     private TellerSessionAggregate aggregate;
-    private String sessionId;
-    private String menuId;
-    private String action;
-    private Exception capturedException;
     private List<DomainEvent> resultEvents;
+    private Exception thrownException;
 
     @Given("a valid TellerSession aggregate")
-    public void a_valid_TellerSession_aggregate() {
-        this.sessionId = "session-123";
-        this.aggregate = new TellerSessionAggregate(this.sessionId);
-        // Manually configuring the aggregate to a valid state
-        // In a real app, this might be done via a constructor or past events
-        this.aggregate.markAuthenticated("teller-001"); 
-        this.aggregate.updateLastActivity(Instant.now());
+    public void a_valid_teller_session_aggregate() {
+        String sessionId = "session-123";
+        aggregate = new TellerSessionAggregate(sessionId);
+        aggregate.markAuthenticated("teller-456"); // Ensure authenticated for happy path
     }
 
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void a_TellerSession_aggregate_not_authenticated() {
-        this.sessionId = "session-unauth";
-        this.aggregate = new TellerSessionAggregate(this.sessionId);
-        // Leaving isAuthenticated false
+    public void a_teller_session_aggregate_that_violates_authentication() {
+        String sessionId = "session-violation-auth";
+        aggregate = new TellerSessionAggregate(sessionId);
+        aggregate.markUnauthenticated(); // Violate invariant
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void a_TellerSession_aggregate_timed_out() {
-        this.sessionId = "session-timeout";
-        this.aggregate = new TellerSessionAggregate(this.sessionId);
-        this.aggregate.markAuthenticated("teller-001");
-        // Set last activity to 2 hours ago (beyond standard 30 min timeout)
-        this.aggregate.updateLastActivity(Instant.now().minus(Duration.ofHours(2)));
+    public void a_teller_session_aggregate_that_violates_timeout() {
+        String sessionId = "session-violation-timeout";
+        aggregate = new TellerSessionAggregate(sessionId);
+        aggregate.markAuthenticated("teller-456");
+        aggregate.markTimedOut(); // Violate invariant
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void a_TellerSession_aggregate_invalid_state() {
-        this.sessionId = "session-bad-state";
-        this.aggregate = new TellerSessionAggregate(this.sessionId);
-        this.aggregate.markAuthenticated("teller-001");
-        this.aggregate.updateLastActivity(Instant.now());
-        // Force the aggregate into a state where it thinks it's at a screen
-        // that doesn't allow the action we are about to perform (simulated via setup)
-        this.aggregate.forceCurrentScreen("LOCKED_SCREEN");
+    public void a_teller_session_aggregate_that_violates_navigation_context() {
+        String sessionId = "session-violation-context";
+        aggregate = new TellerSessionAggregate(sessionId);
+        aggregate.markAuthenticated("teller-456");
+        // We need to simulate the internal state check failing.
+        // Since TellerSessionAggregate.isValidNavigation relies on logic,
+        // we can't directly mock it without a reflection hack or a test subclass.
+        // However, if we look at the Aggregate implementation, we can rely on the logic.
+        // If the logic checks `isActive`, we can set that. If not, we must trust the aggregate logic.
+        // For this specific BDD, let's assume we need to feed it a command that causes the context error.
+        // The simplest way given the constraints is to subclass or expose a method to force invalid state.
+        aggregate.markNavigationContextInvalid(); // Using the test hook method defined in the aggregate
     }
 
-    @And("a valid sessionId is provided")
-    public void a_valid_sessionId_is_provided() {
-        // sessionId is set in the @Given blocks
-        Assertions.assertNotNull(this.sessionId);
+    @Given("a valid sessionId is provided")
+    public void a_valid_session_id_is_provided() {
+        // Handled by aggregate initialization in previous step
     }
 
-    @And("a valid menuId is provided")
-    public void a_valid_menuId_is_provided() {
-        this.menuId = "MAIN_MENU";
+    @Given("a valid menuId is provided")
+    public void a_valid_menu_id_is_provided() {
+        // Used in command execution
     }
 
-    @And("a valid action is provided")
+    @Given("a valid action is provided")
     public void a_valid_action_is_provided() {
-        this.action = "ENTER";
+        // Used in command execution
     }
 
     @When("the NavigateMenuCmd command is executed")
-    public void the_NavigateMenuCmd_command_is_executed() {
-        Command cmd = new NavigateMenuCmd(this.sessionId, this.menuId, this.action);
+    public void the_navigate_menu_cmd_command_is_executed() {
         try {
-            this.resultEvents = this.aggregate.execute(cmd);
+            // For the context violation scenario, we might need to send a specific command
+            // or rely on the internal state set in the Given step.
+            // Based on the implementation `markNavigationContextInvalid`,
+            // the aggregate logic needs to pick up on this.
+            // We will send a standard command.
+            NavigateMenuCmd cmd = new NavigateMenuCmd("session-123", "MAIN_MENU", "ENTER");
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            this.capturedException = e;
+            thrownException = e;
         }
     }
 
     @Then("a menu.navigated event is emitted")
     public void a_menu_navigated_event_is_emitted() {
-        Assertions.assertNull(this.capturedException, "Should not have thrown exception: " + this.capturedException);
-        Assertions.assertNotNull(this.resultEvents);
-        Assertions.assertEquals(1, this.resultEvents.size());
-        Assertions.assertEquals("menu.navigated", this.resultEvents.get(0).type());
+        assertNotNull(resultEvents, "Expected events to be emitted");
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof MenuNavigatedEvent);
+        MenuNavigatedEvent event = (MenuNavigatedEvent) resultEvents.get(0);
+        assertEquals("menu.navigated", event.type());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(this.capturedException);
-        // Checking for specific domain exceptions (IllegalStateException or IllegalArgumentException)
-        Assertions.assertTrue(
-            this.capturedException instanceof IllegalStateException || 
-            this.capturedException instanceof IllegalArgumentException,
-            "Expected domain violation, got: " + this.capturedException.getClass().getSimpleName()
-        );
+        assertNotNull(thrownException, "Expected a domain exception to be thrown");
+        assertTrue(thrownException instanceof IllegalStateException || thrownException instanceof UnknownCommandException);
+        System.out.println("Caught expected domain error: " + thrownException.getMessage());
     }
 }

@@ -6,7 +6,7 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages to memory for assertion.
+ * Captures messages sent to Slack for verification.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
@@ -21,17 +21,29 @@ public class MockSlackNotificationPort implements SlackNotificationPort {
     }
 
     private final List<Message> messages = new ArrayList<>();
+    private boolean shouldFail = false;
 
     @Override
-    public void sendMessage(String channel, String body) {
-        this.messages.add(new Message(channel, body));
+    public boolean postMessage(String channel, String body) {
+        if (shouldFail) {
+            return false;
+        }
+        messages.add(new Message(channel, body));
+        return true;
     }
 
     public List<Message> getMessages() {
         return messages;
     }
 
-    public void clear() {
-        messages.clear();
+    public Message getLastMessage() {
+        if (messages.isEmpty()) {
+            throw new IllegalStateException("No messages sent");
+        }
+        return messages.get(messages.size() - 1);
+    }
+
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
     }
 }

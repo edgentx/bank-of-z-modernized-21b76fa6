@@ -1,11 +1,16 @@
 package com.example.ports;
 
-import java.util.Optional;
-
 /**
- * Port for interacting with GitHub issues.
- * Used by the domain to decouple from specific GitHub client implementation.
+ * Port interface for interacting with GitHub Issues.
+ * Used by the Temporal workflow to report defects.
  */
 public interface GitHubPort {
-    Optional<String> createIssue(String title, String description);
+    /**
+     * Creates a GitHub issue for the given defect.
+     * @param title The issue title (e.g. Defect ID)
+     * @param description The issue body.
+     * @param projectKey The project identifier.
+     * @return The URL of the created issue, or null if creation failed.
+     */
+    String createIssue(String title, String description, String projectKey);
 }

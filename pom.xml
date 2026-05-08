@@ -6,36 +6,58 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.3</version>
+        <version>3.3.5</version>
         <relativePath/>
     </parent>
     <groupId>com.example</groupId>
-    <artifactId>teller-core</artifactId>
+    <artifactId>bank-of-z</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>teller-core</name>
-    <description>Teller Core Domain Project</description>
+    <name>Bank-of-Z Modernization</name>
+    <description>Domain-driven design implementation for Bank-of-Z core ledger.</description>
+
     <properties>
-        <java.version>17</java.version>
-        <cucumber.version>7.15.0</cucumber.version>
-        <flyway.version>9.22.3</flyway.version>
-        <temporal.version>1.22.3</temporal.version>
+        <java.version>21</java.version>
+        <cucumber.version>7.18.1</cucumber.version>
     </properties>
+
     <dependencies>
+        <!-- Spring Boot Dependencies (Managed by BOM) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
-        
-        <!-- Domain Shared -->(implicit via project structure)
-
-        <!-- Testing Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-integration</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-batch</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
-        <!-- Cucumber Dependencies -->
+        <!-- IBM MQ Dependencies (Managed by BOM) -->
+        <dependency>
+            <groupId>com.ibm.mq</groupId>
+            <artifactId>mq-jms-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- Cucumber Dependencies (Need explicit version) -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
@@ -49,50 +71,52 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-spring</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Testing (Managed by BOM) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
 
-        <!-- DB2 Driver -- Scope provided or runtime usually, but declared here for build resolution if needed by other modules -->
-        <!-- Note: Error mentioned flyway-db2. We add the artifact. -->
+        <!-- Miscellaneous (Managed by BOM or Implicit) -->
+        <dependency>
+            <groupId>com.ibm.db2</groupId>
+            <artifactId>jcc</artifactId>
+            <scope>runtime</scope>
+        </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
-        <!-- DB2 Support for Flyway is an external module usually -->
-        <!--
-             FIXING BUILD ERROR: The build log failed to find flyway-db2:9.22.3.
-             We will exclude this specific artifact if it is not required for the PURE DOMAIN build,
-             or we assume the environment provides it. 
-             However, per instructions, if we modify pom, we keep it valid.
-             We will remove the dependency that is failing resolution if it's not strictly needed for S-20,
-             OR we assume the user has a local repo.
-             For the purpose of this generated artifact, I will NOT include the flyway-db2 dependency 
-             as it is not needed for the Java Domain Logic compilation of S-20.
-        -->
-
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-db2</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>17</source>
-                    <target>17</target>
-                </configuration>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
+                <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <properties>
-                        <configurationParameters>
-                            cucumber.junit-platform.naming-strategy=long
-                        </configurationParameters>
-                    </properties>
+                    <source>21</source>
+                    <target>21</target>
                 </configuration>
             </plugin>
         </plugins>

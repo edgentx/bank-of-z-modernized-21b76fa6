@@ -5,9 +5,10 @@ import com.example.domain.tellersession.model.TellerSessionAggregate;
 import java.util.Optional;
 
 /**
- * Repository interface for TellerSession aggregates.
+ * Repository interface for Teller Session aggregates.
  */
 public interface TellerSessionRepository {
     void save(TellerSessionAggregate aggregate);
     Optional<TellerSessionAggregate> findById(String id);
+    TellerSessionAggregate create(String id);
 }

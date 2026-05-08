@@ -1,16 +1,19 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
-import java.util.Objects;
 
 /**
  * Command to initiate a new teller session.
- * Validations occur within the Aggregate.
+ * @param tellerId The authenticated teller's ID
+ * @param terminalId The physical terminal ID where the session starts
+ * @param isAuthenticated Whether the teller has successfully authenticated
+ * @param isTimeoutConfigured Whether the inactivity timeout is properly configured
+ * @param isNavigationStateValid Whether the initial navigation state is valid
  */
-public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {
-    public StartSessionCmd {
-        Objects.requireNonNull(sessionId, "sessionId cannot be null");
-        Objects.requireNonNull(tellerId, "tellerId cannot be null");
-        Objects.requireNonNull(terminalId, "terminalId cannot be null");
-    }
-}
+public record StartSessionCmd(
+    String tellerId,
+    String terminalId,
+    boolean isAuthenticated,
+    boolean isTimeoutConfigured,
+    boolean isNavigationStateValid
+) implements Command {}

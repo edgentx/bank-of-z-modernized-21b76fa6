@@ -1,27 +1,22 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock adapter for Slack notifications.
- * Captures messages to verify content during tests (TDD Red/Green phase).
+ * Mock adapter for Slack Notification.
+ * Captures messages posted to verify content in tests.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public final List<Message> messages = new ArrayList<>();
-
-    public record Message(String channel, String body) {}
+    public final List<CapturedMessage> messages = new ArrayList<>();
 
     @Override
-    public void sendMessage(String channel, String body) {
-        messages.add(new Message(channel, body));
+    public boolean postMessage(String channel, String messageBody) {
+        messages.add(new CapturedMessage(channel, messageBody));
+        return true;
     }
 
-    public boolean receivedMessageContaining(String text) {
-        return messages.stream()
-                .anyMatch(msg -> msg.body().contains(text));
-    }
+    public record CapturedMessage(String channel, String body) {}
 }

@@ -1,26 +1,26 @@
 package com.example.ports;
 
 /**
- * Port for sending notifications to Slack.
- * Used to decouple the domain logic from the specific Slack client implementation.
+ * Port for sending Slack notifications.
+ * Implemented by the real Slack adapter and mocked in tests.
  */
 public interface SlackNotificationPort {
 
     /**
-     * Posts a message to a specific Slack channel.
+     * Sends a message to a configured Slack channel.
      *
-     * @param channelId The ID of the channel (e.g. "C12345678").
-     * @param messageBody The content of the message.
-     * @return true if the message was accepted by the client, false otherwise.
+     * @param channel The target channel (e.g., "#vforce360-issues")
+     * @param messageBody The content of the message
+     * @return true if sending was acknowledged, false otherwise
      */
-    boolean sendMessage(String channelId, String messageBody);
+    boolean sendMessage(String channel, String messageBody);
 
     /**
-     * Retrieves the last message body sent to the channel.
-     * This is primarily used for testing assertions to verify the content.
+     * Retrieves the last message sent to the specific channel.
+     * Used by temporal workflows to verify state.
      *
-     * @param channelId The ID of the channel.
-     * @return The last message body string, or null if no message exists.
+     * @param channel The target channel
+     * @return The body of the last message
      */
-    String getLastMessageBody(String channelId);
+    String getLastMessageBody(String channel);
 }

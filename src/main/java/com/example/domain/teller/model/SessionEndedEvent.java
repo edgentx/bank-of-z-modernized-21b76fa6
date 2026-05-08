@@ -3,33 +3,21 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
-/**
- * Event emitted when a teller session is successfully terminated.
- * Signals downstream systems to purge cache and invalidate tokens.
- */
-public class SessionEndedEvent implements DomainEvent {
-    private final String aggregateId;
-    private final Instant occurredAt;
+public record SessionEndedEvent(
+        String aggregateId,
+        String tellerId,
+        Instant occurredAt
+) implements DomainEvent {
 
-    public SessionEndedEvent(String aggregateId, Instant occurredAt) {
-        this.aggregateId = Objects.requireNonNull(aggregateId);
-        this.occurredAt = Objects.requireNonNull(occurredAt);
+    public SessionEndedEvent {
+        // Basic validation
+        if (aggregateId == null || aggregateId.isBlank()) throw new IllegalArgumentException("aggregateId required");
     }
 
     @Override
     public String type() {
-        return "session.ended";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
+        return "teller.session.ended";
     }
 }

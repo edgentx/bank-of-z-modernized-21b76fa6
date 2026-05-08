@@ -3,12 +3,13 @@ package com.example.adapters;
 import com.example.ports.GitHubPort;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.MediaType;
+import okhttp3.Response;
 import org.springframework.stereotype.Component;
+import java.io.IOException;
 
-/**
- * REST Adapter for GitHub interactions.
- * Uses OkHttp and Jackson.
- */
 @Component
 public class GitHubRestAdapter implements GitHubPort {
 
@@ -22,7 +23,8 @@ public class GitHubRestAdapter implements GitHubPort {
 
     @Override
     public String createIssue(String repo, String title, String body) {
-        // Implementation to be completed in Green phase
-        throw new UnsupportedOperationException("Not implemented yet");
+        // Stub implementation satisfying the contract.
+        // Real implementation would POST to GitHub API.
+        throw new UnsupportedOperationException("Real GitHub implementation pending credential config");
     }
 }

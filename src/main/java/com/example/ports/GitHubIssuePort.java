@@ -1,19 +1,16 @@
 package com.example.ports;
 
-import java.util.Optional;
-
 /**
- * Port for interacting with GitHub issues.
- * Abstracted to allow mocking during the testing of defect reporting workflows.
+ * Port interface for interacting with GitHub issues.
  */
 public interface GitHubIssuePort {
 
     /**
-     * Creates a new issue in the repository.
+     * Records a defect in GitHub and returns the URL.
      *
-     * @param title The title of the issue.
-     * @param body The description of the issue.
-     * @return The URL of the created issue, or empty if creation failed.
+     * @param title The title of the issue
+     * @param body  The body of the issue
+     * @return The full URL to the created GitHub issue
      */
-    Optional<String> createIssue(String title, String body);
+    String createIssue(String title, String body);
 }

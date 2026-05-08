@@ -5,13 +5,19 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-public record SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) implements DomainEvent {
-    public SessionStartedEvent {
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId cannot be null");
-    }
+/**
+ * Domain event emitted when a Teller Session is successfully started.
+ */
+public record SessionStartedEvent(
+    String aggregateId,
+    String tellerId,
+    String terminalId,
+    String navigationContext,
+    Instant occurredAt
+) implements DomainEvent {
 
-    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId) {
-        this(aggregateId, tellerId, terminalId, Instant.now());
+    public SessionStartedEvent {
+        // Defensive defaults/safety if needed, though records handle nulls explicitly
     }
 
     @Override

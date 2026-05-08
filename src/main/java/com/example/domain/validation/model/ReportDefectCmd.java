@@ -1,14 +1,18 @@
 package com.example.domain.validation.model;
 
 import com.example.domain.shared.Command;
+import java.util.Map;
 
 /**
- * Command to report a defect discovered in VForce360.
- * Triggers the creation of a GitHub issue and a Slack notification.
+ * Command to report a defect.
+ * Contains metadata required to generate the GitHub issue and Slack notification.
  */
 public record ReportDefectCmd(
     String defectId,
+    String title,
     String description,
     String severity,
-    String githubIssueUrl
-) implements Command {}
+    Map<String, String> metadata
+) implements Command {
+    // Command definition
+}

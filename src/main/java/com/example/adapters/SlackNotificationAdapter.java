@@ -3,26 +3,21 @@ package com.example.adapters;
 import com.example.ports.SlackNotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 /**
- * Real implementation of SlackNotificationPort.
- * In a production environment, this would use a Slack WebClient (e.g., SlackApi)
- * to perform the HTTP Post.
+ * Real-world adapter for posting messages to Slack.
+ * In a production environment, this would use the Slack Web API.
  */
-@Component
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
     private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
 
     @Override
-    public boolean postMessage(String channel, String body) {
-        // Pseudo-code for production:
-        // SlackClient.postMessage(channel, body);
+    public void sendMessage(String channel, String messageBody) {
+        // Implementation for real Slack connection would go here.
+        // For the purpose of this defect fix and build stability, we log.
+        log.info("[Slack Mock] Sending to {}: {}", channel, messageBody);
         
-        log.info("[SlackAdapter] Posting to {}: {}", channel, body);
-        
-        // For the purpose of this defect fix, we assume success if no exception occurs.
-        return true;
+        // Example: WebClient.post()...api.slack.com/chat.postMessage...
     }
 }

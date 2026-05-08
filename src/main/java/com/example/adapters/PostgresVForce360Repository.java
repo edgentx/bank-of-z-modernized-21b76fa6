@@ -5,7 +5,8 @@ import com.example.ports.VForce360RepositoryPort;
 import org.springframework.stereotype.Repository;
 
 /**
- * Repository Stub.
+ * Repository Stub for VForce360 Aggregate.
+ * Implementing interface to resolve compilation errors.
  */
 @Repository
 public class PostgresVForce360Repository implements VForce360RepositoryPort {

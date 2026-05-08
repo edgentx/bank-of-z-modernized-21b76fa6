@@ -2,95 +2,86 @@ package com.example.steps;
 
 import com.example.domain.account.model.AccountAggregate;
 import com.example.domain.account.model.CloseAccountCmd;
-import com.example.domain.shared.Aggregate;
+import com.example.domain.account.model.AccountClosedEvent;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
-import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 public class S7Steps {
 
     private AccountAggregate aggregate;
-    private String accountNumber;
-    private Exception thrownException;
+    private CloseAccountCmd command;
     private List<DomainEvent> resultEvents;
+    private Exception caughtException;
 
     @Given("a valid Account aggregate")
     public void a_valid_Account_aggregate() {
-        accountNumber = "ACC-123-456";
-        aggregate = new AccountAggregate(accountNumber);
+        aggregate = new AccountAggregate("ACC-123");
         aggregate.setBalance(BigDecimal.ZERO);
-        aggregate.setStatus("ACTIVE");
-        aggregate.setAccountType("CHECKING");
+        aggregate.setStatus(AccountAggregate.AccountStatus.ACTIVE);
     }
 
     @Given("a valid accountNumber is provided")
     public void a_valid_accountNumber_is_provided() {
-        // Logic handled in Given a valid Account aggregate
+        command = new CloseAccountCmd("ACC-123");
     }
 
     @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
-    public void a_account_aggregate_that_violates_balance() {
-        accountNumber = "ACC-HIGH-BAL";
-        aggregate = new AccountAggregate(accountNumber);
-        // Set balance > 0
-        aggregate.setBalance(new BigDecimal("100.50"));
-        aggregate.setStatus("ACTIVE");
-        aggregate.setAccountType("CHECKING");
+    public void a_Account_aggregate_that_violates_balance_min_balance() {
+        aggregate = new AccountAggregate("ACC-999");
+        aggregate.setBalance(new BigDecimal("100.00")); // Non-zero balance violates close invariant
+        aggregate.setStatus(AccountAggregate.AccountStatus.ACTIVE);
+        command = new CloseAccountCmd("ACC-999");
     }
 
     @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
-    public void a_account_aggregate_that_violates_status() {
-        accountNumber = "ACC-INACTIVE";
-        aggregate = new AccountAggregate(accountNumber);
+    public void a_Account_aggregate_that_violates_active_status() {
+        aggregate = new AccountAggregate("ACC-888");
         aggregate.setBalance(BigDecimal.ZERO);
-        aggregate.setStatus("DORMANT"); // Not ACTIVE
-        aggregate.setAccountType("CHECKING");
+        aggregate.setStatus(AccountAggregate.AccountStatus.SUSPENDED); // Not active
+        command = new CloseAccountCmd("ACC-888");
     }
 
     @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
-    public void a_account_aggregate_that_violates_immutability() {
-        aggregate = new AccountAggregate("ACC-ORIG");
+    public void a_Account_aggregate_that_violates_account_number_immutability() {
+        aggregate = new AccountAggregate("ACC-777"); // Aggregate ID
         aggregate.setBalance(BigDecimal.ZERO);
-        aggregate.setStatus("ACTIVE");
-        // We simulate violation by passing a different accountNumber in the cmd
-        accountNumber = "ACC-FAKE";
+        aggregate.setStatus(AccountAggregate.AccountStatus.ACTIVE);
+        command = new CloseAccountCmd("ACC-DIFFERENT"); // Command ID differs from Aggregate ID
     }
 
     @When("the CloseAccountCmd command is executed")
     public void the_CloseAccountCmd_command_is_executed() {
         try {
-            CloseAccountCmd cmd = new CloseAccountCmd(
-                accountNumber, 
-                aggregate.getBalance(), 
-                aggregate.getStatus(), 
-                aggregate.getAccountType()
-            );
-            resultEvents = aggregate.execute(cmd);
+            resultEvents = aggregate.execute(command);
         } catch (Exception e) {
-            thrownException = e;
+            caughtException = e;
         }
     }
 
     @Then("a account.closed event is emitted")
     public void a_account_closed_event_is_emitted() {
-        Assertions.assertNotNull(resultEvents);
-        Assertions.assertEquals(1, resultEvents.size());
-        Assertions.assertEquals("account.closed", resultEvents.get(0).type());
-        Assertions.assertEquals("ACC-123-456", resultEvents.get(0).aggregateId());
-        Assertions.assertEquals("CLOSED", aggregate.getStatus());
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof AccountClosedEvent);
+        
+        AccountClosedEvent event = (AccountClosedEvent) resultEvents.get(0);
+        assertEquals("account.closed", event.type());
+        assertEquals(aggregate.id(), event.aggregateId());
+        assertEquals(AccountAggregate.AccountStatus.CLOSED, aggregate.getStatus());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(thrownException);
-        // The error could be IllegalStateException or IllegalArgumentException depending on violation
-        Assertions.assertTrue(thrownException instanceof IllegalStateException || thrownException instanceof IllegalArgumentException);
+        assertNotNull(caughtException);
+        // Depending on specific invariant, we check exception type
+        assertTrue(caughtException instanceof IllegalStateException || 
+                   caughtException instanceof IllegalArgumentException);
     }
 }

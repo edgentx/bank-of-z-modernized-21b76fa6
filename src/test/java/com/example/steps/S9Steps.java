@@ -9,71 +9,77 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-
-import java.math.BigDecimal;
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.List;
 
 public class S9Steps {
 
-    private StatementAggregate aggregate;
+    private StatementAggregate statement;
+    private String statementId;
+    private String format;
     private List<DomainEvent> resultEvents;
-    private Exception thrownException;
+    private Exception caughtException;
 
     @Given("a valid Statement aggregate")
     public void a_valid_statement_aggregate() {
-        aggregate = new StatementAggregate("stmt-123");
-        aggregate.markClosedAndGenerated(new BigDecimal("100.00"), new BigDecimal("100.00"));
+        this.statementId = "stmt-123";
+        this.statement = new StatementAggregate(statementId);
+        this.statement.configureValidState();
+    }
+
+    @Given("a Statement aggregate that violates: A statement must be generated for a closed period and cannot be altered retroactively.")
+    public void a_statement_aggregate_closed_period() {
+        this.statementId = "stmt-closed";
+        this.statement = new StatementAggregate(statementId);
+        this.statement.configureClosedPeriodViolation();
+    }
+
+    @Given("a Statement aggregate that violates: Statement opening balance must exactly match the closing balance of the previous statement.")
+    public void a_statement_aggregate_balance_mismatch() {
+        this.statementId = "stmt-mismatch";
+        this.statement = new StatementAggregate(statementId);
+        this.statement.configureBalanceMismatchViolation();
     }
 
     @And("a valid statementId is provided")
     public void a_valid_statement_id_is_provided() {
-        // Handled in 'a valid Statement aggregate' construction
+        // Handled in aggregate setup, but ensuring local state matches
+        if (this.statement == null) {
+            throw new RuntimeException("Statement aggregate not initialized");
+        }
     }
 
     @And("a valid format is provided")
     public void a_valid_format_is_provided() {
-        // Handled in command construction below
+        this.format = "PDF";
     }
 
     @When("the ExportStatementCmd command is executed")
     public void the_export_statement_cmd_command_is_executed() {
-        Command cmd = new ExportStatementCmd("stmt-123", "PDF");
         try {
-            resultEvents = aggregate.execute(cmd);
+            Command cmd = new ExportStatementCmd(this.statementId, this.format);
+            this.resultEvents = this.statement.execute(cmd);
         } catch (Exception e) {
-            thrownException = e;
+            this.caughtException = e;
         }
     }
 
     @Then("a statement.exported event is emitted")
     public void a_statement_exported_event_is_emitted() {
-        assertNull(thrownException, "Should not have thrown an exception");
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof StatementExportedEvent);
-        StatementExportedEvent event = (StatementExportedEvent) resultEvents.get(0);
-        assertEquals("stmt-123", event.aggregateId());
+        assertNotNull(this.resultEvents);
+        assertEquals(1, this.resultEvents.size());
+        assertTrue(this.resultEvents.get(0) instanceof StatementExportedEvent);
+        
+        StatementExportedEvent event = (StatementExportedEvent) this.resultEvents.get(0);
+        assertEquals("statement.exported", event.type());
+        assertEquals(this.statementId, event.aggregateId());
         assertEquals("PDF", event.format());
-    }
-
-    @Given("a Statement aggregate that violates: A statement must be generated for a closed period and cannot be altered retroactively.")
-    public void a_statement_aggregate_that_violates_closed_period() {
-        aggregate = new StatementAggregate("stmt-invalid-period");
-        aggregate.markGeneratedForOpenPeriod(); // Generated but not closed
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(thrownException);
-        assertTrue(thrownException instanceof IllegalStateException);
-    }
-
-    @Given("a Statement aggregate that violates: Statement opening balance must exactly match the closing balance of the previous statement.")
-    public void a_statement_aggregate_that_violates_balance_match() {
-        aggregate = new StatementAggregate("stmt-invalid-balance");
-        // Opening 100, Previous Closing 90 -> Mismatch
-        aggregate.markClosedAndGenerated(new BigDecimal("100.00"), new BigDecimal("90.00"));
+        assertNotNull(this.caughtException);
+        assertTrue(this.caughtException instanceof IllegalStateException);
     }
 }

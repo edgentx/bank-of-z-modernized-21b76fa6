@@ -1,15 +1,19 @@
 package com.example.ports;
 
 /**
- * Port interface for Slack notification operations.
- * Implementations (Adapters) will handle the actual Webhook/API integration with Slack.
+ * Port interface for Slack notifications.
+ * This allows mocking in tests and switching implementations.
  */
 public interface SlackNotifier {
+    
+    /**
+     * Formats the defect report body.
+     * This isolates the logic for string construction so it can be tested easily.
+     */
+    String formatDefectBody(String defectId, String description, String severity, String projectId);
 
     /**
-     * Sends a notification message to a Slack channel.
-     *
-     * @param body The message content to send.
+     * Sends the notification (actual side effect).
      */
-    void sendNotification(String body);
+    void sendNotification(String channel, String body);
 }

@@ -1,15 +1,17 @@
 package com.example.ports;
 
 /**
- * Port interface for sending Slack notifications.
+ * Port for sending notifications to Slack.
  * This decouples the domain logic from the specific Slack API implementation.
  */
 public interface SlackNotificationPort {
+
     /**
-     * Sends a notification to Slack.
+     * Posts a message to a specific Slack channel.
      *
-     * @param githubUrl The URL of the created GitHub issue to be included in the body.
-     * @param title     The title of the defect/issue.
+     * @param channel The target channel (e.g. "#vforce360-issues")
+     * @param messageBody The content of the message, expected to contain the GitHub URL.
+     * @return true if the API call indicates success, false otherwise.
      */
-    void sendNotification(String githubUrl, String title);
+    boolean postMessage(String channel, String messageBody);
 }

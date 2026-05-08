@@ -2,38 +2,50 @@ package com.example.mocks;
 
 import com.example.ports.SlackPort;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Mock implementation of SlackPort.
- * Captures messages sent to Slack for verification in tests.
+ * Mock implementation of SlackPort for testing.
+ * Captures payloads in memory to verify content without calling the real API.
  */
 public class MockSlackAdapter implements SlackPort {
 
-    public final List<String> sentMessages = new ArrayList<>();
-    public String lastChannelId;
-    private boolean shouldFail = false;
-
-    public void reset() {
-        sentMessages.clear();
-        lastChannelId = null;
-    }
-
-    public void setShouldFail(boolean fail) {
-        this.shouldFail = fail;
-    }
+    private Map<String, String> latestPayload;
+    private boolean notificationSent = false;
+    private String lastChannel;
 
     @Override
-    public boolean sendMessage(String channelId, List<String> messageBlocks) {
-        lastChannelId = channelId;
-        // Join blocks for easier verification
-        sentMessages.add(String.join("\n", messageBlocks));
-        return !shouldFail;
+    public void sendNotification(String channel, String body, Map<String, String> contextMap) {
+        this.lastChannel = channel;
+        this.notificationSent = true;
+        
+        // Capture data for assertions
+        this.latestPayload = new HashMap<>();
+        this.latestPayload.put("channel", channel);
+        this.latestPayload.put("body", body);
+        if (contextMap != null) {
+            this.latestPayload.putAll(contextMap);
+        }
     }
 
-    public boolean lastMessageContains(String text) {
-        if (sentMessages.isEmpty()) return false;
-        return sentMessages.get(sentMessages.size() - 1).contains(text);
+    // Test Utility Methods
+    
+    public boolean wasNotificationSent() {
+        return notificationSent;
+    }
+
+    public Map<String, String> getLatestPayload() {
+        return latestPayload;
+    }
+
+    public String getLastChannel() {
+        return lastChannel;
+    }
+
+    public void reset() {
+        this.latestPayload = null;
+        this.notificationSent = false;
+        this.lastChannel = null;
     }
 }

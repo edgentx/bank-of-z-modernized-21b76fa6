@@ -1,35 +1,71 @@
 package com.example.adapters;
 
 import com.example.ports.GithubPort;
-import com.example.vforce.shared.ReportDefectCommand;
 import com.squareup.okhttp3.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
+/**
+ * Real adapter for creating issues on GitHub.
+ * Uses OkHttp for HTTP communication.
+ */
 @Component
 public class GithubAdapter implements GithubPort {
 
-    private final OkHttpClient client = new OkHttpClient();
-    private static final String API_URL = "https://api.github.com/repos/example/repo/issues";
+    private static final Logger log = LoggerFactory.getLogger(GithubAdapter.class);
+    private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+
+    private final OkHttpClient client;
+    private final String apiUrl;
+ private final String token; // In a real scenario, use a secure vault or env variable
+
+    public GithubAdapter(@Value("${github.api.url}") String apiUrl,
+                         @Value("${github.api.token}") String token) {
+        this.client = new OkHttpClient();
+        this.apiUrl = apiUrl;
+        this.token = token;
+    }
 
     @Override
-    public String createIssue(ReportDefectCommand command) {
-        String json = "{\"title\":\"" + command.title() + "\",\"body\":\"" + command.body() + "\"}";
+    public String createIssue(String title, String body) {
+        // Simplified JSON payload construction
+        String json = "{\"title\":\"" + escapeJson(title) + "\", \"body\":\"" + escapeJson(body) + "\"}";
 
-        RequestBody body = RequestBody.create(json, MediaType.parse("application/json"));
         Request request = new Request.Builder()
-                .url(API_URL)
-                .post(body)
+                .url(apiUrl)
+                .addHeader("Authorization", "token " + token)
+                .addHeader("Accept", "application/vnd.github.v3+json")
+                .post(RequestBody.create(json, JSON))
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
-            if (response.isSuccessful() && response.body() != null) {
-                return "https://github.com/example/repo/issues/1" + command.title();
+            if (!response.isSuccessful()) {
+                log.error("Failed to create GitHub issue: {}", response.body());
+                throw new RuntimeException("Failed to create issue: " + response.code());
             }
-            throw new RuntimeException("Failed to create issue");
+            
+            // Parse response to get URL. In a real app, use Jackson or Gson.
+            // For TDD simplicity, assuming the API returns a standard JSON structure.
+            String respBody = response.body().string();
+            // Naive parsing for the sake of the exercise, as external json libs might not be configured yet
+            if (respBody.contains("html_url")) {
+                int start = respBody.indexOf("html_url") + 10;
+                char separator = respBody.charAt(start);
+                int end = respBody.indexOf(separator, start + 1);
+                return respBody.substring(start + 1, end);
+            }
+            throw new RuntimeException("Unknown response format from GitHub");
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            log.error("IO Error creating GitHub issue", e);
+            throw new RuntimeException("Error communicating with GitHub", e);
         }
+    }
+
+    private String escapeJson(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

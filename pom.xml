@@ -1,10 +1,17 @@
+<!-- vforce360-validator pom.xml -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <groupId>com.example</groupId>
     <artifactId>vforce360-validator</artifactId>
     <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <name>vforce360-validator</name>
+    <description>VForce360 Validator Service</description>
+
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -14,12 +21,13 @@
 
     <properties>
         <java.version>17</java.version>
-        <spring-cloud-aws.version>3.0.0</spring-cloud-aws.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Temporal Version -- Explicitly pinned to resolve build error -->
         <temporal.version>1.23.1</temporal.version>
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Starters (Pinned by BOM) -->
+        <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -29,45 +37,26 @@
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
 
-        <!-- Temporal (EXPLICIT version required) -->
+        <!-- Temporal (Durable Workflows) -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
             <version>${temporal.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-testing</artifactId>
+            <version>${temporal.version}</version>
+            <scope>test</scope>
+        </dependency>
 
-        <!-- Testing (Pinned by BOM) -->
+        <!-- Testing (JUnit 5, Mockito) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-java</artifactId>
-            <version>7.14.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-junit</artifactId>
-            <version>7.14.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-spring</artifactId>
-            <version>7.14.0</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
-
-    <repositories>
-        <repository>
-            <id>temporal-snapshots</id>
-            <url>https://raw.githubusercontent.com/temporalio/sdk-java/master/dependency-uploads/</url>
-        </repository>
-    </repositories>
 
     <build>
         <plugins>
@@ -75,6 +64,31 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                </configuration>
+            </plugin>
         </plugins>
+        <!-- Adding Temporal repository for dependency resolution -->
+        <pluginRepositories>
+            <pluginRepository>
+                <id>temporal-snapshots</id>
+                <url>https://raw.githubusercontent.com/temporalio/sdk-java/master/dependency-uploads/</url>
+            </pluginRepository>
+        </pluginRepositories>
+        <repositories>
+            <repository>
+                <id>temporal-snapshots</id>
+                <url>https://raw.githubusercontent.com/temporalio/sdk-java/master/dependency-uploads/</url>
+            </repository>
+            <repository>
+                <id>maven-central</id>
+                <url>https://repo1.maven.org/maven2</url>
+            </repository>
+        </repositories>
     </build>
 </project>

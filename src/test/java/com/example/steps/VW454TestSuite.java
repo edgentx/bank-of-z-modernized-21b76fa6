@@ -1,16 +1,12 @@
 package com.example.steps;
 
-import io.cucumber.junit.Cucumber;
-import io.cucumber.junit.CucumberOptions;
-import org.junit.runner.RunWith;
+import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectClasses;
+import org.junit.platform.suite.api.Suite;
 
-@RunWith(Cucumber.class)
-@CucumberOptions(
-    features = "features/VW454.feature", // We assume this feature file exists or will be added
-    plugin = {"pretty", "html:target/cucumber-report/VW454.html"},
-    glue = {"com.example.steps"},
-    monochrome = true
-)
+@Suite
+@IncludeEngines("cucumber")
+@SelectClasses(VW454Steps.class)
 public class VW454TestSuite {
-    // This suite runs the specific scenario for VW-454
+    // JUnit 5 Suite configuration to run Cucumber tests
 }

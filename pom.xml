@@ -20,6 +20,8 @@
     <properties>
         <java.version>17</java.version>
         <spring-cloud-aws.version>3.0.0</spring-cloud-aws.version>
+        <!-- Explicitly pin Temporal version to resolve dependency resolution error -->
+        <temporal.version>1.22.3</temporal.version>
     </properties>
 
     <dependencies>
@@ -55,12 +57,12 @@
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>1.22.3</version>
+            <version>${temporal.version}</version>
         </dependency>
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-testing</artifactId>
-            <version>1.22.3</version>
+            <version>${temporal.version}</version>
             <scope>test</scope>
         </dependency>
 

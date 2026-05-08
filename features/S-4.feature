@@ -1,5 +1,4 @@
 Feature: Implement DeleteCustomerCmd on Customer (customer-management)
-
   Feature: DeleteCustomerCmd
 
     Scenario: Successfully execute DeleteCustomerCmd

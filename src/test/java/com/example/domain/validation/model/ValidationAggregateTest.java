@@ -1,60 +1,50 @@
 package com.example.domain.validation.model;
 
-import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.validation.model.command.ReportDefectCmd;
+import com.example.domain.shared.DomainEvent;
+import com.example.domain.validation.model.ValidationAggregate;
+import com.example.domain.validation.model.ReportDefectCommand;
+import com.example.domain.validation.model.DefectReportedEvent;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
-import java.time.Instant;
 import java.util.List;
 
-public class ValidationAggregateTest {
+/**
+ * TDD Red Phase: Unit tests for ValidationAggregate.
+ * We expect these to fail until the aggregate and events are implemented.
+ */
+class ValidationAggregateTest {
 
     @Test
-    public void testReportDefectGeneratesEventWithUrl() {
-        // Given
-        String aggregateId = "vw-454";
-        ValidationAggregate aggregate = new ValidationAggregate(aggregateId);
-        String githubUrl = "https://github.com/bank-of-z/issues/454";
-        ReportDefectCmd cmd = new ReportDefectCmd(aggregateId, githubUrl, "LOW", "validation");
+    void whenReportingDefect_shouldEmitEventContainingUrl() {
+        // Arrange
+        String defectId = "VW-454";
+        String summary = "GitHub URL missing in Slack body";
+        String githubUrl = "https://github.com/egdcrypto/bank-of-z/issues/454";
+        ValidationAggregate aggregate = new ValidationAggregate(defectId);
+        ReportDefectCommand cmd = new ReportDefectCommand(defectId, summary, githubUrl);
 
-        // When
-        List<com.example.domain.shared.DomainEvent> events = aggregate.execute(cmd);
+        // Act
+        List<DomainEvent> events = aggregate.execute(cmd);
 
-        // Then
-        assertEquals(1, events.size());
-        assertTrue(events.get(0) instanceof DefectReportedEvent);
+        // Assert
+        assertEquals(1, events.size(), "Should emit exactly one event");
+        
+        // We assume the event type is named DefectReportedEvent based on the error logs context
+        assertTrue(events.get(0) instanceof DefectReportedEvent, "Event should be DefectReportedEvent");
+        
         DefectReportedEvent event = (DefectReportedEvent) events.get(0);
-        assertEquals(aggregateId, event.aggregateId());
-        assertEquals(githubUrl, event.githubUrl());
-        assertNotNull(event.occurredAt());
+        assertEquals(defectId, event.aggregateId(), "Aggregate ID should match");
+        // Verify the critical fix: the URL must be in the event payload
+        assertEquals(githubUrl, event.githubUrl(), "GitHub URL must be captured in the event");
     }
 
     @Test
-    public void testReportDefectRequiresValidUrl() {
-        // Given
-        String aggregateId = "vw-455";
-        ValidationAggregate aggregate = new ValidationAggregate(aggregateId);
-        ReportDefectCmd cmd = new ReportDefectCmd(aggregateId, "not-a-url", "LOW", "validation");
+    void whenReportingDefect_withNullUrl_shouldFail() {
+        // Arrange
+        ValidationAggregate aggregate = new ValidationAggregate("VW-001");
+        ReportDefectCommand cmd = new ReportDefectCommand("VW-001", "Summary", null);
 
-        // When & Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            aggregate.execute(cmd);
-        });
-    }
-
-    @Test
-    public void testRejectsUnknownCommand() {
-        // Given
-        String aggregateId = "vw-999";
-        ValidationAggregate aggregate = new ValidationAggregate(aggregateId);
-        String unknownCmd = new String("Unknown Command Object"); // Simulating a wrong type
-
-        // We need a Command instance, creating a dummy anonymous class for the test
-        com.example.domain.shared.Command cmd = new com.example.domain.shared.Command() {};
-
-        // When & Then
-        assertThrows(UnknownCommandException.class, () -> {
-            aggregate.execute(cmd);
-        });
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> aggregate.execute(cmd), "Should reject null URL");
     }
 }

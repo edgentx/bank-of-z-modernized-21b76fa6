@@ -7,15 +7,21 @@ import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
+/**
+ * Temporary In-Memory implementation of ValidationRepository to allow compilation.
+ * Real implementation would persist to DB2/MongoDB as per architecture.
+ */
 @Component
 public class DefectRepositoryAdapter implements ValidationRepository {
 
     private final Map<String, ValidationAggregate> store = new HashMap<>();
 
     @Override
-    public void save(ValidationAggregate aggregate) {
+    public ValidationAggregate save(ValidationAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
+        return aggregate;
     }
 
     @Override

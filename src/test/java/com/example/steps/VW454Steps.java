@@ -2,12 +2,11 @@ package com.example.steps;
 
 import com.example.ports.SlackNotifierPort;
 import com.example.ports.GitHubIssuePort;
-import com.example.domain.reconciliation.model.ReconciliationBatch;
+import com.example.adapters.DefectReportingService;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 
 /**
  * Steps for VW-454: Validating GitHub URL in Slack body.

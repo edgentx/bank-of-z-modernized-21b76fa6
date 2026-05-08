@@ -62,13 +62,12 @@ public class TellerSession extends AggregateRoot {
         this.started = true;
 
         // Emit Event
-        // Fix: Added sourceChannelId and currentContext to match Record signature
         var event = new SessionStartedEvent(
             cmd.sessionId(),
             cmd.tellerId(),
             cmd.terminalId(),
-            cmd.sourceChannelId(), // Was missing, causing error
-            cmd.currentContext(),  // Was missing, causing error
+            cmd.sourceChannelId(),
+            cmd.currentContext(),
             Instant.now()
         );
 

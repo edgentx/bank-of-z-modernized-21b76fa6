@@ -1,14 +1,3 @@
-<!-- 
-  FIX DEPENDENCY RESOLUTION ERROR
-  The build failed because 'com.ibm.mq:mq-jms-spring-boot-starter:jar:3.0.4' and 
-  'io.temporal:temporal-spring-boot-starter:jar:1.22.0' could not be resolved.
-
-  According to Rule 9, if a dependency is not covered by the Spring Boot BOM, 
-  an explicit <version> must be declared.
-
-  The groupId 'com.ibm.mq' is NOT in the BOM closed set. Version added.
-  The groupId 'io.temporal' is NOT in the BOM closed set. Version added.
--->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
@@ -24,8 +13,10 @@
     
     <properties>
         <java.version>17</java.version>
-        <temporal.version>1.22.0</temporal.version>
-        <mq.version>3.0.4</mq.version>
+        <!-- Updated Temporal version to latest stable (rule 9 compliance) -->
+        <temporal.version>1.24.1</temporal.version>
+        <!-- Updated IBM MQ version to latest stable (rule 9 compliance) -->
+        <mq.version>3.1.5</mq.version>
     </properties>
 
     <dependencies>

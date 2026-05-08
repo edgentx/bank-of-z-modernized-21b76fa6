@@ -1,32 +1,29 @@
 package com.example.domain.screen.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Map;
 
 /**
  * Domain event emitted when a screen is successfully rendered.
  */
-public class ScreenRenderedEvent implements DomainEvent {
+public record ScreenRenderedEvent(
+    String type,
+    String aggregateId,
+    String screenId,
+    String deviceType,
+    Instant occurredAt,
+    String renderedLayout,
+    Map<String, Object> context
+) implements DomainEvent {
 
-    private final String eventId;
-    private final String aggregateId;
-    private final Instant occurredAt;
-    private final String screenId;
-    private final RenderScreenCmd.DeviceType deviceType;
-
-    public ScreenRenderedEvent(String aggregateId, String screenId, RenderScreenCmd.DeviceType deviceType, Instant occurredAt) {
-        this.eventId = UUID.randomUUID().toString();
-        this.aggregateId = aggregateId;
-        this.screenId = screenId;
-        this.deviceType = deviceType;
-        this.occurredAt = occurredAt;
+    public ScreenRenderedEvent(String aggregateId, String screenId, String deviceType, Instant occurredAt, String renderedLayout, Map<String, Object> context) {
+        this("screen.rendered", aggregateId, screenId, deviceType, occurredAt, renderedLayout, context);
     }
 
     @Override
     public String type() {
-        return "screen.rendered";
+        return type;
     }
 
     @Override
@@ -37,17 +34,5 @@ public class ScreenRenderedEvent implements DomainEvent {
     @Override
     public Instant occurredAt() {
         return occurredAt;
-    }
-
-    public String getEventId() {
-        return eventId;
-    }
-
-    public String getScreenId() {
-        return screenId;
-    }
-
-    public RenderScreenCmd.DeviceType getDeviceType() {
-        return deviceType;
     }
 }

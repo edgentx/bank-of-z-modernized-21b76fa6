@@ -1,24 +1,25 @@
 package com.example.workflow;
 
-import io.temporal.workflow.Workflow;
+import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackPort;
 
+/**
+ * Implementation of the Defect Workflow.
+ * Currently a stub to allow compilation of tests.
+ */
 public class DefectWorkflowImpl implements DefectWorkflow {
 
-    private final DefectActivities activities = Workflow.newActivityStub(DefectActivities.class);
+    private final SlackPort slackPort;
+    private final GitHubPort gitHubPort;
+
+    public DefectWorkflowImpl(SlackPort slackPort, GitHubPort gitHubPort) {
+        this.slackPort = slackPort;
+        this.gitHubPort = gitHubPort;
+    }
 
     @Override
-    public String executeReportDefect(String projectId, String title, String description) {
-        // Map inputs to Command
-        var cmd = new com.example.domain.defect.model.ReportDefectCommand(
-                projectId,
-                title,
-                description,
-                com.example.domain.defect.model.ReportDefectCommand.Severity.LOW,
-                "validation",
-                null
-        );
-
-        // Execute activity
-        return activities.reportDefect(cmd);
+    public void reportDefect(ReportDefectCmd cmd) {
+        // TODO: Implement orchestration logic
     }
 }

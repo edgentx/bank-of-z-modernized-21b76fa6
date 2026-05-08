@@ -1,41 +1,39 @@
 package com.example.mocks;
 
 import com.example.ports.VForce360IntegrationPort;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock adapter for VForce360 Integration.
- * Simulates Slack message history for regression testing.
+ * Mock implementation of VForce360IntegrationPort for testing.
+ * Simulates the defect reporting process without calling external APIs.
  */
 public class MockVForce360IntegrationAdapter implements VForce360IntegrationPort {
 
-    private final Map<String, String> channelMessages = new HashMap<>();
-    private boolean defectExecuted = false;
+    private final List<Call> calls = new ArrayList<>();
+    private String nextIssueUrl = "https://github.com/mock-repo/issues/1";
+    private boolean shouldFail = false;
 
-    /**
-     * Sets the message body that should be returned for a specific channel.
-     * Use this to configure the "Expected Behavior" scenario.
-     *
-     * @param channel The channel name.
-     * @param body The message body content.
-     */
-    public void setSlackMessage(String channel, String body) {
-        this.channelMessages.put(channel, body);
-    }
-
-    public void setDefectExecuted(boolean executed) {
-        this.defectExecuted = executed;
-    }
+    public record Call(String title, String body) {}
 
     @Override
-    public String getLastSlackMessageBody(String channelName) {
-        // Default to empty string to simulate "Actual Behavior" (missing link)
-        return channelMessages.getOrDefault(channelName, "");
+    public String reportDefect(String title, String body) {
+        if (shouldFail) {
+            throw new RuntimeException("MockIntegration failure");
+        }
+        calls.add(new Call(title, body));
+        return nextIssueUrl;
     }
 
-    @Override
-    public boolean wasDefectReportExecuted(String defectId) {
-        return this.defectExecuted;
+    public List<Call> getCalls() {
+        return calls;
+    }
+
+    public void setNextIssueUrl(String url) {
+        this.nextIssueUrl = url;
+    }
+
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
     }
 }

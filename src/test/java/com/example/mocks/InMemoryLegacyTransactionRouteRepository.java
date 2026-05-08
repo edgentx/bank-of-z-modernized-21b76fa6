@@ -1,15 +1,16 @@
 package com.example.mocks;
 
-import com.example.domain.legacy.model.LegacyTransactionRouteAggregate;
-import com.example.domain.legacy.repository.LegacyTransactionRouteRepository;
+import com.example.domain.legacybridge.model.LegacyTransactionRouteAggregate;
+import com.example.domain.legacybridge.repository.LegacyTransactionRouteRepository;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class InMemoryLegacyTransactionRouteRepository implements LegacyTransactionRouteRepository {
 
-    private final Map<String, LegacyTransactionRouteAggregate> store = new HashMap<>();
+    private final Map<String, LegacyTransactionRouteAggregate> store = new ConcurrentHashMap<>();
 
     @Override
     public void save(LegacyTransactionRouteAggregate aggregate) {
@@ -19,12 +20,5 @@ public class InMemoryLegacyTransactionRouteRepository implements LegacyTransacti
     @Override
     public Optional<LegacyTransactionRouteAggregate> findById(String id) {
         return Optional.ofNullable(store.get(id));
-    }
-
-    @Override
-    public LegacyTransactionRouteAggregate create(String id) {
-        var aggregate = new LegacyTransactionRouteAggregate(id);
-        store.put(id, aggregate);
-        return aggregate;
     }
 }

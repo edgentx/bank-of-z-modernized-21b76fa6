@@ -1,4 +1,4 @@
-Feature: UpdateAccountStatusCmd
+Feature: Implement UpdateAccountStatusCmd on Account (account-management)
 
   Scenario: Successfully execute UpdateAccountStatusCmd
     Given a valid Account aggregate

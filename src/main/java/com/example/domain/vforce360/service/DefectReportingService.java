@@ -1,64 +1,57 @@
 package com.example.domain.vforce360.service;
 
-import com.example.domain.shared.Command;
-import com.example.domain.vforce360.model.DefectReportedEvent;
-import com.example.domain.vforce360.model.ReportDefectCommand;
-import com.example.domain.vforce360.ports.GitHubIssueTrackerPort;
-import com.example.domain.vforce360.ports.VForce360NotifierPort;
+import com.example.domain.vforce360.model.ReportDefectCmd;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.util.List;
-
 /**
- * Service handling the logic for reporting defects.
- * Orchestrates the interaction between GitHub (recording) and Slack (notification).
- * 
- * This acts as the bridge between the Temporal workflow trigger and the domain ports.
+ * Service responsible for orchestrating the defect reporting workflow.
+ * This is the implementation logic that ensures the GitHub URL is included in the Slack body.
+ * Corresponds to Fix: VW-454.
  */
 @Service
 public class DefectReportingService {
 
-    private final GitHubIssueTrackerPort gitHubTracker;
-    private final VForce360NotifierPort notifier;
+    private static final Logger log = LoggerFactory.getLogger(DefectReportingService.class);
 
-    /**
-     * Constructor-based injection as per Spring Boot best practices.
-     */
-    public DefectReportingService(GitHubIssueTrackerPort gitHubTracker, VForce360NotifierPort notifier) {
-        this.gitHubTracker = gitHubTracker;
-        this.notifier = notifier;
+    private final GitHubPort gitHubClient;
+    private final SlackPort slackNotifier;
+
+    public DefectReportingService(GitHubPort gitHubClient, SlackPort slackNotifier) {
+        this.gitHubClient = gitHubClient;
+        this.slackNotifier = slackNotifier;
     }
 
     /**
-     * Executes the defect reporting logic.
-     * 1. Creates the GitHub issue.
-     * 2. Formats the Slack message (VW-454 Requirement: Must contain URL).
-     * 3. Sends the notification.
-     * 
-     * @param cmd The command to execute.
-     * @return The resulting domain event.
+     * Handles the ReportDefectCmd.
+     * 1. Creates an issue in GitHub via adapter.
+     * 2. Formats the Slack notification including the returned GitHub URL.
+     * 3. Sends the notification via adapter.
+     *
+     * @param cmd The command object containing defect details.
      */
-    public DefectReportedEvent execute(Command cmd) {
-        if (cmd instanceof ReportDefectCommand c) {
-            // Step 1: Create GitHub Issue
-            String issueUrl = gitHubTracker.createIssue(c.title(), c.description());
+    public void handle(ReportDefectCmd cmd) {
+        log.info("Handling defect report for: {}", cmd.defectId());
 
-            // Step 2: Prepare Slack Body
-            // CRITICAL: VW-454 Regression Test expects this exact format.
-            String slackBody = String.format(
-                "Defect Reported: %s\nGitHub Issue: %s",
-                c.title(),
-                issueUrl
-            );
+        // 1. Create GitHub Issue
+        String githubUrl = gitHubClient.createIssue(cmd.defectId(), cmd.description(), cmd.severity());
 
-            // Step 3: Send Notification
-            notifier.sendDefectReport(slackBody);
+        // 2. Construct Slack Body
+        // FIX for VW-454: Ensure the GitHub URL is part of the body text.
+        String slackTitle = "New Defect Reported: " + cmd.defectId();
+        String slackBody = String.format(
+            "Issue Created: %s\nSeverity: %s\nDescription: %s",
+            githubUrl,
+            cmd.severity(),
+            cmd.description()
+        );
 
-            // Step 4: Emit Domain Event
-            return new DefectReportedEvent(c.defectId(), issueUrl, Instant.now());
-        } 
-        
-        throw new IllegalArgumentException("Unsupported command type: " + cmd.getClass().getSimpleName());
+        // 3. Send Notification
+        slackNotifier.sendNotification(slackTitle, slackBody);
+
+        log.info("Defect report processed. Notification sent with GitHub URL: {}", githubUrl);
     }
 }

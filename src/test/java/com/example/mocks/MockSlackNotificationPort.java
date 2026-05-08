@@ -1,27 +1,33 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Captures messages to verify content without calling the real API.
+ * Captures the last sent body to verify content.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
-    private final List<String> sentMessages = new ArrayList<>();
+
+    private String lastChannel;
+    private String lastBody;
+    private boolean shouldFail = false;
 
     @Override
-    public void sendNotification(String messageBody) {
-        System.out.println("[MockSlack] Captured message: " + messageBody);
-        this.sentMessages.add(messageBody);
+    public boolean postMessage(String channel, String body) {
+        this.lastChannel = channel;
+        this.lastBody = body;
+        return !shouldFail;
     }
 
-    public List<String> getSentMessages() {
-        return new ArrayList<>(sentMessages);
+    public String getLastChannel() {
+        return lastChannel;
     }
 
-    public void clear() {
-        this.sentMessages.clear();
+    public String getLastBody() {
+        return lastBody;
+    }
+
+    public void setShouldFail(boolean shouldFail) {
+        this.shouldFail = shouldFail;
     }
 }

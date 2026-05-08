@@ -1,19 +1,15 @@
 package com.example.domain.defect.model;
 
 import com.example.domain.shared.DomainEvent;
-import java.time.Instant;
-import java.util.UUID;
 
-/**
- * Event emitted when a defect is reported.
- * Contains the metadata and the generated GitHub issue URL.
- */
+import java.time.Instant;
+import java.util.Map;
+
 public record DefectReportedEvent(
-    String aggregateId,
-    String projectId,
-    String githubIssueUrl,
-    String severity,
-    String component,
+    String defectId,
+    String title,
+    String description,
+    Map<String, String> metadata,
     Instant occurredAt
 ) implements DomainEvent {
     @Override
@@ -23,7 +19,7 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return defectId;
     }
 
     @Override

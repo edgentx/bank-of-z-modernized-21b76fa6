@@ -1,76 +1,73 @@
 package com.example.steps;
 
-import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.mocks.InMemorySlackNotification;
-import com.example.mocks.MockIssueTracker;
-import io.cucumber.java.en.And;
+import com.example.application.DefectReportingActivityInterface;
+import com.example.mocks.MockGitHubClient;
+import com.example.mocks.MockSlackClient;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Steps for validating VW-454.
- * This implements the TDD Red Phase: the application code to satisfy this is missing.
+ * Cucumber Steps for S-FB-1: Validating VW-454 GitHub URL in Slack.
+ * Red Phase: Tests will fail until the implementation correctly
+ * passes the GitHub URL from the 'report_defect' activity to the Slack message body.
  */
+@SpringBootTest
 public class SFB1Steps {
 
-    // Dependencies (Mocks)
-    private final MockIssueTracker issueTracker = new MockIssueTracker();
-    private final InMemorySlackNotification slackNotification = new InMemorySlackNotification();
+    @Autowired
+    private DefectReportingActivityInterface activities;
 
-    // State
-    private String currentDefectId;
-    private String currentTitle;
-    private Exception capturedException;
+    @Autowired
+    private MockGitHubClient mockGitHub;
 
-    @Given("the temporal worker triggers _report_defect with ID {string}")
-    public void the_temporal_worker_triggers_report_defect_with_id(String defectId) {
-        this.currentDefectId = defectId;
+    @Autowired
+    private MockSlackClient mockSlack;
+
+    private String resultIssueId;
+
+    @Given("the system is ready to report defects")
+    public void the_system_is_ready() {
+        mockGitHub.reset();
+        mockSlack.reset();
     }
 
-    @And("the defect title is {string}")
-    public void the_defect_title_is(String title) {
-        this.currentTitle = title;
-    }
-
-    @When("the defect report processing completes")
-    public void the_defect_report_processing_completes() {
-        // RED PHASE IMPLEMENTATION
-        // This simulates the logic that SHOULD exist in the Application/Service layer.
-        // Since we are in TDD Red phase, we simulate the process manually here using the mocks.
-        // The Application.java or a dedicated Service/Workflow does not yet implement this.
-
-        try {
-            // 1. Create Command
-            ReportDefectCmd cmd = new ReportDefectCmd(currentDefectId, currentTitle, "Description", "LOW");
-
-            // 2. Create Issue (Simulating Aggregate/Service Logic)
-            String url = issueTracker.createIssue(cmd.defectId(), cmd.title());
-
-            // 3. Notify Slack (Simulating Projection/Handler Logic)
-            // Validation VW-454: The URL must be present.
-            if (url == null || url.isBlank()) {
-                throw new IllegalStateException("GitHub URL was not generated");
-            }
-            
-            String slackBody = "Defect Reported: " + cmd.title() + "\nGitHub Issue: " + url;
-            slackNotification.postMessage(slackBody);
-
-        } catch (Exception e) {
-            this.capturedException = e;
-        }
-    }
-
-    @Then("the Slack notification body should contain {string}")
-    public void the_slack_notification_body_should_contain(String substring) {
-        if (capturedException != null) {
-            fail("Processing failed with exception: " + capturedException.getMessage(), capturedException);
-        }
+    @When("the temporal worker executes _report_defect")
+    public void the_temporal_worker_executes_report_defect() {
+        // Simulate the Temporal Activity execution with sample data from the defect
+        String title = "VW-454: Regression in validation";
+        String body = "Detailed defect description...";
         
-        String body = slackNotification.getLastMessage();
-        assertNotNull(body, "No Slack message was posted");
-        assertTrue(body.contains(substring), "Slack body did not contain expected substring [" + substring + "]. Actual body: " + body);
+        // This triggers the real code path
+        resultIssueId = activities.reportDefect(title, body);
+    }
+
+    @Then("the Slack body contains the GitHub issue link")
+    public void the_slack_body_contains_the_github_issue_link() {
+        // 1. Verify GitHub client was invoked
+        assertTrue(mockGitHub.wasCreateIssueCalled(), "GitHub createIssue should have been called");
+
+        // 2. Get the URL that GitHub would have returned
+        String expectedUrl = mockGitHub.getLastGeneratedIssueUrl();
+        
+        // 3. Verify Slack client was invoked
+        assertTrue(mockSlack.wasSendMessageCalled(), "Slack sendMessage should have been called");
+
+        // 4. CRITICAL ASSERTION: The Slack message body MUST contain the GitHub URL.
+        // This is the acceptance criteria for S-FB-1.
+        String actualSlackMessage = mockSlack.getLastMessageBody();
+        
+        assertNotNull(actualSlackMessage, "Slack message body should not be null");
+        assertTrue(
+            actualSlackMessage.contains(expectedUrl),
+            String.format(
+                "Slack message body should contain GitHub URL [%s]. Actual body: [%s]",
+                expectedUrl,
+                actualSlackMessage
+            )
+        );
     }
 }

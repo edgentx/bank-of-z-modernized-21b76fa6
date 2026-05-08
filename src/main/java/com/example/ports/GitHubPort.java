@@ -1,15 +1,17 @@
 package com.example.ports;
 
 /**
- * Port for creating GitHub Issues.
+ * Port for interacting with GitHub issues.
+ * This abstraction allows us to mock GitHub API responses in tests.
  */
 public interface GitHubPort {
+
     /**
-     * Creates an issue in the given repository.
-     * @param repo The repository identifier (e.g., "owner/repo")
+     * Creates a new issue in the configured repository.
+     *
      * @param title The issue title
-     * @param body The issue body
+     * @param body The issue body (description)
      * @return The HTML URL of the created issue
      */
-    String createIssue(String repo, String title, String body);
+    String createIssue(String title, String body);
 }

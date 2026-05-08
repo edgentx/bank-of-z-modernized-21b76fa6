@@ -1,16 +1,22 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
-import java.util.Set;
+import java.util.UUID;
 
-/**
- * Command to initiate a Teller Session.
- * Story: S-18
- */
 public record StartSessionCmd(
-    String sessionId,
     String tellerId,
     String terminalId,
     boolean isAuthenticated,
-    Set<String> roles // AuthZ context
-) implements Command {}
+    long timeoutMillis,
+    String navState
+) implements Command {
+
+    public StartSessionCmd {
+        if (tellerId == null || tellerId.isBlank()) {
+            throw new IllegalArgumentException("tellerId cannot be null or blank");
+        }
+        if (terminalId == null || terminalId.isBlank()) {
+            throw new IllegalArgumentException("terminalId cannot be null or blank");
+        }
+    }
+}

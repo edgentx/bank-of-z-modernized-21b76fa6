@@ -7,10 +7,8 @@ import java.time.Instant;
 public record CustomerDetailsUpdatedEvent(
     String customerId,
     String fullName,
-    String email,
+    String emailAddress,
     String sortCode,
-    String governmentId,
-    boolean deleted,
     Instant occurredAt
 ) implements DomainEvent {
     @Override public String type() { return "customer.details.updated"; }

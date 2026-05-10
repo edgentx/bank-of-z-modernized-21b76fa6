@@ -1,36 +1,28 @@
 package com.example.mocks;
 
-import com.example.application.SlackMessage;
 import com.example.ports.NotificationPort;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Mock implementation of NotificationPort for testing.
- * Captures messages to verify content without calling Slack.
+ * Captures sent messages for assertion.
  */
 public class MockNotificationPort implements NotificationPort {
 
-    private final List<SlackMessage> sentMessages = new ArrayList<>();
+    private final List<String> messages = new ArrayList<>();
 
     @Override
-    public void send(SlackMessage message) {
-        sentMessages.add(message);
+    public void sendNotification(String body) {
+        // In a real test, we might verify format here, but usually, we just capture.
+        this.messages.add(body);
     }
 
-    public List<SlackMessage> getSentMessages() {
-        return new ArrayList<>(sentMessages);
+    public List<String> getMessages() {
+        return new ArrayList<>(messages);
     }
 
     public void clear() {
-        sentMessages.clear();
-    }
-
-    /**
-     * Helper to verify if any sent message contains the specific text.
-     */
-    public boolean wasTextSent(String text) {
-        return sentMessages.stream().anyMatch(msg -> msg.getText().contains(text));
+        messages.clear();
     }
 }

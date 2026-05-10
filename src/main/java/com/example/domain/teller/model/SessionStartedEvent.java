@@ -1,21 +1,38 @@
 package com.example.domain.teller.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
 import java.util.UUID;
 
 public record SessionStartedEvent(
+    String eventId,
     String aggregateId,
     String tellerId,
     String terminalId,
+    String navigationContext,
     Instant occurredAt
 ) implements DomainEvent {
-    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId) {
-        this(aggregateId, tellerId, terminalId, Instant.now());
+    public SessionStartedEvent {
+        if (eventId == null) eventId = UUID.randomUUID().toString();
+    }
+
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, String navigationContext, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, tellerId, terminalId, navigationContext, occurredAt);
     }
 
     @Override
     public String type() {
         return "session.started";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

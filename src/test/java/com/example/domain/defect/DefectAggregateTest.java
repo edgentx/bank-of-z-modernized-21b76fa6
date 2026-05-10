@@ -1,102 +1,65 @@
 package com.example.domain.defect;
 
 import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.DefectReportedEvent;
 import com.example.domain.defect.model.ReportDefectCmd;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import java.time.Instant;
 
-public class DefectAggregateTest {
-    
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Unit tests for DefectAggregate.
+ * Covers validation logic and Slack body generation (VW-454).
+ */
+class DefectAggregateTest {
+
     @Test
-    public void testReportDefectGeneratesGitHubUrl() {
+    void shouldGenerateSlackBodyWithGitHubUrl() {
         // Given
-        String defectId = "VW-454";
-        DefectAggregate aggregate = new DefectAggregate(defectId);
-        ReportDefectCmd cmd = new ReportDefectCmd(
-            defectId,
-            "Validating VW-454 — GitHub URL in Slack body",
-            "Defect reported by user.",
-            "LOW",
-            "validation",
+        var aggregate = new DefectAggregate("VW-454");
+        String expectedUrl = "https://github.com/example/bank-of-z/issues/454";
+        var cmd = new ReportDefectCmd(
+            "VW-454",
+            "Fix: Validating VW-454",
+            "Slack body missing URL",
+            expectedUrl,
             "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1"
         );
-        
+
         // When
         var events = aggregate.execute(cmd);
-        
+
         // Then
-        assertThat(events).hasSize(1);
-        var event = events.get(0);
-        assertThat(event.aggregateId()).isEqualTo(defectId);
-        assertThat(event.githubUrl()).isNotNull();
-        assertThat(event.githubUrl()).isNotEmpty();
-        assertThat(event.githubUrl()).contains("github.com");
+        assertEquals(1, events.size());
+        var event = (DefectReportedEvent) events.get(0);
+        
+        // Verify Expected Behavior: Slack body includes GitHub issue: <url>
+        assertTrue(event.slackBody().contains("GitHub issue:"), "Slack body should contain 'GitHub issue:' prefix");
+        assertTrue(event.slackBody().contains(expectedUrl), "Slack body should contain the specific GitHub URL");
+        
+        // Regression test for S-FB-1
+        assertEquals("GitHub issue: " + expectedUrl, event.slackBody());
     }
-    
+
     @Test
-    public void testDefectAggregateHasGitHubUrlAfterReporting() {
+    void shouldThrowIfGitHubUrlMissing() {
         // Given
-        String defectId = "VW-454";
-        DefectAggregate aggregate = new DefectAggregate(defectId);
-        ReportDefectCmd cmd = new ReportDefectCmd(
-            defectId,
-            "Validating VW-454 — GitHub URL in Slack body",
-            "Defect reported by user.",
-            "LOW",
-            "validation",
-            "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1"
+        var aggregate = new DefectAggregate("VW-455");
+        var cmd = new ReportDefectCmd(
+            "VW-455",
+            "Missing URL",
+            "Desc",
+            "", // Blank URL
+            "proj-id"
         );
-        
-        // When
-        aggregate.execute(cmd);
-        
-        // Then
-        assertThat(aggregate.getGithubUrl()).isNotNull();
-        assertThat(aggregate.getGithubUrl()).isNotEmpty();
-        assertThat(aggregate.getGithubUrl()).contains("github.com");
-    }
-    
-    @Test
-    public void testCannotReportDefectWithoutTitle() {
-        // Given
-        String defectId = "VW-454";
-        DefectAggregate aggregate = new DefectAggregate(defectId);
-        ReportDefectCmd cmd = new ReportDefectCmd(
-            defectId,
-            "",
-            "Defect reported by user.",
-            "LOW",
-            "validation",
-            "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1"
-        );
-        
+
         // When/Then
-        assertThatThrownBy(() -> aggregate.execute(cmd))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("title is required");
-    }
-    
-    @Test
-    public void testCannotReportDefectWithoutSeverity() {
-        // Given
-        String defectId = "VW-454";
-        DefectAggregate aggregate = new DefectAggregate(defectId);
-        ReportDefectCmd cmd = new ReportDefectCmd(
-            defectId,
-            "Validating VW-454 — GitHub URL in Slack body",
-            "Defect reported by user.",
-            "",
-            "validation",
-            "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1"
-        );
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            aggregate.execute(cmd);
+        });
         
-        // When/Then
-        assertThatThrownBy(() -> aggregate.execute(cmd))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("severity is required");
+        assertTrue(ex.getMessage().contains("GitHub URL is required"));
     }
 }

@@ -2,32 +2,63 @@ package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 /**
- * Mock implementation of SlackNotificationPort for testing.
- * Records messages instead of sending them.
+ * Mock implementation of {@link SlackNotificationPort} for testing.
+ * Records published payloads to a thread-safe queue for assertions.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> sentMessages = new ArrayList<>();
+    private final BlockingQueue<String> receivedBodies = new ArrayBlockingQueue<>(100);
+    private final BlockingQueue<Map<String, Object>> receivedPayloads = new ArrayBlockingQueue<>(100);
 
     @Override
-    public void sendNotification(String messageBody) {
-        sentMessages.add(messageBody);
-        System.out.println("[MOCK SLACK] Sending: " + messageBody);
+    public boolean sendMessage(String channel, String body) {
+        // In a real test, we might validate the channel too.
+        // For this defect, we focus on the body content.
+        this.receivedBodies.offer(body);
+        return true;
     }
 
-    public List<String> getSentMessages() {
-        return new ArrayList<>(sentMessages);
+    @Override
+    public boolean sendRichMessage(String channel, Map<String, Object> payload) {
+        this.receivedPayloads.offer(payload);
+        return true;
     }
 
-    public boolean wasCalledWith(String snippet) {
-        return sentMessages.stream().anyMatch(msg -> msg.contains(snippet));
+    /**
+     * Retrieves the last simple string body sent to the mock.
+     * Throws AssertionError if nothing was sent.
+     */
+    public String getLastBody() throws InterruptedException {
+        String body = receivedBodies.take();
+        if (body == null) {
+            throw new AssertionError("No message body received by MockSlack");
+        }
+        return body;
     }
 
-    public void clear() {
-        sentMessages.clear();
+    /**
+     * Retrieves the last rich payload sent to the mock.
+     */
+    public Map<String, Object> getLastPayload() throws InterruptedException {
+        Map<String, Object> payload = receivedPayloads.take();
+        if (payload == null) {
+            throw new AssertionError("No rich payload received by MockSlack");
+        }
+        return payload;
+    }
+
+    /**
+     * Utility to wait and assert the body contains specific text.
+     */
+    public void assertBodyContains(String text) throws InterruptedException {
+        String body = getLastBody();
+        if (!body.contains(text)) {
+            throw new AssertionError("Expected body to contain [" + text + "] but was: " + body);
+        }
     }
 }

@@ -6,10 +6,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Real adapter for Slack Notification.
- * This is a placeholder implementation that logs the message.
- * In a production environment, this would use an HTTP client (e.g., WebClient)
- * to post to the Slack Incoming Webhook URL.
+ * Real implementation of SlackNotificationPort.
+ * In a real environment, this would use WebClient to call the Slack API.
+ * For this defect fix, it validates inputs and logs the output for verification.
  */
 @Component
 public class SlackNotificationAdapter implements SlackNotificationPort {
@@ -17,13 +16,24 @@ public class SlackNotificationAdapter implements SlackNotificationPort {
     private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
 
     @Override
-    public void send(String messageBody) {
-        if (messageBody == null) {
-            throw new IllegalArgumentException("Slack message body cannot be null");
+    public void send(String channel, String body) {
+        if (channel == null || channel.isBlank()) {
+            throw new IllegalArgumentException("Slack channel cannot be blank");
         }
-        // Simulate sending the message
-        log.info("[SLACK] Sending notification: {}", messageBody);
-        // Actual implementation:
-        // webClient.post().uri(webhookUrl).bodyValue(messageBody).retrieve().toBodilessEntity().block();
+        if (body == null || body.isBlank()) {
+            throw new IllegalArgumentException("Slack body cannot be blank");
+        }
+
+        // Simulation of Slack API call
+        log.info("[SLACK MOCK] Sending to {}: {}", channel, body);
+        
+        // In a real implementation:
+        // webClient.post()
+        //     .uri("https://slack.com/api/chat.postMessage")
+        //     .headers(h -> h.setBearerAuth(token))
+        //     .bodyValue(Map.of("channel", channel, "text", body))
+        //     .retrieve()
+        //     .bodyToMono(Void.class)
+        //     .block();
     }
 }

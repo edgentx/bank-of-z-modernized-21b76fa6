@@ -1,45 +1,45 @@
 package com.example.application;
 
-import com.example.ports.GitHubPort;
 import com.example.ports.SlackNotificationPort;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 /**
- * Workflow Orchestrator for reporting defects.
- * Represents the Temporal workflow logic for '_report_defect'.
- * This implementation coordinates the interaction between GitHub and Slack.
+ * Workflow implementation for reporting defects.
+ * This logic is triggered by the Temporal worker to notify the team via Slack.
  */
-@Component
+@Service
 public class DefectReportingWorkflow {
 
-    private final GitHubPort gitHubPort;
-    private final SlackNotificationPort slackNotificationPort;
+    private final SlackNotificationPort slackClient;
+    private static final String SLACK_CHANNEL = "#vforce360-issues";
 
     /**
      * Constructor for dependency injection.
      * 
-     * @param gitHubPort The adapter to interact with GitHub.
-     * @param slackNotificationPort The adapter to interact with Slack.
+     * @param slackClient The port adapter for Slack communication.
      */
-    public DefectReportingWorkflow(GitHubPort gitHubPort, SlackNotificationPort slackNotificationPort) {
-        this.gitHubPort = gitHubPort;
-        this.slackNotificationPort = slackNotificationPort;
+    public DefectReportingWorkflow(SlackNotificationPort slackClient) {
+        this.slackClient = slackClient;
     }
 
     /**
-     * Executes the defect reporting process.
-     * 1. Creates an issue in GitHub.
-     * 2. Posts a notification to Slack containing the GitHub URL.
-     * 
-     * This logic satisfies the VW-454 validation requirement.
+     * Reports a defect to the configured Slack channel.
+     * Ensures the GitHub URL is included in the body (Fix for VW-454).
+     *
+     * @param defectId The ID of the defect (e.g., "VW-454").
+     * @param githubUrl The URL to the GitHub issue.
+     * @param projectId The unique identifier of the project.
      */
-    public void executeReportDefect(String title, String description, String channel) {
-        // Step 1: Create the remote ticket in GitHub
-        String issueUrl = gitHubPort.createIssue(title, description);
+    public void reportDefect(String defectId, String githubUrl, String projectId) {
+        StringBuilder body = new StringBuilder();
+        body.append("Defect Reported: ").append(defectId).append("\n");
+        body.append("Project: ").append(projectId).append("\n");
+        
+        // Fix for VW-454: Append the GitHub URL to the body.
+        if (githubUrl != null && !githubUrl.isBlank()) {
+            body.append("GitHub issue: ").append(githubUrl).append("\n");
+        }
 
-        // Step 2: Notify Slack, ensuring the URL is present in the body
-        // Constructing the body to explicitly include the URL
-        String slackBody = "Issue created: " + issueUrl;
-        slackNotificationPort.postMessage(channel, slackBody);
+        slackClient.sendMessage(SLACK_CHANNEL, body.toString());
     }
 }

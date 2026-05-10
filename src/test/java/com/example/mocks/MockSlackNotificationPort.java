@@ -1,35 +1,30 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock adapter for Slack notifications.
- * Used in testing to capture outgoing payloads without calling the real Slack API.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Records messages instead of sending them.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class SentMessage {
-        public final String channel;
-        public final String body;
-
-        public SentMessage(String channel, String body) {
-            this.channel = channel;
-            this.body = body;
-        }
-    }
-
-    private final List<SentMessage> sentMessages = new ArrayList<>();
+    private final List<String> sentMessages = new ArrayList<>();
 
     @Override
-    public void sendNotification(String channel, String messageBody) {
-        // Capture the call
-        this.sentMessages.add(new SentMessage(channel, messageBody));
+    public void sendNotification(String messageBody) {
+        sentMessages.add(messageBody);
+        System.out.println("[MOCK SLACK] Sending: " + messageBody);
     }
 
-    public List<SentMessage> getSentMessages() {
+    public List<String> getSentMessages() {
         return new ArrayList<>(sentMessages);
+    }
+
+    public boolean wasCalledWith(String snippet) {
+        return sentMessages.stream().anyMatch(msg -> msg.contains(snippet));
     }
 
     public void clear() {

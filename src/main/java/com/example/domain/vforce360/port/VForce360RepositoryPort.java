@@ -1,11 +1,10 @@
-package com.example.domain.vforce360.port;
+package com.example.ports;
 
 import com.example.domain.vforce360.model.VForce360Aggregate;
-
 import java.util.Optional;
 
 /**
- * Repository interface for VForce360 aggregates.
+ * Port for VForce360 persistence.
  */
 public interface VForce360RepositoryPort {
     VForce360Aggregate save(VForce360Aggregate aggregate);

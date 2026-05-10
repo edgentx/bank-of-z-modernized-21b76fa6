@@ -1,8 +1,14 @@
-package com.example.ports;
+package com.example.domain.ports;
 
 /**
- * Port Interface for sending notifications to Slack.
+ * Port interface for sending Slack notifications.
+ * Allows the domain to push messages without depending on the Slack SDK directly.
  */
 public interface SlackNotifier {
-    void sendNotification(String messageBody);
+    
+    /**
+     * Sends a notification message to a channel.
+     * @param messageBody The formatted message body
+     */
+    void notify(String messageBody);
 }

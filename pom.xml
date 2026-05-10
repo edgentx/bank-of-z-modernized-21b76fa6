@@ -1,42 +1,35 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<!-- UPGRADED POM -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.1</version>
-        <relativePath/>
-    </parent>
-    
+
     <groupId>com.example</groupId>
     <artifactId>validation-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
     <name>validation-service</name>
-    <description>Validation Service for VForce360</description>
-    
+    <description>VForce360 Validation Service</description>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.0</version>
+        <relativePath/>
+    </parent>
+
     <properties>
         <java.version>17</java.version>
-        <spring-cloud-azure.version>5.9.1</spring-cloud-azure.version>
-        <mockito-inline.version>5.2.0</mockito-inline.version>
-        <temporal.version>1.23.1</temporal.version>
-        <opentelemetry.version>1.32.0</opentelemetry.version>
+        <spring-cloud-aws.version>3.1.0</spring-cloud-aws.version>
     </properties>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>io.opentelemetry</groupId>
-                <artifactId>opentelemetry-bom</artifactId>
-                <version>${opentelemetry.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
     <dependencies>
-        <!-- Spring Boot Starters -->
+        <!-- Spring Boot Dependencies (Managed by BOM) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -47,29 +40,32 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
-
-        <!-- Temporal (Not in Spring BOM - Version Explicit) -->
+        
+        <!-- Temporal (CRITICAL FIX: Use explicit version as groupId not in standard BOM) -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>${temporal.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-testing</artifactId>
-            <version>${temporal.version}</version>
-            <scope>test</scope>
+            <version>1.23.1</version>
         </dependency>
 
-        <!-- Observability (OpenTelemetry - Not in Spring BOM) -->
+        <!-- Test Dependencies -->
         <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-api</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
-        
-        <!-- Cucumber Testing -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
@@ -80,27 +76,6 @@
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-spring</artifactId>
             <version>7.14.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>7.14.0</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- JUnit 5 -->
-        <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-suite</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Mockito -->
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-inline</artifactId>
-            <version>${mockito-inline.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -1,49 +1,50 @@
 package com.example.adapters;
 
-import com.example.ports.SlackNotificationPort;
+import com.example.ports.NotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Value;\nimport org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 /**
  * Real adapter for sending notifications to Slack.
- * Connects to the configured Slack Webhook URL.
+ * Uses Spring's RestTemplate to post to a Slack Webhook.
  */
 @Component
-public class SlackNotificationAdapter implements SlackNotificationPort {
+public class SlackNotificationAdapter implements NotificationPort {
 
     private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
-    private final RestTemplate restTemplate;
-    private final String webhookUrl;
 
-    public SlackNotificationAdapter(RestTemplate restTemplate,
-                                    @Value("${vforce360.slack.webhook-url}") String webhookUrl) {
-        this.restTemplate = restTemplate;
+    private final String webhookUrl;
+    private final RestTemplate restTemplate;
+
+    public SlackNotificationAdapter(@Value("${slack.webhook.url}") String webhookUrl,
+                                     RestTemplate restTemplate) {
         this.webhookUrl = webhookUrl;
+        this.restTemplate = restTemplate;
     }
 
     @Override
-    public void sendNotification(String messageBody) {
-        if (webhookUrl == null || webhookUrl.isBlank()) {
-            log.warn("Slack webhook URL is not configured. Skipping notification.");
+    public void sendNotification(String body) {
+        log.info("Sending notification to Slack: {}", body);
+        
+        if (webhookUrl == null || webhookUrl.isBlank() || webhookUrl.contains("placeholder")) {
+            log.warn("Slack Webhook URL is not configured. Skipping notification.");
             return;
         }
-        
+
         try {
-            // Construct Slack payload
-            SlackPayload payload = new SlackPayload(messageBody);
+            // Construct standard Slack webhook payload
+            // { "text": "<body>" }
+            SlackPayload payload = new SlackPayload(body);
             restTemplate.postForObject(webhookUrl, payload, String.class);
-            log.info("Successfully sent notification to Slack.");
         } catch (Exception e) {
-            // We don't want a Slack failure to break the transaction, but we log it.
             log.error("Failed to send Slack notification", e);
+            // Depending on requirements, we might want to throw here.
+            // For now, we log to prevent workflow failure if Slack is down.
         }
     }
 
-    /**
-     * Simple POJO for Slack JSON payload.
-     */
+    // Simple DTO for JSON serialization
     private record SlackPayload(String text) {}
 }

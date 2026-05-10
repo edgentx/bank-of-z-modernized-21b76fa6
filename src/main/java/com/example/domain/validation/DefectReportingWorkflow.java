@@ -6,6 +6,9 @@ import com.example.domain.shared.ReportDefectCommand;
 import com.example.ports.GitHubPort;
 import com.example.ports.SlackNotificationPort;
 
+/**
+ * Workflow orchestrating defect reporting, GitHub issue creation, and Slack notifications.
+ */
 public class DefectReportingWorkflow {
     private final DefectRepository defectRepository;
     private final GitHubPort gitHubPort;
@@ -25,11 +28,11 @@ public class DefectReportingWorkflow {
         // 1. Create Aggregate
         DefectAggregate aggregate = new DefectAggregate(command.defectId());
         
-        // 2. Call External Services
+        // 2. Call External Services (GitHub)
         String issueUrl = gitHubPort.createIssue(command.title(), command.description());
         
         // 3. Notify Slack
-        // Note: The defect VW-454 implies this URL must be in the body.
+        // CRITICAL: Defect VW-454 states the URL must be in the body.
         String slackMessage = String.format(
             "Defect Reported: %s. GitHub Issue: %s",
             command.title(),
@@ -37,7 +40,10 @@ public class DefectReportingWorkflow {
         );
         slackNotificationPort.notify("#vforce360-issues", slackMessage);
         
-        // 4. Persist
+        // 4. Persist Aggregate
+        // Note: In a strict DDD model, we might execute the command on the aggregate 
+        // and then save. Here we instantiate and save directly per the provided flow.
+        // We can add the event to the aggregate here if we want to track it internally.
         defectRepository.save(aggregate);
     }
 }

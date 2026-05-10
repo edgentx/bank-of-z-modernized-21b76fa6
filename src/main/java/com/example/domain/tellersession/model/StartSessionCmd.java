@@ -2,8 +2,10 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
 
-public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {
-  public StartSessionCmd {
-    if (sessionId == null || sessionId.isBlank()) throw new IllegalArgumentException("sessionId required");
-  }
+/**
+ * Command to initiate a teller session.
+ * Validated by the TellerSession aggregate to ensure authentication
+ * and terminal context integrity.
+ */
+public record StartSessionCmd(String tellerId, String terminalId) implements Command {
 }

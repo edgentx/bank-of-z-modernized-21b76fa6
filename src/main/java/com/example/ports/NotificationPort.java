@@ -1,14 +1,15 @@
 package com.example.ports;
 
 /**
- * Port interface for external notification systems (e.g., Slack).
- * This is part of the Adapter pattern required by the build system.
+ * Port for sending notifications (e.g., to Slack).
+ * Used by the Validation workflow to report defects.
  */
 public interface NotificationPort {
+
     /**
-     * Sends a notification about the defect report.
-     * @param defectId The internal ID of the defect.
-     * @param ticketUrl The URL of the ticket in the external system (GitHub).
+     * Sends a formatted notification message.
+     *
+     * @param body The content of the message.
      */
-    void sendNotification(String defectId, String ticketUrl);
+    void sendNotification(String body);
 }

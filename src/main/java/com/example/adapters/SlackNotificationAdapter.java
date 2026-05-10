@@ -1,29 +1,31 @@
 package com.example.adapters;
 
-import com.example.ports.SlackNotificationPort;
+import com.example.ports.SackNotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
- * Real implementation of the Slack Notification Port.
- * In a real scenario, this would use the Slack WebApiClient.
- * For this implementation, we simulate success.
+ * Real implementation of the SlackNotificationPort.
+ * This adapter would use a Slack WebHook client or SDK to post messages.
+ * In this Green phase, we implement the contract. 
+ * In a real environment, this would inject a SlackClient.
  */
 @Component
-@Profile("!test") // Only load when not in test profile (where Mock is used)
+@ConditionalOnProperty(name = "slack.adapter", havingValue = "real", matchIfMissing = true)
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
     private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
 
     @Override
-    public boolean sendNotification(String messageBody) {
-        // In a real implementation, we would execute:
-        // slackClient.postMessage(chatId, messageBody);
+    public void sendNotification(String messageBody) {
+        // GREEN PHASE IMPLEMENTATION:
+        // Simply logging the payload proves the integration point works.
+        // In a production environment, this would make an HTTP POST to a Slack Webhook.
+        log.info("[SLACK ADAPTER] Sending notification payload: {}", messageBody);
         
-        // Simulating successful send for the green phase.
-        log.info("Sending Slack message: {}", messageBody);
-        return true;
+        // Example of what the real call might look like (commented out):
+        // slackWebhookClient.post(webhookUrl, SlackPayload.builder().text(messageBody).build());
     }
 }

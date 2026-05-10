@@ -1,28 +1,31 @@
 package com.example.mocks;
 
-import com.example.ports.SlackNotifier;
+import com.example.domain.ports.SlackNotifier;
 
 /**
- * Mock Adapter for Slack Notifications.
- * Captures messages sent to Slack for assertion.
+ * Mock adapter for Slack Notifier.
+ * Captures the message body for assertions in tests.
  */
 public class MockSlackNotifier implements SlackNotifier {
 
     private String lastBody;
-    private boolean notifyCalled = false;
+    private int callCount = 0;
 
     @Override
-    public void sendNotification(String messageBody) {
-        this.notifyCalled = true;
+    public void notify(String messageBody) {
         this.lastBody = messageBody;
-        // System.out.println("[MockSlack] Received: " + messageBody); // Debug helper
-    }
-
-    public boolean wasNotifyCalled() {
-        return notifyCalled;
+        this.callCount++;
     }
 
     public String getLastBody() {
         return lastBody;
+    }
+
+    public boolean wasCalled() {
+        return callCount > 0;
+    }
+
+    public int getCallCount() {
+        return callCount;
     }
 }

@@ -8,6 +8,8 @@ import java.util.UUID;
 /**
  * Domain Event: Defect Reported
  * Published when a defect validation fails in VForce360.
+ * This event encapsulates the state required to notify external systems
+ * (e.g., Slack) and provide context (links) for resolution.
  */
 public class DefectReportedEvent implements DomainEvent {
 
@@ -40,32 +42,46 @@ public class DefectReportedEvent implements DomainEvent {
         return occurredAt;
     }
 
+    public String getEventId() {
+        return eventId;
+    }
+
+    public String getDefectId() {
+        return defectId;
+    }
+
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
     /**
-     * Constructs the Slack message body.
-     * Must include the GitHub issue link as per acceptance criteria.
+     * Constructs the Slack message body containing the GitHub issue link.
      * 
-     * Format: 
-     * "Defect Reported: {description} \n GitHub issue: <url>|View Issue"
+     * Acceptance Criteria:
+     * - The validation no longer exhibits the reported behavior (missing URL)
+     * - Slack body includes GitHub issue: <url>
+     * 
+     * Slack Link Format: <URL|Text>
+     * 
+     * @return Formatted string for Slack notification.
      */
     public String getSlackBody() {
-        // Note: This implementation is a placeholder to allow compilation.
-        // The TDD test expects this to format a specific URL structure.
-        // We return a stub here to fail the assertion tests initially if the logic is missing,
-        // or we can implement the logic immediately if this is the production file.
-        // Given the prompt asks for "Failing tests... against an empty implementation",
-        // we should arguably leave the logic OUT of here or make it return an empty string.
-        // However, usually Domain Events carry data, not formatting. 
-        // Let's implement the logic but the TESTS ensure it works.
+        // Assumption: The GitHub repo URL structure is standard.
+        // Defect ID 'VW-454' maps to issue '454'.
+        String issueNumber = defectId.replace("VW-", "").replace("S-FB-", ""); 
         
         String baseUrl = "https://github.com/bank-of-z/vforce360/issues/";
-        // Specific logic for VW-454 to map to 454, or just use ID.
-        // Assuming defect ID maps directly to issue ID for now.
-        String url = baseUrl + defectId;
+        String fullUrl = baseUrl + issueNumber;
         
+        // Formatting with Slack markup <url|text>
         return String.format(
             "Defect Reported: %s\nGitHub issue: <%s|%s>",
             description,
-            url,
+            fullUrl,
             defectId
         );
     }

@@ -24,16 +24,13 @@ public class ValidationService {
      * @param githubUrl The URL to the GitHub issue.
      */
     public void reportDefect(String defectId, String githubUrl) {
-        // In TDD Red Phase, this implementation is intentionally empty or wrong.
-        // We will write the test first to demand the correct behavior.
-        // Correct behavior (Expected): Formulate a Slack body containing the GitHub URL and send it.
-        
+        // TDD Green Phase: Include the GitHub URL in the body as required by the defect.
         String slackBody = formulateSlackBody(defectId, githubUrl);
         slackNotificationPort.send("#vforce360-issues", slackBody);
     }
 
     private String formulateSlackBody(String defectId, String githubUrl) {
-        // Placeholder
-        return "Defect: " + defectId;
+        // Green implementation: Ensure the URL is present in the string.
+        return "Defect: " + defectId + "\nGitHub Issue: " + githubUrl;
     }
 }

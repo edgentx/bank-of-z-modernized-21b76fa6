@@ -8,4 +8,5 @@ import org.junit.platform.suite.api.Suite;
 @IncludeEngines("cucumber")
 @SelectClasspathResource("features")
 public class S19TestSuite {
+    // This class acts as the JUnit 5 Suite entry point for Cucumber
 }

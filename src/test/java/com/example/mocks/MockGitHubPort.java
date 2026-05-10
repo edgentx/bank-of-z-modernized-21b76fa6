@@ -2,19 +2,20 @@ package com.example.mocks;
 
 import com.example.ports.GitHubPort;
 
+/**
+ * Mock implementation of GitHubPort for testing.
+ */
 public class MockGitHubPort implements GitHubPort {
-    private boolean shouldReturnValidUrl = true;
-    private String fakeUrl = "https://github.com/example/issues/1";
+
+    private String nextIssueUrl = "https://github.com/example/issues/1";
 
     @Override
     public String createIssue(String title, String description) {
-        if (shouldReturnValidUrl) {
-            return fakeUrl;
-        }
-        return null;
+        // Simulate successful creation returning a deterministic URL
+        return nextIssueUrl;
     }
 
-    public void setFakeUrl(String url) {
-        this.fakeUrl = url;
+    public void setNextIssueUrl(String url) {
+        this.nextIssueUrl = url;
     }
 }

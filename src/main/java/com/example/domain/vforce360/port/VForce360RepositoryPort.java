@@ -1,7 +1,6 @@
-package com.example.domain.vforce360.port;
+package com.example.ports;
 
 import com.example.domain.vforce360.model.VForce360Aggregate;
-
 import java.util.Optional;
 
 public interface VForce360RepositoryPort {

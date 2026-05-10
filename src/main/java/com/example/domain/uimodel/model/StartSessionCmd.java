@@ -3,7 +3,8 @@ package com.example.domain.uimodel.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to initiate a Teller session.
- * Belongs to the user-interface-navigation (UI Model) context.
+ * Command to initiate a Teller Session.
+ * Part of User Interface Navigation (S-18).
  */
-public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {}
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {
+}

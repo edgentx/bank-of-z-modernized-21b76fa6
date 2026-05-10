@@ -5,14 +5,13 @@ import io.cucumber.junit.CucumberOptions;
 import org.junit.runner.RunWith;
 
 /**
- * Test Runner for S-FB-1 feature.
+ * Test Suite for S-FB-1.
  */
 @RunWith(Cucumber.class)
 @CucumberOptions(
-    features = "../../features/S-FB-1.feature",
+    features = "features/S-FB-1.feature",
     glue = {"com.example.steps"},
-    plugin = {"pretty", "html:target/cucumber-report/S-FB-1.html"}
+    plugin = {"pretty", "html:target/cucumber/S-FB-1.html"}
 )
 public class SFB1TestSuite {
-    // Test runner configuration
 }

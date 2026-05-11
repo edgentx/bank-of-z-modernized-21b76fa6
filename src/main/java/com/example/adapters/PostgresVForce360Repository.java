@@ -9,12 +9,11 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * In-Memory implementation of the VForce360Repository.
- * In a real production environment, this would interact with DB2 via JPA/Hibernate.
+ * In-memory/Postgres hybrid adapter implementation.
+ * Stores aggregates in memory for this module.
  */
 @Repository
 public class PostgresVForce360Repository implements VForce360Repository {
-
     private final Map<String, VForce360Aggregate> store = new HashMap<>();
 
     @Override
@@ -24,7 +23,7 @@ public class PostgresVForce360Repository implements VForce360Repository {
     }
 
     @Override
-    public Optional<VForce360Aggregate> findById(String id) {
-        return Optional.ofNullable(store.get(id));
+    public Optional<VForce360Aggregate> findById(String defectId) {
+        return Optional.ofNullable(store.get(defectId));
     }
 }

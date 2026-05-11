@@ -11,13 +11,19 @@
     <artifactId>egdcrypto-bank-of-z-modernized</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>VForce360 Modernization</name>
-    
+
     <properties>
         <java.version>21</java.version>
         <slack-api.version>1.39.0</slack-api.version>
     </properties>
 
     <dependencies>
+        <!-- Spring Boot Starters -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
         <!-- Slack API Client (Not in Boot BOM) -->
         <dependency>
             <groupId>com.slack.api</groupId>
@@ -49,4 +55,13 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>

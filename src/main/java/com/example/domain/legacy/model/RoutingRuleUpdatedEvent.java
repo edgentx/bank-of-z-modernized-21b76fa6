@@ -1,38 +1,64 @@
 package com.example.domain.legacy.model;
 
 import com.example.domain.shared.DomainEvent;
-import java.time.Instant;
+
+import java.time.LocalDate;
+import java.util.Objects;
 import java.util.UUID;
 
-/**
- * Domain event emitted when a routing rule is successfully updated.
- */
-public record RoutingRuleUpdatedEvent(
-        String eventId,
-        String routeId,
-        String ruleId,
-        String newTarget,
-        int newVersion,
-        Instant effectiveDate,
-        Instant occurredAt
-) implements DomainEvent {
-    public RoutingRuleUpdatedEvent {
-        if (eventId == null) eventId = UUID.randomUUID().toString();
-        if (occurredAt == null) occurredAt = Instant.now();
+public class RoutingRuleUpdatedEvent implements DomainEvent {
+
+    private final UUID eventId;
+    private final UUID aggregateId;
+    private final String ruleId;
+    private final String newTarget;
+    private final LocalDate effectiveDate;
+    private final int newVersion;
+
+    public RoutingRuleUpdatedEvent(UUID aggregateId, String ruleId, String newTarget, LocalDate effectiveDate, int newVersion) {
+        this.eventId = UUID.randomUUID();
+        this.aggregateId = aggregateId;
+        this.ruleId = ruleId;
+        this.newTarget = newTarget;
+        this.effectiveDate = effectiveDate;
+        this.newVersion = newVersion;
     }
 
     @Override
-    public String type() {
-        return "routing.updated";
+    public UUID getEventId() {
+        return eventId;
     }
 
     @Override
-    public String aggregateId() {
-        return routeId;
+    public UUID getAggregateId() {
+        return aggregateId;
+    }
+
+    public String getRuleId() {
+        return ruleId;
+    }
+
+    public String getNewTarget() {
+        return newTarget;
+    }
+
+    public LocalDate getEffectiveDate() {
+        return effectiveDate;
+    }
+
+    public int getNewVersion() {
+        return newVersion;
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String toString() {
+        return "RoutingRuleUpdatedEvent{" +
+                "eventId=" + eventId +
+                ", aggregateId=" + aggregateId +
+                ", ruleId='" + ruleId + '\'' +
+                ", newTarget='" + newTarget + '\'' +
+                ", effectiveDate=" + effectiveDate +
+                ", newVersion=" + newVersion +
+                '}';
     }
 }

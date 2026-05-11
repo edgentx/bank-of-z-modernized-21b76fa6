@@ -5,11 +5,10 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 public record GenerateStatementCmd(
-        String statementId,
-        String accountNumber,
-        Instant periodStart,
-        Instant periodEnd,
-        BigDecimal openingBalance,
-        BigDecimal closingBalance,
-        BigDecimal previousPeriodClosingBalance // Needed for validation
+    String statementId,
+    String accountNumber,
+    Instant periodStart,
+    Instant periodEnd,
+    BigDecimal openingBalance,
+    BigDecimal previousStatementClosingBalance
 ) implements Command {}

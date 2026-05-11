@@ -1,10 +1,14 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
+import java.util.Objects;
 
 /**
- * Command to start a new Teller Session.
- * Immutable record carrying the required data.
+ * Command to initiate a teller session.
  */
-public record StartSessionCmd(String tellerId, String terminalId, boolean isAuthenticated, boolean isActive, String contextState) implements Command {
+public record StartSessionCmd(String tellerId, String terminalId, boolean isAuthenticated) implements Command {
+    public StartSessionCmd {
+        Objects.requireNonNull(tellerId, "tellerId cannot be null");
+        Objects.requireNonNull(terminalId, "terminalId cannot be null");
+    }
 }

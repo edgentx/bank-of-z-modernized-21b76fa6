@@ -1,29 +1,26 @@
 package com.example.mocks;
 
-import com.example.vforce.adapter.NotificationPort;
-import java.util.HashMap;
-import java.util.Map;
+import com.example.domain.vforce360.model.DefectReportedEvent;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Mock implementation of NotificationPort.
- * Captures the last sent payload for assertions.
+ * Mock implementation of a Notification Service.
+ * Used in tests to capture outbound Slack messages without real I/O.
  */
-public class MockNotificationService implements NotificationPort {
+public class MockNotificationService {
 
-    private Map<String, String> lastPayload;
-    public boolean notificationSent = false;
+    private final List<String> sentMessages = new ArrayList<>();
 
-    @Override
-    public void sendNotification(Map<String, String> payload) {
-        this.lastPayload = new HashMap<>(payload);
-        this.notificationSent = true;
+    public void sendSlackNotification(String message) {
+        sentMessages.add(message);
     }
 
-    public Map<String, String> getLastPayload() {
-        return lastPayload;
+    public boolean wasSlackMessageSentContaining(String text) {
+        return sentMessages.stream().anyMatch(msg -> msg.contains(text));
     }
 
-    public String getMessageBody() {
-        return lastPayload != null ? lastPayload.get("body") : null;
+    public void reset() {
+        sentMessages.clear();
     }
 }

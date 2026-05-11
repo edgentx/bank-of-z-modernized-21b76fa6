@@ -7,18 +7,22 @@ import java.util.Objects;
 
 /**
  * Event emitted when a routing rule is successfully updated.
+ * S-24 Implementation.
  */
 public record RuleUpdatedEvent(
         String aggregateId,
         String ruleId,
-        String targetSystem,
+        String newTarget,
         Instant effectiveDate,
+        int version,
         Instant occurredAt
 ) implements DomainEvent {
 
     public RuleUpdatedEvent {
         Objects.requireNonNull(aggregateId, "aggregateId cannot be null");
-        Objects.requireNonNull(targetSystem, "targetSystem cannot be null");
+        Objects.requireNonNull(ruleId, "ruleId cannot be null");
+        Objects.requireNonNull(newTarget, "newTarget cannot be null");
+        Objects.requireNonNull(effectiveDate, "effectiveDate cannot be null");
         Objects.requireNonNull(occurredAt, "occurredAt cannot be null");
     }
 

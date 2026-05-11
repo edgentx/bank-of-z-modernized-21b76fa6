@@ -7,5 +7,4 @@ public record ReportDefectCmd(
     String title,
     String description,
     String projectId
-) implements Command {
-}
+) implements Command {}

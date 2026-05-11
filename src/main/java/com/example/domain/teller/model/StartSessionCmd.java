@@ -1,10 +1,12 @@
 package com.example.domain.teller.model;
 
 import com.example.domain.shared.Command;
+import java.time.Instant;
 
-/**
- * Command to initiate a new teller session.
- * Validated within the TellerSession aggregate.
- */
-public record StartSessionCmd(String tellerId, String terminalId) implements Command {
-}
+public record StartSessionCmd(
+    String tellerId,
+    String terminalId,
+    boolean isAuthenticated,
+    Instant lastActivityAt,
+    String operationalContext
+) implements Command {}

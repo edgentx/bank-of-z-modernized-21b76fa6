@@ -3,20 +3,25 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.Objects;
 
 /**
- * Event emitted when a teller successfully navigates to a new menu context.
+ * Event emitted when a Teller successfully navigates to a new menu context.
  */
-public record MenuNavigatedEvent(
-        String type,
-        String aggregateId,
-        Instant occurredAt,
-        String menuId,
-        String action
-) implements DomainEvent {
+public class MenuNavigatedEvent implements DomainEvent {
 
-    public MenuNavigatedEvent(String aggregateId, String menuId, String action) {
-        this("menu.navigated", aggregateId, Instant.now(), menuId, action);
+    private final String type;
+    private final String aggregateId;
+    private final Instant occurredAt;
+    private final String menuId;
+    private final String action;
+
+    public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
+        this.type = "menu.navigated";
+        this.aggregateId = aggregateId;
+        this.menuId = menuId;
+        this.action = action;
+        this.occurredAt = occurredAt;
     }
 
     @Override
@@ -32,5 +37,30 @@ public record MenuNavigatedEvent(
     @Override
     public Instant occurredAt() {
         return occurredAt;
+    }
+
+    public String menuId() {
+        return menuId;
+    }
+
+    public String action() {
+        return action;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MenuNavigatedEvent that = (MenuNavigatedEvent) o;
+        return Objects.equals(type, that.type) &&
+                Objects.equals(aggregateId, that.aggregateId) &&
+                Objects.equals(occurredAt, that.occurredAt) &&
+                Objects.equals(menuId, that.menuId) &&
+                Objects.equals(action, that.action);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, aggregateId, occurredAt, menuId, action);
     }
 }

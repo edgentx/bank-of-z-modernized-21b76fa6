@@ -4,7 +4,8 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
-public record AccountStatusUpdatedEvent(String aggregateId, AccountStatus status, Instant occurredAt) implements DomainEvent {
+// Fix for Error: "return type of accessor method type() must match..."
+public record AccountStatusUpdatedEvent(String aggregateId, AccountStatus newStatus, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
         return "account.status.updated";
@@ -13,10 +14,5 @@ public record AccountStatusUpdatedEvent(String aggregateId, AccountStatus status
     @Override
     public String aggregateId() {
         return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

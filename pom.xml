@@ -9,7 +9,7 @@
         <version>3.2.1</version>
         <relativePath/>
     </parent>
-    
+
     <groupId>com.example</groupId>
     <artifactId>bank-of-z-modernization</artifactId>
     <version>0.0.1-SNAPSHOT</version>
@@ -23,23 +23,18 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
+
+        <!-- Spring Web for WebClient (used by adapters) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- 
-           CRITICAL FIX for build failure: 
-           Flyway DB2 dependency was not found in central. 
-           Replaced with standard DB2 driver for generic connectivity.
-           If specific Flyway DB2 support is required, ensure the repository is valid
-           or use the correct groupId/artifactId.
-        -->
-        <!-- 
-           Note: org.flywaydb:flyway-db2 is often not in Maven Central.
-           Standard DB2 drivers are usually com.ibm.db2 or com.ibm.db2.jcc.
-           We include a placeholder comment to fix the resolution error.
-        -->
     </dependencies>
     <build>
         <plugins>

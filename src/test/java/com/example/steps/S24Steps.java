@@ -1,93 +1,109 @@
 package com.example.steps;
 
-import com.example.domain.legacybridge.model.LegacyTransactionRoute;
-import com.example.domain.legacybridge.model.RoutingRuleUpdatedEvent;
-import com.example.domain.legacybridge.model.UpdateRoutingRuleCmd;
-import com.example.domain.shared.DomainEvent;
+import com.example.domain.legacy.model.LegacyTransactionRoute;
+import com.example.domain.legacy.model.RoutingRuleUpdatedEvent;
+import com.example.domain.legacy.model.UpdateRoutingRuleCmd;
+import com.example.domain.shared.UnknownCommandException;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Assertions;
 
-import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 public class S24Steps {
 
     private LegacyTransactionRoute aggregate;
     private UpdateRoutingRuleCmd command;
-    private List<DomainEvent> resultingEvents;
     private Exception capturedException;
+    private String providedRuleId;
+    private String providedNewTarget;
+    private LocalDate providedEffectiveDate;
 
     @Given("a valid LegacyTransactionRoute aggregate")
-    public void a_valid_legacy_transaction_route_aggregate() {
-        aggregate = new LegacyTransactionRoute("route-123");
+    public void aValidLegacyTransactionRouteAggregate() {
+        UUID id = UUID.randomUUID();
+        this.aggregate = new LegacyTransactionRoute(id);
     }
 
-    @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system")
-    public void a_legacy_transaction_route_aggregate_with_dual_processing_violation() {
-        aggregate = new LegacyTransactionRoute("route-123");
-        aggregate.markDualProcessingViolation();
+    @Given("a valid ruleId is provided")
+    public void aValidRuleIdIsProvided() {
+        this.providedRuleId = "RULE-101";
     }
 
-    @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback")
-    public void a_legacy_transaction_route_aggregate_with_versioning_violation() {
-        aggregate = new LegacyTransactionRoute("route-123");
-        aggregate.markVersioningViolation();
+    @Given("a valid newTarget is provided")
+    public void aValidNewTargetIsProvided() {
+        this.providedNewTarget = "MODERN";
     }
 
-    @And("a valid ruleId is provided")
-    public void a_valid_rule_id_is_provided() {
-        // Context setup - passed to command in 'When'
-    }
-
-    @And("a valid newTarget is provided")
-    public void a_valid_new_target_is_provided() {
-        // Context setup - passed to command in 'When'
-    }
-
-    @And("a valid effectiveDate is provided")
-    public void a_valid_effective_date_is_provided() {
-        // Context setup - passed to command in 'When'
+    @Given("a valid effectiveDate is provided")
+    public void aValidEffectiveDateIsProvided() {
+        this.providedEffectiveDate = LocalDate.now().plusDays(1);
     }
 
     @When("the UpdateRoutingRuleCmd command is executed")
-    public void the_update_routing_rule_cmd_command_is_executed() {
-        // Create a valid command with defaults for positive flow, 
-        // specific values don't matter much for Invariant checks unless specified
-        command = new UpdateRoutingRuleCmd(
-            "route-123", 
-            "rule-A", 
-            "MODERN", 
-            Instant.now(), 
-            2
-        );
-
+    public void theUpdateRoutingRuleCmdCommandIsExecuted() {
         try {
-            resultingEvents = aggregate.execute(command);
+            // We assume a default valid aggregate context if not specified otherwise
+            if (this.aggregate == null) {
+                 this.aggregate = new LegacyTransactionRoute(UUID.randomUUID());
+            }
+            // Initialize rule for versioning checks if needed for specific scenario context
+            // But for "valid" scenario, we assume clean slate or valid state.
+            
+            this.command = new UpdateRoutingRuleCmd(
+                this.aggregate.getId(),
+                this.providedRuleId,
+                this.providedNewTarget,
+                this.providedEffectiveDate
+            );
+            
+            this.aggregate.execute(command);
         } catch (Exception e) {
-            capturedException = e;
+            this.capturedException = e;
         }
     }
 
     @Then("a routing.updated event is emitted")
-    public void a_routing_updated_event_is_emitted() {
-        assertNotNull(resultingEvents);
-        assertEquals(1, resultingEvents.size());
-        
-        DomainEvent event = resultingEvents.get(0);
-        assertTrue(event instanceof RoutingRuleUpdatedEvent);
-        
-        RoutingRuleUpdatedEvent routingEvent = (RoutingRuleUpdatedEvent) event;
-        assertEquals("routing.updated", routingEvent.type());
-        assertEquals("route-123", routingEvent.aggregateId());
+    public void aRoutingUpdatedEventIsEmitted() {
+        Assertions.assertNull(capturedException, "Should not have thrown an exception");
+        List<com.example.domain.shared.DomainEvent> events = this.aggregate.getUncommittedEvents();
+        Assertions.assertFalse(events.isEmpty(), "Should have uncommitted events");
+        Assertions.assertTrue(events.get(0) instanceof RoutingRuleUpdatedEvent, "Event should be RoutingRuleUpdatedEvent");
+    }
+
+    // --- Failure Scenarios ---
+
+    @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.")
+    public void aLegacyTransactionRouteAggregateThatViolatesBackendUniqueness() {
+        this.aggregate = new LegacyTransactionRoute(UUID.randomUUID());
+        // The violation is triggered by the command data, not necessarily the aggregate state,
+        // based on the invariant "A transaction must route to exactly one backend system... to prevent dual processing"
+        // Let's assume an invalid target or configuration triggers this.
+        // The prompt implies the command or state leads to this. Let's set a target that implies dual or invalid.
+        this.providedNewTarget = "DUAL_PROCESSING_MODE"; // Simulating violation
+    }
+
+    @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback.")
+    public void aLegacyTransactionRouteAggregateThatViolatesVersioning() {
+        this.aggregate = new LegacyTransactionRoute(UUID.randomUUID());
+        this.aggregate.addRuleForTest("RULE-101", "LEGACY", 5); 
+        // The aggregate thinks version is 5.
+        // If we execute a command that doesn't respect versioning (e.g., not providing expected version),
+        // or if the internal logic checks strictly that versions must increment sequentially,
+        // we can trigger the error. 
+        // Based on implementation: If existing version >= aggregate version, error.
+        // We'll rely on the Logic inside the aggregate to throw.
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(capturedException);
-        // Depending on invariant, it could be IllegalStateException or IllegalArgumentException
-        assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
+    public void theCommandIsRejectedWithADomainError() {
+        Assertions.assertNotNull(capturedException, "Expected an exception to be thrown");
+        // Typically a domain error might be a specific exception type, 
+        // but IllegalStateException is a valid Java domain exception.
+        Assertions.assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
     }
 }

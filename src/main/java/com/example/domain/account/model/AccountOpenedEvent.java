@@ -9,12 +9,11 @@ import java.util.UUID;
 public record AccountOpenedEvent(
     String aggregateId,
     String customerId,
-    AccountAggregate.AccountType accountType,
-    BigDecimal initialBalance,
+    String accountType,
+    BigDecimal openingBalance,
     String sortCode,
     Instant occurredAt
 ) implements DomainEvent {
-
     @Override
     public String type() {
         return "account.opened";
@@ -23,5 +22,10 @@ public record AccountOpenedEvent(
     @Override
     public String aggregateId() {
         return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

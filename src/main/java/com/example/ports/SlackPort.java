@@ -1,7 +1,9 @@
 package com.example.ports;
 
-/** Port for Slack integration */
+/**
+ * Port interface for Slack notifications.
+ * Implementations will handle HTTP calls to Slack Webhooks.
+ */
 public interface SlackPort {
-    /** Sends a notification containing the link */
-    void sendNotification(String url);
+    void sendMessage(String body);
 }

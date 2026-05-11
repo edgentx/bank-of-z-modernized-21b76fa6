@@ -1,7 +1,7 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.userinterface.model.RenderScreenCmd;
 import com.example.domain.userinterface.model.ScreenMapAggregate;
 import com.example.domain.userinterface.model.ScreenRenderedEvent;
@@ -16,87 +16,81 @@ import static org.junit.jupiter.api.Assertions.*;
 public class S21Steps {
 
     private ScreenMapAggregate aggregate;
-    private List<DomainEvent> resultEvents;
+    private RenderScreenCmd cmd;
+    private List<DomainEvent> resultingEvents;
     private Exception capturedException;
 
     @Given("a valid ScreenMap aggregate")
-    public void a_valid_ScreenMap_aggregate() {
-        aggregate = new ScreenMapAggregate("screen-map-1");
+    public void a_valid_screen_map_aggregate() {
+        aggregate = new ScreenMapAggregate("test-screen-map-1");
     }
 
     @Given("a valid screenId is provided")
-    public void a_valid_screenId_is_provided() {
-        // State setup handled in 'When' step construction
+    public void a_valid_screen_id_is_provided() {
+        // Cmd construction is completed in the 'When' step to allow variations
     }
 
     @Given("a valid deviceType is provided")
-    public void a valid_deviceType_is_provided() {
-        // State setup handled in 'When' step construction
+    public void a_valid_device_type_is_provided() {
+        // Cmd construction is completed in the 'When' step
     }
 
     @When("the RenderScreenCmd command is executed")
-    public void the_RenderScreenCmd_command_is_executed() {
-        Command cmd = new RenderScreenCmd("LOGIN_SCR_01", "3270_TERMINAL");
-        try {
-            resultEvents = aggregate.execute(cmd);
-        } catch (Exception e) {
-            capturedException = e;
-        }
+    public void the_render_screen_cmd_command_is_executed() {
+        cmd = new RenderScreenCmd("LOGIN01", "3270");
+        executeCommand();
     }
 
     @Then("a screen.rendered event is emitted")
     public void a_screen_rendered_event_is_emitted() {
-        assertNull(capturedException, "Should not have thrown an exception");
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
-        ScreenRenderedEvent event = (ScreenRenderedEvent) resultEvents.get(0);
-        assertEquals("screen.rendered", event.type());
-        assertEquals("LOGIN_SCR_01", event.screenId());
+        assertNull(capturedException, "Expected no exception, but got: " + (capturedException != null ? capturedException.getMessage() : ""));
+        assertNotNull(resultingEvents);
+        assertEquals(1, resultingEvents.size());
+        assertTrue(resultingEvents.get(0) instanceof ScreenRenderedEvent);
+
+        ScreenRenderedEvent event = (ScreenRenderedEvent) resultingEvents.get(0);
+        assertEquals("test-screen-map-1", event.aggregateId());
+        assertEquals("LOGIN01", event.screenId());
+        assertEquals("3270", event.deviceType());
+        assertNotNull(event.layout());
     }
 
     @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void a_ScreenMap_aggregate_that_violates_mandatory_fields() {
-        aggregate = new ScreenMapAggregate("screen-map-2");
+    public void a_screen_map_aggregate_that_violates_mandatory_fields() {
+        aggregate = new ScreenMapAggregate("test-screen-map-err");
     }
 
-    @When("the RenderScreenCmd command is executed with null screenId")
-    public void the_RenderScreenCmd_command_is_executed_with_null_screenId() {
-        Command cmd = new RenderScreenCmd(null, "3270_TERMINAL");
-        try {
-            aggregate.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            capturedException = e;
-        }
+    @When("the RenderScreenCmd command is executed with invalid data")
+    public void the_render_screen_cmd_command_is_executed_with_invalid_data() {
+        // screenId is null/blank
+        cmd = new RenderScreenCmd("", "3270");
+        executeCommand();
     }
 
-    @Then("the command is rejected with a domain error for mandatory fields")
+    @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
         assertNotNull(capturedException);
         assertTrue(capturedException instanceof IllegalArgumentException);
-        assertTrue(capturedException.getMessage().contains("mandatory"));
+        assertTrue(capturedException.getMessage().contains("required"));
     }
 
     @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void a_ScreenMap_aggregate_that_violates_field_lengths() {
-        aggregate = new ScreenMapAggregate("screen-map-3");
+    public void a_screen_map_aggregate_that_violates_field_lengths() {
+        aggregate = new ScreenMapAggregate("test-screen-map-len");
     }
 
-    @When("the RenderScreenCmd command is executed with excessive length")
-    public void the_RenderScreenCmd_command_is_executed_with_excessive_length() {
-        String longString = "a".repeat(100); // Exceeds 80 char limit
-        Command cmd = new RenderScreenCmd(longString, "3270_TERMINAL");
+    @When("the RenderScreenCmd command is executed with invalid length")
+    public void the_render_screen_cmd_command_is_executed_with_invalid_length() {
+        // screenId length > 8
+        cmd = new RenderScreenCmd("LONGSCREENNAME", "3270");
+        executeCommand();
+    }
+
+    private void executeCommand() {
         try {
-            aggregate.execute(cmd);
-        } catch (IllegalArgumentException e) {
+            resultingEvents = aggregate.execute(cmd);
+        } catch (Exception e) {
             capturedException = e;
         }
-    }
-
-    @Then("the command is rejected with a domain error for field length")
-    public void the_command_is_rejected_with_a_domain_error_for_length() {
-        assertNotNull(capturedException);
-        assertTrue(capturedException instanceof IllegalArgumentException);
-        assertTrue(capturedException.getMessage().contains("Field length violation"));
     }
 }

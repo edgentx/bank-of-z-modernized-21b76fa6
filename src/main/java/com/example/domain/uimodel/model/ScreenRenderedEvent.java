@@ -3,25 +3,14 @@ package com.example.domain.uimodel.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
-/**
- * Domain event emitted when a screen is successfully rendered.
- * Part of S-21: RenderScreenCmd on ScreenMap.
- */
-public class ScreenRenderedEvent implements DomainEvent {
-    private final String aggregateId;
-    private final String screenId;
-    private final String deviceType;
-    private final Instant occurredAt;
-
-    public ScreenRenderedEvent(String aggregateId, String screenId, String deviceType, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.screenId = screenId;
-        this.deviceType = deviceType;
-        this.occurredAt = occurredAt;
-    }
-
+public record ScreenRenderedEvent(
+    String aggregateId,
+    String screenId,
+    String deviceType,
+    Instant occurredAt
+) implements DomainEvent {
     @Override
     public String type() {
         return "screen.rendered";
@@ -36,8 +25,4 @@ public class ScreenRenderedEvent implements DomainEvent {
     public Instant occurredAt() {
         return occurredAt;
     }
-
-    public String screenId() { return screenId; }
-
-    public String deviceType() { return deviceType; }
 }

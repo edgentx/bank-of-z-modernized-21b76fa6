@@ -5,15 +5,14 @@ import io.cucumber.junit.CucumberOptions;
 import org.junit.runner.RunWith;
 
 /**
- * Test Suite runner for S-FB-1 Regression.
+ * Test Runner for S-FB-1.
+ * Scenarios are defined in features/S-FB-1.feature.
  */
 @RunWith(Cucumber.class)
 @CucumberOptions(
-    features = {"features/S-FB-1.feature"},
+    features = "features/S-FB-1.feature",
     glue = {"com.example.steps"},
-    plugin = {"pretty", "summary"},
-    monochrome = true
+    plugin = {"pretty", "html:target/cucumber-report/S-FB-1"}
 )
 public class SFB1TestSuite {
-    // Suite executes tests defined in SFB1Steps
 }

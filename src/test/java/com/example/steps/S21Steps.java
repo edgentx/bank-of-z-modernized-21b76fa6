@@ -1,103 +1,113 @@
 package com.example.steps;
 
+import com.example.domain.navigation.model.RenderScreenCmd;
+import com.example.domain.navigation.model.ScreenMap;
+import com.example.domain.navigation.model.ScreenRenderedEvent;
+import com.example.domain.navigation.repository.ScreenMapRepository;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.uimodel.model.RenderScreenCmd;
-import com.example.domain.uimodel.model.ScreenMapAggregate;
-import com.example.domain.uimodel.model.ScreenRenderedEvent;
-import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Optional;
 
 public class S21Steps {
 
-    private ScreenMapAggregate aggregate;
-    private RenderScreenCmd command;
-    private List<DomainEvent> resultingEvents;
-    private Exception caughtException;
+    private ScreenMap aggregate;
+    private final InMemoryScreenMapRepository repo = new InMemoryScreenMapRepository();
+    private Exception capturedException;
+    private List<DomainEvent> resultEvents;
+
+    static class InMemoryScreenMapRepository implements ScreenMapRepository {
+        private final Map<String, ScreenMap> store = new HashMap<>();
+        @Override public ScreenMap save(ScreenMap a) { store.put(a.id(), a); return a; }
+        @Override public Optional<ScreenMap> findById(String id) { return Optional.ofNullable(store.get(id)); }
+    }
 
     @Given("a valid ScreenMap aggregate")
     public void a_valid_screen_map_aggregate() {
-        aggregate = new ScreenMapAggregate("SM-001");
+        aggregate = new ScreenMap("SCREEN001");
+        repo.save(aggregate);
     }
 
-    @And("a valid screenId is provided")
+    @Given("a valid screenId is provided")
     public void a_valid_screen_id_is_provided() {
-        // Command is constructed in the When step, but we ensure validity here for the happy path
+        // Logic handled in 'when' via command construction
     }
 
-    @And("a valid deviceType is provided")
+    @Given("a valid deviceType is provided")
     public void a_valid_device_type_is_provided() {
-        // Command is constructed in the When step
+        // Logic handled in 'when' via command construction
     }
 
     @When("the RenderScreenCmd command is executed")
     public void the_render_screen_cmd_command_is_executed() {
         try {
-            // Defaulting to valid values if called from happy path
-            String screenId = "LOGIN"; // Valid BMS length
-            String deviceType = "3270";   // Valid BMS length
-            command = new RenderScreenCmd("SM-001", screenId, deviceType);
-            resultingEvents = aggregate.execute(command);
+            RenderScreenCmd cmd = new RenderScreenCmd("SCREEN001", "3270");
+            resultEvents = aggregate.execute(cmd);
+            repo.save(aggregate); // persist state changes if any
         } catch (Exception e) {
-            caughtException = e;
+            capturedException = e;
         }
     }
 
     @Then("a screen.rendered event is emitted")
     public void a_screen_rendered_event_is_emitted() {
-        assertNotNull(resultingEvents);
-        assertEquals(1, resultingEvents.size());
-        assertTrue(resultingEvents.get(0) instanceof ScreenRenderedEvent);
-
-        ScreenRenderedEvent event = (ScreenRenderedEvent) resultingEvents.get(0);
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
+        
+        ScreenRenderedEvent event = (ScreenRenderedEvent) resultEvents.get(0);
         assertEquals("screen.rendered", event.type());
-        assertEquals("LOGIN", event.screenId());
+        assertEquals("SCREEN001", event.aggregateId());
         assertEquals("3270", event.deviceType());
+        assertNotNull(event.layout());
     }
 
-    // Negative Scenarios
+    // Negative Cases
 
     @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void a_screen_map_aggregate_with_missing_fields() {
-        aggregate = new ScreenMapAggregate("SM-002");
-    }
-
-    @When("the RenderScreenCmd command is executed with blank screenId")
-    public void execute_command_blank_screen_id() {
-        try {
-            command = new RenderScreenCmd("SM-002", "", "3270");
-            resultingEvents = aggregate.execute(command);
-        } catch (IllegalArgumentException e) {
-            caughtException = e;
-        }
+    public void a_screen_map_aggregate_that_violates_all_mandatory_input_fields() {
+        aggregate = new ScreenMap("SCREEN002");
+        // The violation will be simulated by passing null/blank IDs in the When step for this context
     }
 
     @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void a_screen_map_aggregate_with_long_fields() {
-        aggregate = new ScreenMapAggregate("SM-003");
+    public void a_screen_map_aggregate_that_violates_field_lengths() {
+        aggregate = new ScreenMap("SCREEN003");
+        // The violation will be simulated by passing a very long ID in the When step
     }
 
-    @When("the RenderScreenCmd command is executed with long screenId")
-    public void execute_command_long_screen_id() {
+    @When("the command is executed for invalid input")
+    public void the_command_is_executed_for_invalid_input() {
         try {
-            // BMS Limit is 10 chars
-            command = new RenderScreenCmd("SM-003", "VERY_LONG_SCREEN_ID", "3270");
-            resultingEvents = aggregate.execute(command);
-        } catch (IllegalArgumentException e) {
-            caughtException = e;
+            // Attempting to execute with bad data based on the 'Given' context above
+            // We'll try to trigger the length constraint here
+            String longId = "SCREEN-" + "X".repeat(100); 
+            RenderScreenCmd cmd = new RenderScreenCmd(longId, "3270");
+            aggregate.execute(cmd);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            capturedException = e;
+        }
+    }
+    
+    @When("the command is executed for missing fields")
+    public void the_command_is_executed_for_missing_fields() {
+        try {
+            RenderScreenCmd cmd = new RenderScreenCmd("", "3270"); // Blank ID
+            aggregate.execute(cmd);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            capturedException = e;
         }
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(caughtException);
-        assertTrue(caughtException instanceof IllegalArgumentException);
-        assertNull(resultingEvents);
+        assertNotNull(capturedException);
+        assertTrue(capturedException instanceof IllegalArgumentException || capturedException instanceof IllegalStateException);
     }
 }

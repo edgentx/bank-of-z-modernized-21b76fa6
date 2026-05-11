@@ -5,16 +5,21 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 
 /**
- * Domain event emitted when a screen is successfully rendered.
+ * Event emitted when a screen layout is successfully generated.
  */
-public record ScreenRenderedEvent(
-    String aggregateId,
-    String deviceType,
-    String layout,
-    Instant occurredAt
-) implements DomainEvent {
+public record ScreenRenderedEvent(String screenId, String deviceType, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
         return "screen.rendered";
+    }
+
+    @Override
+    public String aggregateId() {
+        return screenId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

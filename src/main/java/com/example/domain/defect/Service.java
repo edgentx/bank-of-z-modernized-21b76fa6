@@ -1,43 +1,56 @@
 package com.example.domain.defect;
 
+import com.example.adapters.GitHubAdapter;
 import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.domain.shared.DomainEvent;
-import com.example.ports.SlackPort;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackNotifierPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
+/**
+ * Domain Service for handling Defect reporting workflows.
+ * This simulates the logic called by the Temporal worker.
+ */
 @Service
 public class Service {
 
-    private final SlackPort slackPort;
+    private static final Logger logger = LoggerFactory.getLogger(Service.class);
 
-    public Service(SlackPort slackPort) {
-        this.slackPort = slackPort;
+    private final GitHubPort gitHubPort;
+    private final SlackNotifierPort slackNotifier;
+
+    public Service(GitHubPort gitHubPort, SlackNotifierPort slackNotifier) {
+        this.gitHubPort = gitHubPort;
+        this.slackNotifier = slackNotifier;
     }
 
-    public void handleReportDefect(ReportDefectCmd cmd) {
-        DefectAggregate aggregate = new DefectAggregate(cmd.reportId());
-        List<DomainEvent> events = aggregate.execute(cmd);
-
-        for (DomainEvent event : events) {
-            apply(event);
+    /**
+     * Executes the report_defect workflow.
+     * 1. Resolves the GitHub URL.
+     * 2. Notifies Slack with the URL included in the body.
+     *
+     * @param defect The defect aggregate to report.
+     */
+    public void reportDefect(DefectAggregate defect) {
+        if (defect == null) {
+            throw new IllegalArgumentException("Defect aggregate cannot be null");
         }
-    }
 
-    private void apply(DomainEvent event) {
-        // In a real app, we would persist the event here.
-        // For this story, we trigger the side effect (Slack notification).
-        if (event instanceof com.example.domain.defect.model.DefectReportedEvent e) {
-            notifySlack(e);
+        String defectId = defect.id();
+        logger.info("Reporting defect: {}", defectId);
+
+        // Step 1: Get the GitHub URL
+        String url = gitHubPort.getIssueUrl(defectId);
+        logger.debug("Resolved GitHub URL: {}", url);
+
+        // Step 2: Notify Slack with the body containing the URL
+        String message = String.format("Defect Reported: %s - %s", defectId, url);
+        boolean success = slackNotifier.notify("#vforce360-issues", message);
+
+        if (!success) {
+            logger.error("Failed to send Slack notification for defect {}", defectId);
+            // Depending on requirements, we might throw here. For now, we log.
         }
-    }
-
-    private void notifySlack(com.example.domain.defect.model.DefectReportedEvent event) {
-        // Format the message according to the requirement:
-        // "Slack body includes GitHub issue: <url>"
-        String messageBody = String.format("Defect Reported: %s. GitHub Issue: <%s|View>", event.reportId(), event.githubUrl());
-        slackPort.sendMessage("#vforce360-issues", messageBody);
     }
 }

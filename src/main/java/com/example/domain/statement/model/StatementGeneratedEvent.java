@@ -6,14 +6,25 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 public record StatementGeneratedEvent(
-    String aggregateId,
-    String accountNumber,
-    LocalDate periodEnd,
-    BigDecimal openingBalance,
-    BigDecimal closingBalance,
-    Instant occurredAt
+  String aggregateId,
+  String accountNumber,
+  LocalDate periodEnd,
+  BigDecimal openingBalance,
+  BigDecimal closingBalance,
+  Instant occurredAt
 ) implements DomainEvent {
-    @Override public String type() { return "statement.generated`; }
-    @Override public String aggregateId() { return aggregateId; }
-    @Override public Instant occurredAt() { return occurredAt; }
+  @Override
+  public String type() {
+    return "statement.generated";
+  }
+
+  @Override
+  public Instant occurredAt() {
+    return occurredAt;
+  }
+
+  @Override
+  public String aggregateId() {
+    return aggregateId;
+  }
 }

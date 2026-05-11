@@ -1,22 +1,20 @@
 package com.example.adapters;
 
-import com.example.domain.shared.ReportDefectCmd;
+import com.example.domain.vforce360.model.ReportDefectCmd;
 import com.example.domain.vforce360.model.VForce360Aggregate;
 import com.example.domain.vforce360.repository.VForce360Repository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.temporal.activity.ActivityInterface;
+import io.temporal.activity.ActivityMethod;
+import io.temporal.spring.boot.ActivityImpl;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
-
 /**
- * Adapter for handling defect reports triggered by a Temporal workflow.
- * This acts as the entry point for the 'report_defect' temporal-worker execution.
+ * Temporal Workflow Adapter for Defect Reporting.
+ * Interacts with the domain aggregate via the repository.
  */
 @Component
 public class DefectReportTemporalAdapter {
 
-    private static final Logger log = LoggerFactory.getLogger(DefectReportTemporalAdapter.class);
     private final VForce360Repository repository;
 
     public DefectReportTemporalAdapter(VForce360Repository repository) {
@@ -24,48 +22,36 @@ public class DefectReportTemporalAdapter {
     }
 
     /**
-     * Triggered by Temporal to report a defect.
-     * Generates a unique ID if one is not present, creates the aggregate,
-     * executes the command, and persists the result.
-     * 
-     * @param cmd The command details (title, description, etc.)
-     * @return The ID of the created defect record
+     * Reports a defect.
+     * Workflow Activity method triggered by Temporal Worker.
      */
-    public String reportDefect(ReportDefectCmd cmd) {
-        String defectId = cmd.defectId();
-        if (defectId == null || defectId.isBlank()) {
-            defectId = UUID.randomUUID().toString();
+    @ActivityInterface
+    public interface DefectActivities {
+        @ActivityMethod
+        String reportDefect(String title, String description);
+    }
+
+    @ActivityImpl(taskQueue = "DEFECT_TASK_QUEUE")
+    public static class DefectActivitiesImpl implements DefectActivities {
+        private final VForce360Repository repository;
+
+        public DefectActivitiesImpl(VForce360Repository repository) {
+            this.repository = repository;
         }
 
-        VForce360Aggregate aggregate = new VForce360Aggregate(defectId);
-        
-        // Execute domain logic
-        var events = aggregate.execute(new ReportDefectCmd(
-            defectId,
-            cmd.title(),
-            cmd.description(),
-            cmd.component(),
-            cmd.severity()
-        ));
-
-        // Persist aggregate state
-        repository.save(aggregate);
-
-        // Log event for downstream Slack notification formatting
-        // (In the full flow, a projector would pick this up to create the Slack payload)
-        if (!events.isEmpty()) {
-            var event = events.get(0);
-            log.info("Defect reported: ID={}, Title={}, Component={}, Severity={}",
-                event.aggregateId(), 
-                // Checking for the specific event type to access fields safely
-                event instanceof com.example.domain.vforce360.model.DefectReportedEvent d 
-                    ? d.title() 
-                    : cmd.title(),
-                cmd.component(),
-                cmd.severity()
-            );
+        @Override
+        public String reportDefect(String title, String description) {
+            String defectId = java.util.UUID.randomUUID().toString();
+            VForce360Aggregate aggregate = new VForce360Aggregate(defectId);
+            
+            // Execute command
+            aggregate.execute(new ReportDefectCmd(defectId, title, description));
+            
+            // Persist state
+            repository.save(aggregate);
+            
+            // Return URL for verification (and likely Slack body construction)
+            return aggregate.getGithubIssueUrl();
         }
-
-        return defectId;
     }
 }

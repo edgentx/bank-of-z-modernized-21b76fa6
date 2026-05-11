@@ -3,22 +3,8 @@ package com.example.domain.account.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Objects;
 
-/**
- * Event emitted when an account is closed.
- * S-7: Event object.
- */
-public class AccountClosedEvent implements DomainEvent {
-
-    private final String aggregateId;
-    private final Instant occurredAt;
-
-    public AccountClosedEvent(String aggregateId, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.occurredAt = occurredAt;
-    }
-
+public record AccountClosedEvent(String accountNumber, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
         return "account.closed";
@@ -26,7 +12,7 @@ public class AccountClosedEvent implements DomainEvent {
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return accountNumber;
     }
 
     @Override

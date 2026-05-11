@@ -1,17 +1,24 @@
 package com.example.ports;
 
-import com.example.domain.shared.ReportDefectCmd;
-
 /**
- * Port for creating GitHub issues.
+ * Port for interacting with GitHub issues.
+ * Used to generate the URL required in the Slack body.
  */
 public interface GitHubIssuePort {
 
     /**
-     * Creates a remote GitHub issue based on the defect report.
+     * Creates a new issue on GitHub.
      *
-     * @param cmd The defect command.
-     * @return The HTML URL of the created issue.
+     * @param title The issue title.
+     * @param body  The issue body.
+     * @return The URL of the created issue.
+     * @throws IssueCreationException if creation fails.
      */
-    String createIssue(ReportDefectCmd cmd);
+    String createIssue(String title, String body);
+
+    class IssueCreationException extends RuntimeException {
+        public IssueCreationException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
 }

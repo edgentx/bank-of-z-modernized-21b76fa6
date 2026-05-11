@@ -12,7 +12,6 @@ import java.util.List;
  * Aggregate Root for Legacy Transaction Routing.
  * Determines the target system (Modern vs Legacy) based on feature flags and rules.
  * Enforces invariants: Single Target and Versioning.
- * S-24 Update: Added support for UpdateRoutingRuleCmd.
  */
 public class LegacyTransactionRoute extends AggregateRoot {
 
@@ -21,7 +20,6 @@ public class LegacyTransactionRoute extends AggregateRoot {
     private boolean versioningViolation;
     private boolean evaluated;
     private String targetSystem;
-    private int currentRulesVersion = 1; // Default version
 
     public LegacyTransactionRoute(String routeId) {
         this.routeId = routeId;
@@ -50,8 +48,7 @@ public class LegacyTransactionRoute extends AggregateRoot {
     public List<DomainEvent> execute(Command cmd) {
         if (cmd instanceof EvaluateRoutingCmd c) {
             return evaluateRouting(c);
-        }
-        if (cmd instanceof UpdateRoutingRuleCmd c) {
+        } else if (cmd instanceof UpdateRoutingRuleCmd c) {
             return updateRoutingRule(c);
         }
         throw new UnknownCommandException(cmd);
@@ -67,7 +64,7 @@ public class LegacyTransactionRoute extends AggregateRoot {
         if (cmd.rulesVersion() <= 0) {
             throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
         }
-
+        
         if (versioningViolation) {
              throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
         }
@@ -98,40 +95,37 @@ public class LegacyTransactionRoute extends AggregateRoot {
         return List.of(event);
     }
 
-    /**
-     * S-24: Logic to update a routing rule.
-     */
     private List<DomainEvent> updateRoutingRule(UpdateRoutingRuleCmd cmd) {
-        // Invariant 1: Prevent dual-processing (Simulated check based on aggregate state)
-        if (this.dualProcessingViolation) {
+        // Invariant 1: Prevent dual-processing
+        // If the system is already in a bad state for dual processing, we cannot safely update
+        if (dualProcessingViolation) {
             throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
         }
 
         // Invariant 2: Versioning check
-        if (this.versioningViolation || cmd.newVersion() <= 0) {
+        // For an update, we simulate this check by verifying the aggregate is not in a violation state
+        if (versioningViolation) {
             throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
         }
 
-        // Validate the target isn't implying a dual route (simplified check)
-        if ("DUAL".equalsIgnoreCase(cmd.newTarget())) {
-             throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
+        // Invariant: Ensure we aren't setting up a future conflict
+        if (cmd.newTarget() == null || cmd.newTarget().isBlank()) {
+            throw new IllegalArgumentException("newTarget cannot be blank");
         }
 
-        // Update state
+        // Apply state change
         this.targetSystem = cmd.newTarget();
-        this.currentRulesVersion = cmd.newVersion();
-
-        var event = new RuleUpdatedEvent(
-                cmd.routeId(),
-                cmd.ruleId(),
+        
+        var event = new RoutingUpdatedEvent(
+                this.routeId,
                 cmd.newTarget(),
                 cmd.effectiveDate(),
-                cmd.newVersion(),
                 Instant.now()
         );
 
         addEvent(event);
         incrementVersion();
+
         return List.of(event);
     }
 

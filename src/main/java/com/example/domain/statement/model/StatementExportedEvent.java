@@ -3,20 +3,23 @@ package com.example.domain.statement.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.Objects;
 
 public record StatementExportedEvent(
-    String aggregateId,
-    String format,
-    Instant occurredAt
+        String aggregateId,
+        String format,
+        String artifactLocation,
+        Instant occurredAt
 ) implements DomainEvent {
-    @Override
-    public String type() {
-        return "statement.exported";
+    public StatementExportedEvent {
+        Objects.requireNonNull(aggregateId, "aggregateId cannot be null");
+        Objects.requireNonNull(format, "format cannot be null");
+        Objects.requireNonNull(artifactLocation, "artifactLocation cannot be null");
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public String type() {
+        return "statement.exported";
     }
 
     @Override

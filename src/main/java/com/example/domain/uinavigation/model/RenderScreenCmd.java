@@ -2,9 +2,14 @@ package com.example.domain.uinavigation.model;
 
 import com.example.domain.shared.Command;
 
+import java.util.Map;
+
 /**
- * Command to render a specific screen layout adapted for a device.
- * Context: Legacy 3270 BMS mapping to modern web UI.
+ * Command to trigger the rendering of a specific screen.
+ * Part of Story S-21.
  */
-public record RenderScreenCmd(String screenId, String deviceType) implements Command {
-}
+public record RenderScreenCmd(
+        String screenId,
+        String deviceType,
+        Map<String, Object> context
+) implements Command {}

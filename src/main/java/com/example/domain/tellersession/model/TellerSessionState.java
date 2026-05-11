@@ -1,11 +1,13 @@
 package com.example.domain.tellersession.model;
 
 /**
- * Internal state enumeration for TellerSession.
- * Used to enforce invariants regarding timeouts and navigation.
+ * Represents the navigation state of the teller terminal.
+ * Ensures the context matches the 3270 operational flow.
  */
 public enum TellerSessionState {
-    NONE,            // Initial state
-    TIMED_OUT,       // Indicates violation: Session timed out
-    INVALID_NAVIGATION // Indicates violation: Bad navigation context
+    ROOT_MENU,
+    CUSTOMER_SEARCH,
+    ACCOUNT_DETAIL,
+    TRANSACTION_ENTRY,
+    LOGOUT
 }

@@ -3,10 +3,10 @@ package com.example.domain.navigation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * Event emitted when a screen is successfully rendered.
+ * Constructor signature matches the corrected implementation: (aggregateId, screenId, deviceType, layout, occurredAt).
  */
 public record ScreenRenderedEvent(
         String aggregateId,
@@ -15,13 +15,6 @@ public record ScreenRenderedEvent(
         String layout,
         Instant occurredAt
 ) implements DomainEvent {
-
-    public ScreenRenderedEvent {
-        // Ensure unique event ID if needed, though aggregateId is often sufficient for the aggregate root
-        // Ensure immutability and valid timestamps
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId cannot be null");
-        if (occurredAt == null) occurredAt = Instant.now();
-    }
 
     @Override
     public String type() {

@@ -24,7 +24,9 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
-        <!-- Note: flyway-db2 specific dependency removed to resolve build failure. Standard Flyway Core is included via starter if needed. -->
+        <!-- Flyway DB2 dependency removed to resolve build error. 
+             The artifact 'flyway-db2' version 10.4.1 was not found in central. 
+             Standard DB2 support is available in enterprise editions or via specific drivers. -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

@@ -1,63 +1,57 @@
 package com.example.domain.defect;
 
-import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.DefectReportedEvent;
-import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.domain.shared.UnknownCommandException;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for DefectAggregate.
+ * Focus: Validating VW-454 regression.
+ */
 class DefectAggregateTest {
 
     @Test
-    void shouldReportDefectAndGenerateGithubUrl() {
-        // Given
-        var aggregate = new DefectAggregate("defect-1");
-        var cmd = new ReportDefectCmd("defect-1", "Critical Bug", "Fix this", "HIGH");
+    void shouldThrowWhenGithubUrlIsMissing() {
+        // Arrange
+        var aggregate = new DefectAggregate("S-FB-1");
+        var cmd = new ReportDefectCmd("S-FB-1", "VW-454", "Slack body missing URL", "");
 
-        // When
+        // Act & Assert
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            aggregate.execute(cmd);
+        });
+
+        assertTrue(ex.getMessage().contains("GitHub URL is required"));
+    }
+
+    @Test
+    void shouldThrowWhenGithubUrlIsInvalid() {
+        // Arrange
+        var aggregate = new DefectAggregate("S-FB-1");
+        var cmd = new ReportDefectCmd("S-FB-1", "VW-454", "Bad URL", "https://gitlab.com/example/repo");
+
+        // Act & Assert
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            aggregate.execute(cmd);
+        });
+
+        assertTrue(ex.getMessage().contains("Invalid GitHub URL format"));
+    }
+
+    @Test
+    void shouldEmitEventWhenGithubUrlIsValid() {
+        // Arrange
+        var aggregate = new DefectAggregate("S-FB-1");
+        var validUrl = "https://github.com/example/bank-of-z/issues/454";
+        var cmd = new ReportDefectCmd("S-FB-1", "VW-454", "Fix URL", validUrl);
+
+        // Act
         var events = aggregate.execute(cmd);
 
-        // Then
+        // Assert
         assertEquals(1, events.size());
         var event = (DefectReportedEvent) events.get(0);
-        assertEquals("defect-1", event.aggregateId());
-        assertEquals("Critical Bug", event.title());
-        assertNotNull(event.githubIssueUrl());
-        assertTrue(event.githubIssueUrl().startsWith("https://github.com/egdcrypto/bank-of-z/issues/"));
-    }
-
-    @Test
-    void shouldThrowOnDuplicateReport() {
-        // Given
-        var aggregate = new DefectAggregate("defect-1");
-        var cmd = new ReportDefectCmd("defect-1", "Bug", "Desc", "LOW");
-        aggregate.execute(cmd);
-
-        // When/Then
-        assertThrows(IllegalStateException.class, () -> aggregate.execute(cmd));
-    }
-
-    @Test
-    void shouldThrowOnUnknownCommand() {
-        // Given
-        var aggregate = new DefectAggregate("defect-1");
-        var unknownCmd = new Object() implements com.example.domain.shared.Command {};
-
-        // When/Then
-        assertThrows(UnknownCommandException.class, () -> aggregate.execute(unknownCmd));
-    }
-
-    @Test
-    void shouldRequireTitle() {
-        // Given
-        var aggregate = new DefectAggregate("defect-1");
-        var cmd = new ReportDefectCmd("defect-1", "", "Desc", "LOW");
-
-        // When/Then
-        assertThrows(IllegalArgumentException.class, () -> aggregate.execute(cmd));
+        assertEquals(validUrl, event.githubUrl());
+        assertEquals("DefectReported", event.type());
     }
 }

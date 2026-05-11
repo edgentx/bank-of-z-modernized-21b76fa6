@@ -18,6 +18,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <temporal.version>1.22.0</temporal.version>
     </properties>
 
     <dependencies>
@@ -37,9 +38,11 @@
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
 
+        <!-- Temporal (Spring Boot 3 requires the -alpha starter for 1.22.0) -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-batch</artifactId>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-spring-boot-starter-alpha</artifactId>
+            <version>${temporal.version}</version>
         </dependency>
 
         <!-- Testing Dependencies (Managed by BOM) -->
@@ -85,13 +88,6 @@
             <artifactId>cucumber-junit-platform-engine</artifactId>
             <version>7.18.0</version>
             <scope>test</scope>
-        </dependency>
-
-        <!-- Temporal (Requires explicit version as per rules) -->
-        <dependency>
-            <groupId>io.temporal</groupId>
-            <artifactId>temporal-spring-boot-starter</artifactId>
-            <version>1.22.0</version>
         </dependency>
     </dependencies>
 

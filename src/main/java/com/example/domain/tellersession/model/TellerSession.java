@@ -5,24 +5,23 @@ import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 public class TellerSession extends AggregateRoot {
     private final String sessionId;
+    private String tellerId;
     private boolean authenticated;
-    private String currentMenuId;
-    private String currentContext;
-    private Instant lastActivityAt;
     private boolean active;
+    private Instant lastActivityAt;
+    private String currentMenuId;
+    private String operationalContext; // Represents screen context
 
-    // Configured timeout period in minutes (e.g., 15 minutes)
-    private static final long TIMEOUT_MINUTES = 15;
+    // Invariants: 15 minutes timeout
+    private static final long SESSION_TIMEOUT_MINUTES = 15;
 
     public TellerSession(String sessionId) {
         this.sessionId = sessionId;
-        this.active = true;
-        this.lastActivityAt = Instant.now();
+        this.active = false; // Session starts inactive
     }
 
     @Override
@@ -32,39 +31,47 @@ public class TellerSession extends AggregateRoot {
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof NavigateMenuCmd) {
-            return handleNavigateMenu((NavigateMenuCmd) cmd);
+        if (cmd instanceof NavigateMenuCmd c) {
+            return handleNavigateMenu(c);
         }
+        // Future commands (InitiateSession, EndSession, etc.) would go here
         throw new UnknownCommandException(cmd);
     }
 
     private List<DomainEvent> handleNavigateMenu(NavigateMenuCmd cmd) {
-        // Invariant: Authenticated
+        // 1. Invariant: A teller must be authenticated to initiate a session (and navigate).
         if (!authenticated) {
-            throw new IllegalStateException("A teller must be authenticated to initiate a session.");
+            throw new IllegalStateException("Teller must be authenticated to navigate.");
         }
 
-        // Invariant: Timeout
-        if (hasTimedOut()) {
-            throw new IllegalStateException("Sessions must timeout after a configured period of inactivity.");
+        // 2. Invariant: Sessions must timeout after a configured period of inactivity.
+        if (isSessionExpired()) {
+            throw new IllegalStateException("Session has timed out due to inactivity.");
         }
 
-        // Invariant: Navigation State Accuracy
-        // Validate that the command's current context matches the aggregate's state
-        if (currentMenuId != null && !currentMenuId.equals(cmd.currentMenuId())) {
-             throw new IllegalStateException("Navigation state must accurately reflect the current operational context (Menu ID mismatch).");
+        // 3. Invariant: Navigation state must accurately reflect the current operational context.
+        // (Verify current state matches expectation, or simply ensure valid navigation)
+        if (this.currentMenuId != null && !this.currentMenuId.equals(cmd.currentMenuId())) {
+            throw new IllegalStateException("Navigation state mismatch: expected menu " + cmd.currentMenuId() + " but currently at " + this.currentMenuId);
         }
-        // Note: context validation could be added here if more specific logic is required
+        
+        if (cmd.targetMenuId() == null || cmd.targetMenuId().isBlank()) {
+             throw new IllegalArgumentException("targetMenuId is required");
+        }
 
-        // Apply state changes
+        // Apply state change
+        String previousMenu = this.currentMenuId;
         this.currentMenuId = cmd.targetMenuId();
-        this.currentContext = cmd.targetContext(); // Assuming target context is passed or derived
+        if (cmd.targetContext() != null) {
+            this.operationalContext = cmd.targetContext();
+        }
         this.lastActivityAt = Instant.now();
 
-        var event = new MenuNavigatedEvent(
+        MenuNavigatedEvent event = new MenuNavigatedEvent(
             this.sessionId,
-            cmd.targetMenuId(),
-            cmd.action(),
+            previousMenu,
+            this.currentMenuId,
+            this.operationalContext,
             Instant.now()
         );
 
@@ -73,19 +80,14 @@ public class TellerSession extends AggregateRoot {
         return List.of(event);
     }
 
-    private boolean hasTimedOut() {
+    private boolean isSessionExpired() {
         if (lastActivityAt == null) return true;
-        return lastActivityAt.plus(TIMEOUT_MINUTES, ChronoUnit.MINUTES).isBefore(Instant.now());
+        return lastActivityAt.plusSeconds(SESSION_TIMEOUT_MINUTES * 60).isBefore(Instant.now());
     }
 
-    // Getters for testing / state hydration
-    public void setAuthenticated(boolean authenticated) { this.authenticated = authenticated; }
-    public void setCurrentMenuId(String menuId) { this.currentMenuId = menuId; }
-    public void setCurrentContext(String context) { this.currentContext = context; }
-    public void setLastActivityAt(Instant time) { this.lastActivityAt = time; }
-    public void setActive(boolean active) { this.active = active; }
-
+    // Getters for testing and state reconstruction
+    public String getTellerId() { return tellerId; }
     public boolean isAuthenticated() { return authenticated; }
     public String getCurrentMenuId() { return currentMenuId; }
-    public Instant getLastActivityAt() { return lastActivityAt; }
+    public String getOperationalContext() { return operationalContext; }
 }

@@ -4,12 +4,7 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
-public record AccountStatusUpdatedEvent(
-        String aggregateId,
-        String oldStatus,
-        String newStatus,
-        Instant occurredAt
-) implements DomainEvent {
+public record AccountStatusUpdatedEvent(String aggregateId, String oldStatus, String newStatus, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
         return "account.status.updated";

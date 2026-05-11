@@ -4,6 +4,7 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -11,14 +12,16 @@ import java.util.List;
  * Aggregate Root for Legacy Transaction Routing.
  * Determines the target system (Modern vs Legacy) based on feature flags and rules.
  * Enforces invariants: Single Target and Versioning.
+ * S-24 Update: Added support for UpdateRoutingRuleCmd.
  */
 public class LegacyTransactionRoute extends AggregateRoot {
 
     private final String routeId;
-    private boolean dualProcessingViolation; // Test hook
-    private boolean versioningViolation;    // Test hook
-    private boolean evaluated;               // State flag
+    private boolean dualProcessingViolation;
+    private boolean versioningViolation;
+    private boolean evaluated;
     private String targetSystem;
+    private int currentRulesVersion = 1; // Default version
 
     public LegacyTransactionRoute(String routeId) {
         this.routeId = routeId;
@@ -32,6 +35,9 @@ public class LegacyTransactionRoute extends AggregateRoot {
         return routeId;
     }
 
+    /**
+     * Helper to setup test state for invariants violations.
+     */
     public void markDualProcessingViolation() {
         this.dualProcessingViolation = true;
     }
@@ -44,26 +50,34 @@ public class LegacyTransactionRoute extends AggregateRoot {
     public List<DomainEvent> execute(Command cmd) {
         if (cmd instanceof EvaluateRoutingCmd c) {
             return evaluateRouting(c);
-        } else if (cmd instanceof UpdateRoutingRuleCmd c) {
+        }
+        if (cmd instanceof UpdateRoutingRuleCmd c) {
             return updateRoutingRule(c);
         }
         throw new UnknownCommandException(cmd);
     }
 
     private List<DomainEvent> evaluateRouting(EvaluateRoutingCmd cmd) {
+        // Invariant 1: Prevent dual-processing (Simulated check)
         if (dualProcessingViolation) {
             throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
         }
 
-        if (cmd.rulesVersion() <= 0 || versioningViolation) {
+        // Invariant 2: Versioning check
+        if (cmd.rulesVersion() <= 0) {
+            throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
+        }
+
+        if (versioningViolation) {
              throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
         }
-        
+
         if (evaluated) {
             throw new IllegalStateException("Routing already evaluated for this route.");
         }
 
-        String target = "LEGACY"; 
+        // Determine target (Simulated logic)
+        String target = "LEGACY"; // Default
         if (cmd.payload() != null && cmd.payload().containsKey("forceModern")) {
             target = "MODERN";
         }
@@ -73,7 +87,7 @@ public class LegacyTransactionRoute extends AggregateRoot {
                 target,
                 cmd.rulesVersion(),
                 cmd.payload(),
-                Instant.now()
+                java.time.Instant.now()
         );
 
         this.evaluated = true;
@@ -84,40 +98,40 @@ public class LegacyTransactionRoute extends AggregateRoot {
         return List.of(event);
     }
 
+    /**
+     * S-24: Logic to update a routing rule.
+     */
     private List<DomainEvent> updateRoutingRule(UpdateRoutingRuleCmd cmd) {
-        // Invariant: Prevent dual-processing (Simulated check via test hook)
+        // Invariant 1: Prevent dual-processing (Simulated check based on aggregate state)
         if (this.dualProcessingViolation) {
             throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
         }
 
-        // Invariant: Versioning check
-        if (cmd.newRulesVersion() <= 0 || this.versioningViolation) {
-            throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
+        // Invariant 2: Versioning check
+        if (this.versioningViolation || cmd.newVersion() <= 0) {
+            throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
         }
 
-        if (cmd.newTarget() == null || cmd.newTarget().isBlank()) {
-            throw new IllegalArgumentException("newTarget cannot be blank");
+        // Validate the target isn't implying a dual route (simplified check)
+        if ("DUAL".equalsIgnoreCase(cmd.newTarget())) {
+             throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
         }
 
-        if (cmd.ruleId() == null || cmd.ruleId().isBlank()) {
-            throw new IllegalArgumentException("ruleId cannot be blank");
-        }
+        // Update state
+        this.targetSystem = cmd.newTarget();
+        this.currentRulesVersion = cmd.newVersion();
 
-        var event = new RoutingUpdatedEvent(
-                null, // eventId generated in record
-                this.routeId,
+        var event = new RuleUpdatedEvent(
+                cmd.routeId(),
                 cmd.ruleId(),
                 cmd.newTarget(),
-                cmd.effectiveDate() != null ? cmd.effectiveDate() : Instant.now(),
-                cmd.newRulesVersion(),
+                cmd.effectiveDate(),
+                cmd.newVersion(),
                 Instant.now()
         );
 
-        this.targetSystem = cmd.newTarget();
-        this.evaluated = true;
         addEvent(event);
         incrementVersion();
-
         return List.of(event);
     }
 

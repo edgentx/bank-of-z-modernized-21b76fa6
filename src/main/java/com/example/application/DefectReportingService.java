@@ -1,49 +1,49 @@
 package com.example.application;
 
-import com.example.domain.reconciliation.model.DefectReportedEvent;
+import com.example.domain.defect.model.GitHubIssueUrl;
+import com.example.domain.defect.model.ReportDefectCommand;
+import com.example.ports.DefectServicePort;
 import com.example.ports.SlackNotificationPort;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
- * Application service handling the workflow of defect reporting.
- * Orchestrates the domain logic and external notifications (Slack).
+ * Application Service handling the orchestration of defect reporting.
+ * In the CQRS model, this acts as the command handler for ReportDefectCommand.
+ * 
+ * It generates the necessary GitHub link (or retrieves it) and dispatches
+ * the notification to the configured Slack channel.
  */
 @Service
-public class DefectReportingService {
+public class DefectReportingService implements DefectServicePort {
 
-    private final SlackNotificationPort slackNotificationPort;
-    private final String githubIssueUrlTemplate;
+    private final SlackNotificationPort slackPort;
 
-    public DefectReportingService(SlackNotificationPort slackNotificationPort,
-                                  @Value("${vforce360.github.issue-url-template:https://github.com/egdcrypto/bank-of-z/issues/454}") String githubIssueUrlTemplate) {
-        this.slackNotificationPort = slackNotificationPort;
-        this.githubIssueUrlTemplate = githubIssueUrlTemplate;
+    @Autowired
+    public DefectReportingService(SlackNotificationPort slackPort) {
+        this.slackPort = slackPort;
     }
 
-    /**
-     * Handles the DefectReportedEvent by constructing the Slack payload
-     * and sending it to the configured channel.
-     * <p>
-     * Implements S-FB-1: Validates that the GitHub URL is present in the body.
-     *
-     * @param event The domain event containing defect details.
-     */
-    public void handleDefectReported(DefectReportedEvent event) {
-        String body = buildSlackBody(event);
-        slackNotificationPort.sendNotification("#vforce360-issues", body);
-    }
+    @Override
+    public void reportDefect(ReportDefectCommand cmd) {
+        // Determine the GitHub URL for this defect.
+        // This logic ensures that every defect report creates a linkable artifact.
+        GitHubIssueUrl issueUrl = GitHubIssueUrl.forDefect(cmd.defectId());
 
-    private String buildSlackBody(DefectReportedEvent event) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Defect Detected:\n");
-        sb.append("Batch: ").append(event.aggregateId()).append("\n");
-        sb.append("Amount: ").append(event.discrepancyAmount()).append("\n");
-        sb.append("Reason: ").append(event.reason()).append("\n");
+        // Construct the message body.
+        // The format must match the regex expectation in the test: "GitHub Issue: <url>"
+        StringBuilder bodyBuilder = new StringBuilder();
+        bodyBuilder.append("*Defect Report Received*\n");
+        bodyBuilder.append("*").append(cmd.title()).append("*\n");
+        bodyBuilder.append("ID: ").append(cmd.defectId()).append("\n");
+        bodyBuilder.append("Severity: ").append(cmd.severity()).append("\n");
+        bodyBuilder.append("Component: ").append(cmd.component()).append("\n");
+        
+        // Critical fix for S-FB-1: Ensure the link is present
+        bodyBuilder.append("GitHub Issue: ").append(issueUrl.url()).append("\n");
 
-        // S-FB-1 FIX: Ensure GitHub URL is appended to the body
-        sb.append("GitHub issue: ").append(githubIssueUrlTemplate).append("\n");
-
-        return sb.toString();
+        // Send the notification via the port
+        // Channel is hardcoded based on VForce360 convention, but could be configurable
+        slackPort.sendNotification("#vforce360-issues", bodyBuilder.toString());
     }
 }

@@ -1,41 +1,18 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
 
-public class MenuNavigatedEvent implements DomainEvent {
-    private final String aggregateId;
-    private final String menuId;
-    private final String action;
-    private final Instant occurredAt;
-
-    public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.menuId = menuId;
-        this.action = action;
-        this.occurredAt = occurredAt;
-    }
-
+public record MenuNavigatedEvent(
+    String aggregateId,
+    String previousMenuId,
+    String currentMenuId,
+    String operationalContext,
+    Instant occurredAt
+) implements DomainEvent {
     @Override
     public String type() {
         return "menu.navigated";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
-
-    public String menuId() {
-        return menuId;
-    }
-
-    public String action() {
-        return action;
     }
 }

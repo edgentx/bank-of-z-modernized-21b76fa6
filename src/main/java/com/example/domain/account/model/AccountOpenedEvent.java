@@ -3,33 +3,34 @@ package com.example.domain.account.model;
 import com.example.domain.shared.DomainEvent;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
 /**
- * Event emitted when a new bank account is successfully opened.
+ * Event emitted when a new account is successfully opened.
  */
 public record AccountOpenedEvent(
     String aggregateId,
     String customerId,
-    String accountType,
-    BigDecimal initialBalance,
-    String sortCode,
     String accountNumber,
+    String accountType,
+    BigDecimal balance,
+    String sortCode,
+    String status,
     Instant occurredAt
 ) implements DomainEvent {
 
-    @Override
-    public String type() {
-        return "account.opened";
-    }
+  @Override
+  public String type() {
+    return "account.opened";
+  }
 
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
+  @Override
+  public String aggregateId() {
+    return aggregateId;
+  }
 
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
+  @Override
+  public Instant occurredAt() {
+    return occurredAt;
+  }
 }

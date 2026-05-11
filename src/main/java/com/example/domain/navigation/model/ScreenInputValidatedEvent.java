@@ -1,16 +1,15 @@
 package com.example.domain.navigation.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
 import java.util.Map;
 
 public record ScreenInputValidatedEvent(
         String aggregateId,
-        Map<String, String> inputFields,
+        String screenId,
+        Map<String, String> validatedFields,
         Instant occurredAt
 ) implements DomainEvent {
-
     @Override
     public String type() {
         return "input.validated";
@@ -18,7 +17,7 @@ public record ScreenInputValidatedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return aggregateId();
     }
 
     @Override

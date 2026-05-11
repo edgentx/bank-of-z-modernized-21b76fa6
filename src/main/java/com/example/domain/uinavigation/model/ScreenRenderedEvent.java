@@ -3,24 +3,37 @@ package com.example.domain.uinavigation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Map;
 
 /**
- * Domain event emitted when a screen layout is successfully generated.
+ * Event emitted when a screen is successfully rendered.
+ * Matches the explicit constructor signature required by the error logs:
+ * (String, String, String, String, Instant)
+ * 
+ * Previous attempts failed due to parameter mismatches (6 vs 5 args vs 4 args).
+ * We adhere to the signature that appeared in the logs for the 'class' version:
+ * required: aggregateId, screenId, deviceType, layoutId, occurredAt
  */
 public record ScreenRenderedEvent(
-        String eventId,
         String aggregateId,
         String screenId,
         String deviceType,
+        String layoutId,
         Instant occurredAt
 ) implements DomainEvent {
-    public ScreenRenderedEvent(String aggregateId, String screenId, String deviceType, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), aggregateId, screenId, deviceType, occurredAt);
-    }
 
     @Override
     public String type() {
         return "screen.rendered";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

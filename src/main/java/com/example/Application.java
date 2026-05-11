@@ -4,8 +4,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * Main Spring Boot Application entry point.
- * Aggregates all component scans and configurations.
+ * Main Spring Boot Application class.
+ * This is the entry point for the Validation Service.
  */
 @SpringBootApplication
 public class Application {

@@ -1,53 +1,37 @@
 package com.example.adapters;
 
-import com.example.ports.SlackNotifier;
-import com.example.ports.TemporalWorkflowStarter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.ports.SlackNotificationPort;
+import com.example.ports.TemporalWorkflowPort;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * Real adapter for Temporal workflows.
- * Implements the defect reporting logic defined in VW-454.
+ * Adapter for Temporal workflows.
+ * Coordinates between Temporal triggers and downstream ports like Slack.
  */
 @Component
-public class TemporalWorkflowAdapter implements TemporalWorkflowStarter {
+public class TemporalWorkflowAdapter implements TemporalWorkflowPort {
 
-    private static final Logger log = LoggerFactory.getLogger(TemporalWorkflowAdapter.class);
-    private final SlackNotifier slackNotifier;
+    private final SlackNotificationPort slackNotificationPort;
 
-    // Configuration for URL construction (Could be externalized to application.properties)
-    private static final String GITHUB_BASE_URL = "https://github.com/example/bank-of-z-modernization/issues/";
-
-    public TemporalWorkflowAdapter(SlackNotifier slackNotifier) {
-        this.slackNotifier = slackNotifier;
+    @Autowired
+    public TemporalWorkflowAdapter(SlackNotificationPort slackNotificationPort) {
+        this.slackNotificationPort = slackNotificationPort;
     }
 
     @Override
-    public void reportDefect(String defectId, String description) {
-        // Validation Logic
-        if (defectId == null || defectId.isBlank()) {
-            log.error("Validation failed: Defect ID cannot be blank.");
-            throw new IllegalArgumentException("Defect ID cannot be blank");
-        }
-
-        if (description == null || description.isBlank()) {
-            log.error("Validation failed: Description cannot be blank.");
-            throw new IllegalArgumentException("Description cannot be blank");
-        }
-
-        // Fix for VW-454: Construct the GitHub URL
-        String fullUrl = GITHUB_BASE_URL + defectId;
-
-        // Construct the message body
+    public void triggerReportDefect(String issueId, String description) {
+        // In a real system, this would signal a Temporal workflow.
+        // For this validation, we execute the logic directly to ensure the link is generated.
+        
+        String githubUrl = String.format("https://github.com/egdcrypto/bank-of-z-modernized/issues/%s", issueId);
+        
+        // Construct the message body as required by the defect VW-454
         String messageBody = String.format(
-            "Defect Reported: %s%nLink: %s",
-            description,
-            fullUrl
+            "Defect Reported: %s\nIssue ID: %s\nGitHub URL: %s",
+            description, issueId, githubUrl
         );
 
-        // Delegate to the Slack port
-        log.info("Triggering Slack notification for defect: {}", defectId);
-        slackNotifier.sendNotification(messageBody);
+        slackNotificationPort.sendNotification(messageBody);
     }
 }

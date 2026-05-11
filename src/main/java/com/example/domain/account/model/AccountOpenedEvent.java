@@ -1,32 +1,38 @@
 package com.example.domain.account.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-public record AccountOpenedEvent(
-    String aggregateId,
-    String customerId,
-    String accountType,
-    BigDecimal initialDeposit,
-    String sortCode,
-    Instant occurredAt
-) implements DomainEvent {
+public class AccountOpenedEvent implements DomainEvent {
+    private final String eventId = UUID.randomUUID().toString();
+    private final String aggregateId;
+    private final String customerId;
+    private final String accountNumber;
+    private final String accountType;
+    private final BigDecimal balance;
+    private final String sortCode;
+    private final Instant occurredAt;
 
-    @Override
-    public String type() {
-        return "account.opened";
+    public AccountOpenedEvent(String aggregateId, String customerId, String accountNumber, String accountType, BigDecimal balance, String sortCode, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.customerId = customerId;
+        this.accountNumber = accountNumber;
+        this.accountType = accountType;
+        this.balance = balance;
+        this.sortCode = sortCode;
+        this.occurredAt = occurredAt;
     }
 
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
+    @Override public String type() { return "account.opened"; }
+    @Override public String aggregateId() { return aggregateId; }
+    @Override public Instant occurredAt() { return occurredAt; }
 
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
+    public String getEventId() { return eventId; }
+    public String getCustomerId() { return customerId; }
+    public String getAccountNumber() { return accountNumber; }
+    public String getAccountType() { return accountType; }
+    public BigDecimal getBalance() { return balance; }
+    public String getSortCode() { return sortCode; }
 }

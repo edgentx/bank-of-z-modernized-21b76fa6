@@ -4,14 +4,13 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 
 /**
- * Event emitted when a routing rule is successfully updated.
+ * Event emitted when a routing rule is updated.
  */
 public record RoutingRuleUpdatedEvent(
         String aggregateId,
         String ruleId,
         String newTarget,
         Instant effectiveDate,
-        int version,
         Instant occurredAt
 ) implements DomainEvent {
     @Override

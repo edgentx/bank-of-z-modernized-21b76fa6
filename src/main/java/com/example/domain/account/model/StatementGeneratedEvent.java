@@ -7,41 +7,37 @@ import java.util.UUID;
 
 /**
  * Event emitted when a statement is successfully generated.
+ * S-8: Implement GenerateStatementCmd.
  */
-public record StatementGeneratedEvent(
-    String eventId,
-    String aggregateId,
-    String accountNumber,
-    Instant periodStart,
-    Instant periodEnd,
-    BigDecimal openingBalance,
-    BigDecimal closingBalance,
-    Instant occurredAt
-) implements DomainEvent {
+public class StatementGeneratedEvent implements DomainEvent {
+    private final String aggregateId;
+    private final String accountNumber;
+    private final Instant periodStart;
+    private final Instant periodEnd;
+    private final BigDecimal openingBalance;
+    private final BigDecimal closingBalance;
+    private final Instant occurredAt;
 
-    public StatementGeneratedEvent(
-        String aggregateId,
-        String accountNumber,
-        Instant periodStart,
-        Instant periodEnd,
-        BigDecimal openingBalance,
-        BigDecimal closingBalance,
-        Instant occurredAt
-    ) {
-        this(
-            UUID.randomUUID().toString(),
-            aggregateId,
-            accountNumber,
-            periodStart,
-            periodEnd,
-            openingBalance,
-            closingBalance,
-            occurredAt
-        );
+    public StatementGeneratedEvent(String aggregateId, String accountNumber,
+                                   Instant periodStart, Instant periodEnd,
+                                   BigDecimal openingBalance, BigDecimal closingBalance,
+                                   Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.accountNumber = accountNumber;
+        this.periodStart = periodStart;
+        this.periodEnd = periodEnd;
+        this.openingBalance = openingBalance;
+        this.closingBalance = closingBalance;
+        this.occurredAt = occurredAt;
     }
 
-    @Override
-    public String type() {
-        return "statement.generated";
-    }
+    @Override public String type() { return "statement.generated"; }
+    @Override public String aggregateId() { return aggregateId; }
+    @Override public Instant occurredAt() { return occurredAt; }
+
+    public String accountNumber() { return accountNumber; }
+    public Instant periodStart() { return periodStart; }
+    public Instant periodEnd() { return periodEnd; }
+    public BigDecimal openingBalance() { return openingBalance; }
+    public BigDecimal closingBalance() { return closingBalance; }
 }

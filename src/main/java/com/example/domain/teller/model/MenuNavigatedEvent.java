@@ -5,40 +5,24 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-public class MenuNavigatedEvent implements DomainEvent {
-    private final String eventId = UUID.randomUUID().toString();
-    private final String aggregateId;
-    private final String menuId;
-    private final String action;
-    private final Instant occurredAt;
+public record MenuNavigatedEvent(
+        String eventId,
+        String aggregateId,
+        String menuId,
+        String action,
+        Instant occurredAt
+) implements DomainEvent {
+    public MenuNavigatedEvent {
+        if (eventId == null || eventId.isBlank()) eventId = UUID.randomUUID().toString();
+        if (occurredAt == null) occurredAt = Instant.now();
+    }
 
-    public MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.menuId = menuId;
-        this.action = action;
-        this.occurredAt = occurredAt;
+    public MenuNavigatedEvent(String aggregateId, String menuId, String action) {
+        this(UUID.randomUUID().toString(), aggregateId, menuId, action, Instant.now());
     }
 
     @Override
     public String type() {
         return "menu.navigated";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
-
-    public String getMenuId() {
-        return menuId;
-    }
-
-    public String getAction() {
-        return action;
     }
 }

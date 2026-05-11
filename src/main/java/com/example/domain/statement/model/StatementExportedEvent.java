@@ -3,20 +3,23 @@ package com.example.domain.statement.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
-public record StatementExportedEvent(String statementId, String format, Instant occurredAt) implements DomainEvent {
+/**
+ * Event emitted when a statement is successfully exported.
+ * S-9
+ */
+public record StatementExportedEvent(
+        String aggregateId,
+        String format,
+        Instant occurredAt
+) implements DomainEvent {
+
     @Override
     public String type() {
         return "statement.exported";
     }
 
-    @Override
-    public String aggregateId() {
-        return statementId();
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
+    // Constructor or factory if needed, though record works fine.
+    // We ensure contract compliance via the explicit override above.
 }

@@ -1,20 +1,28 @@
 package com.example.domain.account.model;
 
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.account.model.AccountAggregate.AccountType;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Event emitted when a new account is opened.
+ */
 public record AccountOpenedEvent(
-    String accountId,
+    String aggregateId,
     String customerId,
-    AccountType accountType,
-    BigDecimal initialBalance,
+    AccountAggregate.AccountType accountType,
+    String accountNumber,
     String sortCode,
+    BigDecimal initialBalance,
     Instant occurredAt
 ) implements DomainEvent {
+
+    public AccountOpenedEvent {
+        // Ensure eventId for internal tracking if needed, though not strictly part of DomainEvent interface
+    }
+
     @Override
     public String type() {
         return "account.opened";
@@ -22,7 +30,7 @@ public record AccountOpenedEvent(
 
     @Override
     public String aggregateId() {
-        return accountId;
+        return aggregateId;
     }
 
     @Override

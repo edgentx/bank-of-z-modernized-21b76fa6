@@ -5,15 +5,24 @@ import java.time.Instant;
 import java.util.Map;
 
 public record ScreenRenderedEvent(
-    String type,
     String aggregateId,
     String screenId,
     String deviceType,
     Instant occurredAt,
-    String layout,
-    Map<String, Object> context
+    Map<String, Object> layout
 ) implements DomainEvent {
-    public ScreenRenderedEvent(String aggregateId, String screenId, String deviceType, String layout, Map<String, Object> context) {
-        this("screen.rendered", aggregateId, screenId, deviceType, Instant.now(), layout, context);
+    @Override
+    public String type() {
+        return "screen.rendered";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

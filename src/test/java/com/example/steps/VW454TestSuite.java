@@ -1,16 +1,16 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.ConfigurationParameter;
-import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasspathResource;
-import org.junit.platform.suite.api.Suite;
+import io.cucumber.junit.Cucumber;
+import io.cucumber.junit.CucumberOptions;
+import org.junit.runner.RunWith;
 
-import static io.cucumber.junit.platform.engine.CucumberJUnitPlatformRunnerOptions.GLUE_PROPERTY_NAME;
-
-@Suite
-@IncludeEngines("cucumber")
-@SelectClasspathResource("features")
-@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
+@RunWith(Cucumber.class)
+@CucumberOptions(
+    features = {"features/S-FB-1.feature"}, // Assuming feature file exists or will be created
+    plugin = {"pretty", "html:target/cucumber-report/S-FB-1.html"},
+    glue = {"com.example.steps"},
+    monochrome = true
+)
 public class VW454TestSuite {
-    // JUnit 5 Suite wrapper to run Cucumber via Maven Surefire/JUnit Platform
+    // Test Suite Class for VW-454
 }

@@ -14,14 +14,8 @@ public class LegacyTransactionRoute extends AggregateRoot {
     private boolean evaluated;
     private int currentRuleVersion;
 
-    // State for S-24 Invariant Violations (Simulated for BDD)
-    private transient boolean violateDualProcessing;
-    private transient boolean violateVersioning;
-
     public LegacyTransactionRoute(String routeId) {
         this.routeId = routeId;
-        this.violateDualProcessing = false;
-        this.violateVersioning = false;
     }
 
     @Override
@@ -83,36 +77,30 @@ public class LegacyTransactionRoute extends AggregateRoot {
     }
 
     private List<DomainEvent> updateRoutingRule(UpdateRoutingRuleCmd cmd) {
-        // S-24 Invariant 1: Versioning
-        // "Routing rules must be versioned to allow safe rollback"
-        if (this.violateVersioning) {
-            throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
+        // Invariant Check: Versioning
+        if (cmd.version() <= 0) {
+            throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
         }
 
-        // S-24 Invariant 2: Single Target
-        // "A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing"
-        if (this.violateDualProcessing) {
+        // Invariant Check: Single Target (Prevent Dual-Processing)
+        if (cmd.newTarget() == null || cmd.newTarget().isBlank()) {
             throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
         }
 
-        // Basic validations
-        if (cmd.newTarget() == null || cmd.newTarget().isBlank()) {
-            throw new IllegalArgumentException("newTarget is required");
-        }
         if (cmd.effectiveDate() == null) {
             throw new IllegalArgumentException("effectiveDate is required");
         }
 
-        var event = new RoutingRuleUpdatedEvent(
-                cmd.routeId(),
-                cmd.ruleId(),
-                cmd.newTarget(),
-                cmd.effectiveDate()
-        );
+        // Apply updates
+        this.currentRuleVersion = cmd.version();
 
-        // State transition
-        // (Logic to update internal routing map would go here)
-        this.currentRuleVersion++; // Increment version for safety
+        var event = new RoutingUpdatedEvent(
+            cmd.routeId(),
+            cmd.ruleId(),
+            cmd.newTarget(),
+            cmd.effectiveDate(),
+            cmd.version()
+        );
 
         addEvent(event);
         incrementVersion();
@@ -127,13 +115,4 @@ public class LegacyTransactionRoute extends AggregateRoot {
 
     public boolean isEvaluated() { return evaluated; }
     public String getCurrentTransactionType() { return currentTransactionType; }
-    public int getCurrentRuleVersion() { return currentRuleVersion; }
-
-    // Test helpers for S-24 Scenarios
-    public void markDualProcessingViolation() {
-        this.violateDualProcessing = true;
-    }
-    public void markVersioningViolation() {
-        this.violateVersioning = true;
-    }
 }

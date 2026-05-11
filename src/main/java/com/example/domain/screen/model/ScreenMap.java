@@ -11,91 +11,83 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * ScreenMap Aggregate.
- * Manages the state and rules for 3270 screen definitions (BMS maps).
- * responsible for validating input field lengths and mandatory field presence.
+ * ScreenMap aggregate.
+ * Manages the state and validation rules for 3270/BMS screen navigation.
  */
 public class ScreenMap extends AggregateRoot {
 
-    private final String screenId;
-    // A simplified registry of field definitions for this screen map.
-    // Key: Field Name, Value: Definition (max length, mandatory)
-    private final Map<String, FieldDefinition> fieldDefinitions = new HashMap<>();
+  private final String aggregateId;
+  private String screenId;
+  // Invariant: Field definitions for this screen (fieldName -> maxLength)
+  private final Map<String, Integer> fieldDefinitions = new HashMap<>();
+  // Invariant: Mandatory fields
+  private final List<String> mandatoryFields = new ArrayList<>();
 
-    public ScreenMap(String screenId) {
-        this.screenId = screenId;
-        // Default state initialization for testing purposes.
-        // In a real app, this would be loaded by events or a repository constructor.
-        defineField("ACCT_NO", 10, true);
-        defineField("TRANS_AMT", 12, true);
-        defineField("REF_CODE", 20, false);
+  public ScreenMap(String aggregateId) {
+    this.aggregateId = aggregateId;
+    // Initialize with default BMS constraints for test purposes
+    // (In a real scenario, this would be loaded via an event or repo)
+    this.screenId = "DEFAULT_SCREEN";
+    this.fieldDefinitions.put("ACC_NUM", 10);
+    this.fieldDefinitions.put("TX_AMT", 12);
+    this.mandatoryFields.add("ACC_NUM");
+  }
+
+  // Used by test to simulate a loaded aggregate with specific rules
+  public void configureField(String fieldName, int maxLength, boolean isMandatory) {
+    this.fieldDefinitions.put(fieldName, maxLength);
+    if (isMandatory) {
+      if (!this.mandatoryFields.contains(fieldName)) {
+        this.mandatoryFields.add(fieldName);
+      }
+    } else {
+      this.mandatoryFields.remove(fieldName);
+    }
+  }
+
+  @Override
+  public String id() {
+    return aggregateId;
+  }
+
+  @Override
+  public List<DomainEvent> execute(Command cmd) {
+    if (cmd instanceof ValidateScreenInputCmd c) {
+      return handleValidateInput(c);
+    }
+    throw new UnknownCommandException(cmd);
+  }
+
+  private List<DomainEvent> handleValidateInput(ValidateScreenInputCmd cmd) {
+    // 1. Validate Mandatory Fields
+    for (String field : mandatoryFields) {
+      String value = cmd.inputFields().get(field);
+      if (value == null || value.trim().isEmpty()) {
+        throw new IllegalArgumentException("All mandatory input fields must be validated before screen submission. Missing: " + field);
+      }
     }
 
-    @Override
-    public String id() {
-        return screenId;
-    }
+    // 2. Validate Field Lengths (BMS Constraints)
+    for (Map.Entry<String, String> entry : cmd.inputFields().entrySet()) {
+      String fieldName = entry.getKey();
+      String value = entry.getValue();
 
-    public void defineField(String name, int length, boolean mandatory) {
-        fieldDefinitions.put(name, new FieldDefinition(name, length, mandatory));
-    }
-
-    @Override
-    public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof ValidateScreenInputCmd c) {
-            return validateInput(c);
+      // If the field is known in the map, check length.
+      // We generally validate fields provided in input against known definitions.
+      if (fieldDefinitions.containsKey(fieldName)) {
+        int maxLength = fieldDefinitions.get(fieldName);
+        if (value != null && value.length() > maxLength) {
+          throw new IllegalArgumentException(
+            String.format("Field lengths must strictly adhere to legacy BMS constraints during the transition period. Field '%s' max %d, got %d",
+              fieldName, maxLength, value.length())
+          );
         }
-        throw new UnknownCommandException(cmd);
+      }
     }
 
-    private List<DomainEvent> validateInput(ValidateScreenInputCmd cmd) {
-        if (!screenId.equals(cmd.screenId())) {
-             throw new IllegalArgumentException("Screen ID mismatch");
-        }
-
-        // Invariant: Validate Mandatories
-        for (FieldDefinition def : fieldDefinitions.values()) {
-            if (def.mandatory()) {
-                String value = cmd.inputFields().get(def.name());
-                if (value == null || value.trim().isEmpty()) {
-                    throw new IllegalStateException(
-                        String.format("All mandatory input fields must be validated before screen submission. Missing: %s", def.name())
-                    );
-                }
-            }
-        }
-
-        // Invariant: Validate BMS Length Constraints
-        for (Map.Entry<String, String> entry : cmd.inputFields().entrySet()) {
-            String fieldName = entry.getKey();
-            String value = entry.getValue();
-            
-            // Check against known definitions if they exist
-            if (fieldDefinitions.containsKey(fieldName)) {
-                FieldDefinition def = fieldDefinitions.get(fieldName);
-                // Use BMS logic: check length regardless of mandatory flag
-                if (value != null && value.length() > def.maxLength()) {
-                    throw new IllegalStateException(
-                        String.format("Field lengths must strictly adhere to legacy BMS constraints during the transition period. Field %s max %d, got %d", 
-                            fieldName, def.maxLength(), value.length())
-                    );
-                }
-            }
-        }
-
-        // Success Path
-        ScreenInputValidatedEvent event = new ScreenInputValidatedEvent(
-            this.id(),
-            cmd.screenId(),
-            cmd.inputFields(),
-            Instant.now()
-        );
-        
-        addEvent(event);
-        incrementVersion();
-        return List.of(event);
-    }
-
-    // Inner record for field definition metadata
-    private record FieldDefinition(String name, int maxLength, boolean mandatory) {}
+    var event = new ScreenInputValidatedEvent(this.aggregateId, cmd.screenId(), Instant.now());
+    addEvent(event);
+    incrementVersion();
+    return List.of(event);
+  }
 }

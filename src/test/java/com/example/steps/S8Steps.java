@@ -1,90 +1,99 @@
 package com.example.steps;
 
+import com.example.domain.shared.Command;
+import com.example.domain.shared.DomainEvent;
 import com.example.domain.statement.model.GenerateStatementCmd;
 import com.example.domain.statement.model.StatementAggregate;
 import com.example.domain.statement.model.StatementGeneratedEvent;
-import com.example.domain.shared.Command;
-import com.example.domain.shared.DomainEvent;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S8Steps {
 
     private StatementAggregate aggregate;
-    private Exception capturedException;
+    private String accountNumber;
+    private Instant periodEnd;
+    private BigDecimal openingBalance;
     private List<DomainEvent> resultEvents;
+    private Exception caughtException;
 
+    // Scenario: Successfully execute GenerateStatementCmd
     @Given("a valid Statement aggregate")
     public void a_valid_statement_aggregate() {
-        aggregate = new StatementAggregate("stmt-1");
+        String id = "stmt-" + System.currentTimeMillis();
+        aggregate = new StatementAggregate(id);
     }
 
-    @Given("a valid accountNumber is provided")
+    @And("a valid accountNumber is provided")
     public void a_valid_account_number_is_provided() {
-        // State captured for the When step
+        this.accountNumber = "ACC-12345";
     }
 
-    @Given("a valid periodEnd is provided")
+    @And("a valid periodEnd is provided")
     public void a_valid_period_end_is_provided() {
-        // State captured for the When step
+        this.periodEnd = Instant.now().truncatedTo(ChronoUnit.DAYS);
     }
 
     @When("the GenerateStatementCmd command is executed")
     public void the_generate_statement_cmd_command_is_executed() {
+        // Default opening balance matching the 'previous closing' (assumed 100.00 in aggregate)
+        this.openingBalance = new BigDecimal("100.00");
+        Command cmd = new GenerateStatementCmd(aggregate.id(), accountNumber, periodEnd, openingBalance);
         try {
-            // Using fixed valid data for the successful path based on Givens
-            GenerateStatementCmd cmd = new GenerateStatementCmd(
-                "stmt-1",
-                "ACC-123",
-                LocalDate.now().minusMonths(1),
-                LocalDate.now(),
-                new BigDecimal("100.00"),
-                new BigDecimal("150.00")
-            );
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            capturedException = e;
+            caughtException = e;
         }
     }
 
     @Then("a statement.generated event is emitted")
     public void a_statement_generated_event_is_emitted() {
-        Assertions.assertNotNull(resultEvents);
-        Assertions.assertEquals(1, resultEvents.size());
-        Assertions.assertTrue(resultEvents.get(0) instanceof StatementGeneratedEvent);
+        assertNotNull(resultEvents);
+        assertFalse(resultEvents.isEmpty());
+        assertTrue(resultEvents.get(0) instanceof StatementGeneratedEvent);
+
+        StatementGeneratedEvent event = (StatementGeneratedEvent) resultEvents.get(0);
+        assertEquals(aggregate.id(), event.aggregateId());
+        assertEquals("statement.generated", event.type());
     }
 
-    // Error Scenarios
-
+    // Scenario: GenerateStatementCmd rejected — Retroactive
     @Given("a Statement aggregate that violates: A statement must be generated for a closed period and cannot be altered retroactively.")
     public void a_statement_aggregate_that_violates_closed_period() {
-        aggregate = new StatementAggregate("stmt-2");
-        // Pre-existing event implying statement exists for period
-        // In a real scenario, we'd hydrate the aggregate. Here we simulate the invariant check.
-    }
-
-    @Given("a Statement aggregate that violates: Statement opening balance must exactly match the closing balance of the previous statement.")
-    public void a_statement_aggregate_that_violates_opening_balance() {
-        aggregate = new StatementAggregate("stmt-3");
+        String id = "stmt-retro-" + System.currentTimeMillis();
+        aggregate = new StatementAggregate(id);
+        // Force the internal state that simulates a closed period
+        aggregate.markPeriodAsClosed();
+        this.accountNumber = "ACC-99999";
+        this.periodEnd = Instant.now().minusSeconds(86400); // Yesterday
+        this.openingBalance = new BigDecimal("100.00");
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        // For the purpose of this unit test, we verify the exception type
-        // Since we don't have the complex state to trigger the specific invariants in the stub,
-        // we will rely on the code throwing exceptions for specific cases (e.g. nulls)
-        // or we can assume that the implementation throws IllegalStateException for invariants.
-        
-        // To make the test pass with the current simplified aggregate logic, 
-        // we might need to trigger a validation error if the specific invariant logic isn't fully implemented in memory.
-        // However, the prompt asks for the Step Definitions.
-        Assertions.assertNotNull(capturedException);
+        assertNotNull(caughtException);
+        assertTrue(caughtException instanceof IllegalStateException);
+        assertTrue(caughtException.getMessage().contains("closed") || caughtException.getMessage().contains("retroactive"));
     }
+
+    // Scenario: GenerateStatementCmd rejected — Opening Balance Mismatch
+    @Given("a Statement aggregate that violates: Statement opening balance must exactly match the closing balance of the previous statement.")
+    public void a_statement_aggregate_that_violates_opening_balance() {
+        String id = "stmt-bal-" + System.currentTimeMillis();
+        aggregate = new StatementAggregate(id);
+        this.accountNumber = "ACC-88888";
+        this.periodEnd = Instant.now();
+        // Aggregate expects 100.00 (simulated previous closing), we provide 99.00
+        this.openingBalance = new BigDecimal("99.00");
+    }
+
 }

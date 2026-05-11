@@ -1,20 +1,21 @@
 package com.example.domain.legacy.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
 
+/**
+ * Event emitted when a routing rule is successfully updated.
+ */
 public record RoutingRuleUpdatedEvent(
-        String aggregateId,
-        String ruleId,
-        String newTarget,
-        Instant effectiveDate,
-        int newRuleVersion,
-        Instant occurredAt
+    String aggregateId,
+    String ruleId,
+    String newTarget,
+    Instant effectiveDate,
+    Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
-        return "routing.updated";
+        return "RoutingRuleUpdated";
     }
 
     @Override

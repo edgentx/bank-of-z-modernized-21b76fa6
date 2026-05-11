@@ -4,12 +4,11 @@ import com.example.domain.shared.Command;
 import java.util.Map;
 
 /**
- * Command to validate user input against a specific screen map definition.
- * Used to enforce BMS field constraints and mandatory field presence
- * before routing to backend commands.
+ * Command to validate user input against the legacy BMS screen map rules.
+ * Part of the user-interface-navigation aggregate.
  */
 public record ValidateScreenInputCmd(
-        String screenMapId,
-        String screenId,
-        Map<String, String> inputFields
-) implements Command {}
+    String screenId,
+    Map<String, String> inputFields
+) implements Command {
+}

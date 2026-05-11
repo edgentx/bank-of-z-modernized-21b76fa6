@@ -2,18 +2,38 @@ package com.example.domain.screen.model;
 
 import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
-import java.util.Map;
+import java.util.UUID;
 
-/**
- * Event emitted when a screen is successfully rendered.
- * Part of Story S-21.
- */
-public record ScreenRenderedEvent(
-    String type,
-    String aggregateId,
-    String screenId,
-    Instant occurredAt,
-    String deviceType,
-    String status,
-    Map<String, Object> layout
-) implements DomainEvent {}
+public class ScreenRenderedEvent implements DomainEvent {
+    private final String eventId;
+    private final String aggregateId;
+    private final String screenId;
+    private final String deviceType;
+    private final Instant occurredAt;
+
+    public ScreenRenderedEvent(String aggregateId, String screenId, String deviceType, Instant occurredAt) {
+        this.eventId = UUID.randomUUID().toString();
+        this.aggregateId = aggregateId;
+        this.screenId = screenId;
+        this.deviceType = deviceType;
+        this.occurredAt = occurredAt;
+    }
+
+    @Override
+    public String type() {
+        return "screen.rendered";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
+
+    public String screenId() { return screenId; }
+    public String deviceType() { return deviceType; }
+}

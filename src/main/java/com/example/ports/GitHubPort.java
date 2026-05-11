@@ -1,16 +1,16 @@
 package com.example.ports;
 
+import java.net.URI;
+
 /**
- * Port for interacting with GitHub issues.
+ * Port interface for GitHub operations.
+ * Used by the Report Defect workflow to generate links.
  */
 public interface GitHubPort {
-
     /**
-     * Creates a new issue in the configured repository.
-     *
-     * @param title The issue title.
-     * @param body The issue body (description).
-     * @return The URL of the created issue.
+     * Generates a valid URI to a GitHub issue for the repository.
+     * @param issueTitle The title of the issue (may be used to search, but here we generate the repo issues link).
+     * @return A valid java.net.URI pointing to the GitHub issues page.
      */
-    String createIssue(String title, String body);
+    URI createIssueUrl(String issueTitle);
 }

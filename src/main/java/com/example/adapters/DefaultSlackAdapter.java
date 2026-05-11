@@ -7,57 +7,48 @@ import com.slack.api.methods.request.chat.ChatPostMessageRequest;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
 /**
- * Default implementation of the Slack port using the official Slack API SDK.
- * Addresses S-FB-1: Ensure GitHub URLs are appended to the body.
+ * Default implementation of {@link SlackPort} using the official Slack API SDK.
+ * This is the "real" adapter used in production profiles.
  */
-@Component
 public class DefaultSlackAdapter implements SlackPort {
 
-    private static final Logger logger = LoggerFactory.getLogger(DefaultSlackAdapter.class);
-    private final MethodsClient slackMethodsClient;
-    private final String defaultChannel;
+    private static final Logger log = LoggerFactory.getLogger(DefaultSlackAdapter.class);
+    private final MethodsClient methodsClient;
+    private final String botToken; // Typically starts with "xoxb-"
 
-    public DefaultSlackAdapter(MethodsClient slackMethodsClient,
-                               @Value("${slack.default.channel:}") String defaultChannel) {
-        this.slackMethodsClient = slackMethodsClient;
-        this.defaultChannel = defaultChannel;
+    /**
+     * Constructor for dependency injection.
+     *
+     * @param methodsClient The configured Slack API MethodsClient.
+     * @param botToken      The Slack Bot Token for authentication.
+     */
+    public DefaultSlackAdapter(MethodsClient methodsClient, String botToken) {
+        this.methodsClient = methodsClient;
+        this.botToken = botToken;
     }
 
     @Override
-    public void sendAlert(String channel, String message, String githubIssueUrl) {
-        String targetChannel = (channel != null && !channel.isBlank()) ? channel : defaultChannel;
-        if (targetChannel == null || targetChannel.isBlank()) {
-            logger.warn("Slack channel is not configured. Message not sent.");
-            return;
-        }
-
-        // S-FB-1: Append GitHub URL if present
-        String fullMessage = message;
-        if (githubIssueUrl != null && !githubIssueUrl.isBlank()) {
-            fullMessage = message + "\nGitHub issue: " + githubIssueUrl;
-        }
+    public void sendMessage(String channel, String text) {
+        ChatPostMessageRequest request = ChatPostMessageRequest.builder()
+                .channel(channel)
+                .text(text)
+                .build();
 
         try {
-            ChatPostMessageRequest request = ChatPostMessageRequest.builder()
-                    .channel(targetChannel)
-                    .text(fullMessage)
-                    .build();
-
-            ChatPostMessageResponse response = slackMethodsClient.chatPostMessage(request);
-            if (response.isOk()) {
-                logger.info("Message sent to Slack channel {}", targetChannel);
-            } else {
-                logger.error("Failed to send message to Slack: {}", response.getError());
+            ChatPostMessageResponse response = methodsClient.chatPostMessage(request, botToken);
+            if (!response.isOk()) {
+                String error = String.format("Slack API Error: %s - %s", response.getError(), response.getWarning());
+                log.error(error);
+                throw new RuntimeException(error);
             }
+            log.info("Message sent to Slack channel {} successfully", channel);
         } catch (IOException | SlackApiException e) {
-            logger.error("Error communicating with Slack API", e);
-            throw new RuntimeException("Failed to send Slack alert", e);
+            log.error("Failed to send message to Slack", e);
+            throw new RuntimeException("Failed to send message to Slack", e);
         }
     }
 }

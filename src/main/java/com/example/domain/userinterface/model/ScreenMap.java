@@ -4,63 +4,49 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
+import java.util.UUID;
 
 public class ScreenMap extends AggregateRoot {
-    private final String screenId;
-    private DeviceType currentDeviceType;
-    private Map<String, Object> currentLayout;
-    private boolean rendered;
+    private String mapId;
 
-    public ScreenMap(String screenId) {
-        this.screenId = screenId;
+    public ScreenMap(String mapId) {
+        this.mapId = mapId;
     }
 
     @Override
     public String id() {
-        return screenId;
+        return mapId;
     }
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
         if (cmd instanceof RenderScreenCmd c) {
-            return render(c);
+            return handleRenderScreen(c);
         }
         throw new UnknownCommandException(cmd);
     }
 
-    private List<DomainEvent> render(RenderScreenCmd cmd) {
-        // Validation 1: Mandatory input fields
+    private List<DomainEvent> handleRenderScreen(RenderScreenCmd cmd) {
+        // Validation: All mandatory input fields
         if (cmd.screenId() == null || cmd.screenId().isBlank()) {
-            throw new IllegalArgumentException("screenId required");
+            throw new IllegalArgumentException("screenId is mandatory");
         }
         if (cmd.deviceType() == null) {
-            throw new IllegalArgumentException("deviceType required");
-        }
-        if (cmd.layoutContext() == null) {
-            throw new IllegalArgumentException("layoutContext required");
+            throw new IllegalArgumentException("deviceType is mandatory");
         }
 
-        // Validation 2: Legacy BMS constraints (Field lengths)
-        // Assuming screenId acts as a key field which might be constrained in legacy systems
-        if (cmd.screenId().length() > 8) {
-            throw new IllegalArgumentException("Field 'screenId' exceeds legacy BMS length constraint of 8");
+        // Validation: Legacy BMS constraints
+        // Assuming a max length constraint for screenId based on legacy BMS mapsets
+        if (cmd.screenId().length() > 7) {
+            throw new IllegalArgumentException("screenId exceeds legacy BMS field length constraint (max 7 chars)");
         }
 
-        // Business Logic: Generate the presentation layout (simulated)
-        this.currentDeviceType = cmd.deviceType();
-        this.currentLayout = cmd.layoutContext();
-        this.rendered = true;
+        // Logic: Generate presentation layout adapted for device
+        String layoutHash = UUID.randomUUID().toString();
 
-        ScreenRenderedEvent event = new ScreenRenderedEvent(
-                this.screenId,
-                this.currentDeviceType,
-                Instant.now()
-        );
-
+        var event = new ScreenRenderedEvent(this.mapId, cmd.screenId(), cmd.deviceType(), layoutHash, Instant.now());
         addEvent(event);
         incrementVersion();
         return List.of(event);

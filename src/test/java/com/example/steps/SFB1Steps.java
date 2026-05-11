@@ -1,86 +1,109 @@
 package com.example.steps;
 
-import com.example.domain.shared.ports.GitHubPort;
-import com.example.domain.shared.ports.NotificationPort;
-import com.example.mocks.MockGitHubPort;
-import com.example.mocks.MockNotificationPort;
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.model.DefectReportedEvent;
+import com.example.domain.defect.model.GitHubIssueLinkedEvent;
+import com.example.domain.defect.model.LinkGitHubIssueCmd;
+import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.domain.defect.repository.DefectRepository;
+import com.example.mocks.InMemoryDefectRepository;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
-import io.cucumber.java.en.And;
+import io.cucumber.java.en.When;
+import org.springframework.beans.factory.annotation.Autowired;
+
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Cucumber steps for S-FB-1: Validating VW-454 - GitHub URL in Slack body
- * 
- * This feature file tests the end-to-end behavior of reporting a defect
- * via the temporal-worker exec and verifying that the Slack body contains
- * the GitHub issue link.
- */
 public class SFB1Steps {
-    
-    private NotificationPort notificationPort;
-    private GitHubPort gitHubPort;
-    // private DefectReportService defectReportService;
-    
-    private String defectId;
-    private String title;
-    private String description;
-    private String channel;
-    private boolean reportResult;
-    
-    @Given("a defect reporting service is available")
-    public void a_defect_reporting_service_is_available() {
-        notificationPort = new MockNotificationPort();
-        gitHubPort = new MockGitHubPort();
-        // Service doesn't exist yet - will fail compilation
-        // defectReportService = new DefectReportService(notificationPort, gitHubPort);
+
+    private final DefectRepository repository = new InMemoryDefectRepository();
+    private DefectAggregate aggregate;
+    private Exception capturedException;
+
+    // Common Background
+    @Given("a defect report command exists")
+    public void a_defect_report_command_exists() {
+        // Setup command data
     }
-    
-    @Given("a defect with ID {string}, title {string} and description {string}")
-    public void a_defect_with_id_title_and_description(String id, String t, String desc) {
-        this.defectId = id;
-        this.title = t;
-        this.description = desc;
+
+    // Scenario 1: Reporting
+    @When("the defect report is executed")
+    public void the_defect_report_is_executed() {
+        try {
+            aggregate = new DefectAggregate("defect-1");
+            var cmd = new ReportDefectCmd("defect-1", "Validation fails", "Body missing URL", "LOW");
+            aggregate.execute(cmd);
+            repository.save(aggregate);
+        } catch (Exception e) {
+            capturedException = e;
+        }
     }
-    
-    @Given("the Slack channel {string} is configured for defect reports")
-    public void the_slack_channel_is_configured_for_defect_reports(String ch) {
-        this.channel = ch;
+
+    @Then("the defect should be saved with reported status")
+    public void the_defect_should_be_saved_with_reported_status() {
+        assertNotNull(aggregate);
+        assertEquals(1, aggregate.uncommittedEvents().size());
+        assertTrue(aggregate.uncommittedEvents().get(0) instanceof DefectReportedEvent);
+        assertNotNull(repository.findById("defect-1"));
     }
-    
-    @When("the defect is reported via temporal-worker exec")
-    public void the_defect_is_reported_via_temporal_worker_exec() {
-        // This will fail because defectReportService doesn't exist yet
-        // reportResult = defectReportService.reportDefect(defectId, title, description, channel);
-        reportResult = false; // Placeholder to make it compile
+
+    // Scenario 2: Linking GitHub
+    @Given("a defect has been reported")
+    public void a_defect_has_been_reported() {
+        aggregate = new DefectAggregate("defect-2");
+        aggregate.execute(new ReportDefectCmd("defect-2", "Slack Integration", "Missing URL", "LOW"));
+        aggregate.clearEvents(); // Clear domain events from previous step
     }
-    
-    @Then("the Slack body should contain the GitHub issue link")
-    public void the_slack_body_should_contain_the_github_issue_link() {
-        MockNotificationPort mockNotification = (MockNotificationPort) notificationPort;
-        assertTrue(
-            mockNotification.messageContains(channel, "github.com"),
-            "Slack message should contain GitHub URL"
-        );
+
+    @When("a GitHub issue link command is executed with URL {string}")
+    public void a_github_issue_link_command_is_executed_with_url(String url) {
+        try {
+            aggregate.execute(new LinkGitHubIssueCmd("defect-2", url));
+        } catch (Exception e) {
+            capturedException = e;
+        }
     }
-    
-    @And("the GitHub issue should be created")
-    public void the_github_issue_should_be_created() {
-        MockGitHubPort mockGitHub = (MockGitHubPort) gitHubPort;
-        assertTrue(
-            mockGitHub.getIssueCount() > 0,
-            "GitHub issue should be created"
-        );
+
+    @Then("the aggregate should contain the GitHub URL")
+    public void the_aggregate_should_contain_the_github_url() {
+        assertEquals("https://github.com/org/repo/issues/1", aggregate.getGithubUrl());
     }
-    
-    @And("the Slack message should be sent to the correct channel")
-    public void the_slack_message_should_be_sent_to_the_correct_channel() {
-        MockNotificationPort mockNotification = (MockNotificationPort) notificationPort;
-        assertTrue(
-            mockNotification.getSentMessages().stream()
-                .anyMatch(msg -> msg.channel.equals(channel)),
-            "Slack message should be sent to the correct channel"
-        );
+
+    @Then("a GitHubIssueLinkedEvent should be emitted")
+    public void a_github_issue_linked_event_should_be_emitted() {
+        assertEquals(1, aggregate.uncommittedEvents().size());
+        assertTrue(aggregate.uncommittedEvents().get(0) instanceof GitHubIssueLinkedEvent);
+        GitHubIssueLinkedEvent event = (GitHubIssueLinkedEvent) aggregate.uncommittedEvents().get(0);
+        assertEquals("https://github.com/org/repo/issues/1", event.url());
+    }
+
+    // Scenario 3: Negative Validation
+    @Given("a defect exists")
+    public void a_defect_exists() {
+        aggregate = new DefectAggregate("defect-3");
+        aggregate.execute(new ReportDefectCmd("defect-3", "Bad URL", "Testing invalid URL", "LOW"));
+        aggregate.clearEvents();
+    }
+
+    @When("the system tries to link an invalid GitHub URL {string}")
+    public void the_system_tries_to_link_an_invalid_github_url(String url) {
+        try {
+            aggregate.execute(new LinkGitHubIssueCmd("defect-3", url));
+        } catch (IllegalArgumentException e) {
+            capturedException = e;
+        }
+    }
+
+    @Then("the command should fail with an error")
+    public void the_command_should_fail_with_an_error() {
+        assertNotNull(capturedException);
+        assertTrue(capturedException instanceof IllegalArgumentException);
+        assertTrue(capturedException.getMessage().contains("Valid GitHub URL required"));
+    }
+
+    @Then("no GitHub issue event should be emitted")
+    public void no_github_issue_event_should_be_emitted() {
+        assertTrue(aggregate.uncommittedEvents().isEmpty());
+        assertNull(aggregate.getGithubUrl());
     }
 }

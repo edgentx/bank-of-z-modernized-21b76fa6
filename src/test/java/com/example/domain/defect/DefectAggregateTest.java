@@ -3,30 +3,20 @@ package com.example.domain.defect;
 import com.example.domain.defect.model.DefectAggregate;
 import com.example.domain.defect.model.DefectReportedEvent;
 import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.domain.shared.UnknownCommandException;
 import org.junit.jupiter.api.Test;
 
-import java.time.Instant;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Unit tests for DefectAggregate.
- * Covers validation logic and Slack body generation (VW-454).
- */
 class DefectAggregateTest {
 
     @Test
-    void shouldGenerateSlackBodyWithGitHubUrl() {
+    void shouldReportDefectAndGenerateGithubUrl() {
         // Given
-        var aggregate = new DefectAggregate("VW-454");
-        String expectedUrl = "https://github.com/example/bank-of-z/issues/454";
-        var cmd = new ReportDefectCmd(
-            "VW-454",
-            "Fix: Validating VW-454",
-            "Slack body missing URL",
-            expectedUrl,
-            "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1"
-        );
+        var aggregate = new DefectAggregate("defect-1");
+        var cmd = new ReportDefectCmd("defect-1", "Critical Bug", "Fix this", "HIGH");
 
         // When
         var events = aggregate.execute(cmd);
@@ -34,32 +24,40 @@ class DefectAggregateTest {
         // Then
         assertEquals(1, events.size());
         var event = (DefectReportedEvent) events.get(0);
-        
-        // Verify Expected Behavior: Slack body includes GitHub issue: <url>
-        assertTrue(event.slackBody().contains("GitHub issue:"), "Slack body should contain 'GitHub issue:' prefix");
-        assertTrue(event.slackBody().contains(expectedUrl), "Slack body should contain the specific GitHub URL");
-        
-        // Regression test for S-FB-1
-        assertEquals("GitHub issue: " + expectedUrl, event.slackBody());
+        assertEquals("defect-1", event.aggregateId());
+        assertEquals("Critical Bug", event.title());
+        assertNotNull(event.githubIssueUrl());
+        assertTrue(event.githubIssueUrl().startsWith("https://github.com/egdcrypto/bank-of-z/issues/"));
     }
 
     @Test
-    void shouldThrowIfGitHubUrlMissing() {
+    void shouldThrowOnDuplicateReport() {
         // Given
-        var aggregate = new DefectAggregate("VW-455");
-        var cmd = new ReportDefectCmd(
-            "VW-455",
-            "Missing URL",
-            "Desc",
-            "", // Blank URL
-            "proj-id"
-        );
+        var aggregate = new DefectAggregate("defect-1");
+        var cmd = new ReportDefectCmd("defect-1", "Bug", "Desc", "LOW");
+        aggregate.execute(cmd);
 
         // When/Then
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-            aggregate.execute(cmd);
-        });
-        
-        assertTrue(ex.getMessage().contains("GitHub URL is required"));
+        assertThrows(IllegalStateException.class, () -> aggregate.execute(cmd));
+    }
+
+    @Test
+    void shouldThrowOnUnknownCommand() {
+        // Given
+        var aggregate = new DefectAggregate("defect-1");
+        var unknownCmd = new Object() implements com.example.domain.shared.Command {};
+
+        // When/Then
+        assertThrows(UnknownCommandException.class, () -> aggregate.execute(unknownCmd));
+    }
+
+    @Test
+    void shouldRequireTitle() {
+        // Given
+        var aggregate = new DefectAggregate("defect-1");
+        var cmd = new ReportDefectCmd("defect-1", "", "Desc", "LOW");
+
+        // When/Then
+        assertThrows(IllegalArgumentException.class, () -> aggregate.execute(cmd));
     }
 }

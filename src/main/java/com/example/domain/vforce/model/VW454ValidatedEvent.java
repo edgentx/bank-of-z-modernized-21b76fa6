@@ -5,14 +5,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event published when the VForce360 validation workflow (VW-454)
- * confirms the Slack body contains the GitHub issue URL.
+ * Domain event emitted when a defect validation is complete.
  */
 public record VW454ValidatedEvent(
-        String aggregateId,
-        String githubUrl,
-        String correlationId,
-        Instant occurredAt
+    String aggregateId,
+    String issueId,
+    String githubUrl,
+    Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {

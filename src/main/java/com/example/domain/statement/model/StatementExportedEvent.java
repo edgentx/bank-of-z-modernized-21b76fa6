@@ -1,12 +1,9 @@
 package com.example.domain.statement.model;
 
 import com.example.domain.shared.DomainEvent;
-import java.time.Instant;
-import java.util.UUID;
 
-/**
- * Event emitted when a Statement is successfully exported.
- */
+import java.time.Instant;
+
 public record StatementExportedEvent(
         String aggregateId,
         String format,

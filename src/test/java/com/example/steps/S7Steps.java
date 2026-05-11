@@ -1,93 +1,100 @@
 package com.example.steps;
 
 import com.example.domain.account.model.AccountAggregate;
-import com.example.domain.account.model.AccountClosedEvent;
 import com.example.domain.account.model.CloseAccountCmd;
+import com.example.domain.account.model.AccountClosedEvent;
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 public class S7Steps {
 
     private AccountAggregate account;
-    private List<DomainEvent> resultEvents;
-    private Exception caughtException;
+    private String accountNumber;
+    private List<DomainEvent> resultingEvents;
+    private Exception capturedException;
 
     @Given("a valid Account aggregate")
     public void a_valid_account_aggregate() {
-        // Simulating a valid, active account with zero balance
-        account = new AccountAggregate("ACC-123", "Active", BigDecimal.ZERO);
+        this.accountNumber = "ACC-123";
+        this.account = new AccountAggregate(this.accountNumber);
+        // Setup valid state (Active, Zero Balance)
+        this.account.setStatus(AccountAggregate.Status.ACTIVE);
+        this.account.setBalance(BigDecimal.ZERO);
     }
 
     @And("a valid accountNumber is provided")
     public void a_valid_account_number_is_provided() {
-        // Account number is implicitly "ACC-123" from the Given step
-        Assertions.assertNotNull(account.id());
+        // The account number is already set in the context of the aggregate
+        assertNotNull(accountNumber);
+    }
+
+    // --- Scenario: Balance Constraint Violation ---
+    @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
+    public void a_account_aggregate_that_violates_balance() {
+        this.accountNumber = "ACC-BAD-BAL";
+        this.account = new AccountAggregate(this.accountNumber);
+        this.account.setStatus(AccountAggregate.Status.ACTIVE);
+        // Violation: Balance is 100, not 0
+        this.account.setBalance(new BigDecimal("100.00"));
+    }
+
+    // --- Scenario: Status Constraint Violation ---
+    @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
+    public void a_account_aggregate_that_violates_status() {
+        this.accountNumber = "ACC-BAD-STAT";
+        this.account = new AccountAggregate(this.accountNumber);
+        // Violation: Status is not ACTIVE (e.g. already CLOSED)
+        this.account.setStatus(AccountAggregate.Status.CLOSED);
+        this.account.setBalance(BigDecimal.ZERO);
+    }
+
+    // --- Scenario: Immutable/Unique Account Number Violation ---
+    @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
+    public void a_account_aggregate_that_violates_immutability() {
+        this.accountNumber = "ACC-ORIG";
+        this.account = new AccountAggregate(this.accountNumber);
+        this.account.setStatus(AccountAggregate.Status.ACTIVE);
+        this.account.setBalance(BigDecimal.ZERO);
+        
+        // To simulate the "Command mismatch" aspect of this invariant in a unit-testable way:
+        // We will change the 'accountNumber' context so the command executed differs from the aggregate ID.
+        // This simulates trying to close account A using a command intended for account B.
+        this.accountNumber = "ACC-DIFFERENT";
     }
 
     @When("the CloseAccountCmd command is executed")
     public void the_close_account_cmd_command_is_executed() {
+        CloseAccountCmd cmd = new CloseAccountCmd(accountNumber);
         try {
-            CloseAccountCmd cmd = new CloseAccountCmd(account.id());
-            resultEvents = account.execute(cmd);
-        } catch (IllegalStateException | IllegalArgumentException | UnknownCommandException e) {
-            caughtException = e;
+            resultingEvents = account.execute(cmd);
+        } catch (Exception e) {
+            capturedException = e;
         }
     }
 
     @Then("a account.closed event is emitted")
     public void a_account_closed_event_is_emitted() {
-        Assertions.assertNull(caughtException, "Should not have thrown an exception");
-        Assertions.assertNotNull(resultEvents);
-        Assertions.assertEquals(1, resultEvents.size());
-        Assertions.assertEquals(AccountClosedEvent.class, resultEvents.get(0).getClass());
-    }
-
-    @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
-    public void a_account_aggregate_that_violates_balance_constraint() {
-        // Simulate an account with a balance (cannot close)
-        account = new AccountAggregate("ACC-HIGH-BAL", "Active", new BigDecimal("100.00"));
-    }
-
-    @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
-    public void a_account_aggregate_that_violates_active_status() {
-        // Simulate a closed or inactive account
-        account = new AccountAggregate("ACC-INACTIVE", "Closed", BigDecimal.ZERO);
-    }
-
-    @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
-    public void a_account_aggregate_that_violates_unique_number() {
-        // Simulate a command with a mismatched account number
-        account = new AccountAggregate("ACC-REAL", "Active", BigDecimal.ZERO);
+        assertNotNull(resultingEvents);
+        assertEquals(1, resultingEvents.size());
+        assertTrue(resultingEvents.get(0) instanceof AccountClosedEvent);
+        assertEquals("account.closed", resultingEvents.get(0).type());
+        assertEquals(AccountAggregate.Status.CLOSED, account.getStatus());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(caughtException, "Expected a domain error exception");
-        // Depending on the specific violation, it could be IllegalStateException or IllegalArgumentException
-        Assertions.assertTrue(
-            caughtException instanceof IllegalStateException || 
-            caughtException instanceof IllegalArgumentException
-        );
+        assertNull(resultingEvents); // No events should be produced on failure
+        assertNotNull(capturedException);
+        // We expect either IllegalStateException or IllegalArgumentException depending on the specific invariant
+        assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
     }
-
-    // Additional hook for the "unique number" scenario specifically modifying the command execution context
-    @When("the CloseAccountCmd command is executed with a mismatched ID")
-    public void the_close_account_cmd_command_is_executed_with_mismatched_id() {
-        try {
-            // Force a mismatch: Account ID is ACC-REAL, but command targets ACC-FAKE
-            CloseAccountCmd cmd = new CloseAccountCmd("ACC-FAKE"); 
-            account.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            caughtException = e;
-        }
-    }
-
 }

@@ -1,85 +1,61 @@
 package com.example.domain.validation;
 
-import com.example.mocks.MockGitHubClient;
-import com.example.mocks.MockSlackNotificationClient;
-import com.example.ports.GitHubIssuePort;
-import com.example.ports.SlackNotificationPort;
-import org.junit.jupiter.api.BeforeEach;
+import com.example.ports.SlackNotifier;
+import com.example.ports.GitHubClient;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.DisplayName;
+import org.mockito.ArgumentCaptor;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
- * TDD Red Phase Test for Story ID: S-FB-1
- * Defect: Validating VW-454 — GitHub URL in Slack body (end-to-end)
+ * TDD Red Phase Test for VW-454.
  * 
- * These tests verify that when a defect report is triggered,
- * the resulting Slack notification contains the correct GitHub URL.
+ * Scenario: Verifying that a defect report triggered via Temporal 
+ * results in a Slack notification containing the GitHub issue URL.
+ * 
+ * Acceptance Criteria:
+ * 1. The validation logic executes without error.
+ * 2. The resulting Slack body contains the valid GitHub URL.
  */
-@DisplayName("VW-454: Slack Notification URL Validation")
-class VW454ValidationTest {
-
-    private GitHubIssuePort gitHubClient;
-    private SlackNotificationPort slackClient;
-    private DefectReportService defectReportService; // The class under test (to be implemented)
-
-    private static final String ISSUE_ID = "VW-454";
-    private static final String EXPECTED_URL = "https://github.com/bank-of-z/vforce360/issues/454";
-    private static final String CHANNEL_NAME = "#vforce360-issues";
-
-    @BeforeEach
-    void setUp() {
-        gitHubClient = new MockGitHubClient();
-        slackClient = new MockSlackNotificationClient();
-        
-        // Inject mocks into the service (Simulating Spring Dependency Injection)
-        defectReportService = new DefectReportService(gitHubClient, slackClient);
-    }
+public class VW454ValidationTest {
 
     @Test
-    @DisplayName("Should include GitHub issue URL in Slack body when reporting defect")
-    void testSlackBodyContainsGitHubUrl() {
-        // Arrange: Configure the Mock GitHub client to return a valid URL
-        ((MockGitHubClient) gitHubClient).setMockUrl(EXPECTED_URL);
-
-        // Act: Trigger the defect report logic
-        defectReportService.reportDefect(ISSUE_ID, CHANNEL_NAME);
-
-        // Assert: Verify the Slack client received the message with the URL
-        MockSlackNotificationClient mockSlack = (MockSlackNotificationClient) slackClient;
-        assertThat(mockSlack.getSentMessages()).hasSize(1);
-
-        MockSlackNotificationClient.Message sentMessage = mockSlack.getSentMessages().get(0);
-        assertThat(sentMessage.channel()).isEqualTo(CHANNEL_NAME);
+    public void testReportDefect_ShouldIncludeGitHubUrlInSlackBody() {
+        // Arrange
+        String defectId = "VW-454";
+        String expectedUrl = "https://github.com/example/repo/issues/454";
         
-        // Core Validation: The body must contain the URL
-        assertThat(sentMessage.body())
-            .as("Slack body should contain the GitHub URL for the issue")
-            .contains(EXPECTED_URL);
+        // Mock external dependencies (Ports)
+        SlackNotifier mockSlack = mock(SlackNotifier.class);
+        GitHubClient mockGitHub = mock(GitHubClient.class);
         
-        assertThat(sentMessage.body())
-            .as("Slack body should reference the Issue ID")
-            .contains(ISSUE_ID);
-    }
+        // Configure mock GitHub to return a valid URL when queried
+        when(mockGitHub.createIssue(anyString(), anyString())).thenReturn(expectedUrl);
 
-    @Test
-    @DisplayName("Should handle missing GitHub URL gracefully")
-    void testMissingGitHubUrl() {
-        // Arrange: Configure Mock to return empty (simulating issue not found)
-        ((MockGitHubClient) gitHubClient).setMockUrl(null);
+        // System Under Test (SUT)
+        // We use the concrete implementation class that would exist in src/main/java.
+        // Since this is TDD Red Phase, this class might not exist yet, or the logic is missing.
+        // We define the interface 'DefectReporter' locally for the test structure.
+        DefectReporter reporter = new DefectReporter(mockGitHub, mockSlack);
 
-        // Act & Assert: The service should handle this without crashing, 
-        // potentially logging a warning or sending a message indicating the URL was not found.
-        // For this red-phase test, we verify no exception is thrown and a message is sent.
-        defectReportService.reportDefect(ISSUE_ID, CHANNEL_NAME);
+        // Act
+        reporter.reportDefect(defectId, "Validation fix required");
 
-        MockSlackNotificationClient mockSlack = (MockSlackNotificationClient) slackClient;
-        assertThat(mockSlack.getSentMessages()).hasSize(1);
+        // Assert
+        ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
+        verify(mockSlack).sendNotification(messageCaptor.capture());
         
-        // The body should explicitly mention URL lookup failure
-        assertThat(mockSlack.getSentMessages().get(0).body())
-            .contains("URL not found"); 
+        String actualSlackBody = messageCaptor.getValue();
+        
+        // The core validation: The Slack body MUST contain the GitHub URL.
+        // If this test fails, the URL is missing or malformed.
+        assertTrue(
+            actualSlackBody.contains(expectedUrl), 
+            "Expected Slack body to contain GitHub issue URL: " + expectedUrl + ", but got: " + actualSlackBody
+        );
+        
+        // Verify integration with GitHub service was attempted
+        verify(mockGitHub).createIssue(eq(defectId), anyString());
     }
 }

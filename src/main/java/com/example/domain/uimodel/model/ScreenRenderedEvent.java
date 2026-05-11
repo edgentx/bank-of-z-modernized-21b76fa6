@@ -6,8 +6,7 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Event emitted when a screen layout is successfully rendered.
- * S-21: user-interface-navigation
+ * Event emitted when a screen layout is successfully generated.
  */
 public record ScreenRenderedEvent(
         String aggregateId,
@@ -16,19 +15,18 @@ public record ScreenRenderedEvent(
         Map<String, Object> layout,
         Instant occurredAt
 ) implements DomainEvent {
-
     @Override
     public String type() {
         return "screen.rendered";
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId();
+    public Instant occurredAt() {
+        return occurredAt;
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt();
+    public String aggregateId() {
+        return aggregateId;
     }
 }

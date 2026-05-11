@@ -5,22 +5,20 @@ import com.example.domain.account.repository.AccountRepository;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class InMemoryAccountRepository implements AccountRepository {
+
     private final Map<String, AccountAggregate> store = new HashMap<>();
 
     @Override
-    public void save(AccountAggregate aggregate) {
+    public AccountAggregate save(AccountAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
+        return aggregate;
     }
 
     @Override
-    public AccountAggregate load(String id) {
-        AccountAggregate a = store.get(id);
-        if (a == null) {
-            // Return a fresh transient aggregate if not found (Test convenience)
-            return new AccountAggregate(id);
-        }
-        return a;
+    public Optional<AccountAggregate> findById(String id) {
+        return Optional.ofNullable(store.get(id));
     }
 }

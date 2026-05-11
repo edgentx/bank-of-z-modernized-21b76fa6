@@ -1,13 +1,15 @@
 package com.example.domain.tellersession.repository;
 
-import com.example.domain.teller.model.TellerSessionAggregate;
+import com.example.domain.tellersession.model.TellerSessionAggregate;
+
 import java.util.Optional;
 
 /**
  * Repository interface for TellerSession aggregates.
- * Bridge to persistence layer (e.g., MongoDB, DB2).
+ * Implementation provided in test scope (InMemoryTellerSessionRepository).
  */
 public interface TellerSessionRepository {
     TellerSessionAggregate save(TellerSessionAggregate aggregate);
     Optional<TellerSessionAggregate> findById(String id);
+    TellerSessionAggregate create(String id);
 }

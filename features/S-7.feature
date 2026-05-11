@@ -1,4 +1,5 @@
 Feature: Implement CloseAccountCmd on Account (account-management)
+
   Feature: CloseAccountCmd
 
     Scenario: Successfully execute CloseAccountCmd

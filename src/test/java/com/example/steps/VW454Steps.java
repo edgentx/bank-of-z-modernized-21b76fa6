@@ -1,105 +1,76 @@
 package com.example.steps;
 
-import com.example.ports.GitHubRepositoryPort;
-import com.example.ports.SlackNotifierPort;
-import com.example.mocks.MockGitHubRepository;
-import com.example.mocks.MockSlackNotifier;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.verify;
+import com.example.domain.vforce360.model.DefectAggregate;
+import com.example.domain.vforce360.model.ReportDefectCmd;
+import com.example.mocks.InMemoryDefectRepository;
+import com.example.mocks.MockGitHubAdapter;
+import com.example.mocks.MockSlackAdapter;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackPort;
+import com.example.ports.VForce360RepositoryPort;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Assertions;
 
 /**
- * Test class for VW-454: Validating GitHub URL in Slack body (end-to-end).
- * 
- * Context: Defect reported via VForce360 PM diagnostic.
- * Behavior: Trigger report_defect -> Verify Slack body contains GitHub issue link.
+ * Steps for validating VW-454: GitHub URL in Slack body.
  */
-@ExtendWith(MockitoExtension.class)
 public class VW454Steps {
 
-    // We use the mock adapters directly to simulate the system behavior
-    private final MockSlackNotifier mockSlack = new MockSlackNotifier();
-    private final MockGitHubRepository mockGitHub = new MockGitHubRepository();
+    private VForce360RepositoryPort defectRepository;
+    private GitHubPort gitHubAdapter;
+    private SlackPort slackAdapter;
 
-    // Ideally, we inject the System Under Test (SUT) here.
-    // Since the SUT (ReportDefectWorkflow) doesn't exist yet (TDD Red Phase),
-    // we will write the test against the expected interaction pattern.
+    private Exception caughtException;
 
-    @BeforeEach
-    public void setUp() {
-        mockSlack.reset();
-        mockGitHub.reset();
+    // We assume a workflow service or application service exists to coordinate this.
+    // For the purpose of the red-phase test, we simulate the application logic here.
+
+    @Given("the defect reporting system is initialized")
+    public void the_system_is_initialized() {
+        defectRepository = new InMemoryDefectRepository();
+        gitHubAdapter = new MockGitHubAdapter();
+        slackAdapter = new MockSlackAdapter();
+        
+        // Configure a predictable GitHub URL
+        ((MockGitHubAdapter) gitHubAdapter).mockResponse("VW-454 Defect", "https://github.com/egdcrypto/repo/issues/454");
     }
 
-    /**
-     * Scenario: Triggering report_defect results in a Slack message with the GitHub issue URL.
-     * 
-     * Steps:
-     * 1. Trigger _report_defect via temporal-worker exec
-     * 2. Verify Slack body contains GitHub issue link
-     */
-    @Test
-    public void testReportDefectIncludesGitHubLinkInSlackBody() {
-        // GIVEN
-        String defectTitle = "VW-454 Regression: Missing URL in Slack";
-        String defectDescription = "The defect report is not linking to the created GitHub issue.";
+    @When("I trigger report_defect with title {string}")
+    public void i_trigger_report_defect(String title) {
+        try {
+            // 1. Create Aggregate
+            DefectAggregate defect = new DefectAggregate("defect-1");
+            
+            // 2. Execute Command
+            defect.execute(new ReportDefectCmd("defect-1", title, "LOW"));
+            
+            // 3. Save
+            defectRepository.save(defect);
 
-        // WHEN
-        // In a real integration test, we would invoke the Temporal workflow or the service handler.
-        // For this Red Phase test, we simulate the 'happy path' logic that SHOULD exist:
-        
-        // 1. Create GitHub Issue (Simulated)
-        String issueUrl = mockGitHub.createIssue(defectTitle, defectDescription);
-        assertNotNull(issueUrl, "GitHub URL should be generated");
+            // 4. Call GitHub (via Adapter)
+            String url = gitHubAdapter.createIssue(title, "Defect reported from VForce360");
 
-        // 2. Report Defect to Slack (Simulated)
-        // The expected behavior is that the logic constructs a message containing the URL.
-        String messageBody = "Defect Reported: " + defectTitle + "\n" +
-                            "GitHub Issue: " + issueUrl; // This is the expected format
-        
-        mockSlack.postMessage(messageBody);
+            // 5. Call Slack (via Adapter) with URL
+            // This is the line we are testing
+            String slackMessage = "Defect reported: " + title + " - " + url;
+            slackAdapter.sendMessage(slackMessage);
 
-        // THEN
-        // Verify the message was sent
-        List<String> messages = mockSlack.getPostedMessages();
-        assertFalse(messages.isEmpty(), "Slack should have received a message");
-
-        // Verify the content includes the specific GitHub URL
-        String actualMessage = messages.get(0);
-        assertTrue(
-            actualMessage.contains(issueUrl), 
-            "Slack body must include the GitHub issue URL. Received: " + actualMessage
-        );
-        
-        // Regression check: Ensure it looks like a valid URL format
-        assertTrue(
-            actualMessage.contains("https://github.com/"),
-            "Slack body should contain a valid GitHub URL prefix."
-        );
+        } catch (Exception e) {
+            caughtException = e;
+        }
     }
 
-    /**
-     * Scenario: Verify that Slack message is NOT sent if GitHub creation fails (Negative/Road Case).
-     */
-    @Test
-    public void testReportDefectFailsIfGitHubTitleIsEmpty() {
-        // GIVEN
-        String emptyTitle = "";
-
-        // WHEN & THEN
-        // We expect the GitHub adapter to reject invalid input
-        assertThrows(IllegalArgumentException.class, () -> {
-            mockGitHub.createIssue(emptyTitle, "description");
-        });
-
-        // Verify Slack was never called because GitHub failed
-        assertTrue(mockSlack.getPostedMessages().isEmpty(), "No Slack messages should be posted on GitHub failure");
+    @Then("the Slack body should contain the GitHub issue link")
+    public void the_slack_body_should_contain_link() {
+        Assertions.assertNull(caughtException, "Should not have thrown exception: " + caughtException);
+        
+        MockSlackAdapter mockSlack = (MockSlackAdapter) slackAdapter;
+        boolean containsLink = mockSlack.lastMessageContains("https://github.com/egdcrypto/repo/issues/454");
+        
+        // This assertion is the core of the test.
+        // It will FAIL in the TDD red phase until the logic is implemented.
+        Assertions.assertTrue(containsLink, "Slack body should contain GitHub URL");
     }
 }

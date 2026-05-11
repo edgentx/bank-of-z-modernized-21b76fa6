@@ -3,33 +3,24 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
+/**
+ * Domain event emitted when a teller session is successfully started.
+ */
 public record SessionStartedEvent(
-        String type,
-        String aggregateId,
-        String tellerId,
-        String terminalId,
-        Instant occurredAt
+    String aggregateId,
+    String tellerId,
+    String terminalId,
+    Instant occurredAt
 ) implements DomainEvent {
-    public SessionStartedEvent {
-        if (type == null || type.isBlank()) {
-            throw new IllegalArgumentException("type cannot be null");
-        }
-        if (aggregateId == null || aggregateId.isBlank()) {
-            throw new IllegalArgumentException("aggregateId cannot be null");
-        }
-        if (occurredAt == null) {
-            throw new IllegalArgumentException("occurredAt cannot be null");
-        }
+
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId) {
+        this(aggregateId, tellerId, terminalId, Instant.now());
     }
 
-    public static SessionStartedEvent create(String aggregateId, String tellerId, String terminalId, Instant timestamp) {
-        return new SessionStartedEvent(
-                "SessionStarted",
-                aggregateId,
-                tellerId,
-                terminalId,
-                timestamp
-        );
+    @Override
+    public String type() {
+        return "session.started";
     }
 }

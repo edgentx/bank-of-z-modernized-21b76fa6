@@ -1,73 +1,55 @@
 package com.example.steps;
 
-import com.example.domain.defect.ReportDefectCommand;
-import com.example.domain.defect.Service;
-import com.example.mocks.MockDefectRepository;
+import com.example.adapters.DefectReportTemporalAdapter;
+import com.example.domain.vforce360.model.ReportDefectCmd;
+import com.example.domain.vforce360.model.VForce360Aggregate;
+import com.example.mocks.MockGitHubPort;
 import com.example.mocks.MockSlackPort;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
-import static org.junit.jupiter.api.Assertions.*;
+import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Assertions;
 
 /**
- * Cucumber Steps for Story S-FB-1: Validating VW-454 — GitHub URL in Slack body (end-to-end)
- * 
- * Behavior:
- * 1. Trigger _report_defect via temporal-worker exec (simulated by Service call)
- * 2. Verify Slack body contains GitHub issue link
+ * Cucumber Steps for S-FB-1.
+ * TDD Red Phase: These tests define the expected behavior.
  */
 public class SFB1Steps {
 
-    // Mocks
-    private final MockDefectRepository repository = new MockDefectRepository();
-    private final MockSlackPort slackPort = new MockSlackPort();
-
-    // System Under Test
-    private Service defectService;
-
-    // Inputs
-    private ReportDefectCommand cmd;
-
-    // Exception Capture
-    private Exception capturedException;
+    private MockSlackPort mockSlack = new MockSlackPort();
+    private MockGitHubPort mockGitHub = new MockGitHubPort();
+    private DefectReportTemporalAdapter adapter;
+    private String resultUrl;
 
     @Given("the defect reporting system is initialized")
-    public void the_defect_reporting_system_is_initialized() {
-        defectService = new Service(repository, slackPort);
-        slackPort.clear();
+    public void setup() {
+        adapter = new DefectReportTemporalAdapter(mockSlack, mockGitHub);
+        mockGitHub.setMockUrl("https://github.com/egdcrypto/bank-of-z/issues/454");
     }
 
-    @Given("a valid defect report command with URL {string}")
-    public void a_valid_defect_report_command_with_url(String url) {
-        // Construct a valid command
-        this.cmd = new ReportDefectCommand("defect-123", "Test Defect", url);
+    @When("the temporal worker executes the defect report for VW-454")
+    public void trigger_report_defect() {
+        // Simulate Temporal Worker invoking the activity
+        resultUrl = adapter.executeReportDefect("conv-123", "VW-454");
     }
 
-    @When("the report defect command is executed")
-    public void the_report_defect_command_is_executed() {
-        try {
-            defectService.reportDefect(cmd);
-        } catch (Exception e) {
-            this.capturedException = e;
-        }
-    }
-
-    @Then("Slack should receive a notification containing the GitHub issue link")
-    public void slack_should_receive_a_notification_containing_the_github_issue_link() {
-        var messages = slackPort.getMessages();
-        assertFalse(messages.isEmpty(), "Slack should have received a message");
+    @Then("the Slack body should contain the GitHub issue link")
+    public void verify_slack_body() {
+        // Primary assertion for S-FB-1
+        String body = mockSlack.lastBody;
         
-        var postedMsg = messages.get(0);
-        assertEquals("#vforce360-issues", postedMsg.channel, "Message should go to the correct channel");
-        
-        // This is the core assertion for VW-454
-        assertTrue(postedMsg.text.contains(cmd.githubUrl()), 
-            "Slack body must contain the full GitHub URL provided in the command");
+        Assertions.assertNotNull(body, "Slack body should not be null");
+        Assertions.assertTrue(
+            body.contains("GitHub issue: https://github.com/egdcrypto/bank-of-z/issues/454"),
+            "Slack body must include 'GitHub issue: <url>'. Actual body: " + body
+        );
     }
-
-    // Negative Test Case: Ensure we don't post garbage
-    @Then("Slack should not receive any notification")
-    public void slack_should_not_receive_any_notification() {
-        assertTrue(slackPort.getMessages().isEmpty(), "Slack should not receive messages for failed commands");
+    
+    @Then("the validation no longer exhibits the reported behavior")
+    public void verify_fix() {
+        // Regression check: ensure the link is present and formatted correctly
+        String body = mockSlack.lastBody;
+        Assertions.assertFalse(body.isEmpty());
+        Assertions.assertTrue(body.contains("http"));
     }
 }

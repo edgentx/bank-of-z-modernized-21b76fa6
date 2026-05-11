@@ -1,6 +1,6 @@
 package com.example.domain.aggregator.repository;
 
-import com.example.domain.tellersession.model.TellerSessionAggregate;
+import com.example.domain.aggregator.model.TellerSessionAggregate;
 import java.util.Optional;
 
 public interface TellerSessionRepository {

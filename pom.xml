@@ -1,4 +1,3 @@
-
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -19,6 +18,7 @@
 		<java.version>17</java.version>
 	</properties>
 	<dependencies>
+		<!-- Core Dependencies -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-mongodb</artifactId>
@@ -37,6 +37,7 @@
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-core</artifactId>
 		</dependency>
+		<!-- 9.22.3 is compatible with Flyway Core 9.x and Spring Boot 3.x -->
 		<dependency>
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-db2</artifactId>

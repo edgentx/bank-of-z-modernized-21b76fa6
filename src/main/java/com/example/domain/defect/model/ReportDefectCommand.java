@@ -1,9 +1,7 @@
-package com.example.domain.defect.model;
+package com.example.domain.shared;
 
-import com.example.domain.shared.Command;
-
-public record ReportDefectCommand(String defectId, String description, String githubIssueUrl) implements Command {
-    public ReportDefectCommand {
-        if (defectId == null || defectId.isBlank()) throw new IllegalArgumentException("defectId required");
-    }
-}
+/** 
+ * Alias for downstream convenience to avoid package-specific imports in workflows.
+ * The concrete definition is in the defect domain.
+ */
+public interface ReportDefectCommand extends Command {}

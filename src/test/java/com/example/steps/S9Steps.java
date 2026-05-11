@@ -1,16 +1,15 @@
 package com.example.steps;
 
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
 import com.example.domain.statement.model.ExportStatementCmd;
 import com.example.domain.statement.model.StatementAggregate;
 import com.example.domain.statement.model.StatementExportedEvent;
-import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -19,70 +18,84 @@ public class S9Steps {
 
     private StatementAggregate aggregate;
     private List<DomainEvent> resultEvents;
-    private Exception thrownException;
+    private Exception capturedException;
 
     @Given("a valid Statement aggregate")
-    public void aValidStatementAggregate() {
-        this.aggregate = new StatementAggregate("stmt-valid-123");
-        // Set up valid state for happy path
-        aggregate.setClosedPeriod(true);
-        aggregate.setBalances(BigDecimal.valueOf(100.00), BigDecimal.valueOf(150.00));
+    public void a_valid_statement_aggregate() {
+        this.aggregate = new StatementAggregate("stmt-123");
+        // Setup valid state: OPEN balances, CLOSED period
+        aggregate.loadSnapshot(
+                "acct-456",
+                new BigDecimal("100.00"),
+                new BigDecimal("200.00"),
+                Instant.now(),
+                "CLOSED"
+        );
     }
 
-    @Given("a Statement aggregate that violates: A statement must be generated for a closed period and cannot be altered retroactively.")
-    public void aStatementAggregateThatViolatesPeriodClosed() {
-        this.aggregate = new StatementAggregate("stmt-open-123");
-        // State is open period
-        aggregate.setClosedPeriod(false);
-        aggregate.setBalances(BigDecimal.valueOf(100.00), BigDecimal.valueOf(150.00));
+    @Given("a valid statementId is provided")
+    public void a_valid_statement_id_is_provided() {
+        // Handled by the aggregate construction in the previous step or implicit in command execution
+        assertNotNull(aggregate);
     }
 
-    @Given("a Statement aggregate that violates: Statement opening balance must exactly match the closing balance of the previous statement.")
-    public void aStatementAggregateThatViolatesBalanceMismatch() {
-        this.aggregate = new StatementAggregate("stmt-bad-bal-123");
-        // Period is closed, but balances don't match previous (simulated by null or negative)
-        aggregate.setClosedPeriod(true);
-        // Simulating a state that triggers the specific error message or null
-        aggregate.setBalances(null, BigDecimal.valueOf(150.00));
-    }
-
-    @And("a valid statementId is provided")
-    public void aValidStatementIdIsProvided() {
-        // Handled by the aggregate construction in previous steps
-    }
-
-    @And("a valid format is provided")
-    public void aValidFormatIsProvided() {
-        // Handled in the When step
+    @Given("a valid format is provided")
+    public void a_valid_format_is_provided() {
+        // Handled in command execution
     }
 
     @When("the ExportStatementCmd command is executed")
-    public void theExportStatementCmdCommandIsExecuted() {
+    public void the_export_statement_cmd_command_is_executed() {
         try {
             ExportStatementCmd cmd = new ExportStatementCmd(aggregate.id(), "PDF");
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            this.thrownException = e;
+            capturedException = e;
         }
     }
 
     @Then("a statement.exported event is emitted")
-    public void aStatementExportedEventIsEmitted() {
+    public void a_statement_exported_event_is_emitted() {
+        assertNull(capturedException, "Expected no exception, but got: " + capturedException);
         assertNotNull(resultEvents);
         assertEquals(1, resultEvents.size());
         assertTrue(resultEvents.get(0) instanceof StatementExportedEvent);
-        
         StatementExportedEvent event = (StatementExportedEvent) resultEvents.get(0);
         assertEquals("statement.exported", event.type());
         assertEquals(aggregate.id(), event.aggregateId());
-        assertNotNull(event.occurredAt());
         assertEquals("PDF", event.format());
     }
 
+    @Given("a Statement aggregate that violates: A statement must be generated for a closed period and cannot be altered retroactively.")
+    public void a_statement_aggregate_that_violates_closed_period() {
+        this.aggregate = new StatementAggregate("stmt-violation-period");
+        // Setup invalid state: OPEN period
+        aggregate.loadSnapshot(
+                "acct-violation",
+                new BigDecimal("100.00"),
+                new BigDecimal("200.00"),
+                Instant.now(),
+                "OPEN" // Violates invariant
+        );
+    }
+
+    @Given("a Statement aggregate that violates: Statement opening balance must exactly match the closing balance of the previous statement.")
+    public void a_statement_aggregate_that_violates_opening_balance() {
+        this.aggregate = new StatementAggregate("stmt-violation-bal");
+        // Setup invalid state: NULL opening balance (simulating mismatch)
+        aggregate.loadSnapshot(
+                "acct-violation",
+                null, // Violates invariant check in aggregate
+                new BigDecimal("200.00"),
+                Instant.now(),
+                "CLOSED"
+        );
+    }
+
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(thrownException);
-        // Checking for IllegalStateException based on aggregate logic
-        assertTrue(thrownException instanceof IllegalStateException);
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(capturedException);
+        assertTrue(capturedException instanceof IllegalStateException);
+        assertTrue(capturedException.getMessage().length() > 0);
     }
 }

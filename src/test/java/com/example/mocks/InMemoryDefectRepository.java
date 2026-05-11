@@ -1,25 +1,36 @@
 package com.example.mocks;
 
-import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.repository.DefectRepository;
-import org.springframework.stereotype.Component;
+import com.example.domain.shared.Command;
+import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.Aggregate;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
-@Component
-public class InMemoryDefectRepository implements DefectRepository {
+/**
+ * In-memory repository for Defect aggregates.
+ * Used for testing and prototyping without a real database connection.
+ * Implements the generic repository pattern expected by the domain layer.
+ */
+public class InMemoryDefectRepository {
 
-    private final Map<String, DefectAggregate> store = new HashMap<>();
+    // Simple in-memory store. Key is Aggregate ID.
+    private final List<Aggregate> store = new ArrayList<>();
 
-    @Override
-    public void save(DefectAggregate aggregate) {
-        store.put(aggregate.id(), aggregate);
+    public void save(Aggregate aggregate) {
+        // In a real implementation, we would check for existing versions.
+        // For this defect fix/test context, we just add to the list.
+        store.add(aggregate);
     }
 
-    @Override
-    public Optional<DefectAggregate> findById(String id) {
-        return Optional.ofNullable(store.get(id));
+    public Optional<Aggregate> findById(String id) {
+        return store.stream()
+                .filter(agg -> agg.id().equals(id))
+                .findFirst();
+    }
+
+    public void clear() {
+        store.clear();
     }
 }

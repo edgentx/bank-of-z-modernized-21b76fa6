@@ -3,11 +3,6 @@ package com.example.domain.uimodel.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to render a specific screen layout adapted for a device type.
- * Part of S-21: RenderScreenCmd on ScreenMap.
+ * Command to render a specific screen layout adapted for a user's device.
  */
-public record RenderScreenCmd(
-    String screenMapId,
-    String screenId,
-    String deviceType
-) implements Command {}
+public record RenderScreenCmd(String aggregateId, String screenId, String deviceType, String legacyFieldData) implements Command {}

@@ -6,10 +6,7 @@ import java.time.Instant;
 
 public record CustomerDetailsUpdatedEvent(
     String customerId,
-    String fullName,
-    String email,
-    String governmentId,
-    String dateOfBirth,
+    String emailAddress,
     String sortCode,
     Instant occurredAt
 ) implements DomainEvent {

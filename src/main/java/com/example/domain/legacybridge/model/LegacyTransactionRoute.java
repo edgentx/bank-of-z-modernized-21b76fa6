@@ -47,6 +47,9 @@ public class LegacyTransactionRoute extends AggregateRoot {
         if (cmd instanceof EvaluateRoutingCmd c) {
             return evaluateRouting(c);
         }
+        if (cmd instanceof UpdateRoutingRuleCmd c) {
+            return updateRoutingRule(c);
+        }
         throw new UnknownCommandException(cmd);
     }
 
@@ -88,6 +91,41 @@ public class LegacyTransactionRoute extends AggregateRoot {
         addEvent(event);
         incrementVersion();
 
+        return List.of(event);
+    }
+
+    private List<DomainEvent> updateRoutingRule(UpdateRoutingRuleCmd cmd) {
+        // Invariant: Prevent dual-processing (context: update tries to route to both)
+        if (dualProcessingViolation) {
+            throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
+        }
+
+        // Invariant: Versioning check
+        if (versioningViolation || cmd.newVersion() <= 0) {
+             throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
+        }
+
+        // Logic check: Ensure target is valid
+        if (!"MODERN".equals(cmd.newTarget()) && !"LEGACY".equals(cmd.newTarget())) {
+            throw new IllegalArgumentException("Invalid target system provided: " + cmd.newTarget());
+        }
+
+        var event = new RoutingUpdatedEvent(
+                cmd.routeId(),
+                cmd.ruleId(),
+                cmd.newTarget(),
+                cmd.newVersion(),
+                cmd.effectiveDate(),
+                java.time.Instant.now()
+        );
+
+        // Update aggregate state
+        this.targetSystem = cmd.newTarget();
+        this.evaluated = false; // Re-evaluate based on new rules
+        
+        addEvent(event);
+        incrementVersion();
+        
         return List.of(event);
     }
 

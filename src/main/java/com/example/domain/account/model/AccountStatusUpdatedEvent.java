@@ -3,18 +3,15 @@ package com.example.domain.account.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
-/**
- * Event emitted when an account status changes.
- * S-6
- */
 public record AccountStatusUpdatedEvent(
     String aggregateId,
-    AccountStatus oldStatus,
-    AccountStatus newStatus,
+    String accountNumber,
+    String oldStatus,
+    String newStatus,
     Instant occurredAt
 ) implements DomainEvent {
-
     @Override
     public String type() {
         return "account.status.updated";

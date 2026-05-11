@@ -3,26 +3,32 @@ package com.example.mocks;
 import com.example.ports.SlackNotificationPort;
 
 /**
- * Mock Adapter for SlackNotificationPort.
- * Used in tests to verify that messages are generated correctly without external I/O.
+ * Spy implementation of SlackNotificationPort to capture output for testing.
+ * This avoids calling the real Slack API during test runs.
  */
 public class SpySlackNotificationAdapter implements SlackNotificationPort {
 
-    private boolean called = false;
-    private String capturedBody = "";
+    private String lastChannel;
+    private String lastBody;
 
     @Override
-    public void send(String messageBody) {
-        this.called = true;
-        this.capturedBody = messageBody;
-        // No real network call is made.
+    public void send(String channel, String body) {
+        // Capture state for assertions
+        this.lastChannel = channel;
+        this.lastBody = body;
+        // System.out.println("[SPY] Slack sent to " + channel + ": " + body);
     }
 
-    public boolean wasCalled() {
-        return called;
+    public String getLastChannel() {
+        return lastChannel;
     }
 
-    public String getCapturedBody() {
-        return capturedBody;
+    public String getLastMessageBody() {
+        return lastBody;
+    }
+
+    public void clear() {
+        this.lastChannel = null;
+        this.lastBody = null;
     }
 }

@@ -4,18 +4,19 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
-/**
- * Domain event emitted when a teller session is successfully started.
- */
 public record SessionStartedEvent(
-        String type,
-        String aggregateId,
-        Instant occurredAt,
-        String tellerId,
-        String terminalId
+    String aggregateId,
+    String tellerId,
+    String terminalId,
+    Instant occurredAt
 ) implements DomainEvent {
+  @Override
+  public String type() {
+    return "session.started";
+  }
 
-    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId) {
-        this("session.started", aggregateId, Instant.now(), tellerId, terminalId);
-    }
+  @Override
+  public Instant occurredAt() {
+    return occurredAt;
+  }
 }

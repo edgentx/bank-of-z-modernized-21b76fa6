@@ -3,24 +3,22 @@ package com.example.domain.uinavigation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
-/**
- * Event emitted when a teller session is successfully started.
- * Story S-18
- */
 public record SessionStartedEvent(
         String aggregateId,
         String tellerId,
         String terminalId,
+        String navigationContext,
         Instant occurredAt
 ) implements DomainEvent {
 
-    public SessionStartedEvent {
-        Objects.requireNonNull(aggregateId);
-        Objects.requireNonNull(tellerId);
-        Objects.requireNonNull(terminalId);
-        Objects.requireNonNull(occurredAt);
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, String navigationContext, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.tellerId = tellerId;
+        this.terminalId = terminalId;
+        this.navigationContext = navigationContext;
+        this.occurredAt = occurredAt;
     }
 
     @Override

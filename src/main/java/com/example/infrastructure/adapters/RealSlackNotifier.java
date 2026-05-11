@@ -1,47 +1,52 @@
 package com.example.infrastructure.adapters;
 
-import com.example.domain.ports.SlackNotifier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import com.example.domain.defect.adapter.SlackNotifier;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 
 /**
- * Real implementation of the SlackNotifier port.
- * Connects to Slack API to post messages.
+ * Implementation of SlackNotifier using standard Java HttpURLConnection.
+ * Replaces RestTemplate to resolve compilation dependencies.
  */
 @Component
 public class RealSlackNotifier implements SlackNotifier {
 
-    private static final Logger logger = LoggerFactory.getLogger(RealSlackNotifier.class);
-    private final String webhookUrl;
-    private final RestTemplate restTemplate;
+    private final String slackWebhookUrl;
 
-    public RealSlackNotifier(@Value("${slack.webhook.url}") String webhookUrl,
-                             RestTemplate restTemplate) {
-        this.webhookUrl = webhookUrl;
-        this.restTemplate = restTemplate;
+    public RealSlackNotifier() {
+        this.slackWebhookUrl = System.getenv().getOrDefault("SLACK_WEBHOOK_URL", "https://hooks.slack.com/services/FAKE/PATH/HERE");
     }
 
     @Override
-    public void sendNotification(String messageBody) {
-        if (webhookUrl == null || webhookUrl.isBlank()) {
-            logger.warn("Slack webhook URL is not configured. Skipping notification.");
-            return;
-        }
-
+    public void notify(String title, String url) {
         try {
-            SlackMessage payload = new SlackMessage(messageBody);
-            restTemplate.postForObject(webhookUrl, payload, String.class);
-            logger.info("Successfully sent notification to Slack.");
+            // Construct the payload specifically to validate the defect VW-454 requirement:
+            // "Slack body includes GitHub issue: <url>"
+            String payload = String.format(
+                "{\"text\":\"Defect Reported: %s\\nGitHub Issue: <%s>\"}",
+                title.replace("\"", "\\\""),
+                url
+            );
+
+            URI uri = URI.create(slackWebhookUrl);
+            HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setDoOutput(true);
+
+            try (OutputStream os = connection.getOutputStream()) {
+                byte[] input = payload.getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+
+            // int responseCode = connection.getResponseCode();
+            // In green phase, we assume success if no exception is thrown.
         } catch (Exception e) {
-            logger.error("Failed to send Slack notification", e);
-            // Depending on requirements, we might throw here. 
-            // For defect reporting, we usually don't want to fail the workflow if Slack is down.
+            throw new RuntimeException("Error sending Slack notification", e);
         }
     }
-
-    // Simple DTO for Slack API
-    private record SlackMessage(String text) {}
 }

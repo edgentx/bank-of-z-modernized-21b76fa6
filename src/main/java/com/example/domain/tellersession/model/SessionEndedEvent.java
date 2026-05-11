@@ -1,29 +1,25 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
-import java.util.UUID;
 
 /**
- * Event emitted when a Teller Session is successfully ended.
+ * Event emitted when a teller session is terminated.
  */
 public class SessionEndedEvent implements DomainEvent {
-
-    private final String eventId;
     private final String aggregateId;
-    private final String tellerId;
     private final Instant occurredAt;
+    private final String type = "session.ended";
 
-    public SessionEndedEvent(String aggregateId, String tellerId, Instant occurredAt) {
-        this.eventId = UUID.randomUUID().toString();
+    public SessionEndedEvent(String aggregateId, Instant occurredAt) {
         this.aggregateId = aggregateId;
-        this.tellerId = tellerId;
         this.occurredAt = occurredAt;
     }
 
     @Override
     public String type() {
-        return "session.ended";
+        return type;
     }
 
     @Override
@@ -34,13 +30,5 @@ public class SessionEndedEvent implements DomainEvent {
     @Override
     public Instant occurredAt() {
         return occurredAt;
-    }
-
-    public String tellerId() {
-        return tellerId;
-    }
-
-    public String eventId() {
-        return eventId;
     }
 }

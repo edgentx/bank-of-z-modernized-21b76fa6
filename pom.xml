@@ -6,25 +6,39 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.1</version>
+        <version>3.2.0</version>
         <relativePath/>
     </parent>
+    
     <groupId>com.example</groupId>
     <artifactId>legacy-bridge</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-    <name>legacy-bridge</name>
-    <description>Demo project for Spring Boot</description>
+    <version>1.0.0</version>
+    <name>Legacy Bridge</name>
+    <description>Legacy Transaction Routing Bridge</description>
 
     <properties>
         <java.version>17</java.version>
-        <cucumber.version>7.15.0</cucumber.version>
+        <cucumber.version>7.14.0</cucumber.version>
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Dependencies (Managed by BOM) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <!-- DB2 Driver -->
+        <dependency>
+            <groupId>com.ibm.db2</groupId>
+            <artifactId>jcc</artifactId>
+            <scope>runtime</scope>
         </dependency>
         
         <!-- Cucumber Dependencies -->
@@ -41,22 +55,13 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-spring</artifactId>
-            <version>${cucumber.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- JUnit 5 -->
-        <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
-        
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

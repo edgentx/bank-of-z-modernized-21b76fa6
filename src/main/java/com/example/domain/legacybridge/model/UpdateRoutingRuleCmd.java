@@ -3,15 +3,23 @@ package com.example.domain.legacybridge.model;
 import com.example.domain.shared.Command;
 
 import java.time.Instant;
+import java.util.Objects;
 
 /**
- * Command to update a routing rule for a legacy transaction route.
- * Used to shift traffic from legacy to modern systems or vice-versa.
+ * Command to update an existing routing rule.
+ * Used to shift traffic from Legacy to Modern systems.
  */
 public record UpdateRoutingRuleCmd(
         String routeId,
         String ruleId,
         String newTarget,
-        Instant effectiveDate
+        Instant effectiveDate,
+        int newRuleVersion
 ) implements Command {
+    public UpdateRoutingRuleCmd {
+        Objects.requireNonNull(routeId, "routeId cannot be null");
+        Objects.requireNonNull(ruleId, "ruleId cannot be null");
+        Objects.requireNonNull(newTarget, "newTarget cannot be null");
+        Objects.requireNonNull(effectiveDate, "effectiveDate cannot be null");
+    }
 }

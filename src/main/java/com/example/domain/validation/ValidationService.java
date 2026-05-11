@@ -1,36 +1,48 @@
 package com.example.domain.validation;
 
-import com.example.ports.SlackNotificationPort;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackPort;
 import org.springframework.stereotype.Service;
 
 /**
- * Domain Service for handling validation defects.
- * This is the class under test.
+ * Service responsible for orchestrating the defect reporting workflow.
+ * This represents the "Temporal Worker" logic in a simplified form for this validation fix.
  */
 @Service
 public class ValidationService {
 
-    private final SlackNotificationPort slackNotificationPort;
+    private final GitHubPort gitHubPort;
+    private final SlackPort slackPort;
 
-    public ValidationService(SlackNotificationPort slackNotificationPort) {
-        this.slackNotificationPort = slackNotificationPort;
+    public ValidationService(GitHubPort gitHubPort, SlackPort slackPort) {
+        this.gitHubPort = gitHubPort;
+        this.slackPort = slackPort;
     }
 
     /**
-     * Handles the reporting of a defect (Temporal workflow entry point).
-     * Corresponds to the user story: "Trigger _report_defect via temporal-worker exec".
+     * Executes the report_defect workflow.
+     * 1. Creates an issue in GitHub.
+     * 2. Sends a notification to Slack with the GitHub URL.
      *
-     * @param defectId The ID of the defect (e.g., "VW-454").
-     * @param githubUrl The URL to the GitHub issue.
+     * @param defectId The ID of the defect being reported.
+     * @return true if the workflow completed successfully.
      */
-    public void reportDefect(String defectId, String githubUrl) {
-        // TDD Green Phase: Include the GitHub URL in the body as required by the defect.
-        String slackBody = formulateSlackBody(defectId, githubUrl);
-        slackNotificationPort.send("#vforce360-issues", slackBody);
-    }
+    public boolean executeReportDefect(String defectId) {
+        if (defectId == null || defectId.isBlank()) {
+            throw new IllegalArgumentException("Defect ID cannot be null or empty");
+        }
 
-    private String formulateSlackBody(String defectId, String githubUrl) {
-        // Green implementation: Ensure the URL is present in the string.
-        return "Defect: " + defectId + "\nGitHub Issue: " + githubUrl;
+        // Step 1: Create GitHub Issue
+        String issueUrl = gitHubPort.createIssue(defectId, "Defect: " + defectId);
+
+        // Step 2: Send Slack notification containing the GitHub URL
+        // The expected format for the link in the body is <url|label> or <url>
+        String slackMessage = String.format(
+                "New defect reported: %s\nGitHub Issue: <%s|GitHub Issue>",
+                defectId,
+                issueUrl
+        );
+
+        return slackPort.sendMessage("#vforce360-issues", slackMessage);
     }
 }

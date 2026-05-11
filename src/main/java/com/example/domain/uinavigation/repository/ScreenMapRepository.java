@@ -1,9 +1,9 @@
 package com.example.domain.uinavigation.repository;
 
-import com.example.domain.uinavigation.model.ScreenMapAggregate;
+import com.example.domain.userinterface.model.ScreenMap;
 import java.util.Optional;
 
 public interface ScreenMapRepository {
-    ScreenMapAggregate save(ScreenMapAggregate aggregate);
-    Optional<ScreenMapAggregate> findById(String id);
+    ScreenMap save(ScreenMap aggregate);
+    Optional<ScreenMap> findById(String id);
 }

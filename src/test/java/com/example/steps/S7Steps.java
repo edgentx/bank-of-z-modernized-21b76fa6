@@ -1,78 +1,86 @@
 package com.example.steps;
 
 import com.example.domain.account.model.AccountAggregate;
-import com.example.domain.account.model.AccountClosedEvent;
-import com.example.domain.account.model.AccountOpenedEvent;
 import com.example.domain.account.model.CloseAccountCmd;
+import com.example.domain.account.model.AccountClosedEvent;
 import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.UnknownCommandException;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class S7Steps {
 
-    private AccountAggregate account;
+    private AccountAggregate aggregate;
+    private CloseAccountCmd command;
     private List<DomainEvent> resultEvents;
     private Exception capturedException;
 
     @Given("a valid Account aggregate")
     public void a_valid_account_aggregate() {
-        String id = java.util.UUID.randomUUID().toString();
-        account = new AccountAggregate(id);
-        // Simulate opening an account to make it valid
-        account.apply(new AccountOpenedEvent(id, "123456789", "CHECKING", Instant.now()));
+        aggregate = new AccountAggregate("ACC-100");
+        aggregate.setBalance(BigDecimal.ZERO);
+        aggregate.setStatus(AccountAggregate.Status.ACTIVE);
     }
 
     @Given("a valid accountNumber is provided")
     public void a_valid_account_number_is_provided() {
-        // Handled by default setup in 'a valid Account aggregate'
-        // Or we can explicitly ensure state if needed
-        assertNotNull(account.getAccountNumber());
+        // The account number is implicitly "ACC-100" from the previous step
+        // We assume the command is constructed with this valid ID
+        if (aggregate == null) {
+            throw new IllegalStateException("Aggregate must be initialized first");
+        }
     }
 
     @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
-    public void a_account_aggregate_that_violates_balance() {
-        String id = java.util.UUID.randomUUID().toString();
-        account = new AccountAggregate(id);
-        account.apply(new AccountOpenedEvent(id, "987654321", "CHECKING", Instant.now()));
-        // Set a non-zero balance to simulate the violation context (can't close if balance > 0)
-        account.setBalance(new BigDecimal("100.00"));
+    public void a_account_aggregate_that_violates_balance_requirement() {
+        aggregate = new AccountAggregate("ACC-101");
+        // S-7 Description: "Closes the account permanently, provided the balance is zero."
+        // Non-zero balance violates this requirement.
+        aggregate.setBalance(new BigDecimal("100.50"));
+        aggregate.setStatus(AccountAggregate.Status.ACTIVE);
     }
 
     @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
-    public void a_account_aggregate_that_violates_status() {
-        String id = java.util.UUID.randomUUID().toString();
-        account = new AccountAggregate(id);
-        account.apply(new AccountOpenedEvent(id, "111111111", "CHECKING", Instant.now()));
-        // Set status to CLOSED or INACTIVE to violate the "Active" requirement
-        account.setStatus(AccountAggregate.AccountStatus.CLOSED);
+    public void a_account_aggregate_that_violates_active_status() {
+        aggregate = new AccountAggregate("ACC-102");
+        aggregate.setBalance(BigDecimal.ZERO);
+        aggregate.setStatus(AccountAggregate.Status.FROZEN); // Not ACTIVE
     }
 
     @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
     public void a_account_aggregate_that_violates_uniqueness() {
-        // In the context of an aggregate command execution, "uniqueness" is usually enforced by the repository/store.
-        // However, for the aggregate to reject the command based on this, we can simulate a state where
-        // the account number is null or invalid, or the command is mismatched.
-        // Let's assume the aggregate is in a state where the accountNumber is missing (data integrity issue).
-        String id = java.util.UUID.randomUUID().toString();
-        account = new AccountAggregate(id);
-        // Manually creating an account without triggering the full open event logic to leave state invalid
-        // Note: In a real app, we might load an aggregate from history. Here we mock the state.
-        // We'll force a null account number scenario by not fully initializing.
-        account.setStatus(AccountAggregate.AccountStatus.ACTIVE); // But number is null/default
+        // This context usually implies a repository check for uniqueness.
+        // In the context of executing a Command on an Aggregate instance:
+        // We simulate a mismatch where the command targets a different ID than the aggregate.
+        aggregate = new AccountAggregate("ACC-103");
+        aggregate.setBalance(BigDecimal.ZERO);
+        aggregate.setStatus(AccountAggregate.Status.ACTIVE);
+        
+        // We will construct the command in the 'When' step to target "ACC-999" to simulate the violation 
+        // (Command ID != Aggregate ID).
     }
 
     @When("the CloseAccountCmd command is executed")
     public void the_close_account_cmd_command_is_executed() {
+        String targetId;
+        
+        // Special case for the Uniqueness violation scenario: Command targets wrong ID
+        if (aggregate.id().equals("ACC-103")) {
+            targetId = "ACC-999"; 
+        } else {
+            targetId = aggregate.id();
+        }
+
+        command = new CloseAccountCmd(targetId);
+        
         try {
-            CloseAccountCmd cmd = new CloseAccountCmd(account.id(), account.getAccountNumber());
-            resultEvents = account.execute(cmd);
+            resultEvents = aggregate.execute(command);
         } catch (Exception e) {
             capturedException = e;
         }
@@ -80,18 +88,23 @@ public class S7Steps {
 
     @Then("a account.closed event is emitted")
     public void a_account_closed_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof AccountClosedEvent);
-        AccountClosedEvent event = (AccountClosedEvent) resultEvents.get(0);
+        assertNull(capturedException, "Should not have thrown an exception");
+        assertNotNull(resultEvents, "Events list should not be null");
+        assertEquals(1, resultEvents.size(), "Should produce one event");
+        
+        DomainEvent event = resultEvents.get(0);
+        assertTrue(event instanceof AccountClosedEvent, "Event should be AccountClosedEvent");
         assertEquals("account.closed", event.type());
-        assertEquals(account.id(), event.aggregateId());
+        assertEquals(aggregate.id(), event.aggregateId());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(capturedException);
-        // We expect IllegalStateException or IllegalArgumentException depending on the specific check
-        assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
+        assertNotNull(capturedException, "Expected an exception to be thrown");
+        // Validate it's a domain logic violation (IllegalStateException or IllegalArgumentException)
+        assertTrue(
+            capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException,
+            "Expected domain error (IllegalStateException/IllegalArgumentException), but got: " + capturedException.getClass().getName()
+        );
     }
 }

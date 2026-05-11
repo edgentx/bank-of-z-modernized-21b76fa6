@@ -1,24 +1,22 @@
 package com.example.mocks;
 
 import com.example.ports.SlackPort;
+import org.springframework.stereotype.Component;
+
 import java.util.ArrayList;
 import java.util.List;
 
+@Component
 public class MockSlackPort implements SlackPort {
-    public final List<String> messages = new ArrayList<>();
-    public String lastChannel;
-    public String lastBody;
+    private final List<String> sentBodies = new ArrayList<>();
 
     @Override
-    public void sendSlackMessage(String channel, String body) {
-        this.lastChannel = channel;
-        this.lastBody = body;
-        this.messages.add(body);
+    public void sendNotification(String url) {
+        // Simulate Slack API call
+        sentBodies.add(url);
     }
 
-    public void reset() {
-        messages.clear();
-        lastChannel = null;
-        lastBody = null;
+    public String getLastSentBody() {
+        return sentBodies.isEmpty() ? null : sentBodies.get(sentBodies.size() - 1);
     }
 }

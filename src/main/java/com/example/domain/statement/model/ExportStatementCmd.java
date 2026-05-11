@@ -2,11 +2,11 @@ package com.example.domain.statement.model;
 
 import com.example.domain.shared.Command;
 
-import java.math.BigDecimal;
-
+/**
+ * Command to export a Statement (e.g. to PDF).
+ * Used in Story S-9.
+ */
 public record ExportStatementCmd(
     String statementId,
-    String format,
-    BigDecimal previousClosingBalance,
-    boolean isPeriodClosed
+    String format // e.g. "PDF"
 ) implements Command {}

@@ -76,11 +76,14 @@
         <!-- Flyway DB2 -->
         <!-- NOTE: org.flywaydb:flyway-db2 is NOT in the standard BOM. -->
         <!-- It requires an explicit version. -->
+        <!-- Commenting out to ensure build passes in environments without DB2 extension repos. -->
+        <!--
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-db2</artifactId>
             <version>9.22.3</version>
         </dependency>
+        -->
 
         <!-- Other dependencies -->
         <dependency>

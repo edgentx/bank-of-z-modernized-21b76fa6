@@ -2,16 +2,14 @@ package com.example.domain.statement.model;
 
 import com.example.domain.shared.Command;
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.LocalDate;
 
-/**
- * Command to generate a new account statement for a given period.
- */
 public record GenerateStatementCmd(
         String statementId,
         String accountNumber,
-        Instant periodStart,
-        Instant periodEnd,
+        LocalDate periodEnd,
         BigDecimal openingBalance,
-        BigDecimal closingBalance
+        BigDecimal closingBalance,
+        // Optional: If provided, used for validation. If null, validation might skip if no history.
+        BigDecimal expectedPreviousClosingBalance 
 ) implements Command {}

@@ -1,20 +1,21 @@
 package com.example.domain.navigation.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Map;
 
 public class ScreenRenderedEvent implements DomainEvent {
     private final String aggregateId;
-    private final String screenId;
     private final String deviceType;
+    private final String format;
+    private final Map<String, Object> layout;
     private final Instant occurredAt;
 
-    public ScreenRenderedEvent(String aggregateId, String screenId, String deviceType, Instant occurredAt) {
+    public ScreenRenderedEvent(String aggregateId, String deviceType, String format, Map<String, Object> layout, Instant occurredAt) {
         this.aggregateId = aggregateId;
-        this.screenId = screenId;
         this.deviceType = deviceType;
+        this.format = format;
+        this.layout = layout;
         this.occurredAt = occurredAt;
     }
 
@@ -33,11 +34,15 @@ public class ScreenRenderedEvent implements DomainEvent {
         return occurredAt;
     }
 
-    public String getScreenId() {
-        return screenId;
+    public String deviceType() {
+        return deviceType;
     }
 
-    public String getDeviceType() {
-        return deviceType;
+    public String format() {
+        return format;
+    }
+
+    public Map<String, Object> layout() {
+        return layout;
     }
 }

@@ -4,11 +4,7 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to render a specific screen layout.
- * S-21: User Interface Navigation
+ * S-21: user-interface-navigation
  */
-public record RenderScreenCmd(
-    String aggregateId,
-    String screenId,
-    String deviceType
-) implements Command {
+public record RenderScreenCmd(String screenMapId, String screenId, String deviceType) implements Command {
 }

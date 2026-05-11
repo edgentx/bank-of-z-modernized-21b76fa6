@@ -2,11 +2,11 @@ package com.example.domain.screenmap.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.Objects;
-
-public record RenderScreenCmd(String screenId, DeviceType deviceType) implements Command {
-    public RenderScreenCmd {
-        // Basic sanity validation, though business logic validation resides in the Aggregate
-        Objects.requireNonNull(screenId, "screenId cannot be null in record construction");
-    }
-}
+/**
+ * Command to render a specific screen layout.
+ */
+public record RenderScreenCmd(
+    String screenId,
+    String deviceType,
+    String layoutContent // JSON string of the layout
+) implements Command {}

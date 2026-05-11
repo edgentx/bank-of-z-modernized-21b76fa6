@@ -4,11 +4,13 @@ import com.example.domain.shared.Command;
 
 import java.math.BigDecimal;
 
+/**
+ * Command to open a new bank account.
+ */
 public record OpenAccountCmd(
-    String accountId,
-    String customerId,
-    String accountType,
-    BigDecimal initialDeposit,
-    String sortCode,
-    String providedAccountNumber // Optional: If null, aggregate generates it. If present, must be unique.
+        String accountId,
+        String customerId,
+        AccountAggregate.AccountType accountType,
+        BigDecimal initialDeposit,
+        String sortCode
 ) implements Command {}

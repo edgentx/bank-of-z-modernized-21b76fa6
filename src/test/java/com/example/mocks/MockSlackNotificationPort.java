@@ -1,46 +1,32 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
+import org.springframework.stereotype.Component;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * In-memory mock implementation of SlackNotificationPort for testing.
- * Captures messages sent to Slack to verify contents without real I/O.
+ * Mock adapter for Slack notifications.
+ * Captures messages sent to Slack for verification in tests.
  */
+@Component
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static class SentMessage {
-        public final String channel;
-        public final String body;
-
-        public SentMessage(String channel, String body) {
-            this.channel = channel;
-            this.body = body;
-        }
-    }
-
-    private final List<SentMessage> messages = new ArrayList<>();
-    private boolean simulateFailure = false;
+    private final List<String> sentMessages = new ArrayList<>();
 
     @Override
-    public boolean send(String channel, String body) {
-        if (simulateFailure) {
-            return false;
-        }
-        messages.add(new SentMessage(channel, body));
-        return true;
+    public void sendNotification(String messageBody) {
+        // In a real mock, we might just capture the argument.
+        // If we want to simulate a failure, we could throw an exception here.
+        sentMessages.add(messageBody);
     }
 
-    public List<SentMessage> getMessages() {
-        return new ArrayList<>(messages);
+    public List<String> getSentMessages() {
+        return sentMessages;
     }
 
     public void clear() {
-        messages.clear();
-    }
-
-    public void setSimulateFailure(boolean simulateFailure) {
-        this.simulateFailure = simulateFailure;
+        sentMessages.clear();
     }
 }

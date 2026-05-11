@@ -9,7 +9,18 @@ public record GitHubIssueLinkedEvent(
     String url,
     Instant occurredAt
 ) implements DomainEvent {
-    @Override public String type() { return "GitHubIssueLinked"; }
-    @Override public String aggregateId() { return aggregateId; }
-    @Override public Instant occurredAt() { return occurredAt; }
+    @Override
+    public String type() {
+        return "GitHubIssueLinked";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
 }

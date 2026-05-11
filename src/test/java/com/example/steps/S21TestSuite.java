@@ -1,10 +1,11 @@
 package com.example.steps;
 
+import org.junit.platform.suite.api.IncludeTags;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
 @Suite
+@IncludeTags("unit")
 @SelectClasspathResource("features")
 public class S21TestSuite {
-    // This suite acts as the test runner for Cucumber
 }

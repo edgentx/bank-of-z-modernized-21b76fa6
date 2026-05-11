@@ -1,16 +1,27 @@
 package com.example.ports;
 
-/**
- * Port interface for creating GitHub issues.
- * This decouples the domain logic from the actual GitHub API implementation.
- */
+import java.util.Optional;
+
 public interface GitHubPort {
     /**
-     * Creates a GitHub issue and returns its URL.
-     *
-     * @param title       The title of the issue.
-     * @param description The body/description of the issue.
-     * @return The fully qualified URL to the created issue.
+     * Create a GitHub issue for a defect report
+     * @param defectId The defect ID
+     * @param title The issue title
+     * @return The URL of the created issue
      */
-    String createIssue(String title, String description);
+    String createIssue(String defectId, String title);
+    
+    /**
+     * Get the URL for an existing issue
+     * @param defectId The defect ID
+     * @return Optional containing the URL if exists
+     */
+    Optional<String> getIssueUrl(String defectId);
+    
+    /**
+     * Setup mock data for testing
+     * @param defectId The defect ID
+     * @param title The issue title
+     */
+    void setupIssueCreation(String defectId, String title);
 }

@@ -1,21 +1,27 @@
 package com.example.domain.navigation.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
 /**
- * Domain Event emitted when a screen is successfully rendered.
- * Constructor signature strictly adhered to: (id, screenId, deviceType, status, occurredAt).
+ * Event emitted when a screen is successfully rendered.
  */
-public record ScreenRenderedEvent(
-        String aggregateId,
-        String screenId,
-        String deviceType,
-        String status,
-        Instant occurredAt
-) implements DomainEvent {
+public class ScreenRenderedEvent implements DomainEvent {
+    private final String eventId = UUID.randomUUID().toString();
+    private final String aggregateId;
+    private final String screenId;
+    private final String deviceType;
+    private final String layout;
+    private final Instant occurredAt;
+
+    public ScreenRenderedEvent(String aggregateId, String screenId, String deviceType, String layout, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.screenId = screenId;
+        this.deviceType = deviceType;
+        this.layout = layout;
+        this.occurredAt = occurredAt;
+    }
 
     @Override
     public String type() {
@@ -32,20 +38,7 @@ public record ScreenRenderedEvent(
         return occurredAt;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ScreenRenderedEvent that = (ScreenRenderedEvent) o;
-        return Objects.equals(aggregateId, that.aggregateId) &&
-                Objects.equals(screenId, that.screenId) &&
-                Objects.equals(deviceType, that.deviceType) &&
-                Objects.equals(status, that.status) &&
-                Objects.equals(occurredAt, that.occurredAt);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(aggregateId, screenId, deviceType, status, occurredAt);
-    }
+    public String screenId() { return screenId; }
+    public String deviceType() { return deviceType; }
+    public String layout() { return layout; }
 }

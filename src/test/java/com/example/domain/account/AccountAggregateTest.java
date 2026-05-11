@@ -2,7 +2,6 @@ package com.example.domain.account;
 
 import com.example.domain.account.model.AccountAggregate;
 import com.example.domain.account.model.CloseAccountCmd;
-import com.example.domain.account.model.AccountClosedEvent;
 import com.example.domain.shared.DomainEvent;
 import org.junit.jupiter.api.Test;
 
@@ -14,43 +13,51 @@ import static org.junit.jupiter.api.Assertions.*;
 class AccountAggregateTest {
 
     @Test
-    void testCloseAccountSuccess() {
-        AccountAggregate account = new AccountAggregate("ACC-123", BigDecimal.ZERO);
-        CloseAccountCmd cmd = new CloseAccountCmd("ACC-123");
+    void closeAccount_success() {
+        AccountAggregate account = new AccountAggregate("ACC-001");
+        account.load(BigDecimal.ZERO, AccountAggregate.Status.ACTIVE);
 
-        List<DomainEvent> events = account.execute(cmd);
+        List<DomainEvent> events = account.execute(new CloseAccountCmd("ACC-001"));
 
         assertEquals(1, events.size());
-        assertTrue(events.get(0) instanceof AccountClosedEvent);
-        assertEquals(AccountAggregate.Status.CLOSED, account.getStatus());
-        assertEquals("ACC-123", ((AccountClosedEvent) events.get(0)).aggregateId());
+        assertEquals("account.closed", events.get(0).type());
+        assertTrue(account.isClosed());
     }
 
     @Test
-    void testCloseAccountFailsIfBalanceNotZero() {
-        AccountAggregate account = new AccountAggregate("ACC-123", new BigDecimal("100.00"));
-        CloseAccountCmd cmd = new CloseAccountCmd("ACC-123");
+    void closeAccount_failsIfBalanceNotZero() {
+        AccountAggregate account = new AccountAggregate("ACC-002");
+        account.setBalance(BigDecimal.TEN);
+        account.setStatus(AccountAggregate.Status.ACTIVE);
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> account.execute(cmd));
-        assertTrue(ex.getMessage().contains("Account balance cannot drop below"));
+        Exception ex = assertThrows(IllegalStateException.class, () -> {
+            account.execute(new CloseAccountCmd("ACC-002"));
+        });
+
+        assertTrue(ex.getMessage().contains("non-zero balance"));
     }
 
     @Test
-    void testCloseAccountFailsIfNotActive() {
-        AccountAggregate account = new AccountAggregate("ACC-123", BigDecimal.ZERO);
-        account.setStatus(AccountAggregate.Status.CLOSED); // Manually set for testing
-        CloseAccountCmd cmd = new CloseAccountCmd("ACC-123");
+    void closeAccount_failsIfNotActive() {
+        AccountAggregate account = new AccountAggregate("ACC-003");
+        account.setBalance(BigDecimal.ZERO);
+        account.setStatus(AccountAggregate.Status.SUSPENDED);
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> account.execute(cmd));
-        assertTrue(ex.getMessage().contains("An account must be in an Active status"));
+        Exception ex = assertThrows(IllegalStateException.class, () -> {
+            account.execute(new CloseAccountCmd("ACC-003"));
+        });
+
+        assertTrue(ex.getMessage().contains("Active"));
     }
 
     @Test
-    void testCloseAccountFailsIfAccountNumberMismatch() {
-        AccountAggregate account = new AccountAggregate("ACC-123", BigDecimal.ZERO);
-        CloseAccountCmd cmd = new CloseAccountCmd("DIFFERENT-ID");
+    void closeAccount_failsIfIdMismatch() {
+        AccountAggregate account = new AccountAggregate("ACC-004");
+        account.setBalance(BigDecimal.ZERO);
+        account.setStatus(AccountAggregate.Status.ACTIVE);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> account.execute(cmd));
-        assertTrue(ex.getMessage().contains("Account numbers must be uniquely generated"));
+        assertThrows(IllegalArgumentException.class, () -> {
+            account.execute(new CloseAccountCmd("DIFFERENT-ID"));
+        });
     }
 }

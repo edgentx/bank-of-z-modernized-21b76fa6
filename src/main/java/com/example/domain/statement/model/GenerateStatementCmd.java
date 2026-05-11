@@ -3,12 +3,13 @@ package com.example.domain.statement.model;
 import com.example.domain.shared.Command;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.LocalDate;
 
 public record GenerateStatementCmd(
     String statementId,
     String accountNumber,
-    Instant periodEnd,
+    LocalDate periodStart,
+    LocalDate periodEnd,
     BigDecimal openingBalance,
-    BigDecimal previousClosingBalance
+    BigDecimal closingBalance
 ) implements Command {}

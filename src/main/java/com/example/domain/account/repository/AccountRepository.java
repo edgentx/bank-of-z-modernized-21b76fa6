@@ -4,7 +4,11 @@ import com.example.domain.account.model.AccountAggregate;
 
 import java.util.Optional;
 
+/**
+ * Repository interface for Account aggregates.
+ */
 public interface AccountRepository {
-    void save(AccountAggregate aggregate);
+    AccountAggregate save(AccountAggregate aggregate);
     Optional<AccountAggregate> findById(String id);
+    boolean existsByAccountNumber(String accountNumber);
 }

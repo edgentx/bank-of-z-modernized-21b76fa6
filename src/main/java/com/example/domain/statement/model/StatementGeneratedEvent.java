@@ -12,19 +12,16 @@ import java.util.UUID;
 public record StatementGeneratedEvent(
         String aggregateId,
         String accountNumber,
-        Instant periodStart,
         Instant periodEnd,
         BigDecimal openingBalance,
-        BigDecimal closingBalance,
         Instant occurredAt
 ) implements DomainEvent {
-    public StatementGeneratedEvent(String aggregateId, String accountNumber, Instant periodStart, Instant periodEnd, BigDecimal openingBalance, BigDecimal closingBalance, Instant occurredAt) {
-        this.aggregateId = aggregateId;
+
+    public StatementGeneratedEvent(String aggregateId, String accountNumber, Instant periodEnd, BigDecimal openingBalance, Instant occurredAt) {
+        this.aggregateId = aggregateId != null ? aggregateId : UUID.randomUUID().toString();
         this.accountNumber = accountNumber;
-        this.periodStart = periodStart;
         this.periodEnd = periodEnd;
         this.openingBalance = openingBalance;
-        this.closingBalance = closingBalance;
         this.occurredAt = occurredAt;
     }
 

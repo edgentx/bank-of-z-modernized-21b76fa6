@@ -2,18 +2,16 @@ package com.example.domain.account.model;
 
 import com.example.domain.shared.DomainEvent;
 
-import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.UUID;
 
-/**
- * Event emitted when an account is closed.
- */
-public record AccountClosedEvent(
-    String aggregateId,
-    BigDecimal closingBalance,
-    Instant occurredAt
-) implements DomainEvent {
+public class AccountClosedEvent implements DomainEvent {
+    private final String aggregateId;
+    private final Instant occurredAt;
+
+    public AccountClosedEvent(String aggregateId, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.occurredAt = occurredAt;
+    }
 
     @Override
     public String type() {

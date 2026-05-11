@@ -2,8 +2,6 @@ package com.example.domain.statement.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.UUID;
-
 public record ExportStatementCmd(String statementId, String format) implements Command {
     public ExportStatementCmd {
         if (statementId == null || statementId.isBlank()) {

@@ -6,30 +6,35 @@ import java.util.List;
 
 /**
  * Mock implementation of SlackNotificationPort for testing.
- * Records messages instead of sending them to Slack.
+ * Captures sent messages to verify content.
  */
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    public static final class Message {
+    public static class SentMessage {
         public final String channel;
         public final String body;
 
-        public Message(String channel, String body) {
+        public SentMessage(String channel, String body) {
             this.channel = channel;
             this.body = body;
         }
     }
 
-    private final List<Message> messages = new ArrayList<>();
+    private final List<SentMessage> messages = new ArrayList<>();
 
     @Override
-    public void send(String channel, String body) {
-        // In a real test, we might verify the inputs immediately.
-        // Here we store them for assertions later.
-        this.messages.add(new Message(channel, body));
+    public void sendMessage(String channel, String body) {
+        // Simulate real behavior: validate inputs
+        if (channel == null || channel.isBlank()) {
+            throw new IllegalArgumentException("Channel cannot be blank");
+        }
+        if (body == null) {
+            throw new IllegalArgumentException("Body cannot be null");
+        }
+        this.messages.add(new SentMessage(channel, body));
     }
 
-    public List<Message> getMessages() {
+    public List<SentMessage> getMessages() {
         return new ArrayList<>(messages);
     }
 
@@ -37,8 +42,10 @@ public class MockSlackNotificationPort implements SlackNotificationPort {
         messages.clear();
     }
 
-    public boolean hasReceivedMessageContaining(String channel, String substring) {
-        return messages.stream()
-                .anyMatch(m -> m.channel.equals(channel) && m.body.contains(substring));
+    public SentMessage getLatestMessage() {
+        if (messages.isEmpty()) {
+            throw new IllegalStateException("No messages sent");
+        }
+        return messages.get(messages.size() - 1);
     }
 }

@@ -5,19 +5,22 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.Map;
 
+/**
+ * Domain event emitted when a screen layout is successfully generated.
+ */
 public record ScreenRenderedEvent(
     String aggregateId,
-    String type, 
-    String screenLayout,
-    Instant occurredAt,
     String screenId,
+    String layout,
+    Instant occurredAt,
     String deviceType,
-    Map<String, Object> contextData
+    String accountId,
+    Map<String, Object> context
 ) implements DomainEvent {
-
+    
     @Override
     public String type() {
-        return type;
+        return "screen.rendered";
     }
 
     @Override

@@ -1,26 +1,32 @@
 package com.example.domain.teller.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Domain event emitted when a Teller successfully navigates to a new menu.
- */
 public record MenuNavigatedEvent(
     String aggregateId,
     String menuId,
     String action,
     Instant occurredAt
 ) implements DomainEvent {
-
     public MenuNavigatedEvent {
-        // Ensure ID is present if not provided via constructor defaults
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
+        // Ensure defaults if null, though record compact ctor handles it
     }
 
     @Override
     public String type() {
         return "menu.navigated";
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
     }
 }

@@ -1,18 +1,16 @@
 package com.example.ports;
 
 /**
- * Port for sending Slack notifications.
- * Abstracts the actual Slack API client (WebClient or OkHttp).
+ * Port for sending notifications to Slack.
+ * Implementations should handle the specifics of the Slack API.
  */
 public interface SlackNotificationPort {
-
     /**
-     * Sends a notification payload to a specific Slack channel.
+     * Sends a message to a Slack channel.
      *
-     * @param channel The target channel ID or name (e.g., "#vforce360-issues").
-     * @param messageBody The structured message body to be sent.
-     * @throws IllegalArgumentException if channel or body is invalid.
-     * @throws RuntimeException if the underlying API call fails.
+     * @param channel The channel ID or name (e.g., "#vforce360-issues").
+     * @param body    The message body content.
+     * @return true if the message was accepted by the client, false otherwise.
      */
-    void send(String channel, String messageBody);
+    boolean send(String channel, String body);
 }

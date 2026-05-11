@@ -2,7 +2,12 @@ package com.example.domain.uimodel.model;
 
 import com.example.domain.shared.Command;
 
-/**
- * Command to render a specific screen layout adapted for a user's device.
- */
-public record RenderScreenCmd(String aggregateId, String screenId, String deviceType, String legacyFieldData) implements Command {}
+import java.util.Map;
+
+public record RenderScreenCmd(
+        String aggregateId,
+        String screenId,
+        String deviceType,
+        Map<String, String> inputData
+) implements Command {
+}

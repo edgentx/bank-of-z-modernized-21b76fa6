@@ -6,10 +6,11 @@ import java.time.Instant;
 
 public record CustomerDetailsUpdatedEvent(
     String customerId,
-    String emailAddress,
-    String sortCode,
     String fullName,
+    String email,
+    String governmentId,
     String dateOfBirth,
+    String sortCode,
     Instant occurredAt
 ) implements DomainEvent {
     @Override

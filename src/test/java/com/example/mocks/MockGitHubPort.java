@@ -1,36 +1,39 @@
 package com.example.mocks;
 
-import com.example.ports.GitHubPort;
+import com.example.infrastructure.defect.GitHubPort;
 
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Mock implementation of GitHubPort for testing.
- * Returns predictable URLs based on issue IDs.
+ * Mock adapter for GitHub interactions.
+ * Tracks calls to createIssue and returns predictable URLs.
  */
 public class MockGitHubPort implements GitHubPort {
 
-    private final Map<String, String> issueMap = new HashMap<>();
-    private final String baseUrl;
-
-    public MockGitHubPort() {
-        this.baseUrl = "https://github.com/egdcrypto/bank-of-z/issues";
-    }
+    private final Map<String, String> createdIssues = new HashMap<>();
+    private boolean shouldFail = false;
 
     @Override
-    public String getIssueUrl(String issueId) {
-        if (issueMap.containsKey(issueId)) {
-            return issueMap.get(issueId);
+    public String createIssue(String title, String body) {
+        if (shouldFail) {
+            throw new RuntimeException("GitHub API unavailable (simulated)");
         }
-        // Default behavior: construct URL
-        return baseUrl + "/" + issueId;
+        // Simulate GitHub returning a URL based on the title hash or just a dummy
+        String issueUrl = "https://github.com/fake-org/repo/issues/" + Math.abs(title.hashCode());
+        createdIssues.put(title, issueUrl);
+        return issueUrl;
     }
 
-    /**
-     * Allows tests to override the URL for a specific issue.
-     */
-    public void mockUrl(String issueId, String url) {
-        issueMap.put(issueId, url);
+    public int getCallCount() {
+        return createdIssues.size();
+    }
+
+    public String getUrlForTitle(String title) {
+        return createdIssues.get(title);
+    }
+
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
     }
 }

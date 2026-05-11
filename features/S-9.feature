@@ -1,4 +1,4 @@
-Feature: ExportStatementCmd
+Feature: Implement ExportStatementCmd on Statement (account-management)
 
   Scenario: Successfully execute ExportStatementCmd
     Given a valid Statement aggregate

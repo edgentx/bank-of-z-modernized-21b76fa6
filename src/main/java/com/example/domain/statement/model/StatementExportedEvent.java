@@ -2,12 +2,13 @@ package com.example.domain.statement.model;
 
 import com.example.domain.shared.DomainEvent;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 public record StatementExportedEvent(
     String aggregateId,
     String format,
-    String artifactLocation,
+    BigDecimal closingBalance,
     Instant occurredAt
 ) implements DomainEvent {
     @Override
@@ -16,12 +17,12 @@ public record StatementExportedEvent(
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 }

@@ -4,12 +4,8 @@ import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
-/**
- * Test Suite for S-24 Feature.
- * Run with: mvn test -Dtest=S24TestSuite
- */
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features/S-24.feature")
+@SelectClasspathResource("features")
 public class S24TestSuite {
 }

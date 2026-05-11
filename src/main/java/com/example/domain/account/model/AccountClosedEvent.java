@@ -9,14 +9,4 @@ public record AccountClosedEvent(String aggregateId, Instant occurredAt) impleme
     public String type() {
         return "account.closed";
     }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
 }

@@ -1,143 +1,142 @@
 package com.example.steps;
 
-import com.example.domain.account.model.AccountAggregate;
-import com.example.domain.account.model.OpenAccountCmd;
+import com.example.domain.account.model.*;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 public class S5Steps {
 
     private AccountAggregate aggregate;
-    private OpenAccountCmd command;
     private List<DomainEvent> resultEvents;
-    private Exception caughtException;
+    private Exception thrownException;
+    private OpenAccountCmd cmd;
+
+    // Helper to reset state
+    private void reset(String accountId) {
+        aggregate = new AccountAggregate(accountId);
+        resultEvents = null;
+        thrownException = null;
+        cmd = null;
+    }
 
     @Given("a valid Account aggregate")
     public void aValidAccountAggregate() {
-        aggregate = new AccountAggregate("acc-123");
-    }
-
-    @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
-    public void aAccountAggregateThatViolatesMinimumBalance() {
-        aggregate = new AccountAggregate("acc-456");
-        // Setup command that violates the constraint (e.g., SAVINGS with < 100 deposit)
-        // We assume this violation is triggered by the command payload
-    }
-
-    @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
-    public void aAccountAggregateThatViolatesActiveStatus() {
-        // The "OpenAccount" command creates the account. The invariant implies we might
-        // be trying to open an account that logic dictates cannot be active yet,
-        // or perhaps we are testing a state transition error.
-        // Given the specific context of "OpenAccount", we interpret this as ensuring
-        // we don't try to open an account that is somehow already ACTIVE in a way that blocks
-        // the opening, OR that the command handles status validation correctly.
-        // For this step definition, we simply create the aggregate.
-        aggregate = new AccountAggregate("acc-789");
-    }
-
-    @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
-    public void aAccountAggregateThatViolatesImmutableNumber() {
-        aggregate = new AccountAggregate("acc-immutable");
-        // Simulate the account number being set already
-        // We need to reflect a state where the invariant is broken.
-        // Since aggregate state is private, we simulate the violation by
-        // issuing a command that tries to 'reopen' or 'change' the ID,
-        // or by testing the command logic that prevents this.
-        // For the purpose of the BDD scenario, we prepare the aggregate.
+        reset("ACC-123");
     }
 
     @And("a valid customerId is provided")
     public void aValidCustomerIdIsProvided() {
-        // Handled in command construction below
+        // Command constructed in When step, or stored here
     }
 
     @And("a valid accountType is provided")
     public void aValidAccountTypeIsProvided() {
-        // Handled in command construction below
+        // Command constructed in When step
     }
 
     @And("a valid initialDeposit is provided")
     public void aValidInitialDepositIsProvided() {
-        // Handled in command construction below
+        // Command constructed in When step
     }
 
     @And("a valid sortCode is provided")
     public void aValidSortCodeIsProvided() {
-        // Handled in command construction below
+        // Command constructed in When step
     }
 
     @When("the OpenAccountCmd command is executed")
     public void theOpenAccountCmdCommandIsExecuted() {
+        // Default valid values if not overridden by specific scenarios
+        // Using logic to detect context from previous steps is hard in Cucumber without 
+        // shared context variables, so we assume standard valid values for the 'Happy Path'
+        // unless specific violation steps set up specific command parameters.
+        
+        // For simplicity in this demo, we construct a standard valid command here.
+        // Edge cases are handled by constructing specific commands in the 'Given violation' steps.
+        if (cmd == null) {
+            cmd = new OpenAccountCmd(
+                "ACC-123",
+                "CUST-001",
+                "CHECKING",
+                new BigDecimal("500.00"),
+                "10-20-30"
+            );
+        }
+
         try {
-            // Determine payload based on scenario context (heuristic)
-            String scenario = getCurrentScenarioName();
-            
-            String id = "acc-123";
-            String customer = "cust-1";
-            String type = "CHECKING";
-            BigDecimal deposit = new BigDecimal("500.00");
-            String sort = "10-20-30";
-
-            if (scenario.contains("violates: Account balance cannot drop below")) {
-                type = "SAVINGS";
-                deposit = new BigDecimal("50.00"); // Violates minimum 100
-                id = "acc-456";
-            } else if (scenario.contains("violates: An account must be in an Active status")) {
-                // This is an open command, so we assume valid params to test status logic if it existed
-                // or simply valid params.
-                id = "acc-789";
-            } else if (scenario.contains("violates: Account numbers must be uniquely generated")) {
-                // Simulate duplicate ID or immutability violation by reusing the aggregate ID
-                // effectively simulating a 'double open' if aggregate was persistent, 
-                // but here we act on the instance.
-                id = "acc-immutable";
-            }
-
-            command = new OpenAccountCmd(id, customer, type, deposit, sort);
-            resultEvents = aggregate.execute(command);
-
-        } catch (IllegalArgumentException | IllegalStateException | UnknownCommandException e) {
-            caughtException = e;
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            caughtException = e;
+            thrownException = e;
         }
     }
 
     @Then("a account.opened event is emitted")
     public void aAccountOpenedEventIsEmitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertEquals("account.opened", resultEvents.get(0).type());
+        Assertions.assertNotNull(resultEvents);
+        Assertions.assertEquals(1, resultEvents.size());
+        Assertions.assertTrue(resultEvents.get(0) instanceof AccountOpenedEvent);
+        Assertions.assertEquals("account.opened", resultEvents.get(0).type());
+    }
+
+    // --- Negative Scenarios ---
+
+    @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
+    public void aAccountAggregateThatViolatesMinimumBalance() {
+        reset("ACC-LOW-BAL");
+        // Savings requires 100.00, we provide 50.00
+        cmd = new OpenAccountCmd(
+            "ACC-LOW-BAL",
+            "CUST-001",
+            "SAVINGS",
+            new BigDecimal("50.00"),
+            "10-20-30"
+        );
+    }
+
+    @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
+    public void aAccountAggregateThatViolatesActiveStatus() {
+        reset("ACC-NOT-ACTIVE");
+        // We force the aggregate into an ACTIVE state conceptually by setting it via a test seam or 
+        // assuming we are re-using an aggregate ID that is already active.
+        // Since we are stateless between scenarios in vanilla Cucumber, we simulate this by 
+        // creating a command that tries to open an already opened account.
+        // However, OpenAccountCmd logic checks if status == NONE.
+        // We can simulate an 'Already Active' failure by executing a valid command first,
+        // then executing a second one (simulating a duplicate open or replay).
+        
+        // First execution
+        OpenAccountCmd firstCmd = new OpenAccountCmd("ACC-NOT-ACTIVE", "CUST-001", "CHECKING", BigDecimal.valueOf(100), "00-00-00");
+        aggregate.execute(firstCmd);
+        
+        // The second execution (via the When step) will hit the violation.
+        // We prepare the command for the When step to use.
+        cmd = new OpenAccountCmd("ACC-NOT-ACTIVE", "CUST-001", "CHECKING", BigDecimal.valueOf(100), "00-00-00");
+    }
+
+    @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
+    public void aAccountAggregateThatViolatesImmutableAccountNumber() {
+        // This invariant is handled by the ID generation strategy (typically).
+        // Within the Aggregate, enforcing uniqueness requires persistence, which we don't have in pure domain logic.
+        // However, the state check (Status != NONE) prevents re-opening, effectively enforcing immutability of the state transition.
+        // We will reuse the 'Already Active' logic here as it maps closest to the invariant.
+        aAccountAggregateThatViolatesActiveStatus();
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(caughtException);
-        // Check it's a domain error (IllegalStateException or IllegalArgumentException)
-        assertTrue(caughtException instanceof IllegalArgumentException || caughtException instanceof IllegalStateException);
-    }
-
-    // Helper to deduce scenario context for test data variation
-    private String getCurrentScenarioName() {
-        // Cucumber doesn't expose scenario name directly easily without hooks, 
-        // so we check the exception state or simulate logic.
-        // Since we can't easily inject the scenario name here without hooks, 
-        // we rely on the order or we just assume success if no exception thrown above.
-        // However, for the specific violation scenarios, we set the state in the Given steps.
-        // We can check which aggregate we are using to determine the logic.
-        if (aggregate.id().equals("acc-456")) return "Scenario 2";
-        if (aggregate.id().equals("acc-789")) return "Scenario 3";
-        if (aggregate.id().equals("acc-immutable")) return "Scenario 4";
-        return "Scenario 1";
+        Assertions.assertNotNull(thrownException);
+        // It should be either IllegalStateException or IllegalArgumentException
+        Assertions.assertTrue(
+            thrownException instanceof IllegalStateException || thrownException instanceof IllegalArgumentException,
+            "Expected domain error but got: " + thrownException.getClass().getSimpleName()
+        );
     }
 }

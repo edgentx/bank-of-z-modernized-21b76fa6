@@ -4,7 +4,6 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-import java.time.Instant;
 import java.util.List;
 
 /**
@@ -19,15 +18,14 @@ public class LegacyTransactionRoute extends AggregateRoot {
     private boolean versioningViolation;
     private boolean evaluated;
     private String targetSystem;
-
-    // State to simulate business logic for invariants
-    private int currentRulesVersion = 1; 
+    private int currentVersion;
 
     public LegacyTransactionRoute(String routeId) {
         this.routeId = routeId;
         this.dualProcessingViolation = false;
         this.versioningViolation = false;
         this.evaluated = false;
+        this.currentVersion = 1;
     }
 
     @Override
@@ -57,6 +55,43 @@ public class LegacyTransactionRoute extends AggregateRoot {
         throw new UnknownCommandException(cmd);
     }
 
+    private List<DomainEvent> updateRoutingRule(UpdateRoutingRuleCmd cmd) {
+        // Invariant 1: Prevent dual-processing (Simulated check)
+        if (dualProcessingViolation) {
+            throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
+        }
+
+        // Invariant 2: Versioning check
+        if (cmd.targetVersion() <= 0) {
+            throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
+        }
+
+        if (versioningViolation) {
+             throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
+        }
+
+        // Logic: Update the rule configuration
+        // In a real scenario, this might modify a persistent Rule object inside the Aggregate.
+        // For this BDD scenario, we update state and emit an event.
+        
+        this.targetSystem = cmd.newTarget();
+        this.currentVersion = cmd.targetVersion();
+
+        var event = new RoutingUpdatedEvent(
+                java.util.UUID.randomUUID().toString(),
+                cmd.routeId(),
+                cmd.ruleId(),
+                cmd.newTarget(),
+                cmd.effectiveDate(),
+                cmd.targetVersion(),
+                java.time.Instant.now()
+        );
+
+        addEvent(event);
+        incrementVersion();
+        return List.of(event);
+    }
+
     private List<DomainEvent> evaluateRouting(EvaluateRoutingCmd cmd) {
         // Invariant 1: Prevent dual-processing (Simulated check)
         if (dualProcessingViolation) {
@@ -64,6 +99,10 @@ public class LegacyTransactionRoute extends AggregateRoot {
         }
 
         // Invariant 2: Versioning check
+        if (cmd.rulesVersion() <= 0) {
+            throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
+        }
+        
         if (versioningViolation) {
              throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
         }
@@ -94,39 +133,15 @@ public class LegacyTransactionRoute extends AggregateRoot {
         return List.of(event);
     }
 
-    private List<DomainEvent> updateRoutingRule(UpdateRoutingRuleCmd cmd) {
-        // Invariant 1: Prevent dual-processing
-        if (this.dualProcessingViolation) {
-            throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
-        }
-
-        // Invariant 2: Versioning check (Simulated business rule)
-        if (this.versioningViolation) {
-            throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
-        }
-
-        // Logic to update the rule
-        // In a real scenario, this would update internal rule maps
-        this.targetSystem = cmd.newTarget();
-        
-        var event = new RoutingRuleUpdatedEvent(
-                cmd.routeId(),
-                cmd.ruleId(),
-                cmd.newTarget(),
-                cmd.effectiveDate(),
-                Instant.now()
-        );
-
-        addEvent(event);
-        incrementVersion();
-        return List.of(event);
-    }
-
     public boolean isEvaluated() {
         return evaluated;
     }
 
     public String getTargetSystem() {
         return targetSystem;
+    }
+    
+    public int getCurrentVersion() {
+        return currentVersion;
     }
 }

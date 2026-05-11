@@ -1,7 +1,7 @@
 package com.example.mocks;
 
-import com.example.domain.screen.model.ScreenMapAggregate;
-import com.example.domain.screen.repository.ScreenMapRepository;
+import com.example.domain.userinterface.model.ScreenMapAggregate;
+import com.example.domain.userinterface.repository.ScreenMapRepository;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -11,12 +11,17 @@ public class InMemoryScreenMapRepository implements ScreenMapRepository {
     private final Map<String, ScreenMapAggregate> store = new HashMap<>();
 
     @Override
-    public Optional<ScreenMapAggregate> findById(String id) {
-        return Optional.ofNullable(store.get(id));
+    public ScreenMapAggregate save(ScreenMapAggregate aggregate) {
+        store.put(aggregate.id(), aggregate);
+        return aggregate;
     }
 
     @Override
-    public void save(ScreenMapAggregate aggregate) {
-        store.put(aggregate.id(), aggregate);
+    public Optional<ScreenMapAggregate> findById(String id) {
+        return Optional.ofNullable(store.get(id));
+    }
+    
+    public void clear() {
+        store.clear();
     }
 }

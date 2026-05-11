@@ -1,6 +1,6 @@
 package com.example.ports;
 
-import com.example.domain.shared.Command;
+import com.example.domain.defect.model.ReportDefectCommand;
 
 /**
  * Port interface for Defect Reporting Service.
@@ -9,14 +9,4 @@ import com.example.domain.shared.Command;
  */
 public interface DefectServicePort {
     void reportDefect(ReportDefectCommand cmd);
-
-    /**
-     * Command DTO for defect reporting.
-     */
-    record ReportDefectCommand(
-        String defectId,
-        String title,
-        String severity,
-        String component
-    ) implements Command {}
 }

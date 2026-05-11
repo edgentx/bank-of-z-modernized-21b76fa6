@@ -2,7 +2,6 @@ package com.example.mocks;
 
 import com.example.domain.statement.model.StatementAggregate;
 import com.example.domain.statement.repository.StatementRepository;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;

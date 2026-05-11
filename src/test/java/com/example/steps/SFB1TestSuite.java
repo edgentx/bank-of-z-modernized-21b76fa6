@@ -1,17 +1,19 @@
 package com.example.steps;
 
-import io.cucumber.junit.platform.engine.Cucumber;
-import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasspathResource;
-import org.junit.platform.suite.api.Suite;
+import io.cucumber.junit.Cucumber;
+import io.cucumber.junit.CucumberOptions;
+import org.junit.runner.RunWith;
 
 /**
- * Test Suite for S-FB-1.
- * Maps to features/S-FB-1.feature
+ * Test Suite runner for S-FB-1 Regression.
  */
-@Suite
-@IncludeEngines("cucumber")
-@SelectClasspathResource("features/S-FB-1.feature")
-@Cucumber
+@RunWith(Cucumber.class)
+@CucumberOptions(
+    features = {"features/S-FB-1.feature"},
+    glue = {"com.example.steps"},
+    plugin = {"pretty", "summary"},
+    monochrome = true
+)
 public class SFB1TestSuite {
+    // Suite executes tests defined in SFB1Steps
 }

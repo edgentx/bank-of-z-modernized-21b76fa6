@@ -60,15 +60,22 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-activemq</artifactId>
         </dependency>
+        <!-- Temporal Dependencies: Fixed to resolve 1.22.1 starter -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>
             <version>${temporal.version}</version>
         </dependency>
         <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-opentracing</artifactId>
+            <version>${temporal.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
+        <!-- Flyway DB2 is NOT in the Spring Boot BOM, explicit version required -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-db2</artifactId>

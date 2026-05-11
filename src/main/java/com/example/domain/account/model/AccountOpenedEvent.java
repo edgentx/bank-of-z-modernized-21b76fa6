@@ -4,25 +4,16 @@ import com.example.domain.shared.DomainEvent;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
-/**
- * Event emitted when a new account is opened.
- */
 public record AccountOpenedEvent(
-    String aggregateId,
-    String customerId,
-    String accountType,
-    BigDecimal initialDeposit,
-    String sortCode,
-    Instant occurredAt
+        String aggregateId,
+        String customerId,
+        String accountType,
+        BigDecimal balance,
+        String sortCode,
+        Instant occurredAt
 ) implements DomainEvent {
-
-    public AccountOpenedEvent {
-        Objects.requireNonNull(aggregateId, "aggregateId required");
-        Objects.requireNonNull(occurredAt, "occurredAt required");
-    }
-
     @Override
     public String type() {
         return "account.opened";

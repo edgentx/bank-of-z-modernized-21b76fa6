@@ -1,114 +1,120 @@
 package com.example.steps;
 
-import com.example.domain.account.model.*;
-import com.example.domain.shared.Command;
+import com.example.domain.account.model.AccountAggregate;
+import com.example.domain.account.model.AccountStatusUpdatedEvent;
+import com.example.domain.account.model.UpdateAccountStatusCmd;
 import com.example.domain.shared.DomainEvent;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 public class S6Steps {
 
     private AccountAggregate account;
-    private Command command;
+    private UpdateAccountStatusCmd command;
     private List<DomainEvent> resultEvents;
-    private Exception caughtException;
+    private Exception thrownException;
 
+    // Scenario 1: Success
     @Given("a valid Account aggregate")
-    public void a_valid_Account_aggregate() {
-        // Constructor creates an Active account
-        account = new AccountAggregate("ACC-123", "Standard");
-        // Simulate state to satisfy invariants if needed
+    public void aValidAccountAggregate() {
+        // Setup a standard account, ACTIVE, balance above minimum
+        this.account = new AccountAggregate("ACC-123", "SAVINGS");
     }
 
-    @Given("a valid accountNumber is provided")
-    public void a_valid_accountNumber_is_provided() {
-        // Handled in constructor or command setup
+    @And("a valid accountNumber is provided")
+    public void aValidAccountNumberIsProvided() {
+        // Implicit in the command creation
     }
 
-    @Given("a valid newStatus is provided")
-    public void a_valid_newStatus_is_provided() {
-        // Will be used in the When step
+    @And("a valid newStatus is provided")
+    public void aValidNewStatusIsProvided() {
+        // Implicit in the command creation
     }
 
     @When("the UpdateAccountStatusCmd command is executed")
-    public void the_UpdateAccountStatusCmd_command_is_executed() {
-        // Assuming we want to freeze a valid active account
-        command = new UpdateAccountStatusCmd("ACC-123", "Frozen");
+    public void theUpdateAccountStatusCmdCommandIsExecuted() {
         try {
-            resultEvents = account.execute(command);
+            // Create command to change to FROZEN
+            this.command = new UpdateAccountStatusCmd("ACC-123", AccountAggregate.AccountStatus.FROZEN);
+            this.resultEvents = account.execute(command);
         } catch (Exception e) {
-            caughtException = e;
+            this.thrownException = e;
         }
     }
 
     @Then("a account.status.updated event is emitted")
-    public void a_account_status_updated_event_is_emitted() {
-        Assertions.assertNotNull(resultEvents);
-        Assertions.assertEquals(1, resultEvents.size());
-        Assertions.assertTrue(resultEvents.get(0) instanceof AccountStatusUpdatedEvent);
+    public void aAccountStatusUpdatedEventIsEmitted() {
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof AccountStatusUpdatedEvent);
         AccountStatusUpdatedEvent event = (AccountStatusUpdatedEvent) resultEvents.get(0);
-        Assertions.assertEquals("ACC-123", event.aggregateId());
-        Assertions.assertEquals("Frozen", event.newStatus());
+        assertEquals("ACC-123", event.aggregateId());
+        assertEquals("FROZEN", event.newStatus());
     }
 
-    // Invariant: Balance check
+    // Scenario 2: Balance Violation
     @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
-    public void a_Account_aggregate_that_violates_balance() {
-        account = new AccountAggregate("ACC-LOW", "Standard");
-        // Manually violate state for testing purposes (via reflection or helper if exposed)
-        // Since execute is the entry, we rely on the aggregate's internal state logic.
-        // Here we simulate a state where the status update implies a financial breach or state conflict
-        // However, the prompt implies the command rejection might be based on state.
-        // Let's assume the aggregate protects status transitions that would violate balance rules.
-        // Since we can't easily set internal state without setters, we assume the Command carries context 
-        // or the Aggregate is hydrated in a state that allows us to test this. 
-        // For this step definition, we invoke the command on a specific aggregate configuration.
-        
-        // Actually, the scenario says "violates: Account balance cannot drop...". 
-        // This is usually a check during withdrawal. If applied to Status Update, 
-        // maybe closing an account with negative balance?
-        command = new UpdateAccountStatusCmd("ACC-LOW", "Closed");
+    public void aAccountAggregateThatViolatesBalance() {
+        // Create account with balance 50.00 (below min 100.00)
+        // Assuming we can set state via constructor or reflection, or simulating a loaded aggregate
+        // For this test, we use the all-args constructor to simulate a loaded state with low balance
+        this.account = new AccountAggregate("ACC-LOW", "SAVINGS", new BigDecimal("50.00"), AccountAggregate.AccountStatus.ACTIVE);
     }
 
-    // Invariant: Active status required for operations
-    @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
-    public void a_Account_aggregate_that_violates_active_status() {
-        account = new AccountAggregate("ACC-INACTIVE", "Standard");
-        // Freeze it first
-        account.execute(new UpdateAccountStatusCmd("ACC-INACTIVE", "Frozen"));
-        // Now try to activate it back or do something that requires active state? 
-        // The prompt implies the *command* is rejected. 
-        // Let's assume we are trying to perform an operation on a Frozen account, 
-        // OR we are changing status TO Active illegally (if precondition not met).
-        // Based on the text "Account must be in Active status to process...", 
-        // this sounds like a precondition check for a Transaction command. 
-        // However, the story is S-6 (UpdateAccountStatus). 
-        // Let's interpret: Trying to change status FROM Frozen to Active might fail if invariants aren't met?
-        // Or, simpler: Trying to update status when current state prevents it.
-        // We will execute a command that tries to set status to Active (simulating a re-activation attempt that fails).
-        command = new UpdateAccountStatusCmd("ACC-INACTIVE", "Active");
-    }
-
-    // Invariant: Immutable Account Number
-    @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
-    public void a_Account_aggregate_that_violates_number_immutability() {
-        account = new AccountAggregate("ACC-IMMUTABLE", "Standard");
-        // Trying to update status with a different ID in the command than the aggregate ID
-        command = new UpdateAccountStatusCmd("ACC-DIFFERENT", "Frozen");
-    }
+    // We reuse the When/Then from previous, but check for error
+    // In Cucumber, we can reuse step definitions or write specific ones.
+    // Let's write specific Then to be explicit.
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(caughtException);
-        // Check it's not just a random exception, but a domain-related one (IllegalStateException, IllegalArgumentException)
-        Assertions.assertTrue(
-            caughtException instanceof IllegalStateException || 
-            caughtException instanceof IllegalArgumentException
-        );
+    public void theCommandIsRejectedWithADomainError() {
+        assertNotNull(thrownException);
+        assertTrue(thrownException instanceof IllegalStateException);
+        assertTrue(thrownException.getMessage().contains("Account balance cannot drop below the minimum required balance"));
     }
+
+    // Scenario 3: Status Violation
+    @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
+    public void aAccountAggregateThatViolatesStatus() {
+        // Create account that is FROZEN
+        this.account = new AccountAggregate("ACC-FRZ", "SAVINGS", new BigDecimal("200.00"), AccountAggregate.AccountStatus.FROZEN);
+    }
+
+    // Scenario 4: Immutable Account Number (Simulated)
+    @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
+    public void aAccountAggregateThatViolatesImmutability() {
+        // This is a tricky scenario to setup purely via aggregate state without repository context.
+        // However, the Gherkin implies the aggregate is "in" this state.
+        // We can interpret this as the aggregate detecting a conflict.
+        // Or, we might pass a command with a mismatching ID.
+        // Let's assume the command tries to update "ACC-123" but the aggregate is "ACC-999".
+        this.account = new AccountAggregate("ACC-999", "SAVINGS");
+    }
+
+    // Override When for Scenario 4 to trigger the ID mismatch logic if we implemented it in aggregate.
+    // My aggregate implementation uses the command's accountNumber to find the aggregate (repository pattern).
+    // But here we have the instance. 
+    // If the aggregate holds the ID, and we execute a command meant for another ID, that's an invariant violation.
+    // Let's add a check in the `execute` method: `if (!cmd.accountNumber().equals(this.id())) throw ...`
+    // I will update the aggregate class to support this check.
+
+    // Adding a specific When for Scenario 4 context would be cleaner, but I'll update the generic one or rely on setup.
+    // For simplicity, let's assume the generic When works, but we pass a command with a DIFFERENT ID.
+    @When("the UpdateAccountStatusCmd command is executed with mismatched ID")
+    public void theUpdateAccountStatusCmdCommandIsExecutedWithMismatchedID() {
+        try {
+            // Account ID is ACC-999, command is for ACC-123
+            this.command = new UpdateAccountStatusCmd("ACC-123", AccountAggregate.AccountStatus.FROZEN);
+            this.resultEvents = account.execute(command);
+        } catch (Exception e) {
+            this.thrownException = e;
+        }
+    }
+
 }

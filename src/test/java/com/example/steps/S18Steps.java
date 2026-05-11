@@ -1,97 +1,95 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.tellersession.model.InMemoryTellerSessionRepository;
-import com.example.domain.tellersession.model.SessionRejectedEvent;
-import com.example.domain.tellersession.model.SessionStartedEvent;
-import com.example.domain.tellersession.model.StartSessionCmd;
-import com.example.domain.tellersession.model.TellerSession;
-import com.example.domain.tellersession.model.TellerSessionRepository;
+import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.uimodel.model.SessionStartedEvent;
+import com.example.domain.uimodel.model.StartSessionCmd;
+import com.example.domain.uimodel.model.TellerSessionAggregate;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 public class S18Steps {
 
-    private TellerSessionRepository repository = new InMemoryTellerSessionRepository();
-    private TellerSession session;
+    private TellerSessionAggregate aggregate;
+    private StartSessionCmd cmd;
+    private List<DomainEvent> resultingEvents;
     private Exception caughtException;
 
     @Given("a valid TellerSession aggregate")
-    public void aValidTellerSessionAggregate() {
-        this.session = new TellerSession("session-1");
+    public void a_valid_teller_session_aggregate() {
+        aggregate = new TellerSessionAggregate("session-123");
+        // Preconditions for success
+        aggregate.markAuthenticated(); // Authenticated
+        aggregate.setNavigationState("HOME"); // Valid context
     }
 
     @Given("a valid tellerId is provided")
-    public void aValidTellerIdIsProvided() {
-        // Handled in the When step via Command construction
+    public void a_valid_teller_id_is_provided() {
+        // TellerId is provided in the When step, usually
     }
 
     @Given("a valid terminalId is provided")
-    public void aValidTerminalIdIsProvided() {
-        // Handled in the When step via Command construction
+    public void a_valid_terminal_id_is_provided() {
+        // TerminalId is provided in the When step
     }
 
     @When("the StartSessionCmd command is executed")
-    public void theStartSessionCmdCommandIsExecuted() {
+    public void the_start_session_cmd_command_is_executed() {
+        // Default valid command data if not otherwise specified in scenario flow
+        if (cmd == null) {
+            cmd = new StartSessionCmd("session-123", "teller-42", "terminal-01");
+        }
         try {
-            StartSessionCmd cmd = new StartSessionCmd("session-1", "teller-123", "term-ABC");
-            List<DomainEvent> events = session.execute(cmd);
-            // In a real app, we might persist the new state here via repository
+            resultingEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            this.caughtException = e;
+            caughtException = e;
         }
     }
 
     @Then("a session.started event is emitted")
-    public void aSessionStartedEventIsEmitted() {
-        Assertions.assertNull(caughtException, "Expected no exception, but got: " + caughtException);
-        List<DomainEvent> events = session.uncommittedEvents();
-        Assertions.assertFalse(events.isEmpty(), "Expected events to be emitted");
-        Assertions.assertTrue(events.get(0) instanceof SessionStartedEvent, "Expected SessionStartedEvent");
+    public void a_session_started_event_is_emitted() {
+        assertNotNull(resultingEvents, "Events list should not be null");
+        assertEquals(1, resultingEvents.size(), "Exactly one event should be emitted");
+        assertTrue(resultingEvents.get(0) instanceof SessionStartedEvent, "Event must be SessionStartedEvent");
+        assertNull(caughtException, "No exception should have occurred");
     }
 
+    // --- Negative Scenarios ---
+
     @Given("a TellerSession aggregate that violates: A teller must be authenticated to initiate a session.")
-    public void aTellerSessionAggregateThatViolatesAuthentication() {
-        this.session = new TellerSession("session-2");
-        // Logic to simulate unauthenticated state might be handled by the Aggregate's internal state
-        // For this test, we assume the aggregate allows creation, but the Command validation logic fails.
-        // However, the domain description implies the AGGREGATE validates.
-        // We create the aggregate, and the command will be rejected internally.
+    public void a_teller_session_aggregate_that_violates_authentication() {
+        aggregate = new TellerSessionAggregate("session-123");
+        // isAuthenticated defaults to false
+        aggregate.setNavigationState("HOME");
+        cmd = new StartSessionCmd("session-123", "teller-42", "terminal-01");
     }
 
     @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
-    public void aTellerSessionAggregateThatViolatesTimeout() {
-        // We simulate an aggregate that is already in a state where a timeout has occurred or logic prevents restart.
-        // For the sake of this unit test, we can use a specific ID or internal flag if the aggregate supports it.
-        // Here we rely on the Aggregate logic to reject the command.
-        this.session = new TellerSession("session-3");
-        // If we need to simulate a timed-out state, we might need to hydrate it from events or have a specific constructor.
-        // Assuming the aggregate logic handles the rejection based on business rules.
+    public void a_teller_session_aggregate_that_violates_timeout() {
+        aggregate = new TellerSessionAggregate("session-123");
+        aggregate.markAuthenticated();
+        aggregate.markStale(); // Set last activity to > 15 mins ago
+        aggregate.setNavigationState("HOME");
+        cmd = new StartSessionCmd("session-123", "teller-42", "terminal-01");
     }
 
     @Given("a TellerSession aggregate that violates: Navigation state must accurately reflect the current operational context.")
-    public void aTellerSessionAggregateThatViolatesNavigationState() {
-        this.session = new TellerSession("session-4");
-        // Similar to above, assuming internal state or validation logic triggers rejection.
+    public void a_teller_session_aggregate_that_violates_navigation_state() {
+        aggregate = new TellerSessionAggregate("session-123");
+        aggregate.markAuthenticated();
+        aggregate.setNavigationState("TRANSACTION_MENU"); // Invalid for Start
+        cmd = new StartSessionCmd("session-123", "teller-42", "terminal-01");
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(caughtException, "Expected an exception to be thrown");
-        // Check for the specific event type if the pattern is to emit an error event instead of throwing
-        // Based on "Rejected with a domain error", throwing an Exception is the standard Java way.
-        // Alternatively, checking for SessionRejectedEvent:
-        List<DomainEvent> events = session.uncommittedEvents();
-        if (!events.isEmpty()) {
-             Assertions.assertTrue(events.get(0) instanceof SessionRejectedEvent, "Expected SessionRejectedEvent");
-        } else {
-             // If event emission isn't the error pattern, ensure exception is thrown.
-             Assertions.assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
-        }
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(caughtException, "An exception should have been thrown");
+        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException, "Must be a domain error (IllegalStateException or IllegalArgumentException)");
+        assertNull(resultingEvents || resultingEvents.isEmpty(), "No events should be emitted on failure");
     }
 }

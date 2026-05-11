@@ -20,14 +20,12 @@ public class LegacyTransactionRoute extends AggregateRoot {
     private boolean versioningViolation;
     private boolean evaluated;
     private String targetSystem;
-    private int currentRulesVersion;
 
     public LegacyTransactionRoute(String routeId) {
         this.routeId = routeId;
         this.dualProcessingViolation = false;
         this.versioningViolation = false;
         this.evaluated = false;
-        this.currentRulesVersion = 1;
     }
 
     @Override
@@ -44,6 +42,10 @@ public class LegacyTransactionRoute extends AggregateRoot {
 
     public void markVersioningViolation() {
         this.versioningViolation = true;
+    }
+    
+    public boolean isDualProcessingViolation() {
+        return this.dualProcessingViolation;
     }
 
     @Override
@@ -67,9 +69,9 @@ public class LegacyTransactionRoute extends AggregateRoot {
         if (cmd.rulesVersion() <= 0) {
             throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
         }
-
+        
         if (versioningViolation) {
-            throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
+             throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
         }
 
         if (evaluated) {
@@ -98,31 +100,36 @@ public class LegacyTransactionRoute extends AggregateRoot {
         return List.of(event);
     }
 
+    /**
+     * S-24: Handle UpdateRoutingRuleCmd
+     * Updates the routing configuration to shift traffic.
+     */
     private List<DomainEvent> updateRoutingRule(UpdateRoutingRuleCmd cmd) {
-        // Invariant 1: Prevent dual-processing (Simulated check via global state flag)
+        // Invariant: A transaction must route to exactly one backend system
         if (this.dualProcessingViolation) {
             throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
         }
 
-        // Invariant 2: Versioning check
-        // We require that an update implies a new version of the rules.
-        // If the aggregate is in a state where versioning is invalid (e.g. version <= 0), reject.
-        if (this.versioningViolation || this.currentRulesVersion <= 0) {
+        // Invariant: Routing rules must be versioned to allow safe rollback
+        if (this.versioningViolation) {
             throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
         }
 
-        // Business Logic: Apply update
-        this.targetSystem = cmd.newTarget();
-        // Incrementing version as part of the update process
-        this.currentRulesVersion++;
-        this.evaluated = false; // Reset evaluated state on rule change
+        // Additional Logic: Ensure ruleId is not blank (Defensive)
+        if (cmd.ruleId() == null || cmd.ruleId().isBlank()) {
+             throw new IllegalArgumentException("ruleId cannot be blank");
+        }
 
-        var event = new RoutingUpdatedEvent(
-                this.routeId,
-                cmd.ruleId(),
-                cmd.newTarget(),
-                cmd.effectiveDate(),
-                Instant.now()
+        // Apply state change
+        this.targetSystem = cmd.newTarget();
+        
+        // Create event
+        RoutingUpdatedEvent event = new RoutingUpdatedEvent(
+            cmd.routeId(),
+            cmd.ruleId(),
+            cmd.newTarget(),
+            cmd.effectiveDate(),
+            Instant.now()
         );
 
         addEvent(event);
@@ -137,13 +144,5 @@ public class LegacyTransactionRoute extends AggregateRoot {
 
     public String getTargetSystem() {
         return targetSystem;
-    }
-
-    public int getCurrentRulesVersion() {
-        return currentRulesVersion;
-    }
-
-    public void setCurrentRulesVersion(int version) {
-        this.currentRulesVersion = version;
     }
 }

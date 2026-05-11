@@ -3,43 +3,30 @@ package com.example.domain.legacybridge.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.Objects;
 
 /**
  * Event emitted when a routing rule is successfully updated.
+ * Part of Story S-24.
  */
-public class RoutingUpdatedEvent implements DomainEvent {
-    private final String aggregateId;
-    private final String newTarget;
-    private final Instant effectiveDate;
-    private final Instant occurredAt;
+public record RoutingUpdatedEvent(
+    String aggregateId,
+    String ruleId,
+    String newTarget,
+    Instant effectiveDate,
+    Instant occurredAt
+) implements DomainEvent {
 
-    public RoutingUpdatedEvent(String aggregateId, String newTarget, Instant effectiveDate, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.newTarget = newTarget;
-        this.effectiveDate = effectiveDate;
-        this.occurredAt = occurredAt;
+    public RoutingUpdatedEvent {
+        Objects.requireNonNull(aggregateId, "aggregateId cannot be null");
+        Objects.requireNonNull(ruleId, "ruleId cannot be null");
+        Objects.requireNonNull(newTarget, "newTarget cannot be null");
+        Objects.requireNonNull(effectiveDate, "effectiveDate cannot be null");
+        Objects.requireNonNull(occurredAt, "occurredAt cannot be null");
     }
 
     @Override
     public String type() {
         return "routing.updated";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
-
-    public String newTarget() {
-        return newTarget;
-    }
-
-    public Instant effectiveDate() {
-        return effectiveDate;
     }
 }

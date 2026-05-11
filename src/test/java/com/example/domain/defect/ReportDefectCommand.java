@@ -3,11 +3,12 @@ package com.example.domain.defect;
 import com.example.domain.shared.Command;
 
 /**
- * Command to trigger the reporting of a defect.
- * This would typically be triggered by a Temporal workflow or an external diagnostic process.
+ * Command to report a defect observed in production or diagnostics.
+ * Corresponds to the temporal-worker trigger "_report_defect".
  */
 public record ReportDefectCommand(
     String defectId,
     String title,
-    String description
+    String description,
+    String source // e.g., "VForce360 PM diagnostic"
 ) implements Command {}

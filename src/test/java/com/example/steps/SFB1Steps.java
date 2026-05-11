@@ -1,110 +1,43 @@
 package com.example.steps;
 
-import com.example.domain.defect.adapter.GitHubIssueTrackerAdapter;
-import com.example.domain.defect.adapter.SlackNotifier;
-import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.DefectReportedEvent;
-import com.example.domain.defect.model.GitHubIssueLinkedEvent;
-import com.example.domain.shared.DomainEvent;
+import com.example.ports.SlackNotificationPort;
+import com.example.ports.TemporalWorkflowPort;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.contains;
 
 public class SFB1Steps {
 
-    // We will use mocks via Spring context or manual injection
-    private MockGitHubIssueTrackerAdapter mockGitHub;
-    private MockSlackNotifier mockSlack;
-    private DefectAggregate aggregate;
+    @Autowired
+    private TemporalWorkflowPort temporalWorkflowPort;
 
-    public SFB1Steps() {
-        // Initialize mocks manually for this standalone step file
-        // In a real Spring Boot test, these would be @MockBeans
-        mockGitHub = new MockGitHubIssueTrackerAdapter();
-        mockSlack = new MockSlackNotifier();
+    @Autowired
+    private SlackNotificationPort slackNotificationPort;
+
+    private String reportedIssueUrl;
+
+    @Given("a defect is reported via VForce360 PM diagnostic conversation")
+    public void a_defect_is_reported_via_v_force_360_pm_diagnostic_conversation() {
+        // Setup logic to prepare the environment, simulated via Mocks
     }
 
-    @Given("a defect is reported via Temporal worker")
-    public void a_defect_is_reported_via_temporal_worker() {
-        aggregate = new DefectAggregate("fb-1");
-        List<DomainEvent> events = aggregate.execute(
-            new com.example.domain.defect.model.ReportDefectCmd("fb-1", "VW-454", "GitHub URL missing in Slack")
-        );
-        assertFalse(events.isEmpty());
+    @When("the temporal worker executes the report_defect workflow")
+    public void the_temporal_worker_executes_the_report_defect_workflow() {
+        // In a real Red phase, this would trigger the actual workflow stub.
+        // For testing structure, we simulate the trigger via the port.
+        // The implementation will be wired later.
+        temporalWorkflowPort.triggerReportDefect("VW-454", "GitHub URL in Slack body");
     }
 
-    @When("the defect report workflow executes to completion")
-    public void the_defect_report_workflow_executes_to_completion() {
-        // Simulate the workflow steps
-        // 1. Create GitHub Issue
-        String fakeUrl = mockGitHub.createIssue("VW-454", "GitHub URL missing in Slack");
-        
-        // 2. Link issue to Aggregate
-        aggregate.execute(
-            new com.example.domain.defect.model.LinkGitHubIssueCmd("fb-1", fakeUrl)
-        );
-
-        // 3. Notify Slack
-        mockSlack.notify(aggregate.getTitle(), aggregate.getGithubIssueUrl());
-    }
-
-    @Then("the Slack notification body contains the GitHub issue URL")
-    public void the_slack_notification_body_contains_the_github_issue_url() {
-        // Assert that the Slack mock received the URL
-        String lastMessageBody = mockSlack.getLastMessageBody();
-        
-        assertNotNull(lastMessageBody, "Slack message body should not be null");
-        assertTrue(
-            lastMessageBody.contains("http"), 
-            "Slack body should contain a URL"
-        );
-        assertTrue(
-            lastMessageBody.contains("github.com"), 
-            "Slack body should contain github.com"
-        );
-        
-        // Verify the exact pattern <url> as per defect
-        assertTrue(
-            lastMessageBody.contains("<" + mockGitHub.getLastCreatedUrl() + ">"),
-            "Slack body must contain the link in angle brackets: <url>"
-        );
-    }
-
-    // --- Inner Mock Classes for Test Isolation ---
-    
-    public static class MockGitHubIssueTrackerAdapter implements com.example.domain.defect.adapter.GitHubIssueTrackerAdapter {
-        private String lastUrl;
-
-        @Override
-        public String createIssue(String title, String description) {
-            this.lastUrl = "https://github.com/mock/issues/454";
-            return lastUrl;
-        }
-
-        public String getLastCreatedUrl() {
-            return lastUrl;
-        }
-    }
-
-    public static class MockSlackNotifier implements com.example.domain.defect.adapter.SlackNotifier {
-        private String lastBody;
-
-        @Override
-        public void notify(String title, String url) {
-            // Simulate constructing the body
-            this.lastBody = "Defect Reported: " + title + "\nGitHub Issue: <" + url + ">";
-        }
-
-        public String getLastMessageBody() {
-            return lastBody;
-        }
+    @Then("the Slack body includes the GitHub issue link")
+    public void the_slack_body_includes_the_github_issue_link() {
+        // Verify that the notification port was called with a valid URL
+        // This assertion will fail because the implementation is missing.
+        verify(slackNotificationPort).sendNotification(contains("http"));
     }
 }

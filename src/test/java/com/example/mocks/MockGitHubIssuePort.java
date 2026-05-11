@@ -1,32 +1,34 @@
 package com.example.mocks;
 
 import com.example.ports.GitHubIssuePort;
-import com.example.domain.shared.ReportDefectCmd;
-import org.springframework.stereotype.Component;
 
 /**
  * Mock implementation of GitHubIssuePort for testing.
- * Returns a predictable URL without calling the network.
+ * Returns a predictable URL.
  */
-@Component
 public class MockGitHubIssuePort implements GitHubIssuePort {
 
-    private final String mockBaseUrl = "https://github.com/egdcrypto/bank-of-z/issues/";
-    private int issueCount = 1;
+    private final String mockUrlBase;
+    private int issueCount = 0;
+
+    public MockGitHubIssuePort() {
+        this("https://github.com/example/bank-of-z/issues/");
+    }
+
+    public MockGitHubIssuePort(String mockUrlBase) {
+        this.mockUrlBase = mockUrlBase;
+    }
 
     @Override
-    public String createIssue(ReportDefectCmd cmd) {
-        // Simulate the behavior of creating an issue
-        String url = mockBaseUrl + issueCount++;
-        // In a real mock scenario, we might want to store the cmd to verify it later
-        return url;
+    public String createIssue(String title, String body) {
+        if (title == null || title.isBlank()) {
+            throw new IllegalArgumentException("Title cannot be blank");
+        }
+        issueCount++;
+        return mockUrlBase + issueCount;
     }
 
-    public void reset() {
-        issueCount = 1;
-    }
-
-    public String getMockUrl(int index) {
-        return mockBaseUrl + index;
+    public String getLastGeneratedUrl() {
+        return mockUrlBase + issueCount;
     }
 }

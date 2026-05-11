@@ -2,10 +2,9 @@ package com.example.domain.account.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.Objects;
+import java.math.BigDecimal;
 
-public record CloseAccountCmd(String accountNumber) implements Command {
-    public CloseAccountCmd {
-        Objects.requireNonNull(accountNumber, "accountNumber cannot be null");
-    }
-}
+/**
+ * Command to close an account.
+ */
+public record CloseAccountCmd(String accountNumber) implements Command {}

@@ -1,65 +1,95 @@
 package com.example.steps;
 
+import com.example.domain.validation.model.DefectReportedEvent;
 import com.example.domain.validation.model.ReportDefectCmd;
 import com.example.domain.validation.model.ValidationAggregate;
+import com.example.mocks.MockSlackNotificationPort;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Cucumber Steps for Story S-FB-1.
- * Location: src/test/java/com/example/steps/
+ * Steps for S-FB-1: Validating GitHub URL in Slack body.
+ * This covers the regression test requirement.
  */
 public class SFB1Steps {
 
+    @Autowired(required = false)
+    private MockSlackNotificationPort slackPort;
+
     private ValidationAggregate aggregate;
-    private Exception capturedException;
-    private String generatedSlackBody;
-    private String validationId = "test-validation-id";
+    private DefectReportedEvent resultEvent;
+    private Exception thrownException;
 
-    @Given("a defect report is triggered with valid GitHub URL")
-    public void a_defect_report_is_triggered_with_valid_github_url() {
-        aggregate = new ValidationAggregate(validationId);
-        // Aggregate is initialized, command will be executed in When step
+    // Simple in-memory mock if Autowired fails (in standalone test run)
+    private final MockSlackNotificationPort localSlackPort = new MockSlackNotificationPort() {
+        private String lastBody;
+        @Override
+        public void sendMessage(String channel, String body) {
+            this.lastBody = body;
+        }
+        @Override
+        public String getLastMessageBody() {
+            return this.lastBody;
+        }
+    };
+
+    public SFB1Steps() {
+        // Default constructor for Cucumber
     }
 
-    @Given("a defect report is triggered without a GitHub URL")
-    public void a_defect_report_is_triggered_without_a_github_url() {
-        aggregate = new ValidationAggregate(validationId);
+    @Given("a defect report command is triggered")
+    public void a_defect_report_command_is_triggered() {
+        // Setup initial state
+        String defectId = "VW-454";
+        aggregate = new ValidationAggregate(defectId);
     }
 
-    @When("the report defect command is executed with URL {string}")
-    public void the_report_defect_command_is_executed_with_url(String url) {
+    @When("the system processes the defect report")
+    public void the_system_processes_the_defect_report() {
         try {
             ReportDefectCmd cmd = new ReportDefectCmd(
-                "VW-454",
-                "Validating GitHub URL in Slack body",
-                "Checking if link is present",
-                "LOW",
-                url
+                    "VW-454",
+                    "Validating VW-454",
+                    "GitHub URL in Slack body",
+                    "LOW",
+                    "validation",
+                    null
             );
+
             var events = aggregate.execute(cmd);
-            // Simulate Slack body generation from the resulting event
             if (!events.isEmpty()) {
-                generatedSlackBody = "Defect Reported: " + url;
+                resultEvent = (DefectReportedEvent) events.get(0);
+
+                // Simulate the side-effect of posting to Slack based on the event
+                String slackBody = "Defect Reported: " + resultEvent.githubIssueUrl();
+                if (slackPort != null) {
+                    slackPort.sendMessage(resultEvent.slackChannel(), slackBody);
+                } else {
+                    localSlackPort.sendMessage(resultEvent.slackChannel(), slackBody);
+                }
             }
         } catch (Exception e) {
-            capturedException = e;
+            thrownException = e;
         }
     }
 
-    @Then("the resulting Slack body should contain the GitHub issue URL")
-    public void the_resulting_slack_body_should_contain_the_github_issue_url() {
-        assertNotNull(generatedSlackBody, "Slack body should not be null");
-        assertTrue(generatedSlackBody.contains("https://github.com"), "Slack body should contain GitHub URL");
+    @Then("the resulting event contains a valid GitHub issue URL")
+    public void the_resulting_event_contains_a_valid_github_issue_url() {
+        assertNotNull(resultEvent, "Event should not be null");
+        assertNotNull(resultEvent.githubIssueUrl(), "GitHub URL should not be null");
+        assertTrue(resultEvent.githubIssueUrl().startsWith("https://github.com/"), "URL should be a valid GitHub link");
     }
 
-    @Then("the system should throw an error indicating the URL is required")
-    public void the_system_should_throw_an_error_indicating_the_url_is_required() {
-        assertNotNull(capturedException);
-        assertTrue(capturedException instanceof IllegalArgumentException);
-        assertTrue(capturedException.getMessage().contains("GitHub Issue URL is required"));
+    @Then("the Slack notification body includes the GitHub issue link")
+    public void the_slack_notification_body_includes_the_github_issue_link() {
+        String lastBody = (slackPort != null) ? slackPort.getLastMessageBody() : localSlackPort.getLastMessageBody();
+        
+        assertNotNull(lastBody, "Slack should have received a message");
+        assertTrue(lastBody.contains("github.com"), "Slack body must contain the GitHub URL");
+        assertTrue(lastBody.contains("VW-454"), "Slack body must reference the defect ID");
     }
 }

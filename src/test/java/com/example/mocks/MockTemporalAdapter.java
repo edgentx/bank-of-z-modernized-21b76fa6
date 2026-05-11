@@ -1,50 +1,69 @@
 package com.example.mocks;
 
-import com.example.domain.reporting.model.ReportDefectCmd;
 import com.example.ports.TemporalPort;
-
+import com.example.ports.SlackPort;
+import com.example.ports.GitHubPort;
 import java.util.Map;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Mock implementation of TemporalPort for testing.
- * This simulates the behavior of the temporal worker exec without
- * actually connecting to Temporal or Slack.
- */
 public class MockTemporalAdapter implements TemporalPort {
-
-    private String githubUrlBase = "https://github.com/bank-of-z/issues/";
-    private boolean failExecution = false;
-
+    
+    private final Map<String, String> workflowStatuses = new ConcurrentHashMap<>();
+    private SlackPort slackPort;
+    private GitHubPort gitHubPort;
+    
+    public MockTemporalAdapter() {
+        // Default constructor
+    }
+    
+    public void setSlackPort(SlackPort slackPort) {
+        this.slackPort = slackPort;
+    }
+    
+    public void setGitHubPort(GitHubPort gitHubPort) {
+        this.gitHubPort = gitHubPort;
+    }
+    
     @Override
-    public String executeReportDefectWorkflow(ReportDefectCmd cmd) {
-        if (failExecution) {
-            throw new RuntimeException("Temporal execution failed");
+    public boolean executeReportDefect(String defectId) {
+        if (defectId == null || defectId.isEmpty()) {
+            throw new IllegalArgumentException("Defect ID cannot be null or empty");
         }
-
-        // Simulate the logic that constructs the Slack body.
-        // Ideally, this should include the link to the GitHub issue.
-        StringBuilder body = new StringBuilder();
-        body.append("*Defect Reported: ").append(cmd.title()).append("*\n");
-        body.append(cmd.description()).append("\n");
         
-        // DEFECT (VW-454): The code below is currently missing or incorrectly implemented.
-        // We expect the URL to be formed using the defectId.
-        String expectedUrl = githubUrlBase + cmd.defectId();
+        // Simulate the workflow execution
+        // In a real scenario, this would orchestrate:
+        // 1. Create GitHub issue
+        // 2. Send Slack notification with the GitHub URL
         
-        // For the purpose of the Red/Green test, we return a body that LACKS the URL
-        // to prove the test fails initially.
-        // Implementation: body.append("View Issue: ").append(expectedUrl); 
+        String issueUrl = gitHubPort.createIssue(defectId, "Defect: " + defectId);
         
-        return body.toString();
+        // Format the Slack message with the GitHub URL
+        String slackMessage = String.format(
+            "New defect reported: %s\nGitHub Issue: <%s|View Issue>",
+            defectId,
+            issueUrl
+        );
+        
+        boolean slackResult = slackPort.sendMessage("#vforce360-issues", slackMessage);
+        
+        if (slackResult) {
+            workflowStatuses.put(defectId, "COMPLETED");
+            return true;
+        } else {
+            workflowStatuses.put(defectId, "FAILED");
+            return false;
+        }
     }
-
-    // Helper to configure the mock
-    public void setGithubUrlBase(String url) {
-        this.githubUrlBase = url;
+    
+    @Override
+    public String getWorkflowStatus(String workflowId) {
+        return workflowStatuses.getOrDefault(workflowId, "UNKNOWN");
     }
-
-    public void setFailExecution(boolean fail) {
-        this.failExecution = fail;
+    
+    /**
+     * Clear all workflow statuses (useful between tests)
+     */
+    public void clear() {
+        workflowStatuses.clear();
     }
 }

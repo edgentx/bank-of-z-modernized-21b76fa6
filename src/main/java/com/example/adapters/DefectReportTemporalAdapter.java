@@ -1,46 +1,71 @@
 package com.example.adapters;
 
 import com.example.domain.shared.ReportDefectCmd;
-import com.example.ports.DefectReportPort;
-import com.example.ports.SlackPort;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.domain.vforce360.model.VForce360Aggregate;
+import com.example.domain.vforce360.repository.VForce360Repository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 /**
- * Adapter acting as the bridge between the Domain/Temporal layer and the external Slack port.
- * This class formats the Slack message ensuring the GitHub URL is present,
- * addressing the defect VW-454.
+ * Adapter for handling defect reports triggered by a Temporal workflow.
+ * This acts as the entry point for the 'report_defect' temporal-worker execution.
  */
 @Component
-public class DefectReportTemporalAdapter implements DefectReportPort {
+public class DefectReportTemporalAdapter {
 
-    private final SlackPort slackPort;
+    private static final Logger log = LoggerFactory.getLogger(DefectReportTemporalAdapter.class);
+    private final VForce360Repository repository;
 
-    @Autowired
-    public DefectReportTemporalAdapter(SlackPort slackPort) {
-        this.slackPort = slackPort;
+    public DefectReportTemporalAdapter(VForce360Repository repository) {
+        this.repository = repository;
     }
 
-    @Override
-    public void handleDefectReport(ReportDefectCmd cmd) {
-        if (cmd == null) {
-            throw new IllegalArgumentException("ReportDefectCmd cannot be null");
+    /**
+     * Triggered by Temporal to report a defect.
+     * Generates a unique ID if one is not present, creates the aggregate,
+     * executes the command, and persists the result.
+     * 
+     * @param cmd The command details (title, description, etc.)
+     * @return The ID of the created defect record
+     */
+    public String reportDefect(ReportDefectCmd cmd) {
+        String defectId = cmd.defectId();
+        if (defectId == null || defectId.isBlank()) {
+            defectId = UUID.randomUUID().toString();
         }
 
-        // Construct the message body ensuring the GitHub URL is included.
-        // This logic fixes the defect where the URL was missing.
-        StringBuilder messageBody = new StringBuilder();
-        messageBody.append("Defect Report: ").append(cmd.title() != null ? cmd.title() : "Unknown Title").append("\n");
-        messageBody.append("ID: ").append(cmd.defectId()).append("\n");
+        VForce360Aggregate aggregate = new VForce360Aggregate(defectId);
         
-        // Critical fix for VW-454: Ensure the URL is appended to the body.
-        if (cmd.githubIssueUrl() != null && !cmd.githubIssueUrl().isBlank()) {
-            messageBody.append("GitHub Issue: ").append(cmd.githubIssueUrl());
-        } else {
-            throw new IllegalArgumentException("GitHub Issue URL is mandatory for reporting");
+        // Execute domain logic
+        var events = aggregate.execute(new ReportDefectCmd(
+            defectId,
+            cmd.title(),
+            cmd.description(),
+            cmd.component(),
+            cmd.severity()
+        ));
+
+        // Persist aggregate state
+        repository.save(aggregate);
+
+        // Log event for downstream Slack notification formatting
+        // (In the full flow, a projector would pick this up to create the Slack payload)
+        if (!events.isEmpty()) {
+            var event = events.get(0);
+            log.info("Defect reported: ID={}, Title={}, Component={}, Severity={}",
+                event.aggregateId(), 
+                // Checking for the specific event type to access fields safely
+                event instanceof com.example.domain.vforce360.model.DefectReportedEvent d 
+                    ? d.title() 
+                    : cmd.title(),
+                cmd.component(),
+                cmd.severity()
+            );
         }
 
-        // Delegate to the Slack port to send the notification.
-        slackPort.sendNotification(messageBody.toString());
+        return defectId;
     }
 }

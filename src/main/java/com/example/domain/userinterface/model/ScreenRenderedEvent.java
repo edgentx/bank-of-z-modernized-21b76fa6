@@ -6,22 +6,15 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Domain event emitted when a screen is successfully rendered.
+ * Domain event emitted when a screen layout is successfully generated.
  */
 public record ScreenRenderedEvent(
         String aggregateId,
+        String screenId,
         String deviceType,
-        String layoutMetadata,
+        String layoutDefinition,
         Instant occurredAt
 ) implements DomainEvent {
-
-    public ScreenRenderedEvent {
-        // Ensure immutability and basic validation
-        if (aggregateId == null || aggregateId.isBlank()) {
-            throw new IllegalArgumentException("aggregateId cannot be null");
-        }
-    }
-
     @Override
     public String type() {
         return "screen.rendered";

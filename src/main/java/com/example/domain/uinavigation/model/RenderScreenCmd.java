@@ -1,13 +1,10 @@
 package com.example.domain.uinavigation.model;
 
 import com.example.domain.shared.Command;
+import java.util.List;
 
-/**
- * Command to render a specific screen for a user.
- * Enforces legacy BMS constraints during the transition period.
- */
 public record RenderScreenCmd(
-    String screenMapId,
     String screenId,
-    String deviceType
+    String deviceType,
+    List<String> fields
 ) implements Command {}

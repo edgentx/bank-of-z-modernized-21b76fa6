@@ -4,11 +4,15 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.Map;
 
+/**
+ * Domain event emitted when screen input validation is successful.
+ * Contains the canonical event name "input.validated".
+ */
 public record ScreenInputValidatedEvent(
-        String aggregateId,
-        String screenId,
-        Map<String, String> validatedFields,
-        Instant occurredAt
+    String aggregateId,
+    String screenId,
+    Map<String, String> inputFields,
+    Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
@@ -17,7 +21,7 @@ public record ScreenInputValidatedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId();
+        return aggregateId;
     }
 
     @Override

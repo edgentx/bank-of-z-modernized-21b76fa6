@@ -10,6 +10,7 @@ public record ScreenInputValidatedEvent(
         Map<String, String> inputFields,
         Instant occurredAt
 ) implements DomainEvent {
+
     @Override
     public String type() {
         return "input.validated";

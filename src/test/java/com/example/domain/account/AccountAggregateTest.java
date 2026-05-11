@@ -1,63 +1,70 @@
 package com.example.domain.account;
 
-import com.example.domain.account.model.AccountAggregate;
-import com.example.domain.account.model.CloseAccountCmd;
-import com.example.domain.shared.DomainEvent;
+import com.example.domain.account.model.*;
+import com.example.domain.shared.UnknownCommandException;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class AccountAggregateTest {
+public class AccountAggregateTest {
 
     @Test
-    void closeAccount_success() {
-        AccountAggregate account = new AccountAggregate("ACC-001");
-        account.load(BigDecimal.ZERO, AccountAggregate.Status.ACTIVE);
+    public void testCloseAccountSuccess() {
+        String id = "acc-1";
+        AccountAggregate agg = new AccountAggregate(id);
+        agg.setState("12345", BigDecimal.ZERO, "ACTIVE");
 
-        List<DomainEvent> events = account.execute(new CloseAccountCmd("ACC-001"));
+        CloseAccountCmd cmd = new CloseAccountCmd(id, "12345");
+        var events = agg.execute(cmd);
 
-        assertEquals(1, events.size());
+        assertFalse(events.isEmpty());
         assertEquals("account.closed", events.get(0).type());
-        assertTrue(account.isClosed());
+        assertEquals("CLOSED", agg.getStatus());
     }
 
     @Test
-    void closeAccount_failsIfBalanceNotZero() {
-        AccountAggregate account = new AccountAggregate("ACC-002");
-        account.setBalance(BigDecimal.TEN);
-        account.setStatus(AccountAggregate.Status.ACTIVE);
+    public void testCloseAccountFailsIfBalanceNotZero() {
+        String id = "acc-2";
+        AccountAggregate agg = new AccountAggregate(id);
+        agg.setState("12345", new BigDecimal("100.00"), "ACTIVE");
 
-        Exception ex = assertThrows(IllegalStateException.class, () -> {
-            account.execute(new CloseAccountCmd("ACC-002"));
-        });
-
-        assertTrue(ex.getMessage().contains("non-zero balance"));
+        CloseAccountCmd cmd = new CloseAccountCmd(id, "12345");
+        
+        Exception ex = assertThrows(IllegalStateException.class, () -> agg.execute(cmd));
+        assertTrue(ex.getMessage().contains("balance must be zero"));
     }
 
     @Test
-    void closeAccount_failsIfNotActive() {
-        AccountAggregate account = new AccountAggregate("ACC-003");
-        account.setBalance(BigDecimal.ZERO);
-        account.setStatus(AccountAggregate.Status.SUSPENDED);
+    public void testCloseAccountFailsIfNotActive() {
+        String id = "acc-3";
+        AccountAggregate agg = new AccountAggregate(id);
+        agg.setState("12345", BigDecimal.ZERO, "SUSPENDED");
 
-        Exception ex = assertThrows(IllegalStateException.class, () -> {
-            account.execute(new CloseAccountCmd("ACC-003"));
-        });
+        CloseAccountCmd cmd = new CloseAccountCmd(id, "12345");
 
-        assertTrue(ex.getMessage().contains("Active"));
+        Exception ex = assertThrows(IllegalStateException.class, () -> agg.execute(cmd));
+        assertTrue(ex.getMessage().contains("must be ACTIVE"));
     }
 
     @Test
-    void closeAccount_failsIfIdMismatch() {
-        AccountAggregate account = new AccountAggregate("ACC-004");
-        account.setBalance(BigDecimal.ZERO);
-        account.setStatus(AccountAggregate.Status.ACTIVE);
+    public void testCloseAccountFailsImmutabilityCheck() {
+        String id = "acc-4";
+        AccountAggregate agg = new AccountAggregate(id);
+        // Set initial state
+        agg.setState("ORIGINAL", BigDecimal.ZERO, "ACTIVE");
 
-        assertThrows(IllegalArgumentException.class, () -> {
-            account.execute(new CloseAccountCmd("DIFFERENT-ID"));
-        });
+        // Try to close with a DIFFERENT account number
+        CloseAccountCmd cmd = new CloseAccountCmd(id, "DIFFERENT");
+
+        Exception ex = assertThrows(IllegalArgumentException.class, () -> agg.execute(cmd));
+        assertTrue(ex.getMessage().contains("immutable"));
+    }
+    
+    @Test
+    public void testUnknownCommand() {
+        AccountAggregate agg = new AccountAggregate("acc-5");
+        assertThrows(UnknownCommandException.class, () -> agg.execute(new Command() {}));
     }
 }

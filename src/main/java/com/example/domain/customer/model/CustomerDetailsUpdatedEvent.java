@@ -2,7 +2,6 @@ package com.example.domain.customer.model;
 
 import com.example.domain.shared.DomainEvent;
 
-import java.time.LocalDate;
 import java.time.Instant;
 
 public record CustomerDetailsUpdatedEvent(

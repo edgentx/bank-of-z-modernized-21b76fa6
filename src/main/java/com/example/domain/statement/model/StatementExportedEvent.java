@@ -3,19 +3,15 @@ package com.example.domain.statement.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
+/**
+ * Domain event emitted when a Statement is successfully exported.
+ */
 public record StatementExportedEvent(
-        String eventId,
         String aggregateId,
         String format,
-        String artifactLocation,
         Instant occurredAt
 ) implements DomainEvent {
-    public StatementExportedEvent(String aggregateId, String format, String artifactLocation, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), aggregateId, format, artifactLocation, occurredAt);
-    }
-
     @Override
     public String type() {
         return "statement.exported";

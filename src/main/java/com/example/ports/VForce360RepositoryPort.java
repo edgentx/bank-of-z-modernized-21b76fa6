@@ -1,7 +1,6 @@
 package com.example.ports;
 
-import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.ReportDefectCmd;
+import com.example.domain.vforce360.model.DefectAggregate;
 import java.util.Optional;
 
 public interface VForce360RepositoryPort {

@@ -4,29 +4,28 @@ import com.example.domain.shared.DomainEvent;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
+import java.util.UUID;
 
 public record StatementGeneratedEvent(
-    String statementId,
-    String accountNumber,
-    LocalDate periodStart,
-    LocalDate periodEnd,
-    BigDecimal openingBalance,
-    BigDecimal closingBalance,
-    Instant occurredAt
+        String aggregateId,
+        String accountNumber,
+        Instant periodEnd,
+        BigDecimal openingBalance,
+        BigDecimal closingBalance,
+        Instant occurredAt
 ) implements DomainEvent {
+
+    public StatementGeneratedEvent(String aggregateId, String accountNumber, Instant periodEnd, BigDecimal openingBalance, BigDecimal closingBalance, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.accountNumber = accountNumber;
+        this.periodEnd = periodEnd;
+        this.openingBalance = openingBalance;
+        this.closingBalance = closingBalance;
+        this.occurredAt = occurredAt;
+    }
+
     @Override
     public String type() {
         return "statement.generated";
-    }
-
-    @Override
-    public String aggregateId() {
-        return statementId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

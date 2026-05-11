@@ -2,11 +2,10 @@ package com.example.domain.navigation.model;
 
 import com.example.domain.shared.Command;
 
-/**
- * Command to trigger the rendering of a specific screen layout.
- */
+import java.util.Map;
+
 public record RenderScreenCmd(
-    String screenMapId,
     String screenId,
-    String deviceType
+    String deviceType,
+    Map<String, Object> contextData
 ) implements Command {}

@@ -1,18 +1,20 @@
 package com.example.mocks;
 
-import com.example.domain.vforce360.model.DefectAggregate;
-import com.example.ports.VForce360RepositoryPort;
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.port.DefectRepository;
+import org.springframework.stereotype.Component;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class InMemoryDefectRepository implements VForce360RepositoryPort {
+@Component
+public class InMemoryDefectRepository implements DefectRepository {
     private final Map<String, DefectAggregate> store = new HashMap<>();
 
     @Override
-    public DefectAggregate save(DefectAggregate aggregate) {
+    public void save(DefectAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
-        return aggregate;
     }
 
     @Override

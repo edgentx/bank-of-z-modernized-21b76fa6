@@ -10,16 +10,10 @@ public record AccountOpenedEvent(
     String aggregateId,
     String customerId,
     String accountType,
+    BigDecimal initialDeposit,
     String sortCode,
-    BigDecimal initialBalance,
     Instant occurredAt
 ) implements DomainEvent {
-
-    public AccountOpenedEvent {
-        // Ensure occurredAt is not null for the record
-        if (occurredAt == null) occurredAt = Instant.now();
-    }
-
     @Override
     public String type() {
         return "account.opened";

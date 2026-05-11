@@ -1,19 +1,14 @@
 package com.example.mocks;
 
 import com.example.ports.TemporalWorkflowPort;
+import org.springframework.stereotype.Component;
 
-/**
- * Mock implementation of TemporalWorkflowPort.
- */
+@Component
 public class MockTemporalWorkflowPort implements TemporalWorkflowPort {
-    private String workflowId = "test-workflow-id";
 
     @Override
-    public String getWorkflowId() {
-        return workflowId;
-    }
-
-    public void setWorkflowId(String id) {
-        this.workflowId = id;
+    public void triggerReportDefect(String issueId, String description) {
+        // Simulate triggering the workflow
+        System.out.println("[MockTemporal] Triggering report_defect for " + issueId);
     }
 }

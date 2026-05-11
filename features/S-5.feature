@@ -1,4 +1,5 @@
 Feature: Implement OpenAccountCmd on Account (account-management)
+
   Feature: OpenAccountCmd
 
     Scenario: Successfully execute OpenAccountCmd

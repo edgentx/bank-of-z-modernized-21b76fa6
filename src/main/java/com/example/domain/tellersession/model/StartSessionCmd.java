@@ -3,14 +3,8 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to initiate a teller session.
- * Context: S-18 User Interface Navigation
+ * Command to initiate a Teller Session.
+ * Context: S-18 User Interface Navigation.
  */
-public record StartSessionCmd(
-    String sessionId,
-    String tellerId,
-    String terminalId,
-    boolean isAuthenticated,
-    long currentTimestamp,
-    String operationalContext
-) implements Command {}
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId) implements Command {
+}

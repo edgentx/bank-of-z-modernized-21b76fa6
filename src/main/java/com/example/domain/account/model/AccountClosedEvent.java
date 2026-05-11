@@ -3,13 +3,8 @@ package com.example.domain.account.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
-public record AccountClosedEvent(
-    String accountNumber,
-    Instant occurredAt
-) implements DomainEvent {
-
+public record AccountClosedEvent(String aggregateId, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
         return "account.closed";
@@ -17,7 +12,7 @@ public record AccountClosedEvent(
 
     @Override
     public String aggregateId() {
-        return accountNumber;
+        return aggregateId;
     }
 
     @Override

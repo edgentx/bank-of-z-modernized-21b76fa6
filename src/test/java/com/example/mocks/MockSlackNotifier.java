@@ -1,31 +1,50 @@
 package com.example.mocks;
 
-import com.example.ports.SlackNotifier;
+import com.example.ports.SlackNotifierPort;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock adapter for SlackNotifier.
- * Stores messages in memory to be verified during tests.
+ * Mock implementation of SlackNotifierPort for testing.
+ * Captures messages sent to Slack to verify their content in tests.
  */
-public class MockSlackNotifier implements SlackNotifier {
+public class MockSlackNotifier implements SlackNotifierPort {
 
-    private final List<String> messages = new ArrayList<>();
+    private final List<String> sentMessages = new ArrayList<>();
+    private boolean shouldFail = false;
 
     @Override
-    public void send(String messageBody) {
-        // Store the message instead of sending a real HTTP request
-        this.messages.add(messageBody);
+    public boolean notify(String channelId, String message) {
+        if (shouldFail) {
+            return false;
+        }
+        sentMessages.add(message);
+        return true;
     }
 
-    public String getLastMessageBody() {
-        if (messages.isEmpty()) {
-            return "";
+    /**
+     * Retrieves the last message sent to Slack.
+     */
+    public String getLastMessage() {
+        if (sentMessages.isEmpty()) {
+            return null;
         }
-        return messages.get(messages.size() - 1);
+        return sentMessages.get(sentMessages.size() - 1);
+    }
+
+    /**
+     * Checks if the Slack body contains a specific string (e.g., the GitHub URL).
+     */
+    public boolean bodyContains(String text) {
+        return sentMessages.stream().anyMatch(msg -> msg != null && msg.contains(text));
+    }
+
+    public void setShouldFail(boolean fail) {
+        this.shouldFail = fail;
     }
 
     public void clear() {
-        messages.clear();
+        sentMessages.clear();
     }
 }

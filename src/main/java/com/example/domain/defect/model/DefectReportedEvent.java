@@ -7,9 +7,7 @@ import java.util.UUID;
 public record DefectReportedEvent(
     String aggregateId,
     String title,
-    String description,
-    String severity,
-    String githubIssueUrl,
+    String githubUrl,
     Instant occurredAt
 ) implements DomainEvent {
     @Override

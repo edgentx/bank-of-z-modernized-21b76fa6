@@ -1,30 +1,60 @@
 package com.example.adapters;
 
-import com.example.domain.vforce360.model.DefectReportedEvent;
 import com.example.ports.SlackPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
 
-import java.util.Formatter;
-
+/**
+ * Real adapter for Slack notifications.
+ * Sends messages to a configured Slack Webhook URL.
+ */
 @Component
 public class SlackAdapter implements SlackPort {
 
-    @Override
-    public void sendNotification(DefectReportedEvent event) {
-        // In a real implementation, this would use the Slack WebAPI to post a message.
-        // For the scope of this validation, the formatMessageBody method is critical.
-        System.out.println("Sending to Slack: " + formatMessageBody(event));
+    private static final Logger log = LoggerFactory.getLogger(SlackAdapter.class);
+    private final RestClient restClient;
+    private final String webhookUrl;
+
+    public SlackAdapter(@Value("${slack.webhook.url}") String webhookUrl) {
+        this.webhookUrl = webhookUrl;
+        this.restClient = RestClient.create();
     }
 
     @Override
-    public String formatMessageBody(DefectReportedEvent event) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("*Defect Reported*\n");
-        sb.append("*ID:* ").append(event.defectId()).append("\n");
-        sb.append("*Project:* ").append(event.project()).append("\n");
-        sb.append("*Severity:* ").append(event.severity()).append("\n");
-        sb.append("*Description:* ").append(event.description() != null ? event.description() : "N/A").append("\n");
-        sb.append("*GitHub Issue:* ").append(event.githubIssueUrl()).append("\n");
-        return sb.toString();
+    public void sendMessage(String body) {
+        if (webhookUrl == null || webhookUrl.isBlank()) {
+            log.warn("Slack webhook URL is not configured. Skipping notification.");
+            return;
+        }
+
+        try {
+            // Construct Slack payload format
+            // { "text": "<message body>" }
+            String jsonPayload = String.format("{\"text\":\"%s\"}", escapeJson(body));
+
+            restClient.post()
+                .uri(webhookUrl)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .body(jsonPayload)
+                .retrieve()
+                .toBodilessEntity();
+            
+            log.info("Successfully sent Slack notification.");
+        } catch (Exception e) {
+            log.error("Failed to send Slack notification: {}", e.getMessage());
+            // Depending on requirements, we might want to throw here.
+            // For reporting defects, we often don't want to crash the app if Slack is down.
+        }
+    }
+
+    private String escapeJson(String input) {
+        if (input == null) return "";
+        return input.replace("\\", "\\\\")
+                    .replace("\"", "\\\"")
+                    .replace("\n", "\\n")
+                    .replace("\r", "\\r");
     }
 }

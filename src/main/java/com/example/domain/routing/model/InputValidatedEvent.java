@@ -6,13 +6,13 @@ import java.util.Map;
 
 /**
  * Domain event emitted when screen input has been successfully validated
- * against the screen map rules (constraints and mandatory fields).
+ * against BMS constraints (mandatory fields, field lengths).
  */
 public record InputValidatedEvent(
-        String aggregateId,
-        String screenId,
-        Map<String, String> inputFields,
-        Instant occurredAt
+    String aggregateId,
+    String screenId,
+    Map<String, String> inputFields,
+    Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
@@ -20,12 +20,12 @@ public record InputValidatedEvent(
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

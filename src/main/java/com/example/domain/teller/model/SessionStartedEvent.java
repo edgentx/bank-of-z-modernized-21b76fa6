@@ -10,8 +10,8 @@ public record SessionStartedEvent(
     String terminalId,
     Instant occurredAt
 ) implements DomainEvent {
-    @Override
-    public String type() {
-        return "session.started";
-    }
+  @Override
+  public String type() {
+    return "session.started";
+  }
 }

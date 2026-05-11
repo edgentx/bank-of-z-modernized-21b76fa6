@@ -1,16 +1,14 @@
 package com.example.domain.vforce.model;
 
 import com.example.domain.shared.Command;
+import java.util.Map;
 
 /**
- * Command to report a defect from VForce360 diagnostics.
- * Creates a GitHub issue and notifies a Slack channel.
+ * Command to report a defect detected by the VForce360 PM diagnostic system.
  */
 public record ReportDefectCmd(
-    String defectId,
-    String title,
-    String description,
+    String issueId,
     String severity,
-    String component,
-    String projectId
+    String description,
+    Map<String, Object> metadata
 ) implements Command {}

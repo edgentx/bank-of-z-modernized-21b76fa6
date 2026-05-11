@@ -3,15 +3,20 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
+/**
+ * Event emitted when a teller session is successfully terminated.
+ */
 public class SessionEndedEvent implements DomainEvent {
+    private final String eventId;
     private final String aggregateId;
     private final Instant occurredAt;
 
     public SessionEndedEvent(String aggregateId, Instant occurredAt) {
-        this.aggregateId = Objects.requireNonNull(aggregateId);
-        this.occurredAt = Objects.requireNonNull(occurredAt);
+        this.eventId = UUID.randomUUID().toString();
+        this.aggregateId = aggregateId;
+        this.occurredAt = occurredAt;
     }
 
     @Override
@@ -27,5 +32,9 @@ public class SessionEndedEvent implements DomainEvent {
     @Override
     public Instant occurredAt() {
         return occurredAt;
+    }
+
+    public String eventId() {
+        return eventId;
     }
 }

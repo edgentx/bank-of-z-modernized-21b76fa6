@@ -2,9 +2,17 @@ package com.example.domain.customer.model;
 
 import com.example.domain.shared.DomainEvent;
 
+import java.time.LocalDate;
 import java.time.Instant;
 
-public record CustomerDetailsUpdatedEvent(String customerId, String fullName, String email, String sortCode, Instant occurredAt) implements DomainEvent {
+public record CustomerDetailsUpdatedEvent(
+        String customerId,
+        String fullName,
+        String email,
+        LocalDate dateOfBirth,
+        String sortCode,
+        Instant occurredAt
+) implements DomainEvent {
     @Override
     public String type() {
         return "customer.details.updated";

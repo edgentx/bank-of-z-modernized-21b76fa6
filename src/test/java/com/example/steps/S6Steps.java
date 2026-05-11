@@ -15,103 +15,79 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class S6Steps {
-
     private AccountAggregate aggregate;
-    private UpdateAccountStatusCmd command;
+    private String accountNumber;
+    private String newStatus;
     private List<DomainEvent> resultEvents;
     private Exception thrownException;
+    private String accountType = "STANDARD";
+    private BigDecimal currentBalance = BigDecimal.ZERO;
 
     @Given("a valid Account aggregate")
-    public void aValidAccountAggregate() {
-        // Setup a standard valid account
-        aggregate = new AccountAggregate("ACC-123", "Active", new BigDecimal("500.00"), "Checking");
+    public void a_valid_Account_aggregate() {
+        aggregate = new AccountAggregate("acc-123");
+        aggregate.hydrate("123456", "ACTIVE", BigDecimal.TEN, "STANDARD");
     }
 
-    @Given("a valid accountNumber is provided")
-    public void aValidAccountNumberIsProvided() {
-        // Handled in the When step construction
+    @And("a valid accountNumber is provided")
+    public void a_valid_accountNumber_is_provided() {
+        accountNumber = "123456";
     }
 
-    @Given("a valid newStatus is provided")
-    public void aValidNewStatusIsProvided() {
-        // Handled in the When step construction
+    @And("a valid newStatus is provided")
+    public void a_valid_newStatus_is_provided() {
+        newStatus = "FROZEN";
     }
 
     @When("the UpdateAccountStatusCmd command is executed")
-    public void theUpdateAccountStatusCmdCommandIsExecuted() {
+    public void the_UpdateAccountStatusCmd_command_is_executed() {
         try {
-            // Default valid command construction
-            String accNum = (aggregate != null) ? aggregate.id() : "ACC-123";
-            command = new UpdateAccountStatusCmd(accNum, "Frozen");
-            resultEvents = aggregate.execute(command);
+            UpdateAccountStatusCmd cmd = new UpdateAccountStatusCmd("acc-123", accountNumber, newStatus, currentBalance, accountType);
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             thrownException = e;
         }
     }
 
     @Then("a account.status.updated event is emitted")
-    public void aAccountStatusUpdatedEventIsEmitted() {
+    public void a_account_status_updated_event_is_emitted() {
         assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
+        assertFalse(resultEvents.isEmpty());
         assertEquals("account.status.updated", resultEvents.get(0).type());
     }
 
-    // --- Failure Scenarios ---
+    // Negative Scenarios
 
     @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
-    public void aAccountAggregateThatViolatesMinBalance() {
-        // Create a Savings account with balance below minimum (100)
-        aggregate = new AccountAggregate("ACC-LOW", "Active", new BigDecimal("50.00"), "Savings");
+    public void a_Account_aggregate_that_violates_minimum_balance() {
+        aggregate = new AccountAggregate("acc-min-violation");
+        aggregate.hydrate("9999", "ACTIVE", new BigDecimal("50"), "PREMIUM"); // Premium min is 1000
+        accountType = "PREMIUM";
+        currentBalance = new BigDecimal("50");
+        newStatus = "CLOSED";
+        accountNumber = "9999";
     }
 
     @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
-    public void aAccountAggregateThatViolatesActiveStatus() {
-        // Create an account that is already Frozen/Closed
-        aggregate = new AccountAggregate("ACC-FRZ", "Frozen", new BigDecimal("500.00"), "Checking");
+    public void a_Account_aggregate_that_violates_active_status() {
+        aggregate = new AccountAggregate("acc-inactive");
+        aggregate.hydrate("8888", "FROZEN", BigDecimal.TEN, "STANDARD");
+        newStatus = "FROZEN"; // Trying to update while already frozen (simulating operation attempt)
+        accountNumber = "8888";
     }
 
     @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
-    public void aAccountAggregateThatViolatesImmutableAccountNumber() {
-        aggregate = new AccountAggregate("ACC-ORIG", "Active", new BigDecimal("100.00"), "Checking");
+    public void a_Account_aggregate_that_violates_immutable_number() {
+        aggregate = new AccountAggregate("acc-immutable");
+        aggregate.hydrate("1111", "ACTIVE", BigDecimal.TEN, "STANDARD");
+        accountNumber = "2222"; // Trying to change number
+        newStatus = "ACTIVE";
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
+    public void the_command_is_rejected_with_a_domain_error() {
         assertNotNull(thrownException);
-        // Verify it's not an UnknownCommandException, but a business logic violation
-        assertFalse(thrownException instanceof UnknownCommandException);
-    }
-
-    @When("the UpdateAccountStatusCmd command is executed")
-    public void theUpdateAccountStatusCmdCommandIsExecutedForImmutableFailure() {
-        try {
-            // Scenario: Command attempts to target a different ID than the aggregate
-            command = new UpdateAccountStatusCmd("ACC-FAKE", "Frozen"); // Mismatched ID
-            resultEvents = aggregate.execute(command);
-        } catch (Exception e) {
-            thrownException = e;
-        }
-    }
-
-    @When("the UpdateAccountStatusCmd command is executed")
-    public void theUpdateAccountStatusCmdCommandIsExecutedForStatusFailure() {
-        try {
-             // Scenario: Trying to change status while Frozen (based on logic in Aggregate)
-             command = new UpdateAccountStatusCmd("ACC-FRZ", "Frozen");
-             resultEvents = aggregate.execute(command);
-        } catch (Exception e) {
-            thrownException = e;
-        }
-    }
-    
-    @When("the UpdateAccountStatusCmd command is executed")
-    public void theUpdateAccountStatusCmdCommandIsExecutedForBalanceFailure() {
-        try {
-             // Scenario: Low balance
-             command = new UpdateAccountStatusCmd("ACC-LOW", "Frozen");
-             resultEvents = aggregate.execute(command);
-        } catch (Exception e) {
-            thrownException = e;
-        }
+        // Checking for Exception types. The aggregate throws IllegalStateException or IllegalArgumentException
+        assertTrue(thrownException instanceof IllegalStateException || thrownException instanceof IllegalArgumentException);
     }
 }

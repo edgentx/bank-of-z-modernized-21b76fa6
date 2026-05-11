@@ -3,6 +3,8 @@ package com.example.adapters;
 import com.example.domain.shared.ReportDefectCmd;
 import com.example.ports.GitHubIssuePort;
 import com.example.ports.SlackMessageValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class SFB1DefectReportAdapter {
 
+    private static final Logger log = LoggerFactory.getLogger(SFB1DefectReportAdapter.class);
     private final GitHubIssuePort gitHubIssuePort;
     private final SlackMessageValidator slackMessageValidator;
 
@@ -29,22 +32,23 @@ public class SFB1DefectReportAdapter {
         // Step 1: Create Issue
         String issueUrl = gitHubIssuePort.createIssue(cmd);
 
+        if (issueUrl == null || issueUrl.isEmpty()) {
+             throw new IllegalStateException("GitHub URL was not generated");
+        }
+
         // Step 2: Prepare Message (VW-454 Verification)
-        // We construct a message body that MUST include the URL
+        // We construct a message body that MUST include the URL.
+        // The SlackMessageValidator implementation is primarily for sending,
+        // but we construct the final string here to ensure the URL is present.
         String messageBody = String.format(
-                "Defect Reported: %s%nSeverity: %s%nGitHub Issue: %s",
+                "*Defect Reported:* %s%n*Severity:* %s%n*GitHub Issue:* %s",
                 cmd.title(),
                 cmd.severity(),
                 issueUrl
         );
 
         // Step 3: Validate and Send
-        // The validator implementation (Mock in test) checks if URL is present
-        // but we are validating the logic here.
-        if (issueUrl == null || issueUrl.isEmpty()) {
-             throw new IllegalStateException("GitHub URL was not generated");
-        }
-
+        // We use the validator's send method.
         slackMessageValidator.send(messageBody);
     }
 }

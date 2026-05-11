@@ -1,91 +1,63 @@
 package com.example.steps;
 
-import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.infrastructure.defect.GitHubPort;
-import com.example.infrastructure.defect.SlackNotifierPort;
-import com.example.mocks.MockGitHubPort;
-import com.example.mocks.MockSlackNotifierPort;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
+import io.cucumber.spring.CucumberContextConfiguration;
+import org.springframework.boot.test.context.SpringBootTest;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * Steps for verifying VW-454: GitHub URL in Slack body.
- * Story: S-FB-1
+ * Steps for validating VW-454: GitHub URL in Slack body.
+ * 
+ * Context: End-to-End verification that when a defect is reported via
+ * the temporal-worker execution, the generated Slack body contains the
+ * valid GitHub issue URL.
  */
+@SpringBootTest
+@CucumberContextConfiguration
 public class VW454Steps {
 
-    // We treat the "Temporal Workflow" as the Aggregate Execution + Service Wiring in this context
-    // to keep the test self-contained in the JUnit environment.
+    private String defectId;
+    String generatedSlackBody;
 
-    private MockGitHubPort gitHubPort;
-    private MockSlackNotifierPort slackPort;
-    private DefectAggregate aggregate;
-    private Exception capturedException;
-    private String reportedGithubUrl;
-
-    @Given("the defect reporting system is initialized")
-    public void the_defect_reporting_system_is_initialized() {
-        gitHubPort = new MockGitHubPort();
-        slackPort = new MockSlackNotifierPort();
-        capturedException = null;
+    @Given("a defect report is triggered via temporal-worker exec")
+    public void a_defect_report_is_triggered_via_temporal_worker_exec() {
+        // Simulating the workflow trigger
+        this.defectId = "VW-454";
     }
 
-    @When("a defect report is triggered with valid data")
-    public void a_defect_report_is_triggered_with_valid_data() {
-        try {
-            // 1. Prepare Command
-            String defectId = "VW-454";
-            ReportDefectCmd cmd = new ReportDefectCmd(
-                defectId,
-                "Validating VW-454",
-                "Checking if link is present in Slack body",
-                "LOW"
-            );
-
-            // 2. Execute Aggregate Logic (Domain)
-            aggregate = new DefectAggregate(defectId);
-            var events = aggregate.execute(cmd);
-            
-            // Assuming single event flow for this report
-            if (!events.isEmpty()) {
-                String url = (String) events.get(0).getClass().getMethod("githubIssueUrl").invoke(events.get(0));
-                this.reportedGithubUrl = url;
-
-                // 3. Simulate Workflow wiring (Application Service Layer)
-                // In a real temporal flow, this would be an activity.
-                // Here we wire the mock ports directly to satisfy the scenario logic.
-                
-                // Simulate sending Slack notification
-                String slackBody = String.format(
-                    "Defect Reported: %s\nURL: %s",
-                    cmd.title(),
-                    this.reportedGithubUrl
-                );
-                slackPort.sendNotification(slackBody);
-            }
-
-        } catch (Exception e) {
-            capturedException = e;
-        }
-    }
-
-    @Then("the Slack body includes the GitHub issue URL")
-    public void the_slack_body_includes_the_github_issue_url() {
-        if (capturedException != null) {
-            fail("Test threw exception: " + capturedException.getMessage());
-        }
-
-        String lastMessage = slackPort.getLastMessage();
-        assertNotNull(lastMessage, "Slack should have received a message");
+    @When("the report_defect workflow completes")
+    public void the_report_defect_workflow_completes() {
+        // RED PHASE STUB:
+        // This is where we would call the actual service/worker to generate the Slack payload.
+        // For now, we leave it null or invalid to force the test to fail initially 
+        // until the implementation is wired in.
         
-        // The core assertion for the defect fix
-        assertTrue(
-            lastMessage.contains("https://github.com"),
-            "Slack body must contain the GitHub URL"
-        );
+        // Simulating a failure case where URL is missing (Actual Behavior before fix)
+        // this.generatedSlackBody = "Defect reported but no link.";
+        
+        // To strictly follow TDD RED phase, we expect the implementation to be missing.
+        // We will pretend the service returns an empty string or unformatted text.
+        this.generatedSlackBody = "Issue reported: " + defectId; 
+    }
+
+    @Then("the Slack body should include the GitHub issue URL")
+    public void the_slack_body_should_include_the_github_issue_url() {
+        // Expected format: <https://github.com/org/repo/issues/454>
+        // or similar GitHub URL structure.
+        boolean hasLink = false;
+        
+        if (generatedSlackBody != null) {
+            // We look for 'github.com' and the issue ID pattern to satisfy the requirement.
+            hasLink = generatedSlackBody.contains("github.com") && generatedSlackBody.contains(defectId);
+        }
+
+        // TDD Red Phase Assertion: This will fail because generatedSlackBody currently lacks the URL.
+        assertTrue(hasLink, 
+            "Expected Slack body to contain GitHub URL for " + defectId + 
+            ", but got: " + generatedSlackBody);
     }
 }

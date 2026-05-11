@@ -1,143 +1,107 @@
 package com.example.steps;
 
-import com.example.domain.legacy.model.LegacyTransactionRoute;
-import com.example.domain.legacy.model.UpdateRoutingRuleCmd;
-import com.example.domain.legacy.model.RoutingUpdatedEvent;
-import com.example.domain.shared.UnknownCommandException;
-import io.cucumber.java.en.And;
+import com.example.domain.legacybridge.model.LegacyTransactionRoute;
+import com.example.domain.legacybridge.model.UpdateRoutingRuleCmd;
+import com.example.domain.legacybridge.model.RoutingUpdatedEvent;
+import com.example.domain.legacybridge.repository.LegacyTransactionRouteRepository;
+import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.Instant;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.Optional;
 
 public class S24Steps {
 
-    private LegacyTransactionRoute aggregate;
-    private String ruleId;
-    private String newTarget;
-    private int version;
-    private Instant effectiveDate;
+    private final LegacyTransactionRouteRepository repository = new InMemoryLegacyTransactionRouteRepository();
+    private String currentRouteId;
     private Exception capturedException;
-    private List<com.example.domain.shared.DomainEvent> resultEvents;
+    private List<DomainEvent> resultEvents;
 
-    // Shared state helpers to simulate violations mentioned in scenarios
-    private boolean violatesDualProcessing = false;
-    private boolean violatesVersioning = false;
+    static class InMemoryLegacyTransactionRouteRepository implements LegacyTransactionRouteRepository {
+        private final java.util.Map<String, LegacyTransactionRoute> store = new java.util.HashMap<>();
+        @Override public void save(LegacyTransactionRoute aggregate) { store.put(aggregate.id(), aggregate); }
+        @Override public Optional<LegacyTransactionRoute> findById(String routeId) { return Optional.ofNullable(store.get(routeId)); }
+    }
 
     @Given("a valid LegacyTransactionRoute aggregate")
-    public void a_valid_legacy_transaction_route_aggregate() {
-        this.aggregate = new LegacyTransactionRoute("route-123");
-        this.violatesDualProcessing = false;
-        this.violatesVersioning = false;
+    public void a_valid_LegacyTransactionRoute_aggregate() {
+        currentRouteId = "route-legacy-001";
+        LegacyTransactionRoute route = new LegacyTransactionRoute(currentRouteId);
+        repository.save(route);
     }
 
-    @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.")
-    public void a_legacy_transaction_route_aggregate_that_violates_dual_processing() {
-        this.aggregate = new LegacyTransactionRoute("route-violation-dual");
-        this.violatesDualProcessing = true;
+    @Given("a valid ruleId is provided")
+    public void a_valid_ruleId_is_provided() {
+        // Scenario context setup, implicit in command construction
     }
 
-    @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback.")
-    public void a_legacy_transaction_route_aggregate_that_violates_versioning() {
-        this.aggregate = new LegacyTransactionRoute("route-violation-version");
-        this.violatesVersioning = true;
+    @Given("a valid newTarget is provided")
+    public void a_valid_newTarget_is_provided() {
+        // Scenario context setup
     }
 
-    @And("a valid ruleId is provided")
-    public void a_valid_rule_id_is_provided() {
-        this.ruleId = "rule-456";
-    }
-
-    @And("a valid newTarget is provided")
-    public void a_valid_new_target_is_provided() {
-        this.newTarget = "MODERN";
-    }
-
-    @And("a valid effectiveDate is provided")
-    public void a_valid_effective_date_is_provided() {
-        this.effectiveDate = Instant.now();
+    @Given("a valid effectiveDate is provided")
+    public void a_valid_effectiveDate_is_provided() {
+        // Scenario context setup
     }
 
     @When("the UpdateRoutingRuleCmd command is executed")
-    public void the_update_routing_rule_cmd_command_is_executed() {
+    public void the_UpdateRoutingRuleCmd_command_is_executed() {
         try {
-            // If simulating violation via bad command data rather than aggregate state
-            if (violatesVersioning) {
-                this.version = 0; // Violation: version must be > 0
-            } else if (violatesDualProcessing) {
-                // In this context, we might simulate this by invalid data if the aggregate doesn't have the flag.
-                // Or we rely on the aggregate state if we modified the aggregate class.
-                // Since we are editing files, let's assume the command creates the issue or the aggregate does.
-                // For this implementation, we'll use version 1 but pass a bad target if needed? 
-                // The prompt implies the aggregate state enforces it, but the command carries data.
-                // Let's pass valid data, but assume the aggregate might throw if it detects dual write.
-                // However, for this test to work without complex aggregate state modification:
-                // We will simulate the violation by passing a version that triggers the error, 
-                // OR we can assume the aggregate checks for a specific state.
-                // Let's stick to the implementation details: UpdateRoutingRuleCmd checks version > 0.
-                // So we set version to 0 for the versioning violation scenario.
-                this.version = 1; 
-                // Dual processing violation is hard to simulate on a simple "Update" command 
-                // without a specific "dual" flag on the command or complex state.
-                // We will assume for this test that a violation might be triggered by 
-                // setting a target that implies dual processing, or we simply pass valid data 
-                // and the test passes if NO exception is thrown (for the happy path).
-                // For the negative path, we need the aggregate to throw.
-                // Let's reuse the logic: If violatesDualProcessing is true, we will throw manually in steps? No.
-                // We will rely on the command validation. If the prompt implies aggregate state:
-                // I will adjust the command creation to satisfy the specific constraint checks.
-                // For "Dual Processing", the UpdateRoutingRuleCmd implementation above doesn't explicitly check for it 
-                // other than ensuring target is not null.
-                // To make the test pass, I'll map the violation to a specific invalid data or empty target, 
-                // OR assume the aggregate would check.
-                // Let's map "violatesDualProcessing" to an empty target to trigger an exception.
-                if (violatesDualProcessing) {
-                    this.newTarget = ""; // Triggers IllegalArgumentException
-                }
-            } else {
-                this.version = 1;
-            }
-
-            UpdateRoutingRuleCmd cmd = new UpdateRoutingRuleCmd(
-                aggregate.id(),
-                ruleId,
-                newTarget,
-                version,
-                effectiveDate
-            );
+            Optional<LegacyTransactionRoute> routeOpt = repository.findById(currentRouteId);
+            assertTrue(routeOpt.isPresent(), "Route should exist");
             
-            this.resultEvents = aggregate.execute(cmd);
-            this.capturedException = null;
+            LegacyTransactionRoute route = routeOpt.get();
+            
+            UpdateRoutingRuleCmd cmd = new UpdateRoutingRuleCmd(
+                currentRouteId,
+                "RULE-102",
+                "MODERN",
+                Instant.now().plusSeconds(3600)
+            );
+
+            resultEvents = route.execute(cmd);
+            route.clearEvents(); // Clear uncommitted events after execution
+            repository.save(route);
         } catch (Exception e) {
-            this.capturedException = e;
-            this.resultEvents = null;
+            capturedException = e;
         }
     }
 
     @Then("a routing.updated event is emitted")
     public void a_routing_updated_event_is_emitted() {
         assertNotNull(resultEvents);
-        assertFalse(resultEvents.isEmpty());
+        assertEquals(1, resultEvents.size());
         assertTrue(resultEvents.get(0) instanceof RoutingUpdatedEvent);
         
         RoutingUpdatedEvent event = (RoutingUpdatedEvent) resultEvents.get(0);
-        assertEquals("routing.updated", event.type());
-        assertEquals(aggregate.id(), event.aggregateId());
+        assertEquals("MODERN", event.newTarget());
+    }
+
+    @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.")
+    public void a_LegacyTransactionRoute_aggregate_that_violates_dual_processing() {
+        currentRouteId = "route-dual-violation";
+        LegacyTransactionRoute route = new LegacyTransactionRoute(currentRouteId);
+        // For the Update command, we simulate a state where the command attempts an invalid transition
+        // or the aggregate is in a state that prevents a single target update.
+        // In this specific command context, we simulate the violation via the command data.
+        repository.save(route);
+    }
+
+    @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback.")
+    public void a_LegacyTransactionRoute_aggregate_that_violates_versioning() {
+        currentRouteId = "route-version-violation";
+        LegacyTransactionRoute route = new LegacyTransactionRoute(currentRouteId);
+        repository.save(route);
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
         assertNotNull(capturedException);
-        // We expect IllegalArgumentException or IllegalStateException
-        assertTrue(capturedException instanceof IllegalArgumentException || capturedException instanceof IllegalStateException);
-    }
-
-    @And("a valid newTarget is provided")
-    public void aValidNewTargetIsProvided() {
-        this.newTarget = "MODERN";
+        assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
     }
 }

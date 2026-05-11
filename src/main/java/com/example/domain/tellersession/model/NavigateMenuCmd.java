@@ -1,0 +1,13 @@
+package com.example.domain.tellersession.model;
+
+import com.example.domain.shared.Command;
+
+/**
+ * Command to route the teller to a different menu or screen based on input.
+ * Emulates legacy menu navigation behavior.
+ */
+public record NavigateMenuCmd(
+    String sessionId,
+    String menuId,
+    String action
+) implements Command {}

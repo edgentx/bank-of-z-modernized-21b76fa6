@@ -3,24 +3,22 @@ package com.example.domain.navigation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
 /**
- * Domain event emitted when a screen layout is successfully generated.
+ * Event emitted when a screen map is successfully rendered.
  */
-public class ScreenRenderedEvent implements DomainEvent {
-    private final String aggregateId;
-    private final String screenId;
-    private final String deviceType;
-    private final String layoutPayload;
-    private final Instant occurredAt;
+public record ScreenRenderedEvent(
+        String aggregateId,
+        String screenId,
+        String deviceType,
+        String layout,
+        Instant occurredAt
+) implements DomainEvent {
 
-    public ScreenRenderedEvent(String aggregateId, String screenId, String deviceType, String layoutPayload, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.screenId = screenId;
-        this.deviceType = deviceType;
-        this.layoutPayload = layoutPayload;
-        this.occurredAt = occurredAt;
+    public ScreenRenderedEvent {
+        // Ensure non-null for database/event store safety
+        if (aggregateId == null) aggregateId = UUID.randomUUID().toString();
     }
 
     @Override
@@ -29,31 +27,12 @@ public class ScreenRenderedEvent implements DomainEvent {
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
     public Instant occurredAt() {
         return occurredAt;
     }
 
-    public String screenId() { return screenId; }
-    public String deviceType() { return deviceType; }
-    public String layoutPayload() { return layoutPayload; }
-
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ScreenRenderedEvent that = (ScreenRenderedEvent) o;
-        return Objects.equals(aggregateId, that.aggregateId) &&
-               Objects.equals(screenId, that.screenId) &&
-               Objects.equals(deviceType, that.deviceType);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(aggregateId, screenId, deviceType);
+    public String aggregateId() {
+        return aggregateId;
     }
 }

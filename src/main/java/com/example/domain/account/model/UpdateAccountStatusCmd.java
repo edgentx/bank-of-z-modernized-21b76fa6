@@ -1,15 +1,12 @@
 package com.example.domain.account.model;
 
 import com.example.domain.shared.Command;
-
-import java.util.Objects;
+import java.math.BigDecimal;
 
 public record UpdateAccountStatusCmd(
-        String targetAccountNumber,
-        AccountAggregate.AccountStatus newStatus
-) implements Command {
-    public UpdateAccountStatusCmd {
-        Objects.requireNonNull(targetAccountNumber);
-        Objects.requireNonNull(newStatus);
-    }
-}
+    String accountId,
+    String accountNumber,
+    String newStatus,
+    BigDecimal currentBalance,
+    String accountType
+) implements Command {}

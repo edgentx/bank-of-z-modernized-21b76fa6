@@ -17,134 +17,113 @@ import static org.junit.jupiter.api.Assertions.*;
 public class S5Steps {
 
     private AccountAggregate aggregate;
-    private OpenAccountCmd command;
-    private List<DomainEvent> resultingEvents;
-    private Exception thrownException;
+    private List<DomainEvent> resultEvents;
+    private Exception caughtException;
+    private String testAccountId;
+    private String testCustomerId = "customer-123";
+    private AccountAggregate.AccountType testType = AccountAggregate.AccountType.SAVINGS;
+    private BigDecimal testDeposit = new BigDecimal("100.00");
+    private String testSortCode = "10-20-30";
 
-    // Scenario 1 Helpers
+    // Clean state for every scenario
+    public S5Steps() {
+        resetState();
+    }
+
+    private void resetState() {
+        this.testAccountId = java.util.UUID.randomUUID().toString();
+        this.aggregate = new AccountAggregate(testAccountId);
+        this.resultEvents = null;
+        this.caughtException = null;
+    }
+
     @Given("a valid Account aggregate")
-    public void a_valid_account_aggregate() {
-        aggregate = new AccountAggregate("agg-123");
+    public void aValidAccountAggregate() {
+        // Valid aggregate setup, nothing to do here other than ensuring it's initialized
+        assertNotNull(aggregate);
     }
 
     @And("a valid customerId is provided")
-    public void a_valid_customer_id_is_provided() {
-        // Context stored for command construction
+    public void aValidCustomerIdIsProvided() {
+        assertNotNull(testCustomerId);
     }
 
     @And("a valid accountType is provided")
-    public void a_valid_account_type_is_provided() {
-        // Context stored for command construction
+    public void aValidAccountTypeIsProvided() {
+        assertNotNull(testType);
     }
 
     @And("a valid initialDeposit is provided")
-    public void a_valid_initial_deposit_is_provided() {
-        // Context stored for command construction
+    public void aValidInitialDepositIsProvided() {
+        assertNotNull(testDeposit);
     }
 
     @And("a valid sortCode is provided")
-    public void a_valid_sort_code_is_provided() {
-        // Context stored for command construction
+    public void aValidSortCodeIsProvided() {
+        assertNotNull(testSortCode);
     }
 
     @When("the OpenAccountCmd command is executed")
-    public void the_open_account_cmd_command_is_executed() {
-        // Construct the command with standard valid data for success scenario
-        command = new OpenAccountCmd(
-            "agg-123",
-            "cust-001", 
-            AccountAggregate.AccountType.SAVINGS, // Min balance 100
-            new BigDecimal("150.00"),
-            "80-20-30"
-        );
+    public void theOpenAccountCmdCommandIsExecuted() {
         try {
-            resultingEvents = aggregate.execute(command);
+            OpenAccountCmd cmd = new OpenAccountCmd(testAccountId, testCustomerId, testType, testDeposit, testSortCode);
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            thrownException = e;
+            caughtException = e;
         }
     }
 
     @Then("a account.opened event is emitted")
-    public void a_account_opened_event_is_emitted() {
-        assertNotNull(resultingEvents);
-        assertEquals(1, resultingEvents.size());
-        assertTrue(resultingEvents.get(0) instanceof AccountOpenedEvent);
-        
-        AccountOpenedEvent event = (AccountOpenedEvent) resultingEvents.get(0);
+    public void aAccountOpenedEventIsEmitted() {
+        assertNull(caughtException, "Should not have thrown an exception");
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        DomainEvent event = resultEvents.get(0);
         assertEquals("account.opened", event.type());
-        assertEquals("agg-123", event.aggregateId());
+        assertEquals(testAccountId, event.aggregateId());
+        assertTrue(event instanceof AccountOpenedEvent);
+        
+        // Verify state mutation
+        assertEquals(AccountAggregate.AccountStatus.ACTIVE, aggregate.getStatus());
+        assertEquals(testDeposit, aggregate.getBalance());
     }
 
-    // Scenario 2: Minimum Balance
+    // --- Negative Scenarios ---
+
     @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
-    public void a_account_aggregate_that_violates_minimum_balance() {
-        aggregate = new AccountAggregate("agg-min-violation");
+    public void aAccountAggregateThatViolatesBalance() {
+        // Setup valid basics, but deposit will be too low for SAVINGS (min 100)
+        testType = AccountAggregate.AccountType.SAVINGS;
+        testDeposit = new BigDecimal("50.00"); // Violates minimum
     }
 
-    // Override When for this specific context to trigger the violation
-    @When("the OpenAccountCmd command is executed with low deposit")
-    public void the_open_account_cmd_command_is_executed_with_low_deposit() {
-        // Savings requires 100.00, providing 50.00
-        command = new OpenAccountCmd(
-            "agg-min-violation",
-            "cust-001",
-            AccountAggregate.AccountType.SAVINGS,
-            new BigDecimal("50.00"),
-            "80-20-30"
-        );
-        try {
-            resultingEvents = aggregate.execute(command);
-        } catch (Exception e) {
-            thrownException = e;
-        }
-    }
-
-    // Scenario 3: Active Status
     @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
-    public void a_account_aggregate_that_violates_status() {
-        // We simulate an aggregate that is already in a CLOSED or FROZEN state
-        // (In a real application we might load a closed aggregate and try to open it again/reuse ID)
-        aggregate = new AccountAggregate("agg-closed") {
-            // Anonymous subclass to simulate pre-existing bad state for test purposes
-            @Override
-            public List<DomainEvent> execute(Command cmd) {
-                // Force a check via reflection or public setter if available, 
-                // but here we just simulate the check happening inside the aggregate logic.
-                // Since AccountAggregate defaults to ACTIVE, we trigger the failure via:
-                // Re-opening a closed account? The logic checks `this.status`.
-                // But we can't set status easily without a `close` command.
-                // However, the logic in `handleOpenAccount` checks `this.status`.
-                // Since we can't set status to CLOSED without a CloseCommand, we will assume the logic
-                // covers this invariant, and we verify the exception handling if we COULD set it.
-                // For this BDD, we will rely on the implementation preventing bad state transitions.
-                // Or, we can invoke the command and rely on the logic.
-                return super.execute(cmd);
-            }
-        };
-        // Note: Because the current Aggregate constructor sets status=ACTIVE, this test ensures
-        // that if we tried to open on a FROZEN aggregate (if we could create one), it would fail.
-        // To fully test this invariant, we might need to add a constructor that accepts state, 
-        // or a test-specific package-private method. 
-        // For this exercise, we assume the 'Given' implies the state exists, and the logic protects it.
+    public void aAccountAggregateThatViolatesStatus() {
+        // This aggregate starts as NONE.
+        // To simulate the "Active" requirement violation for OPENING, we interpret this 
+        // as trying to open an account that is somehow already ACTIVE (i.e., re-opening).
+        // Or simply, we can set the status manually (reflection-like via package access if supported, or simulating)
+        // Since AccountAggregate defaults to NONE, let's execute a valid command first to make it ACTIVE, 
+        // then try to execute OpenCmd again.
+        
+        // First valid open
+        OpenAccountCmd firstCmd = new OpenAccountCmd(testAccountId, testCustomerId, testType, testDeposit, testSortCode);
+        aggregate.execute(firstCmd);
+        
+        // Now aggregate is ACTIVE. Running execute again will trigger the Status check.
     }
 
-    // Scenario 4: Immutable Account Number
     @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
-    public void a_account_aggregate_that_violates_immutability() {
-        // We need an aggregate that has already been opened (immutable flag set to true)
-        // We create one, open it, then try to open it again.
-        aggregate = new AccountAggregate("agg-immutable");
-        // First command opens it and sets immutable = true
-        OpenAccountCmd firstCmd = new OpenAccountCmd("agg-immutable", "cust-001", AccountAggregate.AccountType.CHECKING, BigDecimal.ONE, "00-00-00");
-        aggregate.execute(firstCmd); 
-        // Now aggregate.isImmutable() is true
+    public void aAccountAggregateThatViolatesUniqueness() {
+        // Similar to above, open the account first to set 'immutable' flag true.
+        OpenAccountCmd firstCmd = new OpenAccountCmd(testAccountId, testCustomerId, testType, testDeposit, testSortCode);
+        aggregate.execute(firstCmd);
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(thrownException);
-        // Invariant violations result in IllegalArgumentException or IllegalStateException
-        assertTrue(thrownException instanceof IllegalArgumentException || thrownException instanceof IllegalStateException);
+    public void theCommandIsRejectedWithADomainError() {
+        assertNotNull(caughtException, "Expected an exception to be thrown");
+        // We expect either IllegalStateException or IllegalArgumentException (domain errors)
+        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
     }
-
 }

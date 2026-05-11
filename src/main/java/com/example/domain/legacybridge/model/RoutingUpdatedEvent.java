@@ -10,23 +10,24 @@ import java.time.Instant;
 public record RoutingUpdatedEvent(
         String aggregateId,
         String ruleId,
+        String oldTarget,
         String newTarget,
-        Instant effectiveDate,
-        Instant occurredAt
+        int effectiveVersion,
+        Instant updatedDate
 ) implements DomainEvent {
 
     @Override
     public String type() {
-        return "RoutingUpdatedEvent";
+        return "RoutingUpdated";
     }
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return aggregateId();
     }
 
     @Override
     public Instant occurredAt() {
-        return occurredAt;
+        return Instant.now(); // Or use a timestamp passed in constructor if precise timing is needed
     }
 }

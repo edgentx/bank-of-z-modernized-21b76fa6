@@ -1,53 +1,46 @@
 package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock adapter for the Slack Notification Port.
- * Used in TDD/Unit tests to verify that the application logic
- * constructs the correct message payload without actually calling the external Slack API.
+ * In-memory mock implementation of SlackNotificationPort for testing.
+ * Captures messages sent to Slack to verify contents without real I/O.
  */
-@Component
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private boolean called = false;
-    private String lastChannel;
-    private String lastMessageBody;
-    private final List<CapturedCall> callHistory = new ArrayList<>();
+    public static class SentMessage {
+        public final String channel;
+        public final String body;
+
+        public SentMessage(String channel, String body) {
+            this.channel = channel;
+            this.body = body;
+        }
+    }
+
+    private final List<SentMessage> messages = new ArrayList<>();
+    private boolean simulateFailure = false;
 
     @Override
-    public void send(String channel, String messageBody) {
-        this.called = true;
-        this.lastChannel = channel;
-        this.lastMessageBody = messageBody;
-        this.callHistory.add(new CapturedCall(channel, messageBody));
-        
-        // Intentionally do NOT perform real I/O
-        System.out.println("[MOCK] Slack sent to " + channel + ": " + messageBody);
+    public boolean send(String channel, String body) {
+        if (simulateFailure) {
+            return false;
+        }
+        messages.add(new SentMessage(channel, body));
+        return true;
     }
 
-    public boolean wasCalled() {
-        return called;
+    public List<SentMessage> getMessages() {
+        return new ArrayList<>(messages);
     }
 
-    public String getLastMessageBody() {
-        return lastMessageBody;
+    public void clear() {
+        messages.clear();
     }
 
-    public String getLastChannel() {
-        return lastChannel;
+    public void setSimulateFailure(boolean simulateFailure) {
+        this.simulateFailure = simulateFailure;
     }
-
-    public void reset() {
-        this.called = false;
-        this.lastChannel = null;
-        this.lastMessageBody = null;
-        this.callHistory.clear();
-    }
-
-    private record CapturedCall(String channel, String body) {}
 }

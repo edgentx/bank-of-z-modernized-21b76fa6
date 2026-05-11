@@ -3,12 +3,13 @@ package com.example.domain.defect;
 import com.example.domain.shared.Command;
 
 /**
- * Command to report a defect (VW-454).
- * Triggers GitHub issue creation and Slack notification.
+ * Command to report a defect to the VForce360 system.
+ * Expected to trigger a Slack notification containing the GitHub issue URL.
  */
 public record ReportDefectCmd(
     String defectId,
     String title,
-    String severity,
-    String description
-) implements Command {}
+    String description,
+    String githubUrl
+) implements Command {
+}

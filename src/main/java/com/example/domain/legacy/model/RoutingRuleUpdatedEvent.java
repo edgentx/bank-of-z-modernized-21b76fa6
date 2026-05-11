@@ -7,15 +7,15 @@ import java.time.Instant;
  * Event emitted when a routing rule is successfully updated.
  */
 public record RoutingRuleUpdatedEvent(
-    String aggregateId,
-    String ruleId,
-    String newTarget,
-    Instant effectiveDate,
-    Instant occurredAt
+        String aggregateId,
+        String ruleId,
+        String newTarget,
+        Instant effectiveDate,
+        Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
-        return "RoutingRuleUpdated";
+        return "routing.updated";
     }
 
     @Override

@@ -1,9 +1,11 @@
 package com.example.domain.account.model;
 
+/**
+ * Account status enum.
+ * Valid states are Active, Frozen, and Closed.
+ */
 public enum AccountStatus {
-    OPEN,
     ACTIVE,
     FROZEN,
-    CLOSED,
-    PENDING_OPEN
+    CLOSED
 }

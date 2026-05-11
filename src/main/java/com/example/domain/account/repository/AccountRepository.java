@@ -7,4 +7,5 @@ import java.util.Optional;
 public interface AccountRepository {
     void save(AccountAggregate aggregate);
     Optional<AccountAggregate> findById(String id);
+    // Using InMemory repository in tests, so this interface is minimal
 }

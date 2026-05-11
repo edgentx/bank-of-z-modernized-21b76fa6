@@ -7,6 +7,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * In-memory mock adapter for LegacyTransactionRouteRepository.
+ * Used exclusively in tests to avoid external dependencies (DB2/MongoDB).
+ */
 public class InMemoryLegacyTransactionRouteRepository implements LegacyTransactionRouteRepository {
 
     private final Map<String, LegacyTransactionRoute> store = new HashMap<>();

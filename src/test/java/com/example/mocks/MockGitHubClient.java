@@ -1,25 +1,28 @@
 package com.example.mocks;
 
-import com.example.ports.GitHubClient;
+import com.example.ports.GitHubPort;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Mock adapter for GitHubClient.
- * Returns predictable data without calling the real GitHub API.
+ * Mock implementation of GitHubPort for testing.
  */
-public class MockGitHubClient implements GitHubClient {
+public class MockGitHubClient implements GitHubPort {
 
-    private String mockResponseUrl;
+    private final Map<String, String> issueUrls = new HashMap<>();
 
-    public void setMockResponseUrl(String url) {
-        this.mockResponseUrl = url;
+    public MockGitHubClient() {
+        // Default stub data
+        issueUrls.put("VW-454", "https://github.com/egdcrypto/bank-of-z-modernized/issues/454");
     }
 
     @Override
-    public String createIssue(String title, String body) {
-        // Simulate API latency or logic if necessary, but here we just return the stubbed value.
-        if (mockResponseUrl == null) {
-            return "https://github.com/example-bank/issues/default";
-        }
-        return mockResponseUrl;
+    public String getIssueUrl(String issueId) {
+        return issueUrls.getOrDefault(issueId, "https://github.com/egdcrypto/bank-of-z-modernized/issues/unknown");
+    }
+
+    public void stubIssueUrl(String issueId, String url) {
+        issueUrls.put(issueId, url);
     }
 }

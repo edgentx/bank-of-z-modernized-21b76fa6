@@ -1,14 +1,19 @@
 package com.example.ports;
 
+import com.example.domain.defect.model.LinkGitHubIssueCmd;
+
 /**
  * Port for interacting with GitHub issues.
- * Used by the reporting workflow to generate links.
+ * Used to create issues and retrieve their URLs for defect tracking.
  */
 public interface GitHubPort {
+
     /**
-     * Formats a GitHub URL for the given issue ID.
-     * @param issueId The ID of the issue (e.g., VW-454)
-     * @return The fully qualified URL to the GitHub issue.
+     * Creates a GitHub issue based on the defect details.
+     *
+     * @param cmd The command containing summary (title) and description (body).
+     * @return The fully qualified URL of the created issue.
+     * @throws RuntimeException if the API call fails or returns invalid data.
      */
-    String getIssueUrl(String issueId);
+    String createIssue(LinkGitHubIssueCmd cmd);
 }

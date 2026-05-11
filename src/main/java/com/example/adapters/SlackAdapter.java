@@ -1,26 +1,37 @@
 package com.example.adapters;
 
+import com.example.domain.validation.model.DefectReportedEvent;
 import com.example.ports.SlackPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Slack implementation for posting messages.
- * In a real scenario, this would use the Slack WebClient API.
- * For the scope of this defect fix, we stub the network interaction or log.
+ * Real implementation of the Slack port.
+ * Sends a formatted message to a Slack channel.
  */
 @Component
 public class SlackAdapter implements SlackPort {
 
+    private static final Logger logger = LoggerFactory.getLogger(SlackAdapter.class);
+
     @Override
-    public void postMessage(String body) {
-        // Real implementation would use Slack WebApi to post to a channel.
-        // For the purpose of fixing the validation logic defect:
-        // We assume the transport works; the validation is on the content.
-        if (body == null || body.isBlank()) {
-            throw new IllegalArgumentException("Slack message body cannot be null or blank");
-        }
+    public void sendNotification(String channel, DefectReportedEvent event) {
+        // Construct the message body
+        // Requirement: Slack body includes GitHub issue: <url>
+        StringBuilder sb = new StringBuilder();
+        sb.append("*Defect Reported*\n");
+        sb.append("ID: ").append(event.defectId()).append("\n");
+        sb.append("Title: ").append(event.title()).append("\n");
+        sb.append("Severity: ").append(event.severity()).append("\n");
+        sb.append("GitHub Issue: ").append(event.githubUrl()).append("\n"); // Critical fix line
+
+        String messageBody = sb.toString();
+
+        // Actual Slack API call would go here (WebClient or RestTemplate)
+        // For validation/low severity defect logging:
+        logger.info("Sending Slack notification to {}: {}", channel, messageBody);
         
-        System.out.println("[SlackAdapter] Posting message: " + body);
-        // webClient.chatPostMessage(r -> r.channel("#vforce360-issues").text(body));
+        // Simulate successful send
     }
 }

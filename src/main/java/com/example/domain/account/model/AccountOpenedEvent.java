@@ -10,7 +10,7 @@ public record AccountOpenedEvent(
     String aggregateId,
     String customerId,
     String accountType,
-    BigDecimal openingBalance,
+    BigDecimal initialDeposit,
     String sortCode,
     Instant occurredAt
 ) implements DomainEvent {

@@ -1,15 +1,13 @@
 package com.example.domain.validation.model;
 
 import com.example.domain.shared.Command;
+import java.util.Map;
 
-/**
- * Command to report a defect via VForce360 temporal workflow.
- * Corresponds to S-FB-1: Trigger _report_defect via temporal-worker exec.
- */
+/** Command to report a defect (e.g., from Temporal workflow). */
 public record ReportDefectCmd(
     String defectId,
     String title,
-    String description,
     String severity,
-    String component
+    String description,
+    Map<String, String> metadata
 ) implements Command {}

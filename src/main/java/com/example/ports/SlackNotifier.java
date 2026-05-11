@@ -1,9 +1,9 @@
 package com.example.ports;
 
 /**
- * Port interface for Slack notification.
- * Following the Hexagonal Architecture pattern.
+ * Port interface for sending Slack notifications.
+ * Allows swapping real implementation for test mocks.
  */
 public interface SlackNotifier {
-    void send(String messageBody);
+    void notify(String body);
 }

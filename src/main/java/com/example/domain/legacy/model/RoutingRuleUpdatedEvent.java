@@ -5,11 +5,12 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 
 public record RoutingRuleUpdatedEvent(
-    String routeId,
-    String ruleId,
-    String newTarget,
-    int ruleVersion,
-    Instant occurredAt
+        String aggregateId,
+        String ruleId,
+        String newTarget,
+        Instant effectiveDate,
+        int newRuleVersion,
+        Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
@@ -18,7 +19,7 @@ public record RoutingRuleUpdatedEvent(
 
     @Override
     public String aggregateId() {
-        return routeId;
+        return aggregateId;
     }
 
     @Override

@@ -1,36 +1,22 @@
 package com.example.mocks;
 
-import com.example.domain.shared.Command;
-import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.Aggregate;
-
-import java.util.ArrayList;
-import java.util.List;
+import com.example.domain.vforce360.model.DefectAggregate;
+import com.example.ports.VForce360RepositoryPort;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
-/**
- * In-memory repository for Defect aggregates.
- * Used for testing and prototyping without a real database connection.
- * Implements the generic repository pattern expected by the domain layer.
- */
-public class InMemoryDefectRepository {
+public class InMemoryDefectRepository implements VForce360RepositoryPort {
+    private final Map<String, DefectAggregate> store = new HashMap<>();
 
-    // Simple in-memory store. Key is Aggregate ID.
-    private final List<Aggregate> store = new ArrayList<>();
-
-    public void save(Aggregate aggregate) {
-        // In a real implementation, we would check for existing versions.
-        // For this defect fix/test context, we just add to the list.
-        store.add(aggregate);
+    @Override
+    public DefectAggregate save(DefectAggregate aggregate) {
+        store.put(aggregate.id(), aggregate);
+        return aggregate;
     }
 
-    public Optional<Aggregate> findById(String id) {
-        return store.stream()
-                .filter(agg -> agg.id().equals(id))
-                .findFirst();
-    }
-
-    public void clear() {
-        store.clear();
+    @Override
+    public Optional<DefectAggregate> findById(String id) {
+        return Optional.ofNullable(store.get(id));
     }
 }

@@ -4,6 +4,6 @@ import com.example.domain.tellersession.model.TellerSession;
 import java.util.Optional;
 
 public interface TellerSessionRepository {
-    void save(TellerSession session);
+    TellerSession save(TellerSession aggregate);
     Optional<TellerSession> findById(String id);
 }

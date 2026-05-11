@@ -4,15 +4,17 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.Map;
 
-/**
- * Domain event emitted when screen input is successfully validated.
- * Signals that the input adheres to BMS length constraints and mandatory field rules.
- */
-public record ScreenInputValidatedEvent(
-        String aggregateId,
-        Map<String, String> inputFields,
-        Instant occurredAt
-) implements DomainEvent {
+public class ScreenInputValidatedEvent implements DomainEvent {
+    private final String screenId;
+    private final Map<String, String> inputFields;
+    private final Instant occurredAt;
+
+    public ScreenInputValidatedEvent(String screenId, Map<String, String> inputFields, Instant occurredAt) {
+        this.screenId = screenId;
+        this.inputFields = inputFields;
+        this.occurredAt = occurredAt;
+    }
+
     @Override
     public String type() {
         return "input.validated";
@@ -20,11 +22,15 @@ public record ScreenInputValidatedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return screenId;
     }
 
     @Override
     public Instant occurredAt() {
         return occurredAt;
+    }
+
+    public Map<String, String> getInputFields() {
+        return inputFields;
     }
 }

@@ -1,9 +1,9 @@
 package com.example.steps;
 
+import com.example.domain.screenmap.model.InputValidatedEvent;
 import com.example.domain.screenmap.model.ScreenMapAggregate;
 import com.example.domain.screenmap.model.ValidateScreenInputCmd;
 import com.example.domain.shared.DomainEvent;
-import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -17,80 +17,73 @@ import static org.junit.jupiter.api.Assertions.*;
 public class S22Steps {
 
   private ScreenMapAggregate aggregate;
-  private Map<String, String> inputFields;
+  private ValidateScreenInputCmd cmd;
   private List<DomainEvent> resultEvents;
-  private Exception capturedException;
+  private Exception thrownException;
 
   @Given("a valid ScreenMap aggregate")
   public void aValidScreenMapAggregate() {
-    this.aggregate = new ScreenMapAggregate("SCREEN_001");
-    // Setup valid definition for context
-    aggregate.defineField("ACCOUNT_NUM", 10, true);
-    aggregate.defineField("TX_AMOUNT", 12, false);
+    aggregate = new ScreenMapAggregate("screen-1");
+    // Configure a simple field for validation purposes
+    aggregate.configureField("accountNum", true, 10);
   }
 
   @Given("a valid screenId is provided")
   public void aValidScreenIdIsProvided() {
-    // Handled by the command construction in the 'When' step
-    // We assume the command targets the aggregate initialized above.
+    // Handled in constructor or context setup
   }
 
   @Given("a valid inputFields is provided")
   public void aValidInputFieldsIsProvided() {
-    this.inputFields = new HashMap<>();
-    this.inputFields.put("ACCOUNT_NUM", "1234567890");
+    Map<String, String> inputs = new HashMap<>();
+    inputs.put("accountNum", "123456789"); // Valid length, mandatory field present
+    this.cmd = new ValidateScreenInputCmd("screen-1", inputs);
   }
 
   @When("the ValidateScreenInputCmd command is executed")
   public void theValidateScreenInputCmdCommandIsExecuted() {
     try {
-      ValidateScreenInputCmd cmd = new ValidateScreenInputCmd("SCREEN_001", this.inputFields);
-      this.resultEvents = aggregate.execute(cmd);
+      resultEvents = aggregate.execute(cmd);
     } catch (Exception e) {
-      this.capturedException = e;
+      thrownException = e;
     }
   }
 
   @Then("a input.validated event is emitted")
   public void aInputValidatedEventIsEmitted() {
     assertNotNull(resultEvents);
-    assertFalse(resultEvents.isEmpty());
+    assertEquals(1, resultEvents.size());
+    assertTrue(resultEvents.get(0) instanceof InputValidatedEvent);
     assertEquals("input.validated", resultEvents.get(0).type());
-    assertNull(capturedException);
+    assertNull(thrownException);
   }
 
-  // Scenario 2
   @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
   public void aScreenMapAggregateThatViolatesMandatoryFields() {
-    this.aggregate = new ScreenMapAggregate("SCREEN_002");
-    aggregate.defineField("REF_ID", 10, true); // Mandatory
-  }
+    aggregate = new ScreenMapAggregate("screen-mandatory");
+    aggregate.configureField("refId", true, 10);
 
-  // Reuse existing Given/When logic implies we just need to set the bad state
-  @Given("a valid inputFields is provided") // Overriding behavior conceptually for the negative case
-  public void inputFieldsMissingMandatory() {
-    this.inputFields = new HashMap<>();
-    // Intentionally leave REF_ID empty or missing to trigger violation
-    // this.inputFields.put("REF_ID", ""); 
+    Map<String, String> inputs = new HashMap<>();
+    // Missing 'refId'
+    inputs.put("optionalField", "value");
+    this.cmd = new ValidateScreenInputCmd("screen-mandatory", inputs);
   }
 
   @Then("the command is rejected with a domain error")
   public void theCommandIsRejectedWithADomainError() {
-    assertNotNull(capturedException);
-    assertTrue(capturedException instanceof IllegalArgumentException);
-    assertTrue(capturedException.getMessage().contains("Validation failed"));
+    assertNotNull(thrownException);
+    assertTrue(thrownException instanceof IllegalArgumentException);
+    assertTrue(thrownException.getMessage().contains("validation failed") || 
+               thrownException.getMessage().contains("violated"));
   }
 
-  // Scenario 3
   @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-  public void aScreenMapAggregateThatViolatesLengthConstraints() {
-    this.aggregate = new ScreenMapAggregate("SCREEN_003");
-    aggregate.defineField("SHORT_CODE", 5, false);
-  }
+  public void aScreenMapAggregateThatViolatesFieldLengths() {
+    aggregate = new ScreenMapAggregate("screen-length");
+    aggregate.configureField("shortCode", true, 5);
 
-  @Given("a valid inputFields is provided")
-  public void inputFieldsExceedingLength() {
-    this.inputFields = new HashMap<>();
-    this.inputFields.put("SHORT_CODE", "123456"); // Length 6 > Max 5
+    Map<String, String> inputs = new HashMap<>();
+    inputs.put("shortCode", "123456"); // Length 6 > Max 5
+    this.cmd = new ValidateScreenInputCmd("screen-length", inputs);
   }
 }

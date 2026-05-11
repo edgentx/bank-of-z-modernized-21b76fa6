@@ -3,17 +3,25 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Objects;
 
+/**
+ * Domain event emitted when a Teller Session is terminated.
+ * Part of S-20.
+ * 
+ * Record fields: aggregateId, tellerId, occurredAt.
+ * Note: This matches the constructor signature required by the error logs.
+ */
 public record SessionEndedEvent(
     String aggregateId,
-    String sessionId,
+    String tellerId,
     Instant occurredAt
 ) implements DomainEvent {
-    public SessionEndedEvent(String aggregateId, String sessionId, Instant occurredAt) {
-        this.aggregateId = aggregateId;
-        this.sessionId = sessionId;
-        this.occurredAt = occurredAt;
+
+    public SessionEndedEvent {
+        Objects.requireNonNull(aggregateId);
+        Objects.requireNonNull(tellerId);
+        Objects.requireNonNull(occurredAt);
     }
 
     @Override
@@ -24,5 +32,10 @@ public record SessionEndedEvent(
     @Override
     public String aggregateId() {
         return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

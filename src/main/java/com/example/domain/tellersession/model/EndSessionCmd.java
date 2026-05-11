@@ -2,10 +2,8 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.Objects;
-
-public record EndSessionCmd(String sessionId) implements Command {
-    public EndSessionCmd {
-        Objects.requireNonNull(sessionId, "sessionId cannot be null");
-    }
-}
+/**
+ * Command to terminate an active teller session.
+ * Clears sensitive state and emits a SessionEndedEvent.
+ */
+public record EndSessionCmd(String sessionId) implements Command {}

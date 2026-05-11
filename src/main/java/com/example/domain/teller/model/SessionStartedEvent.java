@@ -3,21 +3,21 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Objects;
+import java.util.UUID;
 
+/**
+ * Event emitted when a teller session is successfully started.
+ */
 public record SessionStartedEvent(
+        String eventId,
         String aggregateId,
         String tellerId,
         String terminalId,
-        String navigationContext,
         Instant occurredAt
 ) implements DomainEvent {
 
-    public SessionStartedEvent {
-        Objects.requireNonNull(aggregateId, "aggregateId cannot be null");
-        Objects.requireNonNull(tellerId, "tellerId cannot be null");
-        Objects.requireNonNull(terminalId, "terminalId cannot be null");
-        Objects.requireNonNull(occurredAt, "occurredAt cannot be null");
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, tellerId, terminalId, occurredAt);
     }
 
     @Override

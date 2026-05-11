@@ -1,5 +1,4 @@
 Feature: Implement ExportStatementCmd on Statement (account-management)
-
   Feature: ExportStatementCmd
 
     Scenario: Successfully execute ExportStatementCmd

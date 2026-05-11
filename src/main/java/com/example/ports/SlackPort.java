@@ -1,17 +1,12 @@
 package com.example.ports;
 
 /**
- * Port interface for Slack notifications.
- * Allows switching between real implementation and mocks.
+ * Port for sending Slack notifications.
  */
 public interface SlackPort {
-
     /**
-     * Posts a message to a specific channel.
-     *
-     * @param channelId The target channel ID (e.g., "C0123456789").
-     * @param text      The message body text.
-     * @return true if successful, false otherwise.
+     * Sends a message to a Slack channel.
+     * @param text The message text/markdown.
      */
-    boolean postMessage(String channelId, String text);
+    void sendMessage(String text);
 }

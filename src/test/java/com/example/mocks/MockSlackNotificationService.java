@@ -2,38 +2,47 @@ package com.example.mocks;
 
 import com.example.ports.SlackNotificationPort;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * Mock Adapter for SlackNotificationPort.
- * Used in tests to capture output without making real HTTP calls.
+ * Mock adapter for SlackNotificationPort.
+ * Records messages instead of sending real HTTP requests.
  */
 public class MockSlackNotificationService implements SlackNotificationPort {
 
-    private boolean called = false;
-    private String lastChannel;
-    private String lastBody;
+    private final List<String> messages = new ArrayList<>();
 
     @Override
-    public void sendMessage(String channel, String messageBody) {
-        this.called = true;
-        this.lastChannel = channel;
-        this.lastBody = messageBody;
+    public void sendMessage(String messageBody) {
+        // Simulate potential failure if message is null
+        if (messageBody == null) {
+            throw new IllegalArgumentException("Message body cannot be null");
+        }
+        this.messages.add(messageBody);
     }
 
-    public boolean wasCalled() {
-        return called;
-    }
-
-    public String getLastMessageBody() {
-        return lastBody;
-    }
-
-    public String getLastChannel() {
-        return lastChannel;
-    }
-
+    /**
+     * Resets the internal state of the mock.
+     */
     public void reset() {
-        this.called = false;
-        this.lastBody = null;
-        this.lastChannel = null;
+        messages.clear();
+    }
+
+    /**
+     * Retrieves the body of the last message sent.
+     */
+    public String getLastMessageBody() {
+        if (messages.isEmpty()) {
+            return null;
+        }
+        return messages.get(messages.size() - 1);
+    }
+
+    /**
+     * Retrieves all messages sent during the test.
+     */
+    public List<String> getAllMessages() {
+        return new ArrayList<>(messages);
     }
 }

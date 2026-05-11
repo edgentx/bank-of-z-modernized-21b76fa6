@@ -1,7 +1,9 @@
 package com.example.domain.statement.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
+import java.util.UUID;
 
 public record StatementExportedEvent(
     String aggregateId,
@@ -9,7 +11,18 @@ public record StatementExportedEvent(
     String artifactLocation,
     Instant occurredAt
 ) implements DomainEvent {
-    @Override public String type() { return "statement.exported"; }
-    @Override public String aggregateId() { return aggregateId; }
-    @Override public Instant occurredAt() { return occurredAt; }
+    @Override
+    public String type() {
+        return "statement.exported";
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
 }

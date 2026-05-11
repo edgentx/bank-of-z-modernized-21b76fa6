@@ -4,8 +4,10 @@ import com.example.domain.defect.model.DefectAggregate;
 import com.example.domain.defect.repository.DefectRepository;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
+/**
+ * Mock implementation of DefectRepository for testing.
+ */
 public class MockDefectRepository implements DefectRepository {
     private final Map<String, DefectAggregate> store = new HashMap<>();
 
@@ -15,7 +17,7 @@ public class MockDefectRepository implements DefectRepository {
     }
 
     @Override
-    public Optional<DefectAggregate> findById(String defectId) {
-        return Optional.ofNullable(store.get(defectId));
+    public DefectAggregate findById(String id) {
+        return store.get(id);
     }
 }

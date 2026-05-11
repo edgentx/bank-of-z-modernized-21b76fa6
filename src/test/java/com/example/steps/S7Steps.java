@@ -1,8 +1,10 @@
 package com.example.steps;
 
 import com.example.domain.account.model.AccountAggregate;
-import com.example.domain.account.model.AccountClosedEvent;
 import com.example.domain.account.model.CloseAccountCmd;
+import com.example.domain.shared.Command;
+import com.example.domain.shared.DomainEvent;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -12,57 +14,63 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Cucumber Steps for S-7: CloseAccountCmd
- */
 public class S7Steps {
 
-    private AccountAggregate account;
+    private AccountAggregate aggregate;
+    private List<DomainEvent> resultEvents;
     private Exception caughtException;
-    private List<?> events;
 
     @Given("a valid Account aggregate")
-    public void a_valid_account_aggregate() {
-        account = new AccountAggregate("ACC-TEST-1");
-        account.setBalance(BigDecimal.ZERO);
+    public void a_valid_Account_aggregate() {
+        aggregate = new AccountAggregate("ACC-12345");
     }
 
     @Given("a valid accountNumber is provided")
-    public void a_valid_account_number_is_provided() {
-        // The account number is implicitly handled by the aggregate initialization in the previous step
-        // or we can verify it exists.
-        assertNotNull(account.id());
+    public void a_valid_accountNumber_is_provided() {
+        // Implicitly handled by the 'a valid Account aggregate' step setup
     }
 
+    // S-7 Scenario: CloseAccountCmd rejected — Account balance cannot drop below the minimum required balance for its specific account type.
     @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
-    public void a_account_aggregate_with_non_zero_balance() {
-        account = new AccountAggregate("ACC-TEST-BAL");
-        account.setBalance(new BigDecimal("50.00"));
+    public void a_Account_aggregate_that_violates_balance() {
+        aggregate = new AccountAggregate("ACC-BALANCE");
+        // Setup: Give it a balance so it cannot be closed
+        aggregate.setBalance(new BigDecimal("100.50"));
     }
 
+    // S-7 Scenario: CloseAccountCmd rejected — An account must be in an Active status to process withdrawals or transfers.
     @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
-    public void a_account_aggregate_that_is_not_active() {
-        account = new AccountAggregate("ACC-TEST-STAT");
-        account.setBalance(BigDecimal.ZERO);
-        account.setStatus(AccountAggregate.AccountStatus.CLOSED);
+    public void a_Account_aggregate_that_violates_status() {
+        aggregate = new AccountAggregate("ACC-STATUS");
+        // Setup: Set status to DORMANT or CLOSED
+        aggregate.setStatus(AccountAggregate.AccountStatus.DORMANT);
     }
 
+    // S-7 Scenario: CloseAccountCmd rejected — Account numbers must be uniquely generated and immutable.
     @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
-    public void a_account_aggregate_with_immutability_violation() {
-        // This scenario represents an invariant check.
-        // We create a valid aggregate, but the command will reference a different ID,
-        // simulating an attempt to manipulate the wrong aggregate or violating immutability logic.
-        account = new AccountAggregate("ACC-ORIG");
-        account.setBalance(BigDecimal.ZERO);
+    public void a_Account_aggregate_that_violates_identity() {
+        aggregate = new AccountAggregate("ACC-ORIG");
+        // This context sets up the aggregate.
+        // The violation logic is triggered by sending a command with a MISMATCHED accountNumber.
     }
 
     @When("the CloseAccountCmd command is executed")
-    public void the_close_account_cmd_command_is_executed() {
+    public void the_CloseAccountCmd_command_is_executed() {
         try {
-            // In the immutability violation scenario, we intentionally pass a different ID
-            String id = (account.id().equals("ACC-ORIG")) ? "ACC-DIFFERENT" : account.id();
-            CloseAccountCmd cmd = new CloseAccountCmd(id);
-            events = account.execute(cmd);
+            // We use the aggregate's ID as the command's accountNumber, unless testing the immutable ID scenario.
+            // For the "violates identity" scenario, we deliberately pass a different ID in the command.
+            String cmdId;
+            // Check if we are in the ID violation scenario (assuming specific naming or simple heuristic)
+            // In a real framework, we might pass the ID via scenario context, but here we can infer from state or use the aggregate ID.
+            // For the specific "violates identity" test, we will force a mismatch in the steps below or here.
+            if (aggregate.id().equals("ACC-ORIG")) {
+                cmdId = "ACC-FAKE"; // Trigger ID mismatch
+            } else {
+                cmdId = aggregate.id();
+            }
+
+            CloseAccountCmd cmd = new CloseAccountCmd(cmdId);
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             caughtException = e;
         }
@@ -70,15 +78,17 @@ public class S7Steps {
 
     @Then("a account.closed event is emitted")
     public void a_account_closed_event_is_emitted() {
-        assertNotNull(events, "Events list should not be null");
-        assertFalse(events.isEmpty(), "Events list should not be empty");
-        assertTrue(events.get(0) instanceof AccountClosedEvent, "Event should be AccountClosedEvent");
-        assertNull(caughtException, "Should not have thrown an exception");
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertEquals("account.closed", resultEvents.get(0).type());
+        assertNull(caughtException, "Expected no exception, but got: " + caughtException);
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(caughtException, "Expected a domain error (Exception) to be thrown");
-        // Check for specific exception types or messages if necessary, but general exception catch works for BDD verification
+        assertNotNull(caughtException, "Expected an exception to be thrown");
+        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException,
+                "Exception should be a domain error (IllegalStateException or IllegalArgumentException), but was: " + caughtException.getClass().getSimpleName());
     }
+
 }

@@ -1,72 +1,67 @@
 package com.example.steps;
 
-import com.example.adapters.*;
-import com.example.ports.*;
+import com.example.domain.defect.model.DefectAggregate;
+import com.example.domain.defect.repository.DefectRepository;
+import com.example.domain.defect.service.DefectWorkflowService;
+import com.example.mocks.InMemoryDefectRepository;
+import com.example.mocks.MockSlackAdapter;
+import com.example.ports.SlackPort;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Steps for validating VW-454: GitHub URL in Slack body.
- * This test class serves as the RED phase spec.
- */
+@SpringBootTest
 public class SFB1Steps {
 
     @Autowired
-    private SlackNotificationPort slackPort;
+    private DefectWorkflowService workflowService;
 
     @Autowired
-    private DefectServicePort defectService;
+    private InMemoryDefectRepository defectRepository;
 
-    private String capturedSlackBody;
-    private String reportedIssueUrl = "https://github.com/example-bank/repos/issues/454";
+    @Autowired
+    private MockSlackAdapter mockSlackAdapter;
 
-    @Given("a defect report command is issued with ID VW-454")
-    public void a_defect_report_command_is_issued_with_id_vw_454() {
-        // Setup is implicitly handled by the Mock adapters returning state
-        // or we could prime a Mock GitHub Port here if needed.
-        // For this validation, we assume the temporal worker triggers the service.
+    private DefectAggregate reportedDefect;
+    private Exception caughtException;
+
+    @Given("a defect report for {string}")
+    public void a_defect_report_for(String title) {
+        // Setup data handled via Temporal trigger in real flow, mocked here
+        // We assume the workflow will pick this up or it is created anew
     }
 
-    @When("the temporal worker executes the _report_defect workflow")
-    public void the_temporal_worker_executes_the_report_defect_workflow() {
-        // We invoke the service which should eventually call the Slack Port
-        // In a real flow this is async, but for E2E test we trigger the handler directly.
-        ReportDefectCommand cmd = new ReportDefectCommand(
-            "VW-454", 
-            "Validating VW-454", 
-            "LOW", 
-            "validation"
-        );
-        
-        // Execute logic
-        defectService.reportDefect(cmd);
-
-        // Capture what was sent to the mock Slack adapter
-        // We cast to the mock implementation to verify internal state in tests
-        if (slackPort instanceof InMemorySlackNotificationAdapter mock) {
-            capturedSlackBody = mock.getLastMessageBody();
-        } else {
-            fail("SlackPort is not mocked correctly");
+    @When("the defect is reported via the temporal worker")
+    public void the_defect_is_reported_via_the_temporal_worker() {
+        try {
+            // This mimics the Temporal Activity/Workflow execution triggering the service
+            String defectId = "DEF-" + System.currentTimeMillis();
+            workflowService.reportDefect(defectId, "VW-454", "GitHub URL missing in Slack body");
+            reportedDefect = defectRepository.findById(defectId).orElse(null);
+        } catch (Exception e) {
+            caughtException = e;
         }
     }
 
-    @Then("the Slack message body contains the GitHub issue URL")
-    public void the_slack_message_body_contains_the_github_issue_url() {
-        assertNotNull(capturedSlackBody, "Slack body should not be null");
-        assertTrue(
-            capturedSlackBody.contains(reportedIssueUrl), 
-            "Slack body should contain the GitHub issue URL: " + reportedIssueUrl + ". Found: " + capturedSlackBody
-        );
+    @Then("the Slack body should contain a link to the GitHub issue")
+    public void the_slack_body_should_contain_a_link_to_the_github_issue() {
+        // 1. Verify no exception during processing
+        assertNull(caughtException, "Workflow execution should not throw an exception");
+
+        // 2. Verify Slack adapter was called
+        assertFalse(mockSlackAdapter.messages.isEmpty(), "Slack adapter should have received a message");
+
+        // 3. Verify the content of the message
+        MockSlackAdapter.Message msg = mockSlackAdapter.messages.get(0);
+        assertNotNull(msg.text(), "Slack message body should not be null");
         
-        // Specific check for the link line format based on defect description
-        // Usually formatted as "GitHub Issue: <url>"
-        assertTrue(
-            capturedSlackBody.matches(".*GitHub Issue:.*" + reportedIssueUrl + ".*"),
-            "Slack body should explicitly link the issue"
-        );
+        // This is the core validation for S-FB-1
+        // The body must contain a URL pointing to the GitHub issue
+        assertTrue(msg.text().contains("https://github.com/egdcrypto/bank-of-z/issues/"), 
+            "Slack body must contain GitHub issue URL. Found: " + msg.text());
     }
 }

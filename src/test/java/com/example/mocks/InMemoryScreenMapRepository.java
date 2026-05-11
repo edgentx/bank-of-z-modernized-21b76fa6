@@ -1,29 +1,21 @@
 package com.example.mocks;
 
-import com.example.domain.shared.Aggregate;
-import com.example.domain.userinterface.model.ScreenMapAggregate;
+import com.example.domain.userinterface.model.ScreenMap;
 import com.example.domain.userinterface.repository.ScreenMapRepository;
-
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class InMemoryScreenMapRepository implements ScreenMapRepository {
-
-    private final Map<String, Aggregate> store = new HashMap<>();
-
-    public InMemoryScreenMapRepository() {
-        // Seed with a valid aggregate for the happy path
-        store.put("LOGIN_SCR_01", new ScreenMapAggregate("LOGIN_SCR_01"));
-    }
+    private final Map<String, ScreenMap> store = new HashMap<>();
 
     @Override
-    public Aggregate findById(String id) {
-        // Return the aggregate instance or null
-        return store.get(id);
-    }
-
-    @Override
-    public void save(Aggregate aggregate) {
+    public void save(ScreenMap aggregate) {
         store.put(aggregate.id(), aggregate);
+    }
+
+    @Override
+    public Optional<ScreenMap> findById(String id) {
+        return Optional.ofNullable(store.get(id));
     }
 }

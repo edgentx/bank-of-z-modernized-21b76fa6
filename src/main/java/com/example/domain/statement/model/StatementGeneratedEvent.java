@@ -3,28 +3,22 @@ package com.example.domain.statement.model;
 import com.example.domain.shared.DomainEvent;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
+import java.util.UUID;
 
 public record StatementGeneratedEvent(
-  String aggregateId,
-  String accountNumber,
-  LocalDate periodEnd,
-  BigDecimal openingBalance,
-  BigDecimal closingBalance,
-  Instant occurredAt
+        String eventId,
+        String aggregateId,
+        String accountNumber,
+        Instant periodEnd,
+        BigDecimal openingBalance,
+        Instant occurredAt
 ) implements DomainEvent {
-  @Override
-  public String type() {
-    return "statement.generated";
-  }
+    public StatementGeneratedEvent(String aggregateId, String accountNumber, Instant periodEnd, BigDecimal openingBalance, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, accountNumber, periodEnd, openingBalance, occurredAt);
+    }
 
-  @Override
-  public Instant occurredAt() {
-    return occurredAt;
-  }
-
-  @Override
-  public String aggregateId() {
-    return aggregateId;
-  }
+    @Override
+    public String type() {
+        return "statement.generated";
+    }
 }

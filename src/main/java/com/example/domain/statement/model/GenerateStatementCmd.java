@@ -7,7 +7,8 @@ import java.time.LocalDate;
 public record GenerateStatementCmd(
     String statementId,
     String accountNumber,
-    LocalDate periodStart,
     LocalDate periodEnd,
-    BigDecimal openingBalance
+    BigDecimal openingBalance,
+    BigDecimal closingBalance,
+    BigDecimal previousClosingBalance
 ) implements Command {}

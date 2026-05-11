@@ -1,94 +1,86 @@
 package com.example.steps;
 
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.userinterfacenavigation.model.RenderScreenCmd;
-import com.example.domain.userinterfacenavigation.model.ScreenMapAggregate;
-import com.example.domain.userinterfacenavigation.model.ScreenRenderedEvent;
+import com.example.domain.userinterface.model.RenderScreenCmd;
+import com.example.domain.userinterface.model.ScreenMapAggregate;
+import com.example.domain.userinterface.model.ScreenRenderedEvent;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.Assert.*;
 
 public class S21Steps {
 
     private ScreenMapAggregate aggregate;
-    private RenderScreenCmd command;
+    private RenderScreenCmd cmd;
     private List<DomainEvent> resultEvents;
-    private Exception capturedException;
+    private Exception caughtException;
 
     @Given("a valid ScreenMap aggregate")
-    public void a_valid_screen_map_aggregate() {
-        aggregate = new ScreenMapAggregate("SCR-001");
+    public void aValidScreenMapAggregate() {
+        // "valid" in this context means the aggregate ID is present
+        aggregate = new ScreenMapAggregate("screen-map-1");
     }
 
-    @Given("a valid screenId is provided")
-    public void a_valid_screen_id_is_provided() {
-        // Handled in the When clause construction
+    @And("a valid screenId is provided")
+    public void aValidScreenIdIsProvided() {
+        // Valid ID: non-empty and within legacy constraints
+        cmd = new RenderScreenCmd("screen-map-1", "LOGIN001", "3270");
     }
 
-    @Given("a valid deviceType is provided")
-    public void a_valid_device_type_is_provided() {
-        // Handled in the When clause construction
+    @And("a valid deviceType is provided")
+    public void aValidDeviceTypeIsProvided() {
+        // Already set in previous step for simplicity, or update here
+        if (cmd == null) {
+            cmd = new RenderScreenCmd("screen-map-1", "LOGIN001", "WEB");
+        }
     }
 
     @When("the RenderScreenCmd command is executed")
-    public void the_render_screen_cmd_command_is_executed() {
-        command = new RenderScreenCmd("SCR-001", "3270", "valid definition");
+    public void theRenderScreenCmdCommandIsExecuted() {
         try {
-            resultEvents = aggregate.execute(command);
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            capturedException = e;
+            caughtException = e;
         }
     }
 
     @Then("a screen.rendered event is emitted")
-    public void a_screen_rendered_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
+    public void aScreenRenderedEventIsEmitted() {
+        assertNotNull("Expected events to be emitted", resultEvents);
+        assertFalse("Expected at least one event", resultEvents.isEmpty());
+        assertTrue("Expected ScreenRenderedEvent", resultEvents.get(0) instanceof ScreenRenderedEvent);
+
         ScreenRenderedEvent event = (ScreenRenderedEvent) resultEvents.get(0);
         assertEquals("screen.rendered", event.type());
+        assertEquals(cmd.screenId(), event.screenId());
+        assertNull("Should not have thrown an exception", caughtException);
     }
+
+    // ---------- Scenarios for Rejection ----------
 
     @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void a_screen_map_aggregate_that_violates_mandatory_fields() {
-        aggregate = new ScreenMapAggregate("SCR-002");
-    }
-
-    @When("the RenderScreenCmd command is executed")
-    public void the_render_screen_cmd_command_is_executed_invalid() {
-        // Command with null screenId to violate constraints
-        command = new RenderScreenCmd(null, "WEB", "def");
-        try {
-            resultEvents = aggregate.execute(command);
-        } catch (IllegalArgumentException e) {
-            capturedException = e;
-        }
-    }
-
-    @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(capturedException);
-        assertTrue(capturedException instanceof IllegalArgumentException);
+    public void aScreenMapAggregateThatViolatesMandatoryFields() {
+        aggregate = new ScreenMapAggregate("screen-map-2");
+        // Violation: Missing ScreenId
+        cmd = new RenderScreenCmd("screen-map-2", "", "WEB");
     }
 
     @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void a_screen_map_aggregate_that_violates_bms_length() {
-        aggregate = new ScreenMapAggregate("SCR-003");
+    public void aScreenMapAggregateThatViolatesLegacyLengths() {
+        aggregate = new ScreenMapAggregate("screen-map-3");
+        // Violation: Screen ID > 8 chars (Legacy BMS constraint)
+        cmd = new RenderScreenCmd("screen-map-3", "VERY_LONG_SCREEN_NAME", "3270");
     }
 
-    @When("the RenderScreenCmd command is executed")
-    public void the_render_screen_cmd_command_is_executed_long_length() {
-        // Create a definition > 132 chars (BMS limit)
-        String longDef = "x".repeat(200);
-        command = new RenderScreenCmd("SCR-003", "3270", longDef);
-        try {
-            resultEvents = aggregate.execute(command);
-        } catch (IllegalArgumentException e) {
-            capturedException = e;
-        }
+    @Then("the command is rejected with a domain error")
+    public void theCommandIsRejectedWithADomainError() {
+        assertNotNull("Expected an exception to be thrown", caughtException);
+        assertTrue("Expected IllegalArgumentException", caughtException instanceof IllegalArgumentException);
+        assertTrue("Expected events to be empty on failure", resultEvents == null || resultEvents.isEmpty());
     }
 }

@@ -1,29 +1,44 @@
 package com.example.mocks;
 
-import com.example.ports.SlackWebhookPort;
+import com.example.ports.SlackPort;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackWebhookPort for testing.
- * Captures the body sent to Slack to verify content.
+ * Mock implementation of SlackPort for testing.
+ * Stores messages in memory for verification.
  */
-public class MockSlackClient implements SlackWebhookPort {
+@Component
+public class MockSlackClient implements SlackPort {
 
-    private final List<String> payloads = new ArrayList<>();
+    private final List<Message> messages = new ArrayList<>();
+
+    public record Message(String channel, String body) {}
 
     @Override
-    public void send(String body) {
-        this.payloads.add(body);
+    public void sendMessage(String channel, String body) {
+        // In a real mock, we might just store this.
+        // This simulates the side-effect of sending.
+        this.messages.add(new Message(channel, body));
     }
 
-    public String getLastPayload() {
-        if (payloads.isEmpty()) return null;
-        return payloads.get(payloads.size() - 1);
+    public String getLastMessageBody() {
+        if (messages.isEmpty()) {
+            return null;
+        }
+        return messages.get(messages.size() - 1).body();
     }
 
-    public boolean wasCalled() {
-        return !payloads.isEmpty();
+    public String getLastChannel() {
+        if (messages.isEmpty()) {
+            return null;
+        }
+        return messages.get(messages.size() - 1).channel();
+    }
+
+    public void clear() {
+        messages.clear();
     }
 }

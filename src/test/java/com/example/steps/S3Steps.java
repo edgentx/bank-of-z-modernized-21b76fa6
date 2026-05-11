@@ -1,140 +1,122 @@
 package com.example.steps;
 
-import com.example.domain.customer.model.CustomerAggregate;
-import com.example.domain.customer.model.CustomerDetailsUpdatedEvent;
-import com.example.domain.customer.model.UpdateCustomerDetailsCmd;
-import com.example.domain.shared.DomainEvent;
+import com.example.domain.customer.model.*;
 import com.example.domain.shared.UnknownCommandException;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Assertions;
 
 import java.time.LocalDate;
-import java.time.Month;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 public class S3Steps {
 
     private CustomerAggregate aggregate;
-    private List<DomainEvent> resultEvents;
-    private Exception caughtException;
+    private Exception capturedException;
+    private String lastEventId;
 
-    // Helper to enroll a customer so we can update them
-    private CustomerAggregate getValidAggregate() {
-        // Directly creating a valid aggregate state (simulating prior enrollment)
-        // Or using the Enroll command if available. For unit test speed, we simulate state.
-        var agg = new CustomerAggregate("cust-123");
-        // We assume enrollment logic succeeded prior to these scenarios.
-        // In a real test, we might call execute(new EnrollCustomerCmd(...)).
-        // But here, we rely on the constructor to set the ID, and we might need to 'hydrate' it manually if we don't run Enroll.
-        // However, the execute method checks `enrolled` flag.
-        // Since we don't have a public hydrate/setEnrolled, we MUST run Enroll.
-        try {
-            agg.execute(new com.example.domain.customer.model.EnrollCustomerCmd(
-                "cust-123", "John Doe", "john.doe@example.com", "GOV-ID-123"
-            ));
-        } catch (Exception e) {
-            fail("Setup failed: Could not enroll customer", e);
-        }
+    // Helper to create a valid base aggregate
+    private CustomerAggregate createValidAggregate() {
+        CustomerAggregate agg = new CustomerAggregate("cust-123");
+        agg.execute(new EnrollCustomerCmd("cust-123", "John Doe", "john@example.com", "GOV123"));
+        agg.clearEvents(); // Clear enrollment events to isolate updates
         return agg;
     }
 
     @Given("a valid Customer aggregate")
-    public void a_valid_Customer_aggregate() {
-        aggregate = getValidAggregate();
-    }
-
-    @Given("a Customer aggregate that violates: A customer must have a valid, unique email address and government-issued ID.")
-    public void a_Customer_aggregate_that_violates_email_and_gov_id() {
-        aggregate = getValidAggregate();
-        // State violation happens in the command execution, but we can set up the command next.
-    }
-
-    @Given("a Customer aggregate that violates: Customer name and date of birth cannot be empty.")
-    public void a_Customer_aggregate_that_violates_name_and_dob() {
-        aggregate = getValidAggregate();
-    }
-
-    @Given("a Customer aggregate that violates: A customer cannot be deleted if they own active bank accounts.")
-    public void a_Customer_aggregate_that_violates_active_accounts() {
-        aggregate = getValidAggregate();
+    public void aValidCustomerAggregate() {
+        aggregate = createValidAggregate();
     }
 
     @And("a valid customerId is provided")
-    public void a_valid_customerId_is_provided() {
-        // Implicitly handled by the aggregate setup, commands will use this ID.
+    public void aValidCustomerIdIsProvided() {
+        // Implicit in the command construction in the 'When' step
     }
 
     @And("a valid emailAddress is provided")
-    public void a_valid_emailAddress_is_provided() {
-        // Handled in the When step via command construction
+    public void aValidEmailAddressIsProvided() {
+        // Implicit in the command construction in the 'When' step
     }
 
     @And("a valid sortCode is provided")
-    public void a_valid_sortCode_is_provided() {
-        // Handled in the When step via command construction
+    public void aValidSortCodeIsProvided() {
+        // Implicit in the command construction in the 'When' step
     }
 
     @When("the UpdateCustomerDetailsCmd command is executed")
-    public void the_UpdateCustomerDetailsCmd_command_is_executed() {
-        // Default valid data for "Success" scenario
-        executeCommand("Jane Doe", "jane.doe@example.com", "sort-123", false, "GOV-ID-123");
-    }
-
-    @When("the UpdateCustomerDetailsCmd command is executed with invalid email and gov id")
-    public void the_UpdateCustomerDetailsCmd_command_is_executed_with_invalid_data() {
-        // Scenario: A customer must have a valid, unique email address and government-issued ID.
-        // Invalid email
-        executeCommand("Jane Doe", "invalid-email", "sort-123", false, null); // null gov ID
-    }
-
-    @When("the UpdateCustomerDetailsCmd command is executed with empty name and dob")
-    public void the_UpdateCustomerDetailsCmd_command_is_executed_with_missing_data() {
-        // Scenario: Customer name and date of birth cannot be empty.
-        executeCommand("", "valid@example.com", "sort-123", false, "GOV-ID-123", null);
-    }
-
-    @When("the UpdateCustomerDetailsCmd command is executed with active accounts flag true")
-    public void the_UpdateCustomerDetailsCmd_command_is_executed_with_active_accounts() {
-        // Scenario: A customer cannot be deleted if they own active bank accounts.
-        executeCommand("Jane Doe", "jane@example.com", "sort-123", true, "GOV-ID-123");
-    }
-
-    private void executeCommand(String name, String email, String sortCode, boolean hasActiveAccounts, String govId) {
-        executeCommand(name, email, sortCode, hasActiveAccounts, govId, LocalDate.of(1990, Month.JANUARY, 1));
-    }
-
-    private void executeCommand(String name, String email, String sortCode, boolean hasActiveAccounts, String govId, LocalDate dob) {
-        caughtException = null;
-        try {
-            var cmd = new UpdateCustomerDetailsCmd(aggregate.id(), name, email, dob, sortCode, hasActiveAccounts, govId);
-            resultEvents = aggregate.execute(cmd);
-        } catch (Exception e) {
-            caughtException = e;
-        }
+    public void theUpdateCustomerDetailsCmdCommandIsExecuted() {
+        executeUpdate("cust-123", "John Updated", "john.updated@example.com", LocalDate.of(1990, 1, 1), "GOV123", false, "10-20-30");
     }
 
     @Then("a customer.details.updated event is emitted")
-    public void a_customer_details_updated_event_is_emitted() {
-        assertNull(caughtException, "Should not have thrown exception");
-        assertNotNull(resultEvents, "Events list should not be null");
-        assertEquals(1, resultEvents.size(), "Should emit one event");
-        assertTrue(resultEvents.get(0) instanceof CustomerDetailsUpdatedEvent, "Event type mismatch");
+    public void aCustomerDetailsUpdatedEventIsEmitted() {
+        Assertions.assertFalse(aggregate.uncommittedEvents().isEmpty());
+        Assertions.assertEquals("customer.details.updated", aggregate.uncommittedEvents().get(0).type());
+        Assertions.assertEquals("cust-123", aggregate.uncommittedEvents().get(0).aggregateId());
+    }
 
-        var event = (CustomerDetailsUpdatedEvent) resultEvents.get(0);
-        assertEquals("customer.details.updated", event.type());
+    // Scenario 2: Invalid Email/GovID
+    @Given("a Customer aggregate that violates: A customer must have a valid, unique email address and government-issued ID.")
+    public void aCustomerAggregateThatViolatesEmailAndGovId() {
+        aggregate = createValidAggregate();
+    }
+
+    @When("the UpdateCustomerDetailsCmd command is executed with invalid data")
+    public void theUpdateCustomerDetailsCmdCommandIsExecutedWithInvalidData() {
+        // We execute specifically with invalid email/govid in mind
+        try {
+            aggregate.execute(new UpdateCustomerDetailsCmd("cust-123", "Jane", "invalid-email", LocalDate.now(), "", false, "SC"));
+        } catch (IllegalArgumentException e) {
+            capturedException = e;
+        }
     }
 
     @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(caughtException, "Expected exception but none was thrown");
-        // Verify it's one of the expected domain exceptions (IllegalStateException or IllegalArgumentException)
-        assertTrue(
-            caughtException instanceof IllegalArgumentException || caughtException instanceof IllegalStateException,
-            "Exception should be a domain error (IAE or ISE)"
-        );
+    public void theCommandIsRejectedWithADomainError() {
+        Assertions.assertNotNull(capturedException);
+        Assertions.assertTrue(capturedException.getMessage().contains("valid email required") || capturedException.getMessage().contains("governmentId required"));
+    }
+
+    // Scenario 3: Name/DOB empty
+    @Given("a Customer aggregate that violates: Customer name and date of birth cannot be empty.")
+    public void aCustomerAggregateThatViolatesNameAndDob() {
+        aggregate = createValidAggregate();
+    }
+
+    @When("the UpdateCustomerDetailsCmd command is executed with empty name and dob")
+    public void theUpdateCustomerDetailsCmdCommandIsExecutedWithEmptyNameAndDob() {
+        try {
+            aggregate.execute(new UpdateCustomerDetailsCmd("cust-123", "", "john@example.com", null, "GOV123", false, "SC"));
+        } catch (IllegalArgumentException e) {
+            capturedException = e;
+        }
+    }
+
+    // Scenario 4: Active accounts (using the text from the prompt)
+    @Given("a Customer aggregate that violates: A customer cannot be deleted if they own active bank accounts.")
+    public void aCustomerAggregateThatViolatesActiveAccounts() {
+        aggregate = createValidAggregate();
+    }
+
+    @When("the UpdateCustomerDetailsCmd command is executed with active accounts flag")
+    public void theUpdateCustomerDetailsCmdCommandIsExecutedWithActiveAccountsFlag() {
+        try {
+            // Per the aggregate logic added: hasActiveAccounts = true triggers the rejection
+            aggregate.execute(new UpdateCustomerDetailsCmd("cust-123", "John", "john@example.com", LocalDate.now(), "GOV123", true, "SC"));
+        } catch (IllegalStateException e) {
+            capturedException = e;
+        }
+    }
+
+    private void executeUpdate(String id, String name, String email, LocalDate dob, String govId, boolean hasActive, String sortCode) {
+        try {
+            var events = aggregate.execute(new UpdateCustomerDetailsCmd(id, name, email, dob, govId, hasActive, sortCode));
+            if (!events.isEmpty()) {
+                lastEventId = events.get(0).aggregateId();
+            }
+        } catch (Exception e) {
+            capturedException = e;
+        }
     }
 }

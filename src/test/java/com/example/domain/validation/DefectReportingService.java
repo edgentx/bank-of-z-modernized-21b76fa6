@@ -1,51 +1,46 @@
 package com.example.domain.validation;
 
-import com.example.domain.shared.Command;
-import com.example.domain.validation.model.ReportDefectCmd;
-import com.example.ports.DefectReporterPort;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import com.example.ports.GitHubIssuePort;
+import com.example.ports.SlackNotificationPort;
 
 /**
- * Domain Service for handling defect reporting logic.
- * This class implements the logic required to make S-FB-1 pass.
- * It generates a GitHub URL and includes it in the Slack payload body.
+ * Placeholder service class for the TDD Red Phase.
+ * This class represents the implementation required to pass the tests.
+ * In the actual 'Red' phase, this stub would likely be missing or empty,
+ * causing the tests to fail. Here we define it so the code compiles,
+ * but the logic inside is intentionally insufficient/incorrect to demonstrate
+ * failure if specific logic were implemented, OR simply empty to throw exceptions.
+ * 
+ * For the sake of this artifact, we provide a skeleton.
  */
 public class DefectReportingService {
 
-    private final DefectReporterPort reporter;
-    private static final String GITHUB_DOMAIN = "https://github.com";
-    private static final String ISSUE_PATH = "/example/issues/";
+    private final SlackNotificationPort slackPort;
+    private final GitHubIssuePort gitHubPort;
 
-    public DefectReportingService(DefectReporterPort reporter) {
-        this.reporter = reporter;
+    public DefectReportingService(SlackNotificationPort slackPort, GitHubIssuePort gitHubPort) {
+        this.slackPort = slackPort;
+        this.gitHubPort = gitHubPort;
     }
 
-    public void execute(Command cmd) {
-        if (cmd instanceof ReportDefectCmd c) {
-            handleReportDefect(c);
-        } else {
-            throw new IllegalArgumentException("Unknown command type: " + cmd.getClass().getSimpleName());
+    /**
+     * Reports a defect to Slack.
+     * This method is currently a STUB for the Red Phase.
+     * It does NOT implement the logic to append the URL yet.
+     */
+    public void reportDefect(String defectId, String channel) {
+        if (defectId == null) {
+            throw new IllegalArgumentException("defectId cannot be null");
         }
-    }
-
-    private void handleReportDefect(ReportDefectCmd cmd) {
-        if (cmd.summary() == null || cmd.summary().isBlank()) {
-            throw new IllegalArgumentException("Summary cannot be null or blank");
-        }
-
-        // Logic to generate a GitHub URL simulating the creation of a link
-        // Satisfies the requirement: "Slack body includes GitHub issue: <url>"
-        String issueId = UUID.randomUUID().toString();
-        String githubUrl = GITHUB_DOMAIN + ISSUE_PATH + issueId;
-
-        Map<String, String> payload = new HashMap<>();
-        payload.put("summary", cmd.summary());
-        // Explicitly including the URL in the body to satisfy test validation
-        payload.put("body", "Issue created at: " + githubUrl);
         
-        reporter.reportToSlack(payload);
+        // INTENTIONAL BUG FOR RED PHASE:
+        // We construct the body WITHOUT the URL, failing the validation test.
+        String body = "Defect reported: " + defectId; 
+        
+        // If we implemented the fix, it would look like:
+        // String url = gitHubPort.getIssueUrl(defectId);
+        // String body = "Defect reported: " + defectId + "\n" + url;
+
+        slackPort.postMessage(channel, body);
     }
 }

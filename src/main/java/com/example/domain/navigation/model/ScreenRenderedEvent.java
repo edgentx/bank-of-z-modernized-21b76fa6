@@ -3,21 +3,41 @@ package com.example.domain.navigation.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.UUID;
 
-/**
- * Event emitted when a screen layout is successfully generated.
- */
-public record ScreenRenderedEvent(
-    String aggregateId,
-    String type,
-    String screenId,
-    Map<String, Object> layout,
-    Instant occurredAt
-) implements DomainEvent {
-    public ScreenRenderedEvent {
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
-        if (type == null) throw new IllegalArgumentException("type required");
-        if (occurredAt == null) throw new IllegalArgumentException("occurredAt required");
+public class ScreenRenderedEvent implements DomainEvent {
+    private final String aggregateId;
+    private final String screenId;
+    private final String deviceType;
+    private final Instant occurredAt;
+
+    public ScreenRenderedEvent(String aggregateId, String screenId, String deviceType, Instant occurredAt) {
+        this.aggregateId = aggregateId;
+        this.screenId = screenId;
+        this.deviceType = deviceType;
+        this.occurredAt = occurredAt;
+    }
+
+    @Override
+    public String type() {
+        return "screen.rendered";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
+
+    public String getScreenId() {
+        return screenId;
+    }
+
+    public String getDeviceType() {
+        return deviceType;
     }
 }

@@ -2,15 +2,7 @@ package com.example.domain.navigation.model;
 
 import com.example.domain.shared.Command;
 
-import java.util.Map;
-
 /**
- * Command to render a specific screen layout.
+ * Command to render a specific screen layout adapted for a device.
  */
-public record RenderScreenCmd(
-    String screenId,
-    String deviceType,
-    String accountId, // Optional, for personalization
-    Map<String, Object> context
-) implements Command {
-}
+public record RenderScreenCmd(String screenMapId, String screenId, String deviceType) implements Command {}

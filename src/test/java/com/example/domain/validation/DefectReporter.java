@@ -5,8 +5,7 @@ import com.example.ports.SlackNotifier;
 
 /**
  * Domain service intended to orchestrate defect reporting.
- * In a real TDD flow, this file would move to src/main/java after green phase.
- * It is placed in test scope temporarily or as a draft to define the contract.
+ * Contains the logic fix for VW-454 to ensure the GitHub URL is appended to the Slack message.
  */
 public class DefectReporter {
     private final GitHubClient gitHubClient;
@@ -22,10 +21,8 @@ public class DefectReporter {
         String issueUrl = gitHubClient.createIssue(id, description);
 
         // Step 2: Notify Slack (via Adapter)
-        // CRITICAL: The bug report implies the URL was missing.
-        // We test that it IS included.
-        String message = "Defect Reported: " + id;
-        // Missing logic to append URL: message += " - " + issueUrl;
+        // FIX for VW-454: Append the GitHub URL to the message.
+        String message = "Defect Reported: " + id + " - " + issueUrl;
         
         slackNotifier.sendNotification(message);
     }

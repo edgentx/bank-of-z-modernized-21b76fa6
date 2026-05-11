@@ -1,15 +1,15 @@
 package com.example;
 
-import com.example.application.DefectReportService;
-import com.example.domain.ports.SlackNotificationPort;
-import com.example.domain.shared.Command;
+import com.example.adapters.GitHubAdapter;
+import com.example.adapters.SlackNotificationAdapter;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackNotificationPort;
+import com.example.service.ReportDefectService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.web.client.RestTemplate;
 
-/**
- * Main Spring Boot Application class.
- */
 @SpringBootApplication
 public class Application {
 
@@ -17,28 +17,23 @@ public class Application {
         SpringApplication.run(Application.class, args);
     }
 
-    /**
-     * Primary entry point for the Defect Reporting Logic.
-     * This wiring allows the Temporal worker or any other entry point to trigger the flow.
-     */
     @Bean
-    public DefectWorkflow defectWorkflow(DefectReportService service) {
-        return new DefectWorkflow(service);
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 
-    /**
-     * Inner class representing the Workflow Interface/Orchestrator.
-     * In a real Temporal setup, this would implement the Workflow Interface.
-     */
-    public static class DefectWorkflow {
-        private final DefectReportService service;
+    @Bean
+    public SlackNotificationPort slackNotificationPort(SlackNotificationAdapter adapter) {
+        return adapter;
+    }
 
-        public DefectWorkflow(DefectReportService service) {
-            this.service = service;
-        }
+    @Bean
+    public GitHubPort gitHubPort(GitHubAdapter adapter) {
+        return adapter;
+    }
 
-        public void executeReportDefect(Command cmd) {
-            service.reportDefect(cmd);
-        }
+    @Bean
+    public ReportDefectService reportDefectService(GitHubPort gitHubPort, SlackNotificationPort slackNotificationPort) {
+        return new ReportDefectService(gitHubPort, slackNotificationPort);
     }
 }

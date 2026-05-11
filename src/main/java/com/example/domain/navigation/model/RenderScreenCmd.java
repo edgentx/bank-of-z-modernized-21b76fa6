@@ -3,10 +3,11 @@ package com.example.domain.navigation.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to request the presentation layout for a specific screen.
+ * Command to trigger the rendering of a specific screen map.
  */
 public record RenderScreenCmd(
-    String screenId,
-    String deviceType,
-    String layoutData // Simplified for this context
-) implements Command {}
+        String screenMapId,
+        String screenId,
+        ScreenMapAggregate.DeviceType deviceType
+) implements Command {
+}

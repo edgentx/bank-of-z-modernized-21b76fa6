@@ -7,48 +7,38 @@ import com.slack.api.methods.request.chat.ChatPostMessageRequest;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-/**
- * Default implementation of {@link SlackPort} using the official Slack API SDK.
- * This is the "real" adapter used in production profiles.
- */
+@Component
+@ConditionalOnProperty(name = "app.slack.enabled", havingValue = "true", matchIfMissing = false)
 public class DefaultSlackAdapter implements SlackPort {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultSlackAdapter.class);
     private final MethodsClient methodsClient;
-    private final String botToken; // Typically starts with "xoxb-"
+    private final String token;
 
-    /**
-     * Constructor for dependency injection.
-     *
-     * @param methodsClient The configured Slack API MethodsClient.
-     * @param botToken      The Slack Bot Token for authentication.
-     */
-    public DefaultSlackAdapter(MethodsClient methodsClient, String botToken) {
+    public DefaultSlackAdapter(MethodsClient methodsClient, @Value("${app.slack.token}") String token) {
         this.methodsClient = methodsClient;
-        this.botToken = botToken;
+        this.token = token;
     }
 
     @Override
-    public void sendMessage(String channel, String text) {
-        ChatPostMessageRequest request = ChatPostMessageRequest.builder()
-                .channel(channel)
+    public boolean postMessage(String channelId, String text) {
+        try {
+            ChatPostMessageRequest request = ChatPostMessageRequest.builder()
+                .channel(channelId)
                 .text(text)
                 .build();
 
-        try {
-            ChatPostMessageResponse response = methodsClient.chatPostMessage(request, botToken);
-            if (!response.isOk()) {
-                String error = String.format("Slack API Error: %s - %s", response.getError(), response.getWarning());
-                log.error(error);
-                throw new RuntimeException(error);
-            }
-            log.info("Message sent to Slack channel {} successfully", channel);
+            ChatPostMessageResponse response = methodsClient.chatPostMessage(request);
+            return response.isOk();
         } catch (IOException | SlackApiException e) {
-            log.error("Failed to send message to Slack", e);
-            throw new RuntimeException("Failed to send message to Slack", e);
+            log.error("Failed to post message to Slack channel {}: {}", channelId, e.getMessage());
+            return false;
         }
     }
 }

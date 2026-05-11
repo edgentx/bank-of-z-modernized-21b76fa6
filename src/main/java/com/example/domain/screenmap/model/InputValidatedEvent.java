@@ -1,26 +1,22 @@
 package com.example.domain.screenmap.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
 import java.util.Map;
 
-/**
- * Event emitted when screen input is validated successfully.
- */
-public record InputValidatedEvent(String aggregateId, Map<String, String> inputFields, Instant occurredAt) implements DomainEvent {
-    public InputValidatedEvent {
-        if (aggregateId == null) throw new IllegalArgumentException("aggregateId cannot be null");
-        if (occurredAt == null) occurredAt = Instant.now();
-    }
+public record InputValidatedEvent(String aggregateId, Instant occurredAt, Map<String, String> inputFields) implements DomainEvent {
+  @Override
+  public String type() {
+    return "input.validated";
+  }
 
-    @Override
-    public String type() {
-        return "input.validated";
-    }
+  @Override
+  public String aggregateId() {
+    return aggregateId();
+  }
 
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
+  @Override
+  public Instant occurredAt() {
+    return occurredAt();
+  }
 }

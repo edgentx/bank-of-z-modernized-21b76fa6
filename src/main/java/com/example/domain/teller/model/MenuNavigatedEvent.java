@@ -3,30 +3,25 @@ package com.example.domain.teller.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
 public record MenuNavigatedEvent(
-    String aggregateId,
-    String menuId,
-    String action,
-    Instant occurredAt
+        String aggregateId,
+        String menuId,
+        String action,
+        Instant occurredAt
 ) implements DomainEvent {
-    public MenuNavigatedEvent {
-        // Ensure defaults if null, though record compact ctor handles it
-    }
-
     @Override
     public String type() {
         return "menu.navigated";
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

@@ -3,15 +3,13 @@ package com.example.domain.account.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
 public record AccountStatusUpdatedEvent(
-    String aggregateId,
-    AccountStatus oldStatus,
-    AccountStatus newStatus,
-    Instant occurredAt
+        String accountNumber,
+        AccountStatus oldStatus,
+        AccountStatus newStatus,
+        Instant occurredAt
 ) implements DomainEvent {
-
     @Override
     public String type() {
         return "account.status.updated";
@@ -19,7 +17,7 @@ public record AccountStatusUpdatedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return accountNumber;
     }
 
     @Override

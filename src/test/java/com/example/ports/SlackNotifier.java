@@ -1,17 +1,9 @@
 package com.example.ports;
 
 /**
- * Port interface for sending Slack notifications.
+ * Port interface for Slack notifications.
+ * Implemented by adapters in src/main/java and mocked in tests.
  */
 public interface SlackNotifier {
-    /**
-     * Sends a notification payload to the configured Slack channel.
-     * @param payload the message structure to send
-     */
-    void notify(SlackMessagePayload payload);
-
-    /**
-     * DTO for the Slack message.
-     */
-    record SlackMessagePayload(String channel, String body) {}
+    void sendNotification(String message);
 }

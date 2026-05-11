@@ -4,8 +4,6 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-
-import java.time.Instant;
 import java.util.List;
 
 /**
@@ -20,14 +18,12 @@ public class LegacyTransactionRoute extends AggregateRoot {
     private boolean versioningViolation;
     private boolean evaluated;
     private String targetSystem;
-    private int currentVersion;
 
     public LegacyTransactionRoute(String routeId) {
         this.routeId = routeId;
         this.dualProcessingViolation = false;
         this.versioningViolation = false;
         this.evaluated = false;
-        this.currentVersion = 1;
     }
 
     @Override
@@ -50,7 +46,8 @@ public class LegacyTransactionRoute extends AggregateRoot {
     public List<DomainEvent> execute(Command cmd) {
         if (cmd instanceof EvaluateRoutingCmd c) {
             return evaluateRouting(c);
-        } else if (cmd instanceof UpdateRoutingRuleCmd c) {
+        }
+        if (cmd instanceof UpdateRoutingRuleCmd c) {
             return updateRoutingRule(c);
         }
         throw new UnknownCommandException(cmd);
@@ -66,9 +63,9 @@ public class LegacyTransactionRoute extends AggregateRoot {
         if (cmd.rulesVersion() <= 0) {
             throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
         }
-
+        
         if (versioningViolation) {
-            throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
+             throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
         }
 
         if (evaluated) {
@@ -98,42 +95,33 @@ public class LegacyTransactionRoute extends AggregateRoot {
     }
 
     private List<DomainEvent> updateRoutingRule(UpdateRoutingRuleCmd cmd) {
-        // 1. Check Invariants
-
-        // Invariant: Routing rules must be versioned
-        // Check if the ruleId implies a version (simplified for S-24 context: non-blank check)
-        if (cmd.ruleId() == null || cmd.ruleId().isBlank()) {
-             throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
-        }
-        
-        // We also check if the aggregate is in a state that allows updates (not versioning violation)
-        if (this.versioningViolation) {
-             throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
-        }
-
-        // Invariant: Single Target
-        // Check if the newTarget is valid (Modern or Legacy)
-        if (!"MODERN".equalsIgnoreCase(cmd.newTarget()) && !"LEGACY".equalsIgnoreCase(cmd.newTarget())) {
-            throw new IllegalArgumentException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
-        }
-
+        // Invariant 1: Prevent dual-processing
         if (this.dualProcessingViolation) {
             throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
         }
 
-        // 2. Apply State Change
-        this.targetSystem = cmd.newTarget();
-        this.currentVersion++; 
+        // Invariant 2: Versioning check
+        if (this.versioningViolation || cmd.newVersion() <= 0) {
+            throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
+        }
 
-        // 3. Create Event
+        if (cmd.ruleId() == null || cmd.ruleId().isBlank()) {
+            throw new IllegalArgumentException("ruleId cannot be blank");
+        }
+        if (cmd.newTarget() == null || cmd.newTarget().isBlank()) {
+            throw new IllegalArgumentException("newTarget cannot be blank");
+        }
+
         var event = new RoutingUpdatedEvent(
-                cmd.routeId(),
+                this.routeId,
                 cmd.ruleId(),
                 cmd.newTarget(),
-                cmd.effectiveDate(),
-                Instant.now()
+                cmd.newVersion(),
+                cmd.effectiveDate()
         );
 
+        this.targetSystem = cmd.newTarget();
+        this.evaluated = false; // Reset evaluation as rule changed
         addEvent(event);
         incrementVersion();
 

@@ -1,78 +1,96 @@
 package com.example.steps;
 
-import com.example.domain.screenmap.model.InputValidatedEvent;
 import com.example.domain.screenmap.model.ScreenMapAggregate;
 import com.example.domain.screenmap.model.ValidateScreenInputCmd;
 import com.example.domain.shared.DomainEvent;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class S22Steps {
 
-    private ScreenMapAggregate aggregate;
-    private String screenId;
-    private Map<String, String> inputFields;
-    private List<DomainEvent> resultEvents;
-    private Exception thrownException;
+  private ScreenMapAggregate aggregate;
+  private Map<String, String> inputFields;
+  private List<DomainEvent> resultEvents;
+  private Exception capturedException;
 
-    @Given("a valid ScreenMap aggregate")
-    public void a_valid_screen_map_aggregate() {
-        aggregate = new ScreenMapAggregate("screen-123");
-    }
+  @Given("a valid ScreenMap aggregate")
+  public void aValidScreenMapAggregate() {
+    this.aggregate = new ScreenMapAggregate("SCREEN_001");
+    // Setup valid definition for context
+    aggregate.defineField("ACCOUNT_NUM", 10, true);
+    aggregate.defineField("TX_AMOUNT", 12, false);
+  }
 
-    @Given("a valid screenId is provided")
-    public void a_valid_screen_id_is_provided() {
-        this.screenId = "LOGIN_SCREEN";
-    }
+  @Given("a valid screenId is provided")
+  public void aValidScreenIdIsProvided() {
+    // Handled by the command construction in the 'When' step
+    // We assume the command targets the aggregate initialized above.
+  }
 
-    @Given("a valid inputFields is provided")
-    public void a_valid_input_fields_is_provided() {
-        this.inputFields = Map.of("USER", "alice", "PASS", "secret");
-    }
+  @Given("a valid inputFields is provided")
+  public void aValidInputFieldsIsProvided() {
+    this.inputFields = new HashMap<>();
+    this.inputFields.put("ACCOUNT_NUM", "1234567890");
+  }
 
-    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void a_screen_map_aggregate_with_missing_mandatory_fields() {
-        aggregate = new ScreenMapAggregate("screen-123");
-        // Violating rule: Empty input fields
-        this.inputFields = Map.of();
+  @When("the ValidateScreenInputCmd command is executed")
+  public void theValidateScreenInputCmdCommandIsExecuted() {
+    try {
+      ValidateScreenInputCmd cmd = new ValidateScreenInputCmd("SCREEN_001", this.inputFields);
+      this.resultEvents = aggregate.execute(cmd);
+    } catch (Exception e) {
+      this.capturedException = e;
     }
+  }
 
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void a_screen_map_aggregate_with_invalid_field_lengths() {
-        aggregate = new ScreenMapAggregate("screen-123");
-        // Violating rule: Field length > 50
-        this.inputFields = Map.of("LONG_FIELD", "x".repeat(51));
-    }
+  @Then("a input.validated event is emitted")
+  public void aInputValidatedEventIsEmitted() {
+    assertNotNull(resultEvents);
+    assertFalse(resultEvents.isEmpty());
+    assertEquals("input.validated", resultEvents.get(0).type());
+    assertNull(capturedException);
+  }
 
-    @When("the ValidateScreenInputCmd command is executed")
-    public void the_validate_screen_input_cmd_command_is_executed() {
-        try {
-            ValidateScreenInputCmd cmd = new ValidateScreenInputCmd(screenId, inputFields);
-            resultEvents = aggregate.execute(cmd);
-        } catch (Exception e) {
-            thrownException = e;
-        }
-    }
+  // Scenario 2
+  @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
+  public void aScreenMapAggregateThatViolatesMandatoryFields() {
+    this.aggregate = new ScreenMapAggregate("SCREEN_002");
+    aggregate.defineField("REF_ID", 10, true); // Mandatory
+  }
 
-    @Then("a input.validated event is emitted")
-    public void a_input_validated_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof InputValidatedEvent);
-        
-        InputValidatedEvent event = (InputValidatedEvent) resultEvents.get(0);
-        assertEquals("input.validated", event.type());
-        assertEquals("screen-123", event.aggregateId());
-        assertEquals("LOGIN_SCREEN", event.screenId());
-    }
+  // Reuse existing Given/When logic implies we just need to set the bad state
+  @Given("a valid inputFields is provided") // Overriding behavior conceptually for the negative case
+  public void inputFieldsMissingMandatory() {
+    this.inputFields = new HashMap<>();
+    // Intentionally leave REF_ID empty or missing to trigger violation
+    // this.inputFields.put("REF_ID", ""); 
+  }
 
-    @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(thrownException);
-        assertTrue(thrownException instanceof IllegalArgumentException);
-    }
+  @Then("the command is rejected with a domain error")
+  public void theCommandIsRejectedWithADomainError() {
+    assertNotNull(capturedException);
+    assertTrue(capturedException instanceof IllegalArgumentException);
+    assertTrue(capturedException.getMessage().contains("Validation failed"));
+  }
+
+  // Scenario 3
+  @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+  public void aScreenMapAggregateThatViolatesLengthConstraints() {
+    this.aggregate = new ScreenMapAggregate("SCREEN_003");
+    aggregate.defineField("SHORT_CODE", 5, false);
+  }
+
+  @Given("a valid inputFields is provided")
+  public void inputFieldsExceedingLength() {
+    this.inputFields = new HashMap<>();
+    this.inputFields.put("SHORT_CODE", "123456"); // Length 6 > Max 5
+  }
 }

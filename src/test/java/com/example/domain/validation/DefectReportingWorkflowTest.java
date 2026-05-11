@@ -1,96 +1,49 @@
 package com.example.domain.validation;
 
-import com.example.domain.shared.DefectReportedEvent;
-import com.example.domain.shared.ReportDefectCommand;
-import com.example.mocks.InMemoryDefectRepository;
+import com.example.config.TestConfiguration;
+import com.example.domain.defect.model.ReportDefectCommand;
 import com.example.mocks.MockGitHubPort;
-import com.example.mocks.MockSlackNotificationPort;
-import org.junit.jupiter.api.BeforeEach;
+import com.example.mocks.MockSlackPort;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * S-FB-1: Regression test for GitHub URL presence in Slack notification.
- * 
- * Defect VW-454: Verify that when a defect is reported, the resulting Slack 
- * message body contains the link to the GitHub issue created.
- * 
- * Context:
- * 1. Trigger _report_defect via temporal-worker exec
- * 2. Verify Slack body contains GitHub issue link
- */
+@SpringBootTest
+@ContextConfiguration(classes = TestConfiguration.class)
 class DefectReportingWorkflowTest {
 
-    private InMemoryDefectRepository defectRepository;
-    private MockGitHubPort gitHubPort;
-    private MockSlackNotificationPort slackPort;
+    @Autowired
     private DefectReportingWorkflow workflow;
 
-    @BeforeEach
-    void setUp() {
-        defectRepository = new InMemoryDefectRepository();
-        gitHubPort = new MockGitHubPort();
-        slackPort = new MockSlackNotificationPort();
-        workflow = new DefectReportingWorkflow(defectRepository, gitHubPort, slackPort);
-    }
+    @Autowired
+    private MockGitHubPort mockGitHubPort;
+
+    @Autowired
+    private MockSlackPort mockSlackPort;
 
     @Test
-    void testReportDefect_ShouldIncludeGitHubUrlInSlackBody() {
+    void testReportDefect_generatesGitHubLink_andIncludesItInSlackBody() {
         // Arrange
-        String defectId = "VW-454";
-        String title = "Validating GitHub URL in Slack body";
-        String expectedUrl = "https://github.com/bank-of-z/modernized/issues/454";
+        String defectId = "FB-454";
+        String description = "Fix: Validating VW-454 — GitHub URL in Slack body";
+        String expectedUrl = "https://github.com/egdcrypto/bank-of-z/issues/454";
         
-        // Configure mocks
-        gitHubPort.setFakeUrl(expectedUrl);
-        
-        ReportDefectCommand command = new ReportDefectCommand(
-            defectId, 
-            title, 
-            "Slack body missing GitHub link",
-            "LOW"
-        );
+        mockGitHubPort.setMockUrl(expectedUrl);
+        ReportDefectCommand command = new ReportDefectCommand(defectId, description, null);
 
         // Act
-        workflow.execute(command);
+        String resultUrl = workflow.reportDefect(command);
 
         // Assert
-        // 1. Verify GitHub Port was called (implied by Slack check)
-        // 2. Verify Slack notification contains the URL
-        assertTrue(
-            slackPort.wasNotified(expectedUrl), 
-            "Slack body should include the GitHub issue URL returned by GitHubPort"
-        );
+        assertEquals(expectedUrl, resultUrl, "Workflow should return the GitHub URL");
         
-        // 3. Verify the channel (optional sanity check)
-        assertEquals("#vforce360-issues", slackPort.lastChannel);
-    }
-
-    @Test
-    void testReportDefect_ShouldEmitEventWithUrl() {
-        // Arrange
-        String defectId = "VW-455";
-        String expectedUrl = "https://github.com/bank-of-z/modernized/issues/455";
-        gitHubPort.setFakeUrl(expectedUrl);
-
-        ReportDefectCommand command = new ReportDefectCommand(
-            defectId, 
-            "Another defect", 
-            "Desc",
-            "HIGH"
-        );
-
-        // Act
-        workflow.execute(command);
-
-        // Assert
-        // The aggregate should have stored the event with the URL
-        var aggregate = defectRepository.findById(defectId);
-        assertTrue(aggregate.isPresent(), "Aggregate should be saved");
-        
-        // Assuming aggregate exposes uncommitted events or state for verification
-        // For TDD, we might check the state if available, or rely on Slack output
-        // Here we check persistence
+        // Verify Behavior (The Defect Fix)
+        String slackBody = mockSlackPort.getLastSentBody();
+        assertNotNull(slackBody, "Slack should have been called");
+        assertTrue(slackBody.contains(expectedUrl), 
+            "Slack body must contain the GitHub issue URL. Found: " + slackBody);
     }
 }

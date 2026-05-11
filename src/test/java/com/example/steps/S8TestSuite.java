@@ -1,15 +1,14 @@
 package com.example.steps;
 
-import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.ConfigurationParameter;
 import org.junit.platform.suite.api.SelectClasspathResource;
 import org.junit.platform.suite.api.Suite;
 
-/**
- * Test Suite for S-8 (GenerateStatementCmd).
- * Executed via JUnit Platform Suite.
- */
+import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
+
 @Suite
-@IncludeEngines("cucumber")
-@SelectClasspathResource("features/S-8.feature")
+@SelectClasspathResource("features")
+@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.steps")
 public class S8TestSuite {
+    // This class acts as the test runner for Cucumber
 }

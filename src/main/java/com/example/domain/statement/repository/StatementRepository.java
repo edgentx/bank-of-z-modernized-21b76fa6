@@ -1,9 +1,13 @@
 package com.example.domain.statement.repository;
 
 import com.example.domain.statement.model.StatementAggregate;
+
 import java.util.Optional;
 
+/**
+ * Repository interface for Statement aggregates.
+ */
 public interface StatementRepository {
     StatementAggregate save(StatementAggregate aggregate);
-    Optional<StatementAggregate> findById(String id);
+    Optional<StatementAggregate> findById(String statementId);
 }

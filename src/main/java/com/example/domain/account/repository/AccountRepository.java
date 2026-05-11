@@ -2,10 +2,9 @@ package com.example.domain.account.repository;
 
 import com.example.domain.account.model.AccountAggregate;
 
-/**
- * Repository interface for Account aggregates.
- */
+import java.util.Optional;
+
 public interface AccountRepository {
-    AccountAggregate save(AccountAggregate aggregate);
-    AccountAggregate findById(String id);
+    void save(AccountAggregate aggregate);
+    Optional<AccountAggregate> findById(String id);
 }

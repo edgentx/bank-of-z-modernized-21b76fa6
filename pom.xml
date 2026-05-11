@@ -30,10 +30,14 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
+        
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
 
         <!-- Temporal (BOM Managed via Spring Cloud, version usually explicit or managed) -->
-        <!-- Assuming Spring Cloud Temporal is not in main BOM, adding explicit version as per rules if needed. 
-             However, standard io.temporal:temporal-sdk is NOT in Spring Boot BOM. -->
+        <!-- io.temporal:temporal-sdk is NOT in Spring Boot BOM -->
         <dependency>
             <groupId>io.temporal</groupId>
             <artifactId>temporal-spring-boot-starter</artifactId>

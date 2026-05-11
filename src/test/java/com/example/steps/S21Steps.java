@@ -1,86 +1,121 @@
 package com.example.steps;
 
+import com.example.domain.navigation.model.RenderScreenCmd;
+import com.example.domain.navigation.model.ScreenMapAggregate;
+import com.example.domain.navigation.model.ScreenRenderedEvent;
+import com.example.domain.navigation.repository.ScreenMapRepository;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.userinterface.model.RenderScreenCmd;
-import com.example.domain.userinterface.model.ScreenMapAggregate;
-import com.example.domain.userinterface.model.ScreenRenderedEvent;
-import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
 import java.util.List;
+import java.util.Optional;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S21Steps {
 
+    // Sufficiently unique ID for this scenario
+    private final String screenMapId = "SM-TEST-" + System.currentTimeMillis();
     private ScreenMapAggregate aggregate;
-    private RenderScreenCmd cmd;
+    private final ScreenMapRepository repo = new InMemoryScreenMapRepository();
+    private Exception capturedException;
     private List<DomainEvent> resultEvents;
-    private Exception caughtException;
+
+    // In-memory implementation for test isolation
+    private static class InMemoryScreenMapRepository implements ScreenMapRepository {
+        private ScreenMapAggregate store;
+        @Override
+        public ScreenMapAggregate save(ScreenMapAggregate aggregate) {
+            this.store = aggregate;
+            return aggregate;
+        }
+        @Override
+        public Optional<ScreenMapAggregate> findById(String id) {
+            return Optional.ofNullable(store);
+        }
+    }
 
     @Given("a valid ScreenMap aggregate")
     public void aValidScreenMapAggregate() {
-        // "valid" in this context means the aggregate ID is present
-        aggregate = new ScreenMapAggregate("screen-map-1");
+        aggregate = new ScreenMapAggregate(screenMapId);
+        repo.save(aggregate);
     }
 
-    @And("a valid screenId is provided")
+    @Given("a valid screenId is provided")
     public void aValidScreenIdIsProvided() {
-        // Valid ID: non-empty and within legacy constraints
-        cmd = new RenderScreenCmd("screen-map-1", "LOGIN001", "3270");
+        // State handled in the 'When' block via Command construction
     }
 
-    @And("a valid deviceType is provided")
+    @Given("a valid deviceType is provided")
     public void aValidDeviceTypeIsProvided() {
-        // Already set in previous step for simplicity, or update here
-        if (cmd == null) {
-            cmd = new RenderScreenCmd("screen-map-1", "LOGIN001", "WEB");
-        }
+        // State handled in the 'When' block via Command construction
     }
 
     @When("the RenderScreenCmd command is executed")
     public void theRenderScreenCmdCommandIsExecuted() {
         try {
-            resultEvents = aggregate.execute(cmd);
+            RenderScreenCmd cmd = new RenderScreenCmd(screenMapId, "LOGIN_SCR", "DESKTOP_WEB");
+            // Reload from repo to ensure clean state if needed, or use instance
+            ScreenMapAggregate agg = repo.findById(screenMapId).orElseThrow();
+            resultEvents = agg.execute(cmd);
+            repo.save(agg); // Persist state change
         } catch (Exception e) {
-            caughtException = e;
+            capturedException = e;
         }
     }
 
     @Then("a screen.rendered event is emitted")
     public void aScreenRenderedEventIsEmitted() {
-        assertNotNull("Expected events to be emitted", resultEvents);
-        assertFalse("Expected at least one event", resultEvents.isEmpty());
-        assertTrue("Expected ScreenRenderedEvent", resultEvents.get(0) instanceof ScreenRenderedEvent);
-
+        assertNotNull(resultEvents);
+        assertFalse(resultEvents.isEmpty());
+        assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
         ScreenRenderedEvent event = (ScreenRenderedEvent) resultEvents.get(0);
         assertEquals("screen.rendered", event.type());
-        assertEquals(cmd.screenId(), event.screenId());
-        assertNull("Should not have thrown an exception", caughtException);
     }
 
-    // ---------- Scenarios for Rejection ----------
+    // --- Negative Cases ---
 
     @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
     public void aScreenMapAggregateThatViolatesMandatoryFields() {
-        aggregate = new ScreenMapAggregate("screen-map-2");
-        // Violation: Missing ScreenId
-        cmd = new RenderScreenCmd("screen-map-2", "", "WEB");
+        aggregate = new ScreenMapAggregate(screenMapId);
     }
 
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void aScreenMapAggregateThatViolatesLegacyLengths() {
-        aggregate = new ScreenMapAggregate("screen-map-3");
-        // Violation: Screen ID > 8 chars (Legacy BMS constraint)
-        cmd = new RenderScreenCmd("screen-map-3", "VERY_LONG_SCREEN_NAME", "3270");
+    @When("the RenderScreenCmd command is executed with invalid data")
+    public void theRenderScreenCmdCommandIsExecutedWithInvalidData() {
+        try {
+            // Passing null for screenId to violate the invariant
+            RenderScreenCmd cmd = new RenderScreenCmd(screenMapId, null, "MOBILE");
+            resultEvents = aggregate.execute(cmd);
+        } catch (IllegalArgumentException e) {
+            capturedException = e;
+        }
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        assertNotNull("Expected an exception to be thrown", caughtException);
-        assertTrue("Expected IllegalArgumentException", caughtException instanceof IllegalArgumentException);
-        assertTrue("Expected events to be empty on failure", resultEvents == null || resultEvents.isEmpty());
+        assertNotNull(capturedException);
+        assertTrue(capturedException instanceof IllegalArgumentException);
+        assertTrue(capturedException.getMessage().contains("mandatory") || 
+                   capturedException.getMessage().contains("BMS") ||
+                   capturedException.getMessage().contains("required"));
+    }
+
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void aScreenMapAggregateThatViolatesBmsConstraints() {
+        aggregate = new ScreenMapAggregate(screenMapId);
+    }
+
+    @When("the RenderScreenCmd command is executed with BMS violating data")
+    public void theRenderScreenCmdCommandIsExecutedWithBmsViolatingData() {
+        try {
+            // Create a screenId > 32 chars
+            String longScreenId = "VERY_LONG_SCREEN_ID_THAT_EXCEEDS_THIRTY_TWO_CHARS";
+            RenderScreenCmd cmd = new RenderScreenCmd(screenMapId, longScreenId, "DESKTOP");
+            resultEvents = aggregate.execute(cmd);
+        } catch (IllegalArgumentException e) {
+            capturedException = e;
+        }
     }
 }

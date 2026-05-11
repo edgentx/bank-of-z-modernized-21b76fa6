@@ -1,23 +1,52 @@
 package com.example.mocks;
 
 import com.example.ports.SlackPort;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Mock implementation of SlackPort for testing.
- */
 public class MockSlackAdapter implements SlackPort {
-
-    public final List<String> messages = new ArrayList<>();
-
+    
+    private final Map<String, String> sentMessages = new ConcurrentHashMap<>();
+    private String lastSentMessage;
+    
     @Override
-    public void sendMessage(String text) {
-        messages.add(text);
+    public boolean sendMessage(String channelId, String message) {
+        if (channelId == null || channelId.isEmpty()) {
+            throw new IllegalArgumentException("Channel ID cannot be null or empty");
+        }
+        if (message == null || message.isEmpty()) {
+            throw new IllegalArgumentException("Message cannot be null or empty");
+        }
+        
+        sentMessages.put(channelId, message);
+        lastSentMessage = message;
+        return true;
     }
-
-    public boolean lastMessageContains(String substring) {
-        if (messages.isEmpty()) return false;
-        return messages.get(messages.size() - 1).contains(substring);
+    
+    @Override
+    public boolean sendBlocks(String channelId, Map<String, Object> blocks) {
+        // Convert blocks to string representation
+        String message = blocks.toString();
+        return sendMessage(channelId, message);
+    }
+    
+    @Override
+    public String getLastSentMessage() {
+        return lastSentMessage;
+    }
+    
+    /**
+     * Clear all sent messages (useful between tests)
+     */
+    public void clear() {
+        sentMessages.clear();
+        lastSentMessage = null;
+    }
+    
+    /**
+     * Get message by channel ID
+     */
+    public String getMessageByChannel(String channelId) {
+        return sentMessages.get(channelId);
     }
 }

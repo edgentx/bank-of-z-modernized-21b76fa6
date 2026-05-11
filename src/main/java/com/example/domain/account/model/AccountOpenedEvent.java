@@ -4,14 +4,16 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
-public record AccountOpenedEvent(String accountNumber, String ownerName, Instant occurredAt) implements DomainEvent {
+public record AccountOpenedEvent(
+        String aggregateId,
+        String accountNumber,
+        String type,
+        Instant occurredAt
+) implements DomainEvent {
     @Override
-    public String type() {
-        return "account.opened";
-    }
-
+    public String type() { return "account.opened"; }
     @Override
-    public String aggregateId() {
-        return accountNumber;
-    }
+    public String aggregateId() { return aggregateId; }
+    @Override
+    public Instant occurredAt() { return occurredAt; }
 }

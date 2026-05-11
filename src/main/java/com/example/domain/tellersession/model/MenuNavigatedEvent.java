@@ -6,17 +6,20 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event emitted when a Teller successfully navigates to a new menu.
+ * Event emitted when the Teller UI successfully changes context.
+ * Part of S-19 user-interface-navigation.
  */
 public record MenuNavigatedEvent(
-        String aggregateId,
-        String menuId,
-        String action,
-        Instant occurredAt
+    String aggregateId,
+    String previousMenu,
+    String targetMenu,
+    String action,
+    Instant occurredAt
 ) implements DomainEvent {
 
     public MenuNavigatedEvent {
-        // Ensure defaults if needed, though constructor handles it
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
+        if (occurredAt == null) occurredAt = Instant.now();
     }
 
     @Override
@@ -27,10 +30,5 @@ public record MenuNavigatedEvent(
     @Override
     public Instant occurredAt() {
         return occurredAt;
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
     }
 }

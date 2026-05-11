@@ -3,7 +3,6 @@ package com.example.steps;
 import com.example.domain.legacybridge.model.LegacyTransactionRoute;
 import com.example.domain.legacybridge.model.RoutingUpdatedEvent;
 import com.example.domain.legacybridge.model.UpdateRoutingRuleCmd;
-import com.example.domain.legacybridge.repository.LegacyTransactionRouteRepository;
 import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
@@ -12,86 +11,86 @@ import io.cucumber.java.en.When;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class S24Steps {
 
     private LegacyTransactionRoute aggregate;
-    private List<DomainEvent> resultEvents;
     private Exception caughtException;
+    private List<DomainEvent> resultingEvents;
 
-    // In-memory repo implementation for testing
-    private final LegacyTransactionRouteRepository repo = new LegacyTransactionRouteRepository() {
-        private LegacyTransactionRoute stored;
-        @Override
-        public void save(LegacyTransactionRoute agg) { this.stored = agg; }
-        @Override
-        public Optional<LegacyTransactionRoute> findById(String id) {
-            if (stored != null && stored.id().equals(id)) return Optional.of(stored);
-            if (aggregate != null && aggregate.id().equals(id)) return Optional.of(aggregate);
-            return Optional.empty();
-        }
-    };
+    // Given steps
 
     @Given("a valid LegacyTransactionRoute aggregate")
     public void aValidLegacyTransactionRouteAggregate() {
-        this.aggregate = new LegacyTransactionRoute("route-1");
+        this.aggregate = new LegacyTransactionRoute("route-123");
     }
 
     @And("a valid ruleId is provided")
     public void aValidRuleIdIsProvided() {
-        // Context setup, usually stored in a context object, but here implicit
+        // Parameter stored in context for execution step, or we can define defaults here
+        // For this exercise, we'll assume the When step constructs the command with valid defaults,
+        // or we store state in member variables if dynamic.
     }
 
     @And("a valid newTarget is provided")
     public void aValidNewTargetIsProvided() {
-        // Context setup
+        // See above
     }
 
     @And("a valid effectiveDate is provided")
     public void aValidEffectiveDateIsProvided() {
-        // Context setup
-    }
-
-    @When("the UpdateRoutingRuleCmd command is executed")
-    public void theUpdateRoutingRuleCmdCommandIsExecuted() {
-        UpdateRoutingRuleCmd cmd = new UpdateRoutingRuleCmd("route-1", "rule-101", "MODERN", Instant.now(), 1);
-        try {
-            resultEvents = aggregate.execute(cmd);
-        } catch (Exception e) {
-            caughtException = e;
-        }
-    }
-
-    @Then("a routing.updated event is emitted")
-    public void aRoutingUpdatedEventIsEmitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof RoutingUpdatedEvent);
-        
-        RoutingUpdatedEvent event = (RoutingUpdatedEvent) resultEvents.get(0);
-        assertEquals("route-1", event.aggregateId());
-        assertEquals("MODERN", event.newTarget());
+        // See above
     }
 
     @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.")
     public void aLegacyTransactionRouteAggregateThatViolatesDualProcessing() {
-        this.aggregate = new LegacyTransactionRoute("route-bad-1");
+        this.aggregate = new LegacyTransactionRoute("route-dual-bad");
         this.aggregate.markDualProcessingViolation();
     }
 
     @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback.")
     public void aLegacyTransactionRouteAggregateThatViolatesVersioning() {
-        this.aggregate = new LegacyTransactionRoute("route-bad-2");
+        this.aggregate = new LegacyTransactionRoute("route-version-bad");
         this.aggregate.markVersioningViolation();
+    }
+
+    // When steps
+
+    @When("the UpdateRoutingRuleCmd command is executed")
+    public void theUpdateRoutingRuleCmdCommandIsExecuted() {
+        try {
+            UpdateRoutingRuleCmd cmd = new UpdateRoutingRuleCmd(
+                    aggregate.id(),
+                    "rule-1",
+                    "MODERN",
+                    2,
+                    Instant.now()
+            );
+            this.resultingEvents = aggregate.execute(cmd);
+        } catch (Exception e) {
+            this.caughtException = e;
+        }
+    }
+
+    // Then steps
+
+    @Then("a routing.updated event is emitted")
+    public void aRoutingUpdatedEventIsEmitted() {
+        assertNotNull(resultingEvents);
+        assertEquals(1, resultingEvents.size());
+        assertTrue(resultingEvents.get(0) instanceof RoutingUpdatedEvent);
+
+        RoutingUpdatedEvent event = (RoutingUpdatedEvent) resultingEvents.get(0);
+        assertEquals("MODERN", event.newTarget());
+        assertEquals(2, event.newVersion());
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
         assertNotNull(caughtException);
-        // Domain errors in this context are RuntimeExceptions
+        // We expect IllegalStateException or IllegalArgumentException based on invariants
         assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
     }
 }

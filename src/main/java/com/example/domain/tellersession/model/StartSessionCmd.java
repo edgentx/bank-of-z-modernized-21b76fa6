@@ -1,18 +1,12 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
+import java.util.Objects;
 
-import java.time.Instant;
-
-/**
- * Command to initiate a teller session.
- * S-18: StartSessionCmd.
- */
-public record StartSessionCmd(
-        String tellerId,
-        String terminalId,
-        boolean authenticated,
-        String navigationContext,
-        Instant occurredAt
-) implements Command {
+public record StartSessionCmd(String sessionId, String tellerId, String terminalId, boolean isAuthenticated, String currentState) implements Command {
+    public StartSessionCmd {
+        Objects.requireNonNull(sessionId, "sessionId cannot be null");
+        Objects.requireNonNull(tellerId, "tellerId cannot be null");
+        Objects.requireNonNull(terminalId, "terminalId cannot be null");
+    }
 }

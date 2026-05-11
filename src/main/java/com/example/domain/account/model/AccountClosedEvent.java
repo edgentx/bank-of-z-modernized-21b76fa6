@@ -4,7 +4,7 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
-public record AccountClosedEvent(String aggregateId, Instant occurredAt) implements DomainEvent {
+public record AccountClosedEvent(String accountNumber, Instant occurredAt) implements DomainEvent {
     @Override
     public String type() {
         return "account.closed";
@@ -12,7 +12,7 @@ public record AccountClosedEvent(String aggregateId, Instant occurredAt) impleme
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return accountNumber;
     }
 
     @Override

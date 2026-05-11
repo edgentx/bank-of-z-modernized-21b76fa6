@@ -1,25 +1,50 @@
 package com.example.adapters;
 
-import org.springframework.stereotype.Component;
+import com.example.ports.SlackNotificationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Real implementation of the Slack Notification Port.
- * This would typically use a Slack WebClient (e.g., using a library like Slack API Client).
- * For this defect fix, we verify the contract is met.
+ * Real adapter for posting messages to Slack.
+ * Implements the SlackNotificationPort interface.
+ * Configured via application properties (webhook.url).
  */
 @Component
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
     private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
+    private final String webhookUrl;
+    private final RestTemplate restTemplate;
+
+    public SlackNotificationAdapter(@Value("${slack.webhook.url}") String webhookUrl,
+                                     RestTemplate restTemplate) {
+        this.webhookUrl = webhookUrl;
+        this.restTemplate = restTemplate;
+    }
 
     @Override
-    public void sendNotification(String channel, String body) {
-        // Real Slack API call would go here.
-        // Example:
-        // Methods.post("https://slack.com/api/chat.postMessage", payload);
-        
-        log.info("Sending notification to Slack channel {}: {}", channel, body);
+    public boolean postMessage(String text) {
+        if (text == null || text.isEmpty()) {
+            throw new IllegalArgumentException("text cannot be null or empty");
+        }
+
+        try {
+            Map<String, String> payload = new HashMap<>();
+            payload.put("text", text);
+
+            // In a real scenario, we would map the response to a boolean success check.
+            // Here we assume 2xx success.
+            restTemplate.postForObject(webhookUrl, payload, String.class);
+            return true;
+        } catch (Exception e) {
+            log.error("Failed to post message to Slack", e);
+            return false;
+        }
     }
 }

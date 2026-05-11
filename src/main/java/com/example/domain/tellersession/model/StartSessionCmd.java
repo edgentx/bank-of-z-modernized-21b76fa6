@@ -2,20 +2,27 @@ package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
 
-/**
- * Command to initiate a new teller session.
- * @param tellerId The authenticated user ID.
- * @param terminalId The physical or virtual terminal identifier.
- * @param isAuthenticated The authentication status flag (must be true).
- * @param isActive Whether the session is currently active (for timeout checks).
- * @param lastActivityTimestamp The timestamp of the last activity (for timeout checks).
- * @param currentContext The current navigation context (must be valid).
- */
+import java.time.Instant;
+import java.util.UUID;
+
 public record StartSessionCmd(
-    String tellerId,
-    String terminalId,
-    boolean isAuthenticated,
-    boolean isActive,
-    long lastActivityTimestamp,
-    String currentContext
-) implements Command {}
+        String aggregateId,
+        String tellerId,
+        String terminalId,
+        Instant timestamp
+) implements Command {
+    public StartSessionCmd {
+        if (aggregateId == null || aggregateId.isBlank()) {
+            throw new IllegalArgumentException("aggregateId cannot be null");
+        }
+        if (tellerId == null || tellerId.isBlank()) {
+            throw new IllegalArgumentException("tellerId cannot be null");
+        }
+        if (terminalId == null || terminalId.isBlank()) {
+            throw new IllegalArgumentException("terminalId cannot be null");
+        }
+        if (timestamp == null) {
+            throw new IllegalArgumentException("timestamp cannot be null");
+        }
+    }
+}

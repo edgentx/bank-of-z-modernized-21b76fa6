@@ -1,19 +1,22 @@
 package com.example.domain.screenmap.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
 
-/**
- * Event emitted when a screen is successfully rendered.
- */
-public record ScreenRenderedEvent(
-  String type,
-  String aggregateId,
-  Instant occurredAt,
-  String screenId,
-  String deviceType
-) implements DomainEvent {
-  public ScreenRenderedEvent(String aggregateId, String screenId, String deviceType) {
-    this("screen.rendered", aggregateId, Instant.now(), screenId, deviceType);
-  }
+public record ScreenRenderedEvent(String aggregateId, String screenId, String deviceType, Instant occurredAt) implements DomainEvent {
+    @Override
+    public String type() {
+        return "screen.rendered";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
 }

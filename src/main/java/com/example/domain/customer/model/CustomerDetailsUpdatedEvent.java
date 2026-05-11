@@ -5,13 +5,12 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 
 public record CustomerDetailsUpdatedEvent(
-        String customerId,
-        String newFullName,
-        String newEmailAddress,
-        String newSortCode,
-        String governmentId,
-        Instant dateOfBirth,
-        Instant occurredAt
+    String customerId,
+    String fullName,
+    String email,
+    String sortCode,
+    String dateOfBirth,
+    Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {

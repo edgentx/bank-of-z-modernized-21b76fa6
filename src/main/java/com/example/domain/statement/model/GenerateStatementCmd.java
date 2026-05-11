@@ -4,11 +4,15 @@ import com.example.domain.shared.Command;
 import java.math.BigDecimal;
 import java.time.Instant;
 
+/**
+ * Command to generate a new account statement for a given period.
+ * S-8: Implement GenerateStatementCmd on Statement.
+ */
 public record GenerateStatementCmd(
     String statementId,
     String accountNumber,
     Instant periodStart,
     Instant periodEnd,
     BigDecimal openingBalance,
-    BigDecimal previousStatementClosingBalance
+    BigDecimal closingBalance
 ) implements Command {}

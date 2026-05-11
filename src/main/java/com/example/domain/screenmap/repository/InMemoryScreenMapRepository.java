@@ -1,23 +1,23 @@
 package com.example.domain.screenmap.repository;
 
-import com.example.domain.screenmap.model.ScreenMapAggregate;
+import com.example.domain.navigation.model.ScreenMap;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class InMemoryScreenMapRepository implements ScreenMapRepository {
 
-    private final Map<String, ScreenMapAggregate> store = new HashMap<>();
+    private final Map<String, ScreenMap> store = new ConcurrentHashMap<>();
 
     @Override
-    public ScreenMapAggregate save(ScreenMapAggregate aggregate) {
+    public ScreenMap save(ScreenMap aggregate) {
         store.put(aggregate.id(), aggregate);
         return aggregate;
     }
 
     @Override
-    public Optional<ScreenMapAggregate> findById(String id) {
-        return Optional.ofNullable(store.get(id));
+    public ScreenMap findById(String id) {
+        return store.get(id);
     }
 }

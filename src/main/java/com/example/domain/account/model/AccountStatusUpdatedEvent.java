@@ -8,22 +8,14 @@ import java.time.Instant;
  * Event emitted when an account status is updated.
  */
 public record AccountStatusUpdatedEvent(
-    String aggregateId,
-    AccountAggregate.AccountStatus newStatus,
-    Instant occurredAt
+        String aggregateId,
+        String oldStatus,
+        String newStatus,
+        Instant occurredAt
 ) implements DomainEvent {
+
     @Override
     public String type() {
         return "account.status.updated";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

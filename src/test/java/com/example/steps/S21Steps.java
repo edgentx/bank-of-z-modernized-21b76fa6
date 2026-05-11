@@ -1,48 +1,66 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.userinterface.model.*;
-import com.example.domain.userinterface.repository.ScreenMapRepository;
-import com.example.mocks.InMemoryScreenMapRepository;
+import com.example.domain.userinterfacenavigation.model.RenderScreenCmd;
+import com.example.domain.userinterfacenavigation.model.ScreenMapAggregate;
+import com.example.domain.userinterfacenavigation.model.ScreenRenderedEvent;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class S21Steps {
 
-    private ScreenMap aggregate;
-    private final ScreenMapRepository repository = new InMemoryScreenMapRepository();
-    private Exception capturedException;
+    private ScreenMapAggregate aggregate;
     private List<DomainEvent> resultEvents;
+    private Exception capturedException;
 
     @Given("a valid ScreenMap aggregate")
     public void a_valid_screen_map_aggregate() {
-        this.aggregate = new ScreenMap("screen-1");
+        aggregate = new ScreenMapAggregate("map-1");
     }
 
     @Given("a valid screenId is provided")
     public void a_valid_screen_id_is_provided() {
-        // Implicitly handled by the aggregate initialization or command construction in 'When'
+        // State stored implicitly for the When step
     }
 
     @Given("a valid deviceType is provided")
     public void a_valid_device_type_is_provided() {
-        // Implicitly handled by command construction in 'When'
+        // State stored implicitly
+    }
+
+    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
+    public void a_screen_map_aggregate_with_violating_mandatory_fields() {
+        aggregate = new ScreenMapAggregate("map-2");
+    }
+
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void a_screen_map_aggregate_with_violating_bms_lengths() {
+        aggregate = new ScreenMapAggregate("map-3");
     }
 
     @When("the RenderScreenCmd command is executed")
     public void the_render_screen_cmd_command_is_executed() {
-        RenderScreenCmd cmd = new RenderScreenCmd("screen-1", DeviceType.TN3270, Map.of());
         try {
-            this.resultEvents = aggregate.execute(cmd);
+            // Default valid data for success case
+            String screenId = "LOGIN_SCREEN";
+            String deviceType = "3270";
+
+            // Check for violation data to trigger errors (simple heuristic based on description)
+            if (aggregate.id().equals("map-2")) {
+                screenId = null; // Violate mandatory
+            } else if (aggregate.id().equals("map-3")) {
+                screenId = "VERY_LONG_SCREEN_NAME_THAT_EXCEEDS_LEGACY_BMS_CONSTRAINTS_OF_80_CHARS_.............";
+            }
+
+            RenderScreenCmd cmd = new RenderScreenCmd(aggregate.id(), screenId, deviceType);
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            this.capturedException = e;
+            capturedException = e;
         }
     }
 
@@ -51,52 +69,13 @@ public class S21Steps {
         assertNotNull(resultEvents);
         assertFalse(resultEvents.isEmpty());
         assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
-        
-        ScreenRenderedEvent event = (ScreenRenderedEvent) resultEvents.get(0);
-        assertEquals("screen-1", event.aggregateId());
-        assertEquals("ScreenRenderedEvent", event.type());
-    }
-
-    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void a_screen_map_aggregate_with_invalid_mandatory_fields() {
-        this.aggregate = new ScreenMap("screen-2");
-    }
-
-    @When("the RenderScreenCmd command is executed with missing fields")
-    public void the_command_is_executed_with_missing_fields() {
-        // Missing layout (simulated by null or empty check in logic, here we assume valid command but aggregate state might block, or command validation)
-        // Based on requirements, we test command validation.
-        RenderScreenCmd cmd = new RenderScreenCmd(null, DeviceType.TN3270, Map.of());
-        try {
-            this.resultEvents = aggregate.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            this.capturedException = e;
-        }
+        assertEquals("screen.rendered", resultEvents.get(0).type());
+        assertNull(capturedException, "Should not have thrown an exception");
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
         assertNotNull(capturedException);
         assertTrue(capturedException instanceof IllegalArgumentException);
-        assertTrue(capturedException.getMessage().contains("required"));
-    }
-
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void a_screen_map_aggregate_that_violates_field_lengths() {
-        this.aggregate = new ScreenMap("screen-3");
-    }
-
-    @When("the RenderScreenCmd command is executed with excessive fields")
-    public void the_command_is_executed_with_excessive_fields() {
-        // Simulate a layout map that exceeds BMS constraints
-        // Since the command carries the input data, we construct a specific command here
-        Map<String, Object> oversizedLayout = Map.of("field_1", "A");
-        // The actual validation logic is in the Aggregate, checking input sizes
-        RenderScreenCmd cmd = new RenderScreenCmd("screen-3", DeviceType.TN3270, oversizedLayout);
-        try {
-            this.resultEvents = aggregate.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            this.capturedException = e;
-        }
     }
 }

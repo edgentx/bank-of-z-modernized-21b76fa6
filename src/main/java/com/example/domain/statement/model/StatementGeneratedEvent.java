@@ -1,21 +1,19 @@
 package com.example.domain.statement.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.UUID;
+import java.time.LocalDate;
 
 public class StatementGeneratedEvent implements DomainEvent {
-    private final String eventId = UUID.randomUUID().toString();
     private final String statementId;
     private final String accountNumber;
-    private final Instant periodEnd;
+    private final LocalDate periodEnd;
     private final BigDecimal openingBalance;
-    private final BigDecimal closingBalance;
+    private final BigDecimal closingBalance; // Calculated or passed
     private final Instant occurredAt;
 
-    public StatementGeneratedEvent(String statementId, String accountNumber, Instant periodEnd, BigDecimal openingBalance, BigDecimal closingBalance, Instant occurredAt) {
+    public StatementGeneratedEvent(String statementId, String accountNumber, LocalDate periodEnd, BigDecimal openingBalance, BigDecimal closingBalance, Instant occurredAt) {
         this.statementId = statementId;
         this.accountNumber = accountNumber;
         this.periodEnd = periodEnd;
@@ -39,9 +37,8 @@ public class StatementGeneratedEvent implements DomainEvent {
         return occurredAt;
     }
 
-    public String getStatementId() { return statementId; }
     public String getAccountNumber() { return accountNumber; }
-    public Instant getPeriodEnd() { return periodEnd; }
+    public LocalDate getPeriodEnd() { return periodEnd; }
     public BigDecimal getOpeningBalance() { return openingBalance; }
     public BigDecimal getClosingBalance() { return closingBalance; }
 }

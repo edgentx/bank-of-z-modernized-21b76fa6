@@ -3,13 +3,15 @@ package com.example.domain.customer.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to update customer contact and personal details.
+ * Command to update customer details.
+ * Note: 'sortCode' is included as per acceptance criteria requirement,
+ * though it is not persisted on the aggregate in this phase.
  */
 public record UpdateCustomerDetailsCmd(
     String customerId,
-    String emailAddress,
-    String sortCode,
     String fullName,
+    String emailAddress,
+    String governmentId,
     String dateOfBirth,
-    String governmentId
+    String sortCode
 ) implements Command {}

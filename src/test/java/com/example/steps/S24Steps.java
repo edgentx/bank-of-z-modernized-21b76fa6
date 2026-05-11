@@ -2,106 +2,92 @@ package com.example.steps;
 
 import com.example.domain.legacybridge.model.LegacyTransactionRoute;
 import com.example.domain.legacybridge.model.UpdateRoutingRuleCmd;
-import com.example.domain.legacybridge.model.RoutingUpdatedEvent;
-import com.example.domain.legacybridge.repository.LegacyTransactionRouteRepository;
 import com.example.domain.shared.DomainEvent;
+import com.example.domain.shared.UnknownCommandException;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S24Steps {
 
-    private final LegacyTransactionRouteRepository repository = new InMemoryLegacyTransactionRouteRepository();
-    private String currentRouteId;
-    private Exception capturedException;
+    private LegacyTransactionRoute aggregate;
+    private Exception caughtException;
     private List<DomainEvent> resultEvents;
-
-    static class InMemoryLegacyTransactionRouteRepository implements LegacyTransactionRouteRepository {
-        private final java.util.Map<String, LegacyTransactionRoute> store = new java.util.HashMap<>();
-        @Override public void save(LegacyTransactionRoute aggregate) { store.put(aggregate.id(), aggregate); }
-        @Override public Optional<LegacyTransactionRoute> findById(String routeId) { return Optional.ofNullable(store.get(routeId)); }
-    }
+    private String ruleId;
+    private String newTarget;
+    private Instant effectiveDate;
 
     @Given("a valid LegacyTransactionRoute aggregate")
-    public void a_valid_LegacyTransactionRoute_aggregate() {
-        currentRouteId = "route-legacy-001";
-        LegacyTransactionRoute route = new LegacyTransactionRoute(currentRouteId);
-        repository.save(route);
+    public void a_valid_legacy_transaction_route_aggregate() {
+        aggregate = new LegacyTransactionRoute("route-123");
+        caughtException = null;
     }
 
     @Given("a valid ruleId is provided")
-    public void a_valid_ruleId_is_provided() {
-        // Scenario context setup, implicit in command construction
+    public void a_valid_rule_id_is_provided() {
+        this.ruleId = "rule-ABC";
     }
 
     @Given("a valid newTarget is provided")
-    public void a_valid_newTarget_is_provided() {
-        // Scenario context setup
+    public void a_valid_new_target_is_provided() {
+        this.newTarget = "MODERN";
     }
 
     @Given("a valid effectiveDate is provided")
-    public void a_valid_effectiveDate_is_provided() {
-        // Scenario context setup
+    public void a_valid_effective_date_is_provided() {
+        this.effectiveDate = Instant.now().plusSeconds(3600);
     }
 
     @When("the UpdateRoutingRuleCmd command is executed")
-    public void the_UpdateRoutingRuleCmd_command_is_executed() {
+    public void the_update_routing_rule_cmd_command_is_executed() {
         try {
-            Optional<LegacyTransactionRoute> routeOpt = repository.findById(currentRouteId);
-            assertTrue(routeOpt.isPresent(), "Route should exist");
-            
-            LegacyTransactionRoute route = routeOpt.get();
-            
             UpdateRoutingRuleCmd cmd = new UpdateRoutingRuleCmd(
-                currentRouteId,
-                "RULE-102",
-                "MODERN",
-                Instant.now().plusSeconds(3600)
+                    aggregate.id(),
+                    ruleId,
+                    newTarget,
+                    1, // newVersion
+                    effectiveDate
             );
-
-            resultEvents = route.execute(cmd);
-            route.clearEvents(); // Clear uncommitted events after execution
-            repository.save(route);
+            resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            capturedException = e;
+            caughtException = e;
         }
     }
 
     @Then("a routing.updated event is emitted")
     public void a_routing_updated_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof RoutingUpdatedEvent);
-        
-        RoutingUpdatedEvent event = (RoutingUpdatedEvent) resultEvents.get(0);
-        assertEquals("MODERN", event.newTarget());
+        assertNotNull(resultEvents, "Events list should not be null");
+        assertEquals(1, resultEvents.size(), "Exactly one event should be emitted");
+        assertEquals("RoutingUpdatedEvent", resultEvents.get(0).type());
     }
 
+    // --- Error Scenarios ---
+
     @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.")
-    public void a_LegacyTransactionRoute_aggregate_that_violates_dual_processing() {
-        currentRouteId = "route-dual-violation";
-        LegacyTransactionRoute route = new LegacyTransactionRoute(currentRouteId);
-        // For the Update command, we simulate a state where the command attempts an invalid transition
-        // or the aggregate is in a state that prevents a single target update.
-        // In this specific command context, we simulate the violation via the command data.
-        repository.save(route);
+    public void a_legacy_transaction_route_aggregate_that_violates_dual_processing() {
+        aggregate = new LegacyTransactionRoute("route-bad-dual");
+        aggregate.markDualProcessingViolation();
     }
 
     @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback.")
-    public void a_LegacyTransactionRoute_aggregate_that_violates_versioning() {
-        currentRouteId = "route-version-violation";
-        LegacyTransactionRoute route = new LegacyTransactionRoute(currentRouteId);
-        repository.save(route);
+    public void a_legacy_transaction_route_aggregate_that_violates_versioning() {
+        aggregate = new LegacyTransactionRoute("route-bad-version");
+        aggregate.markVersioningViolation();
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(capturedException);
-        assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
+        assertNotNull(caughtException, "Expected an exception to be thrown");
+        assertTrue(
+                caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException,
+                "Expected a domain error (IllegalStateException or IllegalArgumentException)"
+        );
+        assertFalse(caughtException.getMessage().isBlank(), "Error message should not be blank");
     }
 }

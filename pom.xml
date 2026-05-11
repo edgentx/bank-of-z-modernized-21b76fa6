@@ -5,52 +5,46 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.2.3</version>
+		<version>3.2.1</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
+	
 	<groupId>com.example</groupId>
-	<artifactId>egdcrypto-bank-of-z-modernized</artifactId>
+	<artifactId>demo</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>egdcrypto-bank-of-z-modernized</name>
-	<description>EGD Crypto Bank of Z Modernized</description>
-
+	<name>demo</name>
+	<description>Demo project for Spring Boot</description>
+	
 	<properties>
 		<java.version>17</java.version>
-		<cucumber.version>7.16.1</cucumber.version>
+		<cucumber.version>7.14.0</cucumber.version>
 	</properties>
-
+	
 	<dependencies>
-		<!-- Spring Boot Dependencies -->
+		<!-- Spring Boot Dependencies (Managed by BOM) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
 		</dependency>
-
+		
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
-		</dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
 
-		<!-- Testing Dependencies -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-
-		<!-- Cucumber BDD Dependencies -->
+		<!-- Cucumber Dependencies (Must specify version - Not in Spring Boot BOM) -->
 		<dependency>
 			<groupId>io.cucumber</groupId>
 			<artifactId>cucumber-java</artifactId>
 			<version>${cucumber.version}</version>
 			<scope>test</scope>
 		</dependency>
-
+		
 		<dependency>
 			<groupId>io.cucumber</groupId>
 			<artifactId>cucumber-junit-platform-engine</artifactId>
@@ -64,6 +58,12 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Testing (Managed by Spring Boot BOM) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>

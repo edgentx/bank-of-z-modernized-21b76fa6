@@ -1,36 +1,27 @@
 package com.example.domain.account.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
-import java.util.UUID;
 
-public class AccountStatusUpdatedEvent implements DomainEvent {
-  private final String aggregateId;
-  private final String newStatus;
-  private final Instant occurredAt;
+public record AccountStatusUpdatedEvent(
+        String aggregateId,
+        String oldStatus,
+        String newStatus,
+        Instant occurredAt
+) implements DomainEvent {
+    @Override
+    public String type() {
+        return "account.status.updated";
+    }
 
-  public AccountStatusUpdatedEvent(String aggregateId, String newStatus, Instant occurredAt) {
-    this.aggregateId = aggregateId;
-    this.newStatus = newStatus;
-    this.occurredAt = occurredAt;
-  }
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
 
-  @Override
-  public String type() {
-    return "account.status.updated";
-  }
-
-  @Override
-  public String aggregateId() {
-    return aggregateId;
-  }
-
-  @Override
-  public Instant occurredAt() {
-    return occurredAt;
-  }
-
-  public String getNewStatus() {
-    return newStatus;
-  }
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
 }

@@ -1,32 +1,39 @@
 package com.example.mocks;
 
-import com.example.ports.SlackNotificationPort;
-import org.springframework.stereotype.Component;
-
+import com.example.application.ports.SlackNotificationPort;
+import com.example.domain.validation.model.ReportDefectCmd;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock adapter for Slack notifications.
- * Captures messages sent to Slack for verification in tests.
+ * Mock implementation of SlackNotificationPort for testing.
+ * Captures messages to verify content without external I/O.
  */
-@Component
 public class MockSlackNotificationPort implements SlackNotificationPort {
 
-    private final List<String> sentMessages = new ArrayList<>();
+    public static class CapturedMessage {
+        public final ReportDefectCmd cmd;
+        public final String githubIssueUrl;
 
-    @Override
-    public void sendNotification(String messageBody) {
-        // In a real mock, we might just capture the argument.
-        // If we want to simulate a failure, we could throw an exception here.
-        sentMessages.add(messageBody);
+        public CapturedMessage(ReportDefectCmd cmd, String githubIssueUrl) {
+            this.cmd = cmd;
+            this.githubIssueUrl = githubIssueUrl;
+        }
     }
 
-    public List<String> getSentMessages() {
-        return sentMessages;
+    private final List<CapturedMessage> messages = new ArrayList<>();
+
+    @Override
+    public void postDefectNotification(ReportDefectCmd cmd, String githubIssueUrl) {
+        // Simulate external call side-effect: record the data
+        messages.add(new CapturedMessage(cmd, githubIssueUrl));
+    }
+
+    public List<CapturedMessage> getMessages() {
+        return new ArrayList<>(messages);
     }
 
     public void clear() {
-        sentMessages.clear();
+        messages.clear();
     }
 }

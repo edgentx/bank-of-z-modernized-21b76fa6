@@ -6,15 +6,13 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * Command to update routing rules for a specific route ID.
- * Used to shift traffic from Legacy to Modern systems.
+ * Command to update a specific routing rule configuration.
  */
 public record UpdateRoutingRuleCmd(
-    String routeId,
-    String ruleId,
-    String newTarget,
-    Instant effectiveDate,
-    int newRuleVersion
+        String routeId,
+        String ruleId,
+        String newTarget,
+        Instant effectiveDate
 ) implements Command {
     public UpdateRoutingRuleCmd {
         Objects.requireNonNull(routeId, "routeId cannot be null");

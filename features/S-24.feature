@@ -1,4 +1,4 @@
-Feature: Implement UpdateRoutingRuleCmd on LegacyTransactionRoute (legacy-bridge)
+Feature: UpdateRoutingRuleCmd
 
   Scenario: Successfully execute UpdateRoutingRuleCmd
     Given a valid LegacyTransactionRoute aggregate

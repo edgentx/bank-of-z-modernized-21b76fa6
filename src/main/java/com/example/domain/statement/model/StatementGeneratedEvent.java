@@ -1,20 +1,23 @@
 package com.example.domain.statement.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record StatementGeneratedEvent(
-        String eventId,
-        String aggregateId,
-        String accountNumber,
-        Instant periodEnd,
-        BigDecimal openingBalance,
-        Instant occurredAt
+    String eventId,
+    String aggregateId,
+    String accountNumber,
+    LocalDate periodEnd,
+    BigDecimal openingBalance,
+    BigDecimal closingBalance,
+    Instant occurredAt
 ) implements DomainEvent {
-    public StatementGeneratedEvent(String aggregateId, String accountNumber, Instant periodEnd, BigDecimal openingBalance, Instant occurredAt) {
-        this(UUID.randomUUID().toString(), aggregateId, accountNumber, periodEnd, openingBalance, occurredAt);
+    public StatementGeneratedEvent(String aggregateId, String accountNumber, LocalDate periodEnd, BigDecimal openingBalance, BigDecimal closingBalance, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, accountNumber, periodEnd, openingBalance, closingBalance, occurredAt);
     }
 
     @Override

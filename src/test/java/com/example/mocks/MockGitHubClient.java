@@ -1,33 +1,25 @@
 package com.example.mocks;
 
-import com.example.domain.shared.Command;
-import com.example.ports.GitHubPort;
-
-import java.util.ArrayList;
-import java.util.List;
+import com.example.ports.GitHubClient;
 
 /**
- * Mock implementation of GitHubPort for testing.
- * Simulates the creation of an issue and captures the request.
+ * Mock adapter for GitHubClient.
+ * Returns predictable data without calling the real GitHub API.
  */
-public class MockGitHubClient implements GitHubPort {
+public class MockGitHubClient implements GitHubClient {
 
-    private final List<Command> receivedCommands = new ArrayList<>();
-    private String responseUrl = "https://github.com/example/repo/issues/1";
+    private String mockResponseUrl;
+
+    public void setMockResponseUrl(String url) {
+        this.mockResponseUrl = url;
+    }
 
     @Override
-    public String createIssue(Command cmd) {
-        this.receivedCommands.add(cmd);
-        // Simulate returning a valid GitHub URL
-        return responseUrl;
-    }
-
-    public Command getFirstCommand() {
-        if (receivedCommands.isEmpty()) return null;
-        return receivedCommands.get(0);
-    }
-
-    public void setResponseUrl(String url) {
-        this.responseUrl = url;
+    public String createIssue(String title, String body) {
+        // Simulate API latency or logic if necessary, but here we just return the stubbed value.
+        if (mockResponseUrl == null) {
+            return "https://github.com/example-bank/issues/default";
+        }
+        return mockResponseUrl;
     }
 }

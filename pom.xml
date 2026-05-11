@@ -24,6 +24,7 @@
             <scope>test</scope>
         </dependency>
         <!-- Slack API Dependency (Required by DefaultSlackAdapter) -->
+        <!-- Explicit version required as groupId is not in the standard BOM closed set -->
         <dependency>
             <groupId>com.slack.api</groupId>
             <artifactId>slack-api-client</artifactId>

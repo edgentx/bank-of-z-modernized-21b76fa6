@@ -1,60 +1,45 @@
 package com.example.domain.tellersession.model;
 
-import com.example.domain.shared.AggregateRoot;
-import com.example.domain.shared.Command;
-import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
+import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 
-public class TellerSession extends AggregateRoot {
+public class TellerSession {
     private final String sessionId;
-    private boolean authenticated;
-    private boolean timedOut;
-    private boolean navigationStateValid;
-    private boolean active;
+    private final String tellerId;
+    private Instant lastActivityAt;
+    private final Duration timeoutDuration;
+    private final boolean isAuthenticated;
+    private TellerSessionState state;
 
-    public TellerSession(String sessionId) {
+    public enum TellerSessionState {
+        ACTIVE, ENDED
+    }
+
+    public TellerSession(String sessionId, String tellerId, Instant lastActivityAt, Duration timeoutDuration, boolean isAuthenticated) {
         this.sessionId = sessionId;
-        this.active = true;
+        this.tellerId = tellerId;
+        this.lastActivityAt = lastActivityAt;
+        this.timeoutDuration = timeoutDuration;
+        this.isAuthenticated = isAuthenticated;
+        this.state = TellerSessionState.ACTIVE;
     }
 
-    @Override
-    public String id() {
-        return sessionId;
+    public String sessionId() { return sessionId; }
+    public String tellerId() { return tellerId; }
+    public Instant lastActivityAt() { return lastActivityAt; }
+    public Duration timeoutDuration() { return timeoutDuration; }
+    public boolean isAuthenticated() { return isAuthenticated; }
+    public TellerSessionState state() { return state; }
+
+    public void markEnded() {
+        this.state = TellerSessionState.ENDED;
     }
 
-    @Override
-    public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof EndSessionCmd c) {
-            return endSession(c);
-        }
-        throw new UnknownCommandException(cmd);
+    public boolean isExpired() {
+        return Instant.now().isAfter(lastActivityAt.plus(timeoutDuration));
     }
 
-    private List<DomainEvent> endSession(EndSessionCmd cmd) {
-        if (!authenticated) {
-            throw new IllegalStateException("A teller must be authenticated to initiate a session.");
-        }
-        if (timedOut) {
-            throw new IllegalStateException("Sessions must timeout after a configured period of inactivity.");
-        }
-        if (!navigationStateValid) {
-            throw new IllegalStateException("Navigation state must accurately reflect the current operational context.");
-        }
-
-        SessionEndedEvent event = new SessionEndedEvent(this.sessionId, Instant.now());
-        this.active = false;
-        this.addEvent(event);
-        this.incrementVersion();
-        return List.of(event);
+    public boolean isActive() {
+        return this.state == TellerSessionState.ACTIVE;
     }
-
-    // Test/Setup helpers
-    public void markUnauthenticated() { this.authenticated = false; }
-    public void markAuthenticated() { this.authenticated = true; }
-    public void markTimedOut() { this.timedOut = true; }
-    public void markInvalidNavigation() { this.navigationStateValid = false; }
-    public void markValidNavigation() { this.navigationStateValid = true; }
-    public boolean isActive() { return active; }
 }

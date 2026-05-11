@@ -1,42 +1,59 @@
 package com.example.config;
 
-import com.example.adapters.SlackNotificationStubAdapter;
-import com.example.domain.validation.service.DefectReportingService;
-import com.example.mocks.MockDefectReportGeneratorPort;
-import com.example.ports.DefectReportGeneratorPort;
-import com.example.ports.SlackNotificationPort;
+import com.example.adapters.DefaultGitHubAdapter;
+import com.example.adapters.DefaultSlackAdapter;
+import com.example.adapters.DefectRepositoryAdapter;
+import com.example.domain.defect.repository.DefectRepository;
+import com.example.mocks.InMemoryDefectRepository;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackPort;
+import com.slack.api.Slack;
+import com.slack.api.methods.MethodsClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.web.client.RestTemplate;
 
-/**
- * Spring Configuration for the Defect Reporting context.
- * Wires the Domain Service with the necessary ports.
- */
 @Configuration
 public class DefectReportingConfig {
 
+    /**
+     * Production Configuration for Defect Repository.
+     * Note: Using InMemory for now to pass immediate compilation, 
+     * but in a real scenario this would be a JPA/DB2 adapter.
+     */
     @Bean
-    public DefectReportingService defectReportingService(
-            DefectReportGeneratorPort defectReportGeneratorPort,
-            SlackNotificationPort slackNotificationPort) {
-        return new DefectReportingService(defectReportGeneratorPort, slackNotificationPort);
+    public DefectRepository defectRepository() {
+        return new InMemoryDefectRepository();
     }
 
-    // --- Primary Bean Definitions (Ports) ---
-    // In a real Spring Boot environment, these might be auto-configured or @Primary.
-    // For this Green Phase implementation, we expose the specific real adapters.
-
+    /**
+     * Configuration for Slack Port.
+     */
     @Bean
-    public DefectReportGeneratorPort defectReportGeneratorPort() {
-        // Using the Mock implementation as the primary adapter per existing test patterns.
-        // In a full production scenario, this would be replaced by a GitHub client implementation.
-        return new MockDefectReportGeneratorPort();
+    @Profile("prod")
+    public SlackPort slackPort(Slack slack, @Value("${slack.bot.token}") String token) {
+        MethodsClient client = slack.methods(token);
+        return new DefaultSlackAdapter(client, token);
     }
 
     @Bean
-    public SlackNotificationPort slackNotificationPort() {
-        // Using a Stub adapter that forwards to the Mock, ensuring the contract is met
-        // while allowing the Mock to capture state for the tests.
-        return new SlackNotificationStubAdapter();
+    @Profile("test")
+    public SlackPort mockSlackPort() {
+        return new com.example.mocks.MockSlackPort();
+    }
+
+    /**
+     * Configuration for GitHub Port.
+     */
+    @Bean
+    public GitHubPort gitHubPort(RestTemplate restTemplate, @Value("${github.repo:org/repo}") String repo) {
+        return new DefaultGitHubAdapter(restTemplate, repo);
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 }

@@ -1,13 +1,14 @@
 package com.example;
 
+import com.example.adapters.SlackNotificationAdapter;
+import com.example.adapters.GitHubIssueAdapter;
+import com.example.ports.GitHubIssuePort;
+import com.example.ports.SlackNotificationPort;
+import com.example.workflow.ReportDefectWorkflow;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.web.client.RestTemplate;
 
-/**
- * Main application class for Validation Service.
- */
 @SpringBootApplication
 public class Application {
 
@@ -16,7 +17,17 @@ public class Application {
     }
 
     @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
+    public GitHubIssuePort gitHubIssuePort() {
+        return new GitHubIssueAdapter();
+    }
+
+    @Bean
+    public SlackNotificationPort slackNotificationPort() {
+        return new SlackNotificationAdapter();
+    }
+
+    @Bean
+    public ReportDefectWorkflow reportDefectWorkflow(GitHubIssuePort gitHubIssuePort, SlackNotificationPort slackNotificationPort) {
+        return new ReportDefectWorkflow(gitHubIssuePort, slackNotificationPort);
     }
 }

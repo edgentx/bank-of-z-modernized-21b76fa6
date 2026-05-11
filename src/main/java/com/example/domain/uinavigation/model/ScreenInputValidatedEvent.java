@@ -1,10 +1,19 @@
 package com.example.domain.uinavigation.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
 import java.util.Map;
 
-public record ScreenInputValidatedEvent(String aggregateId, Map<String, String> validatedFields, Instant occurredAt) implements DomainEvent {
+/**
+ * Event emitted when screen input successfully passes validation rules.
+ */
+public record ScreenInputValidatedEvent(
+        String aggregateId,
+        Map<String, String> inputFields,
+        Instant occurredAt
+) implements DomainEvent {
+
     @Override
     public String type() {
         return "input.validated";

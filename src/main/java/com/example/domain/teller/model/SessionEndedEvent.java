@@ -4,12 +4,23 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
-public record SessionEndedEvent(String type, String aggregateId, Instant occurredAt) implements DomainEvent {
-    public SessionEndedEvent {
-        if (type == null) type = "session.ended";
+public record SessionEndedEvent(
+        String aggregateId,
+        String tellerId,
+        Instant occurredAt
+) implements DomainEvent {
+    @Override
+    public String type() {
+        return "session.ended";
     }
 
-    public SessionEndedEvent(String aggregateId, Instant occurredAt) {
-        this("session.ended", aggregateId, occurredAt);
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
+
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
     }
 }

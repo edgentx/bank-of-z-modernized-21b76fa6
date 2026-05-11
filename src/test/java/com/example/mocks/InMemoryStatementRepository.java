@@ -7,12 +7,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * In-memory implementation of StatementRepository for testing.
+ */
 public class InMemoryStatementRepository implements StatementRepository {
+
     private final Map<String, StatementAggregate> store = new HashMap<>();
 
     @Override
-    public Optional<StatementAggregate> findById(String id) {
-        return Optional.ofNullable(store.get(id));
+    public Optional<StatementAggregate> findById(String statementId) {
+        return Optional.ofNullable(store.get(statementId));
     }
 
     @Override

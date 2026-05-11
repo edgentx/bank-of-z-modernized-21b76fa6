@@ -8,53 +8,58 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Cucumber Steps for S-8: Implement GenerateStatementCmd on Statement.
+ */
 public class S8Steps {
 
     private StatementAggregate aggregate;
     private List<DomainEvent> resultEvents;
     private Exception caughtException;
 
-    // Test Data Constants
-    private static final String TEST_STATEMENT_ID = "stmt-123";
-    private static final String TEST_ACCOUNT_NUMBER = "acct-456";
-    private static final BigDecimal TEST_OPENING_BALANCE = new BigDecimal("100.00");
-    private static final Instant NOW = Instant.now();
-    private static final Instant PAST = NOW.minusSeconds(86400);
+    // Helper data for valid context
+    private static final String VALID_ACCOUNT = "ACC-12345";
+    private static final Instant VALID_START = Instant.now().minus(30, ChronoUnit.DAYS);
+    private static final Instant VALID_END = Instant.now();
+    private static final BigDecimal VALID_OPENING = BigDecimal.valueOf(1000.00);
+    private static final BigDecimal VALID_CLOSING = BigDecimal.valueOf(1500.00);
 
     @Given("a valid Statement aggregate")
-    public void aValidStatementAggregate() {
-        aggregate = new StatementAggregate(TEST_STATEMENT_ID);
-        Assertions.assertNotNull(aggregate);
-        Assertions.assertEquals(TEST_STATEMENT_ID, aggregate.id());
+    public void a_valid_statement_aggregate() {
+        aggregate = new StatementAggregate("stmt-test-1");
+        // Defaults: not closed, no previous balance constraints interfering
+        aggregate.setPreviousStatementClosingBalance(null);
     }
 
     @And("a valid accountNumber is provided")
-    public void aValidAccountNumberIsProvided() {
-        // Account number is provided in the command construction
+    public void a_valid_account_number_is_provided() {
+        // Parameter data is prepared in the When step for simplicity in this pattern,
+        // but we ensure the aggregate is ready.
     }
 
     @And("a valid periodEnd is provided")
-    public void aValidPeriodEndIsProvided() {
-        // Period end is provided in the command construction
+    public void a_valid_period_end_is_provided() {
+        // Parameter data prepared in When step.
     }
 
     @When("the GenerateStatementCmd command is executed")
-    public void theGenerateStatementCmdCommandIsExecuted() {
+    public void the_generate_statement_cmd_command_is_executed() {
         GenerateStatementCmd cmd = new GenerateStatementCmd(
-            TEST_STATEMENT_ID,
-            TEST_ACCOUNT_NUMBER,
-            PAST,
-            NOW,
-            TEST_OPENING_BALANCE,
-            TEST_OPENING_BALANCE // Matching balances for success case
+            aggregate.id(),
+            VALID_ACCOUNT,
+            VALID_START,
+            VALID_END,
+            VALID_OPENING,
+            VALID_CLOSING
         );
-        
         try {
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
@@ -63,125 +68,35 @@ public class S8Steps {
     }
 
     @Then("a statement.generated event is emitted")
-    public void aStatementGeneratedEventIsEmitted() {
-        Assertions.assertNull(caughtException, "Expected no exception, but got: " + caughtException);
-        Assertions.assertNotNull(resultEvents);
-        Assertions.assertEquals(1, resultEvents.size());
+    public void a_statement_generated_event_is_emitted() {
+        assertNotNull(resultEvents, "Events should not be null");
+        assertEquals(1, resultEvents.size(), "Exactly one event should be emitted");
+        assertTrue(resultEvents.get(0) instanceof StatementGeneratedEvent, "Event should be StatementGeneratedEvent");
         
-        DomainEvent event = resultEvents.get(0);
-        Assertions.assertTrue(event instanceof StatementGeneratedEvent);
-        
-        StatementGeneratedEvent stmtEvent = (StatementGeneratedEvent) event;
-        Assertions.assertEquals("statement.generated", stmtEvent.type());
-        Assertions.assertEquals(TEST_STATEMENT_ID, stmtEvent.aggregateId());
-        Assertions.assertEquals(TEST_ACCOUNT_NUMBER, stmtEvent.accountNumber());
+        StatementGeneratedEvent event = (StatementGeneratedEvent) resultEvents.get(0);
+        assertEquals("statement.generated", event.type());
+        assertEquals(VALID_ACCOUNT, event.accountNumber());
     }
 
-    // Scenario 2 & 3 Setup & Execution Steps
-    
+    // --- Error Scenarios ---
+
     @Given("a Statement aggregate that violates: A statement must be generated for a closed period and cannot be altered retroactively.")
-    public void aStatementAggregateThatViolatesClosedPeriod() {
-        aggregate = new StatementAggregate(TEST_STATEMENT_ID);
-        // We will trigger the violation in the 'When' step by setting a future date
+    public void a_statement_aggregate_that_violates_closed_period_constraint() {
+        aggregate = new StatementAggregate("stmt-test-closed");
+        aggregate.markAsClosed(); // Simulate the invariant violation state
     }
 
     @Given("a Statement aggregate that violates: Statement opening balance must exactly match the closing balance of the previous statement.")
-    public void aStatementAggregateThatViolatesOpeningBalance() {
-        aggregate = new StatementAggregate(TEST_STATEMENT_ID);
-        // We will trigger the violation in the 'When' step by providing mismatching balances
+    public void a_statement_aggregate_that_violates_opening_balance_constraint() {
+        aggregate = new StatementAggregate("stmt-test-balance-mismatch");
+        // Simulate a previous statement with a closing balance of 2000
+        aggregate.setPreviousStatementClosingBalance(BigDecimal.valueOf(2000.00));
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(caughtException, "Expected an exception to be thrown");
-        // We check for IllegalArgumentException or IllegalStateException as domain errors
-        Assertions.assertTrue(
-            caughtException instanceof IllegalArgumentException || caughtException instanceof IllegalStateException,
-            "Expected IllegalArgumentException or IllegalStateException, but got: " + caughtException.getClass().getSimpleName()
-        );
-    }
-
-    // Specific When steps for error cases (Overloading the When step usually isn't possible in standard Cucumber Java without regex, 
-    // but here we rely on the Given setup modifying the context used by the generic When.
-    // However, Cucumber Java requires distinct method signatures or regex to disambiguate.
-    // I will add specific When steps for clarity).
-
-    @When("the GenerateStatementCmd command is executed with a future periodEnd")
-    public void theGenerateStatementCmdCommandIsExecutedWithFuturePeriodEnd() {
-        GenerateStatementCmd cmd = new GenerateStatementCmd(
-            TEST_STATEMENT_ID,
-            TEST_ACCOUNT_NUMBER,
-            NOW,
-            NOW.plusSeconds(3600), // Future date
-            TEST_OPENING_BALANCE,
-            TEST_OPENING_BALANCE
-        );
-        try {
-            resultEvents = aggregate.execute(cmd);
-        } catch (Exception e) {
-            caughtException = e;
-        }
-    }
-
-    @When("the GenerateStatementCmd command is executed with mismatched balances")
-    public void theGenerateStatementCmdCommandIsExecutedWithMismatchedBalances() {
-        GenerateStatementCmd cmd = new GenerateStatementCmd(
-            TEST_STATEMENT_ID,
-            TEST_ACCOUNT_NUMBER,
-            PAST,
-            NOW,
-            new BigDecimal("50.00"), // Opening
-            new BigDecimal("100.00")  // Previous Closing (Mismatch)
-        );
-        try {
-            resultEvents = aggregate.execute(cmd);
-        } catch (Exception e) {
-            caughtException = e;
-        }
-    }
-
-    // We need to ensure the scenarios map correctly. 
-    // The generic 'When the GenerateStatementCmd command is executed' in Scenario 1 works. 
-    // For Scenario 2 & 3, the Cucumber feature file provided uses the same 'When' line. 
-    // To handle this strictly with one step definition method, we would need state flags. 
-    // However, a cleaner way for this exercise is to rely on the feature file passing or assume the user updates the feature file 
-    // to be specific. Given the instruction to 'Return ALL files', I will update the feature file 
-    // to use specific When steps or inject logic into the single When step.
-    
-    // Re-reading the instructions: 'Use the acceptance criteria AS-IS for the Gherkin scenarios'.
-    // So I cannot change S-8.feature. I must make the step definition handle the ambiguity.
-    
-    // Implementation Strategy: Detect the state set by the Given steps.
-    
-    private enum TestScenario { SUCCESS, CLOSED_PERIOD_VIOLATION, BALANCE_VIOLATION }
-    private TestScenario currentScenario;
-
-    @Given("a valid Statement aggregate")
-    public void initValidScenario() {
-        this.currentScenario = TestScenario.SUCCESS;
-        aValidStatementAggregate();
-    }
-
-    @Given("a Statement aggregate that violates: A statement must be generated for a closed period and cannot be altered retroactively.")
-    public void initClosedPeriodViolationScenario() {
-        this.currentScenario = TestScenario.CLOSED_PERIOD_VIOLATION;
-        aStatementAggregateThatViolatesClosedPeriod();
-    }
-
-    @Given("a Statement aggregate that violates: Statement opening balance must exactly match the closing balance of the previous statement.")
-    public void initBalanceViolationScenario() {
-        this.currentScenario = TestScenario.BALANCE_VIOLATION;
-        aStatementAggregateThatViolatesOpeningBalance();
-    }
-
-    @When("the GenerateStatementCmd command is executed")
-    public void theCommandIsExecutedDispatcher() {
-        if (currentScenario == TestScenario.CLOSED_PERIOD_VIOLATION) {
-            theGenerateStatementCmdCommandIsExecutedWithFuturePeriodEnd();
-        } else if (currentScenario == TestScenario.BALANCE_VIOLATION) {
-            theGenerateStatementCmdCommandIsExecutedWithMismatchedBalances();
-        } else {
-            theGenerateStatementCmdCommandIsExecuted(); // Standard success path
-        }
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(caughtException, "Expected an exception to be thrown");
+        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException,
+            "Expected a domain error (IllegalStateException or IllegalArgumentException)");
     }
 }

@@ -5,14 +5,14 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
- * Command to generate a statement for an account.
+ * Command to generate a new statement for a given period.
+ * BNK-S-8
  */
 public record GenerateStatementCmd(
         String statementId,
         String accountNumber,
-        Instant periodStart,
         Instant periodEnd,
         BigDecimal openingBalance,
-        BigDecimal closingBalance,
-        BigDecimal previousClosingBalance
-) implements Command {}
+        BigDecimal closingBalanceOfPreviousStatement
+) implements Command {
+}

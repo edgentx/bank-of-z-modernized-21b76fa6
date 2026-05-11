@@ -1,10 +1,9 @@
 package com.example.domain.tellersession.repository;
 
-import com.example.domain.shared.Aggregate; // Corrected import based on repo convention
-import com.example.domain.tellersession.model.TellerSession; // Fixed: Reference actual class name
+import com.example.domain.tellersession.model.TellerSessionAggregate;
 import java.util.Optional;
 
 public interface TellerSessionRepository {
-    TellerSession save(TellerSession aggregate);
-    Optional<TellerSession> findById(String id);
+    void save(TellerSessionAggregate aggregate);
+    Optional<TellerSessionAggregate> findById(String id);
 }

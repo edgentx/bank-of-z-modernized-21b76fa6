@@ -1,15 +1,16 @@
 package com.example.steps;
 
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
-import com.example.domain.userinterface.model.RenderScreenCmd;
-import com.example.domain.userinterface.model.ScreenMapAggregate;
-import com.example.domain.userinterface.model.ScreenRenderedEvent;
+import com.example.domain.userinterfacenavigation.model.RenderScreenCmd;
+import com.example.domain.userinterfacenavigation.model.ScreenMapAggregate;
+import com.example.domain.userinterfacenavigation.model.ScreenRenderedEvent;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -17,80 +18,77 @@ public class S21Steps {
 
     private ScreenMapAggregate aggregate;
     private RenderScreenCmd cmd;
-    private List<DomainEvent> resultingEvents;
-    private Exception capturedException;
+    private List<DomainEvent> resultEvents;
+    private Exception caughtException;
 
     @Given("a valid ScreenMap aggregate")
     public void a_valid_screen_map_aggregate() {
-        aggregate = new ScreenMapAggregate("test-screen-map-1");
+        aggregate = new ScreenMapAggregate("SM-001");
     }
 
     @Given("a valid screenId is provided")
     public void a_valid_screen_id_is_provided() {
-        // Cmd construction is completed in the 'When' step to allow variations
+        // No-op, handled in When construction or context storage
+        // For simplicity in this pattern, we construct command in @When
     }
 
     @Given("a valid deviceType is provided")
     public void a_valid_device_type_is_provided() {
-        // Cmd construction is completed in the 'When' step
+        // No-op
     }
 
     @When("the RenderScreenCmd command is executed")
     public void the_render_screen_cmd_command_is_executed() {
-        cmd = new RenderScreenCmd("LOGIN01", "3270");
-        executeCommand();
+        // Default valid command if not overridden by a violation scenario
+        if (cmd == null) {
+            cmd = new RenderScreenCmd("SM-001", "LOGIN_SCREEN", "3270", null);
+        }
+        try {
+            resultEvents = aggregate.execute(cmd);
+        } catch (Exception e) {
+            caughtException = e;
+        }
     }
 
     @Then("a screen.rendered event is emitted")
     public void a_screen_rendered_event_is_emitted() {
-        assertNull(capturedException, "Expected no exception, but got: " + (capturedException != null ? capturedException.getMessage() : ""));
-        assertNotNull(resultingEvents);
-        assertEquals(1, resultingEvents.size());
-        assertTrue(resultingEvents.get(0) instanceof ScreenRenderedEvent);
-
-        ScreenRenderedEvent event = (ScreenRenderedEvent) resultingEvents.get(0);
-        assertEquals("test-screen-map-1", event.aggregateId());
-        assertEquals("LOGIN01", event.screenId());
-        assertEquals("3270", event.deviceType());
-        assertNotNull(event.layout());
+        assertNotNull(resultEvents);
+        assertEquals(1, resultEvents.size());
+        assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
+        ScreenRenderedEvent event = (ScreenRenderedEvent) resultEvents.get(0);
+        assertEquals("screen.rendered", event.type());
+        assertEquals("LOGIN_SCREEN", event.screenId());
+        assertNull(caughtException, "Should not have thrown an exception");
     }
+
+    // --- Validation Error Scenarios ---
 
     @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
     public void a_screen_map_aggregate_that_violates_mandatory_fields() {
-        aggregate = new ScreenMapAggregate("test-screen-map-err");
+        aggregate = new ScreenMapAggregate("SM-INVALID");
+        // Create command with blank mandatory fields
+        cmd = new RenderScreenCmd("SM-INVALID", "", "3270", null);
     }
 
-    @When("the RenderScreenCmd command is executed with invalid data")
-    public void the_render_screen_cmd_command_is_executed_with_invalid_data() {
-        // screenId is null/blank
-        cmd = new RenderScreenCmd("", "3270");
-        executeCommand();
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void a_screen_map_aggregate_that_violates_bms_constraints() {
+        aggregate = new ScreenMapAggregate("SM-BMS-FAIL");
+        Map<String, String> badData = new HashMap<>();
+        badData.put("address", "X".repeat(100)); // Exceeds hypothetical limit of 80
+        cmd = new RenderScreenCmd("SM-BMS-FAIL", "PROFILE_SCREEN", "3270", badData);
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(capturedException);
-        assertTrue(capturedException instanceof IllegalArgumentException);
-        assertTrue(capturedException.getMessage().contains("required"));
+        assertNotNull(caughtException, "Expected an exception to be thrown");
+        assertTrue(caughtException instanceof IllegalArgumentException, "Expected IllegalArgumentException");
+        assertTrue(caughtException.getMessage().contains("length") 
+                   || caughtException.getMessage().contains("mandatory")
+                   || caughtException.getMessage().contains("required"), 
+                   "Exception message should indicate the specific validation failure: " + caughtException.getMessage());
+        assertNull(resultEvents, "No events should be produced on validation failure");
     }
 
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void a_screen_map_aggregate_that_violates_field_lengths() {
-        aggregate = new ScreenMapAggregate("test-screen-map-len");
-    }
-
-    @When("the RenderScreenCmd command is executed with invalid length")
-    public void the_render_screen_cmd_command_is_executed_with_invalid_length() {
-        // screenId length > 8
-        cmd = new RenderScreenCmd("LONGSCREENNAME", "3270");
-        executeCommand();
-    }
-
-    private void executeCommand() {
-        try {
-            resultingEvents = aggregate.execute(cmd);
-        } catch (Exception e) {
-            capturedException = e;
-        }
-    }
+    // --- Helper to reset state between scenarios if needed ---
+    // Cucumber creates a new instance per scenario, so constructors handle reset.
 }

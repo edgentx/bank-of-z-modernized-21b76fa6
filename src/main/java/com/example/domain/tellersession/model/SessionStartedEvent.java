@@ -6,29 +6,23 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Domain event emitted when a teller session is successfully started.
+ * Event emitted when a teller session is started.
  */
 public record SessionStartedEvent(
-        String type,
-        String aggregateId,
-        Instant occurredAt,
-        String tellerId,
-        String terminalId
+    String aggregateId,
+    String tellerId,
+    String terminalId,
+    Instant occurredAt
 ) implements DomainEvent {
 
     public SessionStartedEvent {
-        if (type == null || type.isBlank()) {
-            throw new IllegalArgumentException("type cannot be null or blank");
-        }
-    }
-
-    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId) {
-        this("session.started", aggregateId, Instant.now(), tellerId, terminalId);
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
+        if (occurredAt == null) occurredAt = Instant.now();
     }
 
     @Override
     public String type() {
-        return type;
+        return "session.started";
     }
 
     @Override

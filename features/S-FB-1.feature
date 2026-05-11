@@ -1,6 +1,14 @@
 Feature: Validating VW-454 — GitHub URL in Slack body (end-to-end)
 
-  Scenario: Verify Slack notification contains GitHub link
-    Given a defect report command exists
-    When the temporal worker executes the defect report workflow
-    Then the Slack body should contain the GitHub issue link
+  Background:
+    Given the defect reporting system is initialized
+
+  Scenario: Valid defect report posts GitHub URL to Slack
+    Given a valid defect report command with URL "https://github.com/egdcrypto/bank-of-z/issues/454"
+    When the report defect command is executed
+    Then Slack should receive a notification containing the GitHub issue link
+
+  Scenario: Invalid URL should not trigger Slack notification
+    Given a valid defect report command with URL "not-a-url"
+    When the report defect command is executed
+    Then Slack should not receive any notification

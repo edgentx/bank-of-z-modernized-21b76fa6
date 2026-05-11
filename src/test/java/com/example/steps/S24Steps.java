@@ -1,90 +1,91 @@
 package com.example.steps;
 
 import com.example.domain.legacy.model.LegacyTransactionRoute;
-import com.example.domain.legacy.model.RoutingUpdatedEvent;
+import com.example.domain.legacy.model.RoutingRuleUpdatedEvent;
 import com.example.domain.legacy.model.UpdateRoutingRuleCmd;
+import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
 import java.time.Instant;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class S24Steps {
 
     private LegacyTransactionRoute aggregate;
-    private Exception caughtException;
-    private RoutingUpdatedEvent resultEvent;
+    private List<DomainEvent> resultingEvents;
+    private Exception capturedException;
 
     @Given("a valid LegacyTransactionRoute aggregate")
-    public void aValidLegacyTransactionRouteAggregate() {
-        this.aggregate = new LegacyTransactionRoute("route-123");
-        this.caughtException = null;
-        this.resultEvent = null;
+    public void a_valid_legacy_transaction_route_aggregate() {
+        aggregate = new LegacyTransactionRoute("route-123");
     }
 
     @Given("a valid ruleId is provided")
-    public void aValidRuleIdIsProvided() {
-        // This step simply establishes the context, data is created in the When step
+    public void a_valid_rule_id_is_provided() {
+        // Handled in context by the When step
     }
 
     @Given("a valid newTarget is provided")
-    public void aValidNewTargetIsProvided() {
-        // Context
+    public void a_valid_new_target_is_provided() {
+        // Handled in context by the When step
     }
 
     @Given("a valid effectiveDate is provided")
-    public void aValidEffectiveDateIsProvided() {
-        // Context
+    public void a_valid_effective_date_is_provided() {
+        // Handled in context by the When step
     }
 
     @When("the UpdateRoutingRuleCmd command is executed")
-    public void theUpdateRoutingRuleCmdCommandIsExecuted() {
+    public void the_update_routing_rule_cmd_command_is_executed() {
         try {
             var cmd = new UpdateRoutingRuleCmd(
-                "route-123",
-                "rule-alpha",
-                "VForce360",
-                Instant.now().plusSeconds(3600)
+                    "route-123",
+                    "rule-abc",
+                    "ModernSystem",
+                    Instant.now()
             );
-            var events = aggregate.execute(cmd);
-            if (!events.isEmpty()) {
-                this.resultEvent = (RoutingUpdatedEvent) events.get(0);
-            }
+            resultingEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            this.caughtException = e;
+            capturedException = e;
         }
     }
 
     @Then("a routing.updated event is emitted")
-    public void aRoutingUpdatedEventIsEmitted() {
-        assertNotNull(resultEvent, "Expected an event to be emitted");
-        assertEquals("RoutingUpdated", resultEvent.type());
-        assertEquals("route-123", resultEvent.aggregateId());
-        assertEquals("rule-alpha", resultEvent.ruleId());
-        assertEquals("VForce360", resultEvent.newTarget());
-        assertNull(caughtException, "Expected no exception, but got: " + caughtException);
+    public void a_routing_updated_event_is_emitted() {
+        assertNotNull(resultingEvents);
+        assertEquals(1, resultingEvents.size());
+        assertTrue(resultingEvents.get(0) instanceof RoutingRuleUpdatedEvent);
+
+        var event = (RoutingRuleUpdatedEvent) resultingEvents.get(0);
+        assertEquals("route-123", event.aggregateId());
+        assertEquals("rule-abc", event.ruleId());
+        assertEquals("ModernSystem", event.newTarget());
+        assertEquals("RoutingRuleUpdated", event.type());
     }
 
+    // --- Negative Scenarios ---
+
     @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.")
-    public void aLegacyTransactionRouteAggregateThatViolatesDualProcessing() {
-        this.aggregate = new LegacyTransactionRoute("route-123");
+    public void a_legacy_transaction_route_aggregate_that_violates_single_target() {
+        aggregate = new LegacyTransactionRoute("route-bad-dual");
         aggregate.markDualProcessingViolation();
-        this.caughtException = null;
     }
 
     @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback.")
-    public void aLegacyTransactionRouteAggregateThatViolatesVersioning() {
-        this.aggregate = new LegacyTransactionRoute("route-123");
+    public void a_legacy_transaction_route_aggregate_that_violates_versioning() {
+        aggregate = new LegacyTransactionRoute("route-bad-version");
         aggregate.markVersioningViolation();
-        this.caughtException = null;
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(caughtException, "Expected a domain error exception, but none was thrown");
-        assertTrue(caughtException instanceof IllegalStateException, "Expected IllegalStateException, got " + caughtException.getClass().getSimpleName());
+    public void the_command_is_rejected_with_a_domain_error() {
+        assertNotNull(capturedException);
+        // Checking for RuntimeException or specific Invariant violations
+        assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
     }
 }

@@ -1,20 +1,16 @@
 package com.example.domain.navigation.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.time.Instant;
 import java.util.Map;
 
-/**
- * Domain event emitted when screen input successfully passes validation.
- */
 public record ScreenInputValidatedEvent(
+    String type,
     String aggregateId,
-    String screenId,
-    Map<String, String> inputFields,
-    Instant occurredAt
+    Instant occurredAt,
+    Map<String, String> inputFields
 ) implements DomainEvent {
-  @Override public String type() { return "input.validated"; }
-  @Override public String aggregateId() { return aggregateId; }
-  @Override public Instant occurredAt() { return occurredAt; }
+    public ScreenInputValidatedEvent(String aggregateId, Map<String, String> inputFields) {
+        this("input.validated", aggregateId, Instant.now(), inputFields);
+    }
 }

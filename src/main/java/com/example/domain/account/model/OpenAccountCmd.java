@@ -5,9 +5,8 @@ import com.example.domain.shared.Command;
 import java.math.BigDecimal;
 
 public record OpenAccountCmd(
-    String accountId,
     String customerId,
-    AccountAggregate.AccountType accountType,
+    String accountType,
     BigDecimal initialDeposit,
     String sortCode
 ) implements Command {}

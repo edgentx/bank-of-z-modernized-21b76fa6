@@ -5,32 +5,28 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Event emitted when a new account is successfully opened.
- */
 public record AccountOpenedEvent(
     String aggregateId,
     String customerId,
-    String accountNumber,
-    String accountType,
-    BigDecimal balance,
+    AccountType accountType,
+    BigDecimal initialDeposit,
     String sortCode,
-    String status,
+    String generatedAccountNumber,
     Instant occurredAt
 ) implements DomainEvent {
 
-  @Override
-  public String type() {
-    return "account.opened";
-  }
+    @Override
+    public String type() {
+        return "account.opened";
+    }
 
-  @Override
-  public String aggregateId() {
-    return aggregateId;
-  }
+    @Override
+    public Instant occurredAt() {
+        return occurredAt;
+    }
 
-  @Override
-  public Instant occurredAt() {
-    return occurredAt;
-  }
+    @Override
+    public String aggregateId() {
+        return aggregateId;
+    }
 }

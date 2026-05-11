@@ -6,36 +6,21 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Domain event emitted when screen input is successfully validated.
- * Indicates that the input adheres to BMS constraints and mandatory field rules.
+ * Event emitted when screen input is validated successfully.
  */
-public record InputValidatedEvent(
-        String aggregateId,
-        Instant occurredAt,
-        String screenId,
-        Map<String, String> inputFields
-) implements DomainEvent {
-
+public record InputValidatedEvent(String aggregateId, Map<String, String> inputFields, Instant occurredAt) implements DomainEvent {
     public InputValidatedEvent {
-        // Ensure immutability for the event payload
-        if (inputFields != null) {
-            inputFields = Map.copyOf(inputFields);
-        }
-        // Defensive copy for ID is not strictly necessary for Strings (immutable) but good practice if not final record
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId cannot be null");
+        if (occurredAt == null) occurredAt = Instant.now();
     }
 
     @Override
     public String type() {
-        return "screen.input.validated";
+        return "input.validated";
     }
 
     @Override
     public String aggregateId() {
         return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

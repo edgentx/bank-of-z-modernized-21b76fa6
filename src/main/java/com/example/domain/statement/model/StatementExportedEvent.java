@@ -2,26 +2,32 @@ package com.example.domain.statement.model;
 
 import com.example.domain.shared.DomainEvent;
 
-import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
 public record StatementExportedEvent(
-    String aggregateId,
-    String accountId,
-    Instant startDate,
-    Instant endDate,
-    BigDecimal openingBalance,
-    BigDecimal closingBalance,
-    boolean isClosed,
-    boolean hasBalanceMismatch
+        String eventId,
+        String aggregateId,
+        String format,
+        String artifactLocation,
+        Instant occurredAt
 ) implements DomainEvent {
+    public StatementExportedEvent(String aggregateId, String format, String artifactLocation, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, format, artifactLocation, occurredAt);
+    }
+
     @Override
     public String type() {
-        return "StatementExportedEvent";
+        return "statement.exported";
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
     }
 
     @Override
     public Instant occurredAt() {
-        return Instant.now();
+        return occurredAt;
     }
 }

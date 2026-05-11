@@ -9,11 +9,20 @@ import java.util.UUID;
  * Event emitted when a teller session is successfully started.
  */
 public record SessionStartedEvent(
-    String aggregateId,
-    String tellerId,
-    String terminalId,
-    Instant occurredAt
+        String eventId,
+        String aggregateId,
+        String tellerId,
+        String terminalId,
+        Instant occurredAt
 ) implements DomainEvent {
+
+    public SessionStartedEvent {
+        if (eventId == null) eventId = UUID.randomUUID().toString();
+    }
+
+    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
+        this(UUID.randomUUID().toString(), aggregateId, tellerId, terminalId, occurredAt);
+    }
 
     @Override
     public String type() {
@@ -21,12 +30,12 @@ public record SessionStartedEvent(
     }
 
     @Override
-    public String aggregateId() {
-        return aggregateId;
+    public Instant occurredAt() {
+        return occurredAt;
     }
 
     @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public String aggregateId() {
+        return aggregateId;
     }
 }

@@ -1,20 +1,29 @@
 package com.example.domain.tellersession.repository;
 
 import com.example.domain.tellersession.model.TellerSession;
+import com.example.domain.tellersession.model.TellerSessionAggregate;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 public class InMemoryTellerSessionRepository {
+    private final Map<String, TellerSessionAggregate> store = new HashMap<>();
 
-    private final Map<String, TellerSession> store = new HashMap<>();
-
-    public void save(TellerSession aggregate) {
-        store.put(aggregate.id(), aggregate);
+    public TellerSessionAggregate save(TellerSession session) {
+        String id = session.sessionId();
+        TellerSessionAggregate aggregate = new TellerSessionAggregate(session);
+        store.put(id, aggregate);
+        return aggregate;
     }
 
-    public TellerSession findById(String id) {
-        return store.get(id);
+    public TellerSessionAggregate save(TellerSessionAggregate aggregate) {
+        store.put(aggregate.id(), aggregate);
+        return aggregate;
+    }
+
+    public Optional<TellerSessionAggregate> findById(String id) {
+        return Optional.ofNullable(store.get(id));
     }
 }

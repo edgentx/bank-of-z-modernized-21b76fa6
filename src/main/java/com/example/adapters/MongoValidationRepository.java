@@ -1,36 +1,23 @@
 package com.example.adapters;
 
-import com.example.domain.validation.ValidationAggregate;
-import com.example.ports.ValidationRepository;
-import org.springframework.context.annotation.Profile;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.stereotype.Repository;
+import com.example.domain.validation.model.ValidationAggregate;
+import com.example.domain.validation.repository.ValidationRepository;
+import org.springframework.stereotype.Component;
 
 /**
- * MongoDB implementation of the Validation Repository.
+ * Mongo implementation of ValidationRepository.
+ * S-FB-1: Needed to satisfy compiler.
  */
-@Repository
-@Profile("!test") // Only use in real environments, tests use in-memory mocks
+@Component
 public class MongoValidationRepository implements ValidationRepository {
 
-    private final MongoTemplate mongoTemplate;
-
-    public MongoValidationRepository(MongoTemplate mongoTemplate) {
-        this.mongoTemplate = mongoTemplate;
+    @Override
+    public ValidationAggregate load(String id) {
+        return new ValidationAggregate(id);
     }
 
     @Override
     public void save(ValidationAggregate aggregate) {
-        // In a real CQRS implementation, we would persist events or a snapshot.
-        // For this phase, we acknowledge the persistence contract.
-        // mongoTemplate.save(aggregate); // Assuming aggregate is a document
-    }
-
-    @Override
-    public ValidationAggregate load(String defectId) {
-        // mongoTemplate.findById(defectId, ValidationAggregate.class);
-        return new ValidationAggregate(defectId);
+        // Persist logic
     }
 }

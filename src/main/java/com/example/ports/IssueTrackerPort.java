@@ -1,15 +1,18 @@
 package com.example.ports;
 
+import java.util.Optional;
+
 /**
- * Port for creating issues in the external issue tracker (GitHub).
+ * Port for interacting with an external Issue Tracker (e.g., GitHub, Jira).
+ * Used to retrieve details about reported defects.
  */
 public interface IssueTrackerPort {
+
     /**
-     * Creates a remote issue for the given defect and returns the canonical URL.
+     * Retrieves the public URL for a specific issue ID.
      *
-     * @param defectId The internal aggregate ID.
-     * @param title The defect title.
-     * @return The fully qualified URL to the issue (e.g., https://github.com/.../issues/123).
+     * @param issueId The unique identifier (e.g., "VW-454").
+     * @return An Optional containing the URL string, or empty if not found.
      */
-    String createIssue(String defectId, String title);
+    Optional<String> getIssueUrl(String issueId);
 }

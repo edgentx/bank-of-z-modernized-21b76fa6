@@ -4,26 +4,22 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.2.3</version>
+    <version>3.2.0</version>
     <relativePath/>
   </parent>
-  
   <groupId>com.example</groupId>
-  <artifactId>teller-session-service</artifactId>
+  <artifactId>teller-core</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>teller-session-service</name>
-  <description>Teller Session Service for Legacy Integration</description>
-  
+  <name>teller-core</name>
+  <description>Teller Core Domain Project</description>
   <properties>
-    <java.version>17</java.version>
-    <cucumber.version>7.15.0</cucumber.version>
+    <java.version>21</java.version>
+    <cucumber.version>7.14.0</cucumber.version>
   </properties>
-  
   <dependencies>
-    <!-- Spring Boot Starters -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-mongodb</artifactId>
+      <artifactId>spring-boot-starter</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -31,83 +27,18 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-security</artifactId>
+      <artifactId>spring-boot-starter-data-mongodb</artifactId>
     </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-integration</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-batch</artifactId>
-    </dependency>
-
-    <!-- DB2 Driver -->
     <dependency>
       <groupId>com.ibm.db2</groupId>
       <artifactId>jcc</artifactId>
       <scope>runtime</scope>
     </dependency>
-
-    <!-- Flyway for DB2 -->
-    <dependency>
-      <groupId>org.flywaydb</groupId>
-      <artifactId>flyway-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.flywaydb</groupId>
-      <artifactId>flyway-db2</artifactId>
-      <version>9.22.3</version>
-    </dependency>
-
-    <!-- IBM MQ -->
-    <dependency>
-      <groupId>com.ibm.mq</groupId>
-      <artifactId>mq-jms-spring-boot-starter</artifactId>
-      <version>3.0.4</version>
-    </dependency>
-    <dependency>
-      <groupId>com.ibm.mq</groupId>
-      <artifactId>mq-jms-client</artifactId>
-      <version>3.0.4</version>
-    </dependency>
-
-    <!-- Temporal -->
-    <dependency>
-      <groupId>io.temporal</groupId>
-      <artifactId>temporal-spring-boot-starter</artifactId>
-      <version>1.22.3</version>
-    </dependency>
-
-    <!-- Redis -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-redis</artifactId>
+      <artifactId>spring-boot-starter-security</artifactId>
     </dependency>
-
-    <!-- OpenTelemetry -->
-    <dependency>
-      <groupId>io.micrometer</groupId>
-      <artifactId>micrometer-tracing-bridge-otel</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.opentelemetry</groupId>
-      <artifactId>opentelemetry-exporter-otlp</artifactId>
-      <version>1.32.0</version>
-    </dependency>
-
-    <!-- MinIO -->
-    <dependency>
-      <groupId>io.minio</groupId>
-      <artifactId>minio</artifactId>
-      <version>8.5.7</version>
-    </dependency>
-
-    <!-- Testing -->
+    <!-- Test Dependencies -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
@@ -131,7 +62,6 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
   <build>
     <plugins>
       <plugin>

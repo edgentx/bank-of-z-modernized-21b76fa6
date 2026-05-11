@@ -5,15 +5,11 @@ import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-public record MenuNavigatedEvent(
-    String aggregateId,
-    String menuId,
-    String action,
-    Instant occurredAt
-) implements DomainEvent {
+public record MenuNavigatedEvent(String aggregateId, String menuId, String action, Instant occurredAt) implements DomainEvent {
     public MenuNavigatedEvent {
-        // Validate if needed, though records handle nulls naturally if we add checks
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
     }
+
     @Override
     public String type() {
         return "menu.navigated";

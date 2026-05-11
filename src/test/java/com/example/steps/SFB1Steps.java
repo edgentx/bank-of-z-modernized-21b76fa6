@@ -1,77 +1,86 @@
 package com.example.steps;
 
-import com.example.ports.GitHubPort;
-import com.example.ports.NotificationPort;
+import com.example.domain.shared.ports.GitHubPort;
+import com.example.domain.shared.ports.NotificationPort;
 import com.example.mocks.MockGitHubPort;
 import com.example.mocks.MockNotificationPort;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.springframework.beans.factory.annotation.Autowired;
-
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.And;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Steps for Story S-FB-1: Validating VW-454 (GitHub URL in Slack body).
+ * Cucumber steps for S-FB-1: Validating VW-454 - GitHub URL in Slack body
+ * 
+ * This feature file tests the end-to-end behavior of reporting a defect
+ * via the temporal-worker exec and verifying that the Slack body contains
+ * the GitHub issue link.
  */
 public class SFB1Steps {
-
-    // Using Mocks via Port interfaces
-    @Autowired
+    
     private NotificationPort notificationPort;
-
-    @Autowired
     private GitHubPort gitHubPort;
-
-    // We cast here to access mock-specific methods like getLastMessage
-    // This assumes the Spring context is configured with Mock beans for these tests
-    private MockNotificationPort getMockNotification() {
-        return (MockNotificationPort) notificationPort;
+    // private DefectReportService defectReportService;
+    
+    private String defectId;
+    private String title;
+    private String description;
+    private String channel;
+    private boolean reportResult;
+    
+    @Given("a defect reporting service is available")
+    public void a_defect_reporting_service_is_available() {
+        notificationPort = new MockNotificationPort();
+        gitHubPort = new MockGitHubPort();
+        // Service doesn't exist yet - will fail compilation
+        // defectReportService = new DefectReportService(notificationPort, gitHubPort);
     }
-
-    private MockGitHubPort getMockGitHub() {
-        return (MockGitHubPort) gitHubPort;
+    
+    @Given("a defect with ID {string}, title {string} and description {string}")
+    public void a_defect_with_id_title_and_description(String id, String t, String desc) {
+        this.defectId = id;
+        this.title = t;
+        this.description = desc;
     }
-
-    @Given("a defect report is triggered with ID {string}")
-    public void a_defect_report_is_triggered(String defectId) {
-        // Setup: ensure mocks are clean
-        getMockNotification().clear();
+    
+    @Given("the Slack channel {string} is configured for defect reports")
+    public void the_slack_channel_is_configured_for_defect_reports(String ch) {
+        this.channel = ch;
     }
-
-    @Given("GitHub issue {string} is created for the defect")
-    public void github_issue_is_created(String issueUrl) {
-        // Configure the Mock GitHub port to return this URL when the workflow calls it
-        getMockGitHub().setNextIssueUrl(issueUrl);
+    
+    @When("the defect is reported via temporal-worker exec")
+    public void the_defect_is_reported_via_temporal_worker_exec() {
+        // This will fail because defectReportService doesn't exist yet
+        // reportResult = defectReportService.reportDefect(defectId, title, description, channel);
+        reportResult = false; // Placeholder to make it compile
     }
-
-    @When("the validation workflow executes the report_defect activity")
-    public void the_validation_workflow_executes_report_defect() {
-        // In a real scenario, we would trigger the Temporal workflow here.
-        // For the RED phase of this unit/component test, we simulate the action
-        // that the workflow would eventually perform.
-        
-        // 1. The workflow creates a GitHub issue (via GitHubPort)
-        String url = gitHubPort.createIssue("VW-454 Defect", "...");
-
-        // 2. The workflow sends a Slack notification (via NotificationPort)
-        // The implementation we are testing is whether this body contains the URL.
-        String slackBody = "Defect Reported. View at: " + url;
-        notificationPort.sendNotification(slackBody);
-    }
-
-    @Then("the Slack notification body should contain the GitHub URL")
-    public void the_slack_notification_body_should_contain_the_github_url() {
-        // Assertions
-        var messages = getMockNotification().getMessages();
-        assertFalse(messages.isEmpty(), "No Slack notification was sent");
-
-        String actualBody = messages.get(0);
-        String expectedUrl = getMockGitHub().createIssue("", ""); // Retrieve the URL we set earlier
-
+    
+    @Then("the Slack body should contain the GitHub issue link")
+    public void the_slack_body_should_contain_the_github_issue_link() {
+        MockNotificationPort mockNotification = (MockNotificationPort) notificationPort;
         assertTrue(
-            actualBody.contains(expectedUrl),
-            "Expected Slack body to contain GitHub URL '" + expectedUrl + "', but got: " + actualBody
+            mockNotification.messageContains(channel, "github.com"),
+            "Slack message should contain GitHub URL"
+        );
+    }
+    
+    @And("the GitHub issue should be created")
+    public void the_github_issue_should_be_created() {
+        MockGitHubPort mockGitHub = (MockGitHubPort) gitHubPort;
+        assertTrue(
+            mockGitHub.getIssueCount() > 0,
+            "GitHub issue should be created"
+        );
+    }
+    
+    @And("the Slack message should be sent to the correct channel")
+    public void the_slack_message_should_be_sent_to_the_correct_channel() {
+        MockNotificationPort mockNotification = (MockNotificationPort) notificationPort;
+        assertTrue(
+            mockNotification.getSentMessages().stream()
+                .anyMatch(msg -> msg.channel.equals(channel)),
+            "Slack message should be sent to the correct channel"
         );
     }
 }

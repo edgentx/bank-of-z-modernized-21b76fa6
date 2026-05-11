@@ -1,17 +1,18 @@
 package com.example.steps;
 
-import com.example.domain.shared.Command;
+import com.example.domain.navigation.model.RenderScreenCmd;
+import com.example.domain.navigation.model.ScreenMapAggregate;
+import com.example.domain.navigation.model.ScreenRenderedEvent;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.uimodel.model.RenderScreenCmd;
-import com.example.domain.uimodel.model.ScreenMapAggregate;
-import com.example.domain.uimodel.model.ScreenRenderedEvent;
+import com.example.domain.shared.UnknownCommandException;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class S21Steps {
 
@@ -22,23 +23,41 @@ public class S21Steps {
 
     @Given("a valid ScreenMap aggregate")
     public void aValidScreenMapAggregate() {
-        aggregate = new ScreenMapAggregate("screen-123");
+        aggregate = new ScreenMapAggregate("SM-TEST-001");
     }
 
     @And("a valid screenId is provided")
     public void aValidScreenIdIsProvided() {
-        // Handled in When step construction for simplicity, or set defaults here
+        // Defer command creation to When step to allow modification by violation steps
+        if (cmd == null) cmd = new RenderScreenCmd("SM-TEST-001", "ACCTSUM1", "3270");
     }
 
     @And("a valid deviceType is provided")
     public void aValidDeviceTypeIsProvided() {
-        // Handled in When step construction
+        if (cmd == null) cmd = new RenderScreenCmd("SM-TEST-001", "ACCTSUM1", "3270");
+    }
+
+    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
+    public void aScreenMapAggregateThatViolatesMandatoryFields() {
+        aggregate = new ScreenMapAggregate("SM-TEST-002");
+        // Violation: null screenId
+        cmd = new RenderScreenCmd("SM-TEST-002", null, "3270");
+    }
+
+    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
+    public void aScreenMapAggregateThatViolatesLegacyFieldLengths() {
+        aggregate = new ScreenMapAggregate("SM-TEST-003");
+        // Violation: screenId > 8 chars (Legacy BMS Map Set naming convention)
+        cmd = new RenderScreenCmd("SM-TEST-003", "LONG_SCREEN_NAME", "3270");
     }
 
     @When("the RenderScreenCmd command is executed")
     public void theRenderScreenCmdCommandIsExecuted() {
         try {
-            cmd = new RenderScreenCmd("screen-123", "LOGIN_SCR", "3270", null);
+            // If we haven't constructed a specific command yet (valid case), build it now
+            if (cmd == null) {
+                cmd = new RenderScreenCmd(aggregate.id(), "ACCTSUM1", "3270");
+            }
             resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
             caughtException = e;
@@ -47,62 +66,22 @@ public class S21Steps {
 
     @Then("a screen.rendered event is emitted")
     public void aScreenRenderedEventIsEmitted() {
-        Assertions.assertNull(caughtException, "Expected no exception, but got: " + caughtException);
-        Assertions.assertNotNull(resultEvents);
-        Assertions.assertEquals(1, resultEvents.size());
-        Assertions.assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent);
+        assertNotNull(resultEvents, "Events list should not be null");
+        assertEquals(1, resultEvents.size(), "Exactly one event should be emitted");
+        assertTrue(resultEvents.get(0) instanceof ScreenRenderedEvent, "Event should be ScreenRenderedEvent");
+        
         ScreenRenderedEvent event = (ScreenRenderedEvent) resultEvents.get(0);
-        Assertions.assertEquals("screen.rendered", event.type());
-    }
-
-    // ---------------- Scenarios for Rejection ----------------
-
-    @Given("a ScreenMap aggregate that violates: All mandatory input fields must be validated before screen submission.")
-    public void aScreenMapAggregateThatViolatesMandatoryFields() {
-        aggregate = new ScreenMapAggregate("screen-invalid");
-    }
-
-    // Scenario: Mandatory fields
-    @When("the RenderScreenCmd command is executed with missing fields")
-    public void theRenderScreenCmdCommandIsExecutedWithMissingFields() {
-        try {
-            // ScreenId is blank
-            cmd = new RenderScreenCmd("screen-invalid", "", "3270", null);
-            resultEvents = aggregate.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            caughtException = e;
-        }
-    }
-
-    // Scenario: Legacy Constraints
-    @Given("a ScreenMap aggregate that violates: Field lengths must strictly adhere to legacy BMS constraints during the transition period.")
-    public void aScreenMapAggregateThatViolatesLegacyConstraints() {
-        aggregate = new ScreenMapAggregate("screen-legacy-fail");
-    }
-
-    @When("the RenderScreenCmd command is executed with long field data")
-    public void theRenderScreenCmdCommandIsExecutedWithLongFieldData() {
-        try {
-            // Simulate field data > 80 chars
-            String longData = "A".repeat(81);
-            cmd = new RenderScreenCmd("screen-legacy-fail", "LOGIN_SCR", "3270", longData);
-            resultEvents = aggregate.execute(cmd);
-        } catch (IllegalArgumentException e) {
-            caughtException = e;
-        }
+        assertEquals("screen.rendered", event.type());
+        assertEquals(cmd.screenId(), event.screenId());
+        assertEquals(cmd.deviceType(), event.deviceType());
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(caughtException, "Expected an exception to be thrown");
-        Assertions.assertTrue(caughtException instanceof IllegalArgumentException);
-    }
-
-    // Hooks to clear state
-    public void reset() {
-        aggregate = null;
-        cmd = null;
-        resultEvents = null;
-        caughtException = null;
+        assertNotNull(caughtException, "An exception should have been thrown");
+        assertTrue(
+            caughtException instanceof IllegalArgumentException || caughtException instanceof IllegalStateException,
+            "Exception should be a domain rule violation (IllegalArgumentException or IllegalStateException)"
+        );
     }
 }

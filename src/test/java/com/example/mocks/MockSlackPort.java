@@ -1,26 +1,37 @@
 package com.example.mocks;
 
 import com.example.ports.SlackPort;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackPort for testing purposes.
- * Allows verification of sent messages without external IO.
+ * Mock implementation of SlackPort for testing.
+ * Captures messages to memory so assertions can be verified.
  */
 public class MockSlackPort implements SlackPort {
-    public final List<String> messages = new ArrayList<>();
-    public String lastChannel;
+    
+    public static class PostedMessage {
+        public final String channel;
+        public final String text;
+        
+        public PostedMessage(String channel, String text) {
+            this.channel = channel;
+            this.text = text;
+        }
+    }
+    
+    private final List<PostedMessage> messages = new ArrayList<>();
 
     @Override
-    public void sendMessage(String channel, String text) {
-        this.lastChannel = channel;
-        this.messages.add(text);
-        System.out.println("[MOCK SLACK] Sent to " + channel + ": " + text);
+    public void postMessage(String channel, String text) {
+        messages.add(new PostedMessage(channel, text));
     }
-
-    public boolean containsMessage(String substring) {
-        return messages.stream().anyMatch(msg -> msg.contains(substring));
+    
+    public List<PostedMessage> getMessages() {
+        return new ArrayList<>(messages);
+    }
+    
+    public void clear() {
+        messages.clear();
     }
 }

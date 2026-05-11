@@ -6,13 +6,20 @@ import com.example.domain.statement.repository.StatementRepository;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * In-memory implementation of StatementRepository for testing.
  */
 public class InMemoryStatementRepository implements StatementRepository {
 
-    private final Map<String, StatementAggregate> store = new HashMap<>();
+    private final Map<String, StatementAggregate> store = new ConcurrentHashMap<>();
+
+    @Override
+    public StatementAggregate save(StatementAggregate aggregate) {
+        store.put(aggregate.id(), aggregate);
+        return aggregate;
+    }
 
     @Override
     public Optional<StatementAggregate> findById(String statementId) {
@@ -20,7 +27,7 @@ public class InMemoryStatementRepository implements StatementRepository {
     }
 
     @Override
-    public void save(StatementAggregate aggregate) {
-        store.put(aggregate.id(), aggregate);
+    public void deleteById(String statementId) {
+        store.remove(statementId);
     }
 }

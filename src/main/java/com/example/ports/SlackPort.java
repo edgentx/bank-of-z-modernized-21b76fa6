@@ -1,17 +1,17 @@
 package com.example.ports;
 
 /**
- * Port for sending notifications to Slack.
- * Implemented by adapters (e.g., Real Slack API or Mocks for testing).
+ * Port for sending Slack notifications.
+ * Abstracts the underlying Slack API client implementation.
  */
 public interface SlackPort {
 
     /**
-     * Sends a message to a specific channel.
+     * Posts a message to a specific Slack channel.
      *
-     * @param channel The Slack channel ID or name (e.g., "#vforce360-issues").
-     * @param text    The message body text.
-     * @throws RuntimeException if the API call fails.
+     * @param channelId The ID of the channel (e.g., "C0123456789").
+     * @param text The message body text.
+     * @return true if the post was successful, false otherwise.
      */
-    void sendMessage(String channel, String text);
+    boolean postMessage(String channelId, String text);
 }

@@ -4,15 +4,12 @@ import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
 
-/**
- * Domain event emitted when a defect is successfully reported.
- * Contains the generated GitHub issue URL.
- */
 public record DefectReportedEvent(
-    String aggregateId,
+    String defectId,
     String title,
     String description,
-    String githubIssueUrl,
+    String projectId,
+    String githubUrl,
     Instant occurredAt
 ) implements DomainEvent {
     @Override
@@ -22,7 +19,7 @@ public record DefectReportedEvent(
 
     @Override
     public String aggregateId() {
-        return aggregateId;
+        return defectId;
     }
 
     @Override

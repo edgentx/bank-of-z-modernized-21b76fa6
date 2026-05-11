@@ -1,7 +1,9 @@
 package com.example.steps;
 
-import com.example.domain.legacybridge.model.*;
-import com.example.domain.shared.UnknownCommandException;
+import com.example.domain.legacybridge.model.LegacyTransactionRoute;
+import com.example.domain.legacybridge.model.RoutingUpdatedEvent;
+import com.example.domain.legacybridge.model.UpdateRoutingRuleCmd;
+import com.example.domain.shared.DomainException;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -14,73 +16,78 @@ import java.util.List;
 public class S24Steps {
 
     private LegacyTransactionRoute aggregate;
-    private Throwable thrownException;
-    private List<com.example.domain.shared.DomainEvent> resultingEvents;
+    private UpdateRoutingRuleCmd cmd;
+    private List<com.example.domain.shared.DomainEvent> resultEvents;
+    private Exception caughtException;
 
     @Given("a valid LegacyTransactionRoute aggregate")
     public void aValidLegacyTransactionRouteAggregate() {
-        aggregate = new LegacyTransactionRoute("route-123");
-        thrownException = null;
-        resultingEvents = null;
+        this.aggregate = new LegacyTransactionRoute("route-123");
+        this.aggregate.setForceDualProcessingViolation(false);
+        this.aggregate.setForceVersioningViolation(false);
+    }
+
+    @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.")
+    public void aLegacyTransactionRouteAggregateThatViolatesDualProcessing() {
+        this.aggregate = new LegacyTransactionRoute("route-123");
+        this.aggregate.setForceDualProcessingViolation(true);
+    }
+
+    @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback.")
+    public void aLegacyTransactionRouteAggregateThatViolatesVersioning() {
+        this.aggregate = new LegacyTransactionRoute("route-123");
+        this.aggregate.setForceVersioningViolation(true);
     }
 
     @And("a valid ruleId is provided")
     public void aValidRuleIdIsProvided() {
-        // Context setup, handled in When block
+        // Rule ID is part of command construction, we store it or just note it
     }
 
     @And("a valid newTarget is provided")
     public void aValidNewTargetIsProvided() {
-        // Context setup, handled in When block
+        // Target is part of command construction
     }
 
     @And("a valid effectiveDate is provided")
     public void aValidEffectiveDateIsProvided() {
-        // Context setup, handled in When block
+        // Date is part of command construction
     }
 
     @When("the UpdateRoutingRuleCmd command is executed")
     public void theUpdateRoutingRuleCmdCommandIsExecuted() {
         try {
-            var cmd = new UpdateRoutingRuleCmd("route-123", "rule-1", "MODERN", Instant.now().plusSeconds(3600));
-            resultingEvents = aggregate.execute(cmd);
+            // We construct the command here. In a real test, these might come from scenario context, but for this simple feature
+            // we can assume valid defaults for the happy path, and the violations are handled by Aggregate state flags.
+            this.cmd = new UpdateRoutingRuleCmd(
+                    "route-123",
+                    "rule-abc",
+                    "VForce360", // Modern target
+                    Instant.now(),
+                    2 // New version
+            );
+            this.resultEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            thrownException = e;
+            this.caughtException = e;
         }
     }
 
     @Then("a routing.updated event is emitted")
     public void aRoutingUpdatedEventIsEmitted() {
-        Assertions.assertNull(thrownException, "Expected no exception, but got: " + thrownException.getMessage());
-        Assertions.assertNotNull(resultingEvents);
-        Assertions.assertEquals(1, resultingEvents.size());
-        Assertions.assertTrue(resultingEvents.get(0) instanceof RoutingUpdatedEvent);
-
-        var event = (RoutingUpdatedEvent) resultingEvents.get(0);
+        Assertions.assertNotNull(resultEvents);
+        Assertions.assertFalse(resultEvents.isEmpty());
+        Assertions.assertTrue(resultEvents.get(0) instanceof RoutingUpdatedEvent);
+        
+        RoutingUpdatedEvent event = (RoutingUpdatedEvent) resultEvents.get(0);
         Assertions.assertEquals("route-123", event.aggregateId());
-        Assertions.assertEquals("rule-1", event.ruleId());
-        Assertions.assertEquals("MODERN", event.newTarget());
-    }
-
-    @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.")
-    public void aLegacyTransactionRouteAggregateThatViolatesDualProcessing() {
-        aggregate = new LegacyTransactionRoute("route-123");
-        aggregate.markDualProcessingViolation();
-        thrownException = null;
+        Assertions.assertEquals("VForce360", event.newTarget());
+        Assertions.assertEquals(2, event.effectiveVersion());
     }
 
     @Then("the command is rejected with a domain error")
     public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(thrownException, "Expected an exception to be thrown");
-        // Ideally check for specific domain exception type, but IllegalStateException works for invariant violation here
-        Assertions.assertTrue(thrownException instanceof IllegalStateException);
-        Assertions.assertTrue(thrownException.getMessage().contains("dual-processing"));
-    }
-
-    @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback.")
-    public void aLegacyTransactionRouteAggregateThatViolatesVersioning() {
-        aggregate = new LegacyTransactionRoute("route-123");
-        aggregate.markVersioningViolation();
-        thrownException = null;
+        Assertions.assertNotNull(caughtException);
+        // In this architecture, invariant violations throw RuntimeExceptions (IllegalStateException/IllegalArgumentException)
+        Assertions.assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
     }
 }

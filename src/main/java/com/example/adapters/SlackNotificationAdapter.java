@@ -1,35 +1,50 @@
 package com.example.adapters;
 
 import com.example.ports.SlackNotificationPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Real implementation of the Slack notification adapter.
- * In a production environment, this would use the Slack Web API to send messages.
- * For the defect validation VW-454, this class ensures the message body contains
- * the correctly formatted GitHub URL.
+ * Real-world adapter for posting messages to Slack.
+ * This implementation uses the Slack Web API.
+ * 
+ * Note: In a production environment, secrets like tokens should be injected
+ * securely, but for this implementation we rely on Spring configuration.
  */
 @Component
 public class SlackNotificationAdapter implements SlackNotificationPort {
 
-    private static final Logger log = LoggerFactory.getLogger(SlackNotificationAdapter.class);
+    private final String webhookUrl;
+    private final RestTemplate restTemplate;
+
+    public SlackNotificationAdapter(
+            @Value("${slack.webhook.url}") String webhookUrl,
+            RestTemplate restTemplate) {
+        this.webhookUrl = webhookUrl;
+        this.restTemplate = restTemplate;
+    }
 
     @Override
-    public void sendNotification(String messageBody) {
-        // Implementation for sending the notification to Slack.
-        // This would typically use an HttpClient to POST to a Slack Webhook.
-        // For validation purposes, we log the body to ensure it passes the regex checks.
-        if (messageBody == null || messageBody.isBlank()) {
-            log.warn("Attempted to send a blank Slack notification.");
-            return;
+    public void sendNotification(String channel, String body) {
+        // In a real Slack integration using Webhooks, the channel is often
+        // pre-configured in the webhook settings, but we can override it if needed.
+        // Here we construct the standard JSON payload.
+        
+        Map<String, String> payload = new HashMap<>();
+        payload.put("channel", channel);
+        payload.put("text", body);
+        payload.put("mrkdwn", "true"); // Enable basic markdown formatting
+
+        try {
+            restTemplate.postForObject(webhookUrl, payload, String.class);
+        } catch (Exception e) {
+            // We log the error but don't throw to prevent temporal workflow failures
+            // due to transient notification issues.
+            System.err.println("Failed to send Slack notification: " + e.getMessage());
         }
-
-        // Simulate sending
-        log.info("Sending Slack notification: {}", messageBody);
-
-        // Actual implementation would look like:
-        // // webClient.post().uri(slackWebhookUrl).bodyValue(messageBody).retrieve().bodyToMono(String.class).block();
     }
 }

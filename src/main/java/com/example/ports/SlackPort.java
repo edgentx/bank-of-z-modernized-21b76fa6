@@ -1,15 +1,27 @@
 package com.example.ports;
 
-/**
- * Port interface for Slack notification operations.
- * This decouples the domain logic from the specific Slack SDK implementation.
- */
+import java.util.Map;
+
 public interface SlackPort {
     /**
-     * Sends a message to a specific Slack channel.
-     *
-     * @param channel The channel ID or name (e.g., #vforce360-issues).
-     * @param body    The formatted message body.
+     * Send a notification to a Slack channel
+     * @param channelId The target channel ID
+     * @param message The message content to send
+     * @return true if sent successfully, false otherwise
      */
-    void sendMessage(String channel, String body);
+    boolean sendMessage(String channelId, String message);
+    
+    /**
+     * Send a formatted message with blocks to a Slack channel
+     * @param channelId The target channel ID
+     * @param blocks The message blocks in Slack format
+     * @return true if sent successfully, false otherwise
+     */
+    boolean sendBlocks(String channelId, Map<String, Object> blocks);
+    
+    /**
+     * Get the last message that was sent (for testing)
+     * @return The last sent message content
+     */
+    String getLastSentMessage();
 }

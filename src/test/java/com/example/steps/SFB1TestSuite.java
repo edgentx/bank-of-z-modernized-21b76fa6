@@ -1,15 +1,14 @@
 package com.example.steps;
 
-import io.cucumber.junit.platform.engine.Cucumber;
-import org.junit.platform.suite.api.ConfigurationParameter;
-import org.junit.platform.suite.api.IncludeEngines;
-import org.junit.platform.suite.api.SelectClasspathResource;
-import org.junit.platform.suite.api.Suite;
+import io.cucumber.junit.Cucumber;
+import io.cucumber.junit.CucumberOptions;
+import org.junit.runner.RunWith;
 
-@Suite
-@IncludeEngines(Cucumber.class)
-@SelectClasspathResource("features")
-// Additional configuration to ensure strict run
-@ConfigurationParameter(key = "cucumber.filter.tags", value = "@S-FB-1")
+@RunWith(Cucumber.class)
+@CucumberOptions(
+    features = "features/S-FB-1.feature",
+    glue = {"com.example.steps"},
+    plugin = {"pretty", "html:target/cucumber/S-FB-1.html"}
+)
 public class SFB1TestSuite {
 }

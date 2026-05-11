@@ -1,6 +1,11 @@
 Feature: Validating VW-454 — GitHub URL in Slack body (end-to-end)
 
-  Scenario: Verify Slack notification contains GitHub URL when reporting a defect
-    Given the defect reporting system is initialized
-    When I trigger report_defect with title "VW-454 Defect"
-    Then the Slack body should contain the GitHub issue link
+  Scenario: Defect report successfully includes GitHub URL in Slack notification
+    Given a defect report is triggered with ID "VW-454"
+    When the validation workflow processes the report
+    Then the Slack notification body should include the GitHub issue URL
+
+  Scenario: Defect report fails validation without GitHub URL (Current Bug State)
+    Given a defect report is triggered with ID "VW-454"
+    When the validation workflow processes the report
+    Then the system should log an error if the URL is missing

@@ -1,16 +1,21 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
 
+/**
+ * Event emitted when a teller successfully navigates to a new menu.
+ */
 public record MenuNavigatedEvent(
-    String type,
     String aggregateId,
     String menuId,
     String action,
     Instant occurredAt
 ) implements DomainEvent {
-    public MenuNavigatedEvent(String aggregateId, String menuId, String action) {
-        this("menu.navigated", aggregateId, menuId, action, Instant.now());
-    }
+
+  @Override
+  public String type() {
+    return "menu.navigated";
+  }
 }

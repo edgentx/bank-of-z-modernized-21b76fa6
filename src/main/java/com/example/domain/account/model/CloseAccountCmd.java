@@ -4,7 +4,6 @@ import com.example.domain.shared.Command;
 
 /**
  * Command to close an account.
- * S-7: Account Management
+ * S-7: Closes the account permanently, provided the balance is zero.
  */
-public record CloseAccountCmd(String accountNumber, String currentStatus, java.math.BigDecimal currentBalance, String accountType) implements Command {
-}
+public record CloseAccountCmd(String accountNumber) implements Command {}

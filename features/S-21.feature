@@ -1,4 +1,5 @@
 Feature: Implement RenderScreenCmd on ScreenMap (user-interface-navigation)
+
   Feature: RenderScreenCmd
 
     Scenario: Successfully execute RenderScreenCmd

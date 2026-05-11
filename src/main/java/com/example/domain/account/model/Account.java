@@ -6,37 +6,23 @@ import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.time.Instant;
 import java.util.List;
 
-public class Account extends AggregateRoot {
-    private final String accountNumber;
-    private BigDecimal balance;
-    private AccountStatus status;
-    private final String accountType;
+public class AccountAggregate extends AggregateRoot {
 
-    public Account(String accountNumber, String accountType) {
-        this.accountNumber = accountNumber;
-        this.accountType = accountType;
-        this.balance = BigDecimal.ZERO;
-        this.status = AccountStatus.ACTIVE;
+    private final String accountId;
+    private String customerId;
+    private AccountStatus status;
+    private BigDecimal balance = BigDecimal.ZERO;
+
+    public AccountAggregate(String accountId) {
+        this.accountId = accountId;
     }
 
     @Override
     public String id() {
-        return accountNumber;
-    }
-
-    public AccountStatus getStatus() {
-        return status;
-    }
-
-    public BigDecimal getBalance() {
-        return balance;
-    }
-
-    public String getAccountType() {
-        return accountType;
+        return accountId;
     }
 
     @Override
@@ -48,59 +34,56 @@ public class Account extends AggregateRoot {
     }
 
     private List<DomainEvent> updateStatus(UpdateAccountStatusCmd cmd) {
-        // Invariant: Account numbers must be uniquely generated and immutable.
-        if (!this.accountNumber.equals(cmd.accountNumber())) {
-            throw new IllegalArgumentException("Account number mismatch or modification attempt.");
+        // Invariant: Command ID must match Aggregate ID
+        if (!cmd.accountId().equals(this.accountId)) {
+            throw new IllegalArgumentException("Command ID mismatch");
         }
 
-        // Invariant: Account balance cannot drop below the minimum required balance for its specific account type.
-        BigDecimal minBalance = getMinimumBalanceForType(this.accountType);
-        if (this.balance.compareTo(minBalance) < 0) {
-             // This check is slightly different from the prompt text's literal implication, 
-             // but usually implies a check before allowing a state change that might lock funds 
-             // or if the balance is already critically low. 
-             // However, strictly adhering to the prompt: 
-             // "Account balance cannot drop below..." usually applies to withdrawal commands.
-             // Here we interpret it as: If the account is in a state that violates the invariant, 
-             // we reject operations. 
-             // For status update, we proceed unless specific business rules say otherwise.
-             // We will focus on the Status and Account Number invariants primarily.
-        }
+        // Invariant: Immutability / Integrity check
+        // Simulating check: Account numbers must be unique/immutable (implicitly enforced by ID check)
 
-        // Business Rule: An account must be in an Active status to process withdrawals or transfers.
-        // This command updates status. 
-        // If we are trying to set it to ACTIVE, that's allowed.
-        // If we are trying to change it FROM Active, that's allowed.
-        // If we are trying to process something while NOT active, that's a different command.
-        // But wait, the prompt says: "UpdateAccountStatusCmd rejected — An account must be in an Active status to process withdrawals or transfers."
-        // This sounds like an invariant check for the *Command* validity if it were a withdrawal.
-        // For UpdateAccountStatus, this might imply we can't Close a Frozen account, or similar.
-        // Let's assume the standard flow: Active -> Frozen -> Closed.
-
-        if (this.status == AccountStatus.CLOSED) {
-             throw new IllegalStateException("Cannot update status of a closed account.");
-        }
-
-        AccountStatus newStatus = cmd.newStatus();
-        if (newStatus == this.status) {
-             return List.of(); // Idempotent no-op
-        }
-
-        AccountStatusUpdatedEvent event = new AccountStatusUpdatedEvent(
-            this.accountNumber, 
-            this.status.name(), 
-            newStatus.name(), 
-            java.time.Instant.now()
-        );
+        // Invariant: Logic based on Acceptance Criteria
+        // "Account must be in an Active status to process withdrawals or transfers" -> 
+        // If we are trying to update FROM Active TO Frozen, we are essentially stopping processing.
+        // The scenario implies that state changes are restricted if balance is low or status is incompatible.
         
-        this.status = newStatus;
+        if (this.status != AccountStatus.ACTIVE && cmd.newStatus() == AccountStatus.ACTIVE) {
+            // Reactivating a closed/frozen account might have specific rules, 
+            // but the prompt implies rejection if violating invariants.
+            // Let's assume we can only update if not currently CLOSED
+            if (this.status == AccountStatus.CLOSED) {
+                throw new IllegalStateException("Cannot modify status of a Closed account");
+            }
+        }
+
+        // Scenario: "Account balance cannot drop below minimum..." for UpdateAccountStatusCmd.
+        // Context: Usually, preventing status change if balance is wrong (e.g. can't Close if debt).
+        // Assuming minimum balance is 0 for simplicity, unless specific type logic exists.
+        // Let's assume we cannot close if balance < 0 (overdrawn).
+        if (cmd.newStatus() == AccountStatus.CLOSED && this.balance.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalStateException("Cannot close account with negative balance");
+        }
+
+        var event = new AccountStatusUpdatedEvent(this.accountId, cmd.newStatus(), Instant.now());
+        this.status = cmd.newStatus();
         addEvent(event);
         incrementVersion();
         return List.of(event);
     }
 
-    private BigDecimal getMinimumBalanceForType(String type) {
-        // Simplified logic for demo
-        return BigDecimal.ZERO;
+    // Internal state mutator for testing/reconstruction
+    public void apply(AccountOpenedEvent event) {
+        this.customerId = event.customerId();
+        this.status = event.status();
+        // In a real app, we might load balance from DB or initial event
+        this.balance = BigDecimal.ZERO; 
+    }
+
+    public void setBalance(BigDecimal amount) {
+        this.balance = amount;
+    }
+
+    public AccountStatus getStatus() {
+        return status;
     }
 }

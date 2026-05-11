@@ -4,10 +4,7 @@ import com.example.domain.shared.Command;
 
 public record ReportDefectCmd(
     String defectId,
-    String title,
+    String summary,
     String description,
-    String severity,
-    String component,
-    String projectId,
-    String githubIssueUrl // The URL returned by GitHub API after creating the issue
+    String severity
 ) implements Command {}

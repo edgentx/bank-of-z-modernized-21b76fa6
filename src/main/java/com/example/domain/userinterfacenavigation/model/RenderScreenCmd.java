@@ -3,6 +3,6 @@ package com.example.domain.userinterfacenavigation.model;
 import com.example.domain.shared.Command;
 
 /**
- * Command to render a specific screen adapted for a device type.
+ * Command to render a specific screen for a user device.
  */
-public record RenderScreenCmd(String screenId, String deviceType) implements Command {}
+public record RenderScreenCmd(String screenId, String deviceType, String definition) implements Command {}

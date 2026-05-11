@@ -1,14 +1,16 @@
 package com.example.steps;
 
 import com.example.domain.account.model.AccountAggregate;
-import com.example.domain.account.model.CloseAccountCmd;
 import com.example.domain.account.model.AccountClosedEvent;
+import com.example.domain.account.model.AccountOpenedEvent;
+import com.example.domain.account.model.CloseAccountCmd;
 import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -16,71 +18,63 @@ import static org.junit.jupiter.api.Assertions.*;
 public class S7Steps {
 
     private AccountAggregate account;
-    private CloseAccountCmd cmd;
     private List<DomainEvent> resultEvents;
-    private Exception caughtException;
+    private Exception capturedException;
 
     @Given("a valid Account aggregate")
-    public void a_valid_Account_aggregate() {
-        account = new AccountAggregate("ACC-123", BigDecimal.ZERO);
+    public void a_valid_account_aggregate() {
+        String id = java.util.UUID.randomUUID().toString();
+        account = new AccountAggregate(id);
+        // Simulate opening an account to make it valid
+        account.apply(new AccountOpenedEvent(id, "123456789", "CHECKING", Instant.now()));
     }
 
     @Given("a valid accountNumber is provided")
-    public void a_valid_accountNumber_is_provided() {
-        cmd = new CloseAccountCmd("ACC-123");
+    public void a_valid_account_number_is_provided() {
+        // Handled by default setup in 'a valid Account aggregate'
+        // Or we can explicitly ensure state if needed
+        assertNotNull(account.getAccountNumber());
     }
 
     @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
-    public void a_Account_aggregate_that_violates_balance() {
-        account = new AccountAggregate("ACC-DEBT", new BigDecimal("100.50"));
-        cmd = new CloseAccountCmd("ACC-DEBT");
+    public void a_account_aggregate_that_violates_balance() {
+        String id = java.util.UUID.randomUUID().toString();
+        account = new AccountAggregate(id);
+        account.apply(new AccountOpenedEvent(id, "987654321", "CHECKING", Instant.now()));
+        // Set a non-zero balance to simulate the violation context (can't close if balance > 0)
+        account.setBalance(new BigDecimal("100.00"));
     }
 
     @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
-    public void a_Account_aggregate_that_violates_status() {
-        // Create account with 0 balance, then manually close it to simulate invalid status for the command
-        account = new AccountAggregate("ACC-INACTIVE", BigDecimal.ZERO);
-        // Force close via internal state mutation (simulating a previously closed account loaded from repo)
-        // Note: In a real repo, we'd load a CLOSED aggregate. Here we mock the state.
-        // AccountAggregate doesn't expose a setter, so we assume this scenario tests the logic branch.
-        // To test this properly without reflection, we rely on the Aggregate logic.
-        // However, since we can't set the status directly without a command, and we want to test the rejection,
-        // we might need to assume the aggregate was loaded in a CLOSED state.
-        // For this BDD, we will create a fresh one and rely on the logic check.
-        // But wait, I cannot set the status to CLOSED without issuing the command.
-        // I will assume the aggregate allows checking the status.
-        // Implementation detail: I will cheat slightly for the test by assuming the aggregate could be in this state.
-        // Actually, `AccountAggregate` defaults to ACTIVE. I cannot easily make it CLOSED without executing the command.
-        // I will interpret the test as: Ensure the command checks for ACTIVE.
-        // Since I can't easily construct a CLOSED aggregate without a command (circular dependency),
-        // I will adjust the test setup: assume the ID matches but the balance is zero, so the next check would be status.
-        // Actually, the simplest way to test this is to mock the behavior or skip the state mutation if not possible.
-        // Let's just verify that the check exists. For the sake of the exercise, I will assume the ID is valid.
-        account = new AccountAggregate("ACC-CHECK", BigDecimal.ZERO);
-        cmd = new CloseAccountCmd("ACC-CHECK");
-        // Since I cannot set the status, I will comment out the ability to create this specific state
-        // and instead verify the logic path exists in the code.
-        // *Wait*, I can simulate this by having a specific constructor or just accepting that this scenario
-        // validates the logic block.
-        // **Correction**: I will just ensure the `execute` method checks status.
-        // The test below might pass if I can't set the state.
-        // **Alternative**: The scenario implies the aggregate is ALREADY closed.
-        // Since I cannot set it, I will skip the exception assertion if I can't create the state.
-        // But I should try.
+    public void a_account_aggregate_that_violates_status() {
+        String id = java.util.UUID.randomUUID().toString();
+        account = new AccountAggregate(id);
+        account.apply(new AccountOpenedEvent(id, "111111111", "CHECKING", Instant.now()));
+        // Set status to CLOSED or INACTIVE to violate the "Active" requirement
+        account.setStatus(AccountAggregate.AccountStatus.CLOSED);
     }
 
     @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
-    public void a_Account_aggregate_that_violates_number_mismatch() {
-        account = new AccountAggregate("ACC-ORIG", BigDecimal.ZERO);
-        cmd = new CloseAccountCmd("ACC-FAKE"); // Mismatched number
+    public void a_account_aggregate_that_violates_uniqueness() {
+        // In the context of an aggregate command execution, "uniqueness" is usually enforced by the repository/store.
+        // However, for the aggregate to reject the command based on this, we can simulate a state where
+        // the account number is null or invalid, or the command is mismatched.
+        // Let's assume the aggregate is in a state where the accountNumber is missing (data integrity issue).
+        String id = java.util.UUID.randomUUID().toString();
+        account = new AccountAggregate(id);
+        // Manually creating an account without triggering the full open event logic to leave state invalid
+        // Note: In a real app, we might load an aggregate from history. Here we mock the state.
+        // We'll force a null account number scenario by not fully initializing.
+        account.setStatus(AccountAggregate.AccountStatus.ACTIVE); // But number is null/default
     }
 
     @When("the CloseAccountCmd command is executed")
-    public void the_CloseAccountCmd_command_is_executed() {
+    public void the_close_account_cmd_command_is_executed() {
         try {
+            CloseAccountCmd cmd = new CloseAccountCmd(account.id(), account.getAccountNumber());
             resultEvents = account.execute(cmd);
         } catch (Exception e) {
-            caughtException = e;
+            capturedException = e;
         }
     }
 
@@ -89,13 +83,15 @@ public class S7Steps {
         assertNotNull(resultEvents);
         assertEquals(1, resultEvents.size());
         assertTrue(resultEvents.get(0) instanceof AccountClosedEvent);
-        assertEquals("account.closed", resultEvents.get(0).type());
+        AccountClosedEvent event = (AccountClosedEvent) resultEvents.get(0);
+        assertEquals("account.closed", event.type());
+        assertEquals(account.id(), event.aggregateId());
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(caughtException);
-        // We expect an IllegalStateException or IllegalArgumentException depending on the invariant
-        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
+        assertNotNull(capturedException);
+        // We expect IllegalStateException or IllegalArgumentException depending on the specific check
+        assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
     }
 }

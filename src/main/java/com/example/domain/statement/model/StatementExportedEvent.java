@@ -3,9 +3,11 @@ package com.example.domain.statement.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public record StatementExportedEvent(
         String aggregateId,
+        String statementId,
         String format,
         String artifactLocation,
         Instant occurredAt

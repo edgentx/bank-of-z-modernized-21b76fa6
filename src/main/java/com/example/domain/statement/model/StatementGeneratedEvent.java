@@ -1,23 +1,18 @@
 package com.example.domain.statement.model;
 
-import com.example.domain.shared.DomainEvent;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 
-// Internal event for setup/simulation of the aggregate state
+/**
+ * Event representing the generation of a statement.
+ * Used here to set up the state of the aggregate in tests.
+ */
 public record StatementGeneratedEvent(
-        String statementId,
-        String accountId,
-        BigDecimal openingBalance,
-        BigDecimal closingBalance,
-        boolean isPeriodClosed,
-        Instant occurredAt
-) implements DomainEvent {
-    @Override
-    public String type() { return "statement.generated"; }
-    @Override
-    public String aggregateId() { return statementId; }
-    @Override
-    public Instant occurredAt() { return occurredAt; }
+    String statementId,
+    String accountId,
+    BigDecimal openingBalance,
+    BigDecimal closingBalance,
+    boolean isPeriodOpen,
+    Instant occurredAt
+) {
 }

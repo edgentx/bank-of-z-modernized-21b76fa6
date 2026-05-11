@@ -1,28 +1,25 @@
 package com.example.config;
 
-import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.model.ReportDefectCmd;
-import com.example.ports.VForce360RepositoryPort;
-import io.temporal.worker.Worker;
-import io.temporal.worker.WorkerFactory;
+import com.example.adapters.DefaultGitHubAdapter;
+import com.example.adapters.DefaultSlackAdapter;
+import com.example.domain.defect.service.DefectWorkflowService;
+import com.example.mocks.InMemoryDefectRepository;
+import com.example.mocks.MockGitHubAdapter;
+import com.example.mocks.MockSlackAdapter;
+import com.example.ports.GitHubPort;
+import com.example.ports.SlackPort;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.function.Function;
 
 @Configuration
 public class DefectWorkflowConfig {
 
-    // Factory to create aggregate instances within workflows
-    public static class DefectAggregateFactory implements Function<String, DefectAggregate> {
-        private final VForce360RepositoryPort repository;
-
-        public DefectAggregateFactory(VForce360RepositoryPort repository) {
-            this.repository = repository;
-        }
-
-        @Override
-        public DefectAggregate apply(String defectId) {
-            return repository.findById(defectId).orElseGet(() -> new DefectAggregate(defectId));
-        }
-    }
+    // Primary implementation configuration is handled by ComponentScan on Adapters.
+    // This configuration explicitly wires the service for the workflow or test contexts if needed,
+    // though @Autowired constructor injection in DefectWorkflowService handles standard cases.
+    
+    // Note on DefectAggregate: It is a domain object, not a Bean.
+    // Note on InMemoryDefectRepository: It is annotated with @Component in the test package.
 }

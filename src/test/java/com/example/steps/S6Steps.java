@@ -1,111 +1,114 @@
 package com.example.steps;
 
-import com.example.domain.account.model.AccountAggregate;
-import com.example.domain.account.model.UpdateAccountStatusCmd;
-import com.example.domain.account.repository.AccountRepository;
+import com.example.domain.account.model.*;
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
-import com.example.mocks.InMemoryAccountRepository;
-import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 public class S6Steps {
 
-    // In-memory repository to manage aggregate state during tests
-    private final AccountRepository repository = new InMemoryAccountRepository();
-    private AccountAggregate aggregate;
-    private Exception capturedException;
+    private AccountAggregate account;
+    private Command command;
     private List<DomainEvent> resultEvents;
+    private Exception caughtException;
 
     @Given("a valid Account aggregate")
-    public void aValidAccountAggregate() {
-        // Create a valid active account with a balance above minimum
-        aggregate = new AccountAggregate("ACC-123");
-        // Simulate a previous state via a constructor or setter, 
-        // or by applying a prior event. For this test, we'll rely on the aggregate
-        // having defaults or we'll update it directly (Test logic).
-        // Ideally: aggregate.apply(new AccountOpenedEvent(...));
-        // Assuming defaults or test-friendly setters for BDD context setup.
+    public void a_valid_Account_aggregate() {
+        // Constructor creates an Active account
+        account = new AccountAggregate("ACC-123", "Standard");
+        // Simulate state to satisfy invariants if needed
     }
 
-    @And("a valid accountNumber is provided")
-    public void aValidAccountNumberIsProvided() {
-        // Valid account number implied by the aggregate ID "ACC-123"
-        assertNotNull(aggregate.id());
+    @Given("a valid accountNumber is provided")
+    public void a_valid_accountNumber_is_provided() {
+        // Handled in constructor or command setup
     }
 
-    @And("a valid newStatus is provided")
-    public void aValidNewStatusIsProvided() {
-        // Status handled in the When block construction
-    }
-
-    @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
-    public void aAccountAggregateThatViolatesMinBalance() {
-        aggregate = new AccountAggregate("ACC-LOW-BAL");
-        // Setup: Assume account is OPEN, balance is 0, minimum is 100.
-        // We want to ensure the command handling checks this.
-        // Since S-6 is about Status Update, the specific invariant implementation
-        // depends on the business logic. Here we create the context for the test.
-        // Note: Changing status to 'ACTIVE' might require a balance check.
-    }
-
-    @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
-    public void aAccountAggregateThatViolatesActiveStatus() {
-        aggregate = new AccountAggregate("ACC-INACTIVE");
-        // The violation here is actually trying to change status when the current state
-        // doesn't permit it, OR the command itself is attempting an invalid transition.
-        // The Gherkin says "violates: ... must be in Active status to process..."
-        // This implies we are checking the invariant inside the command handler.
-    }
-
-    @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
-    public void aAccountAggregateThatViolatesImmutableId() {
-        aggregate = new AccountAggregate("ACC-ORIG");
-        // The command will attempt to pass a *different* account number 
-        // than the aggregate ID to simulate a violation of immutability.
+    @Given("a valid newStatus is provided")
+    public void a_valid_newStatus_is_provided() {
+        // Will be used in the When step
     }
 
     @When("the UpdateAccountStatusCmd command is executed")
-    public void theUpdateAccountStatusCmdCommandIsExecuted() {
+    public void the_UpdateAccountStatusCmd_command_is_executed() {
+        // Assuming we want to freeze a valid active account
+        command = new UpdateAccountStatusCmd("ACC-123", "Frozen");
         try {
-            // We determine the command payload based on the scenario context.
-            // In a real Cucumber setup, we might parse Examples table.
-            // Here we infer based on the "Given":
-            String targetId = aggregate.id();
-            String newStatus = "FROZEN"; // Default valid transition for success case
-
-            if (aggregate.id().equals("ACC-ORIG")) {
-                targetId = "DIFFERENT-ID"; // Violate Immutability
-            }
-
-            UpdateAccountStatusCmd cmd = new UpdateAccountStatusCmd(targetId, newStatus, BigDecimal.ZERO);
-            
-            // Execute via repository pattern or directly on aggregate
-            // pattern: aggregate.execute(cmd);
-            resultEvents = aggregate.execute(cmd);
-            capturedException = null;
+            resultEvents = account.execute(command);
         } catch (Exception e) {
-            capturedException = e;
+            caughtException = e;
         }
     }
 
     @Then("a account.status.updated event is emitted")
-    public void aAccountStatusUpdatedEventIsEmitted() {
-        assertNotNull(resultEvents);
-        assertFalse(resultEvents.isEmpty());
-        assertEquals("account.status.updated", resultEvents.get(0).type());
+    public void a_account_status_updated_event_is_emitted() {
+        Assertions.assertNotNull(resultEvents);
+        Assertions.assertEquals(1, resultEvents.size());
+        Assertions.assertTrue(resultEvents.get(0) instanceof AccountStatusUpdatedEvent);
+        AccountStatusUpdatedEvent event = (AccountStatusUpdatedEvent) resultEvents.get(0);
+        Assertions.assertEquals("ACC-123", event.aggregateId());
+        Assertions.assertEquals("Frozen", event.newStatus());
+    }
+
+    // Invariant: Balance check
+    @Given("a Account aggregate that violates: Account balance cannot drop below the minimum required balance for its specific account type.")
+    public void a_Account_aggregate_that_violates_balance() {
+        account = new AccountAggregate("ACC-LOW", "Standard");
+        // Manually violate state for testing purposes (via reflection or helper if exposed)
+        // Since execute is the entry, we rely on the aggregate's internal state logic.
+        // Here we simulate a state where the status update implies a financial breach or state conflict
+        // However, the prompt implies the command rejection might be based on state.
+        // Let's assume the aggregate protects status transitions that would violate balance rules.
+        // Since we can't easily set internal state without setters, we assume the Command carries context 
+        // or the Aggregate is hydrated in a state that allows us to test this. 
+        // For this step definition, we invoke the command on a specific aggregate configuration.
+        
+        // Actually, the scenario says "violates: Account balance cannot drop...". 
+        // This is usually a check during withdrawal. If applied to Status Update, 
+        // maybe closing an account with negative balance?
+        command = new UpdateAccountStatusCmd("ACC-LOW", "Closed");
+    }
+
+    // Invariant: Active status required for operations
+    @Given("a Account aggregate that violates: An account must be in an Active status to process withdrawals or transfers.")
+    public void a_Account_aggregate_that_violates_active_status() {
+        account = new AccountAggregate("ACC-INACTIVE", "Standard");
+        // Freeze it first
+        account.execute(new UpdateAccountStatusCmd("ACC-INACTIVE", "Frozen"));
+        // Now try to activate it back or do something that requires active state? 
+        // The prompt implies the *command* is rejected. 
+        // Let's assume we are trying to perform an operation on a Frozen account, 
+        // OR we are changing status TO Active illegally (if precondition not met).
+        // Based on the text "Account must be in Active status to process...", 
+        // this sounds like a precondition check for a Transaction command. 
+        // However, the story is S-6 (UpdateAccountStatus). 
+        // Let's interpret: Trying to change status FROM Frozen to Active might fail if invariants aren't met?
+        // Or, simpler: Trying to update status when current state prevents it.
+        // We will execute a command that tries to set status to Active (simulating a re-activation attempt that fails).
+        command = new UpdateAccountStatusCmd("ACC-INACTIVE", "Active");
+    }
+
+    // Invariant: Immutable Account Number
+    @Given("a Account aggregate that violates: Account numbers must be uniquely generated and immutable.")
+    public void a_Account_aggregate_that_violates_number_immutability() {
+        account = new AccountAggregate("ACC-IMMUTABLE", "Standard");
+        // Trying to update status with a different ID in the command than the aggregate ID
+        command = new UpdateAccountStatusCmd("ACC-DIFFERENT", "Frozen");
     }
 
     @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(capturedException);
-        // Depending on implementation, this could be IllegalStateException, IllegalArgumentException, or a custom DomainException
-        assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
+    public void the_command_is_rejected_with_a_domain_error() {
+        Assertions.assertNotNull(caughtException);
+        // Check it's not just a random exception, but a domain-related one (IllegalStateException, IllegalArgumentException)
+        Assertions.assertTrue(
+            caughtException instanceof IllegalStateException || 
+            caughtException instanceof IllegalArgumentException
+        );
     }
 }

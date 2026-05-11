@@ -5,7 +5,6 @@ import com.example.domain.account.model.AccountAggregate;
 import java.util.Optional;
 
 public interface AccountRepository {
-    void save(AccountAggregate aggregate);
+    AccountAggregate save(AccountAggregate aggregate);
     Optional<AccountAggregate> findById(String id);
-    // Using InMemory repository in tests, so this interface is minimal
 }

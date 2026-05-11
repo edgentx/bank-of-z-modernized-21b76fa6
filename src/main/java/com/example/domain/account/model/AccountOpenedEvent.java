@@ -1,7 +1,6 @@
 package com.example.domain.account.model;
 
 import com.example.domain.shared.DomainEvent;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -14,6 +13,10 @@ public record AccountOpenedEvent(
     String sortCode,
     Instant occurredAt
 ) implements DomainEvent {
+    public AccountOpenedEvent {
+        // Ensure non-null if needed, or rely on record defaults
+    }
+
     @Override
     public String type() {
         return "account.opened";

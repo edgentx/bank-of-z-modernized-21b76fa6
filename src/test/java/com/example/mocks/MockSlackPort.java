@@ -6,34 +6,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mock implementation of SlackPort for testing.
- * Captures messages to allow assertions on content.
+ * Mock implementation of SlackPort for testing purposes.
+ * Allows verification of sent messages without external IO.
  */
 public class MockSlackPort implements SlackPort {
-
-    private final List<String> postedBodies = new ArrayList<>();
+    public final List<String> messages = new ArrayList<>();
+    public String lastChannel;
 
     @Override
-    public void postMessage(String body) {
-        postedBodies.add(body);
+    public void sendMessage(String channel, String text) {
+        this.lastChannel = channel;
+        this.messages.add(text);
+        System.out.println("[MOCK SLACK] Sent to " + channel + ": " + text);
     }
 
-    /**
-     * Asserts that at least one message posted contains the specified text.
-     */
-    public boolean verifyBodyContains(String text) {
-        return postedBodies.stream().anyMatch(body -> body.contains(text));
-    }
-
-    /**
-     * Retrieves the most recently posted body.
-     */
-    public String getLastBody() {
-        if (postedBodies.isEmpty()) return null;
-        return postedBodies.get(postedBodies.size() - 1);
-    }
-
-    public void clear() {
-        postedBodies.clear();
+    public boolean containsMessage(String substring) {
+        return messages.stream().anyMatch(msg -> msg.contains(substring));
     }
 }

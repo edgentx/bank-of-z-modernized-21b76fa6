@@ -5,10 +5,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record GenerateStatementCmd(
-    String statementId,
-    String accountNumber,
-    LocalDate periodEnd,
-    BigDecimal openingBalance,
-    BigDecimal closingBalance,
-    BigDecimal previousClosingBalance
+  String statementId,
+  String accountNumber,
+  LocalDate periodEnd,
+  BigDecimal openingBalance,
+  BigDecimal closingBalance
 ) implements Command {}

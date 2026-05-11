@@ -1,67 +1,97 @@
 package com.example.steps;
 
-import com.example.domain.defect.model.DefectAggregate;
-import com.example.domain.defect.repository.DefectRepository;
-import com.example.domain.defect.service.DefectWorkflowService;
-import com.example.mocks.InMemoryDefectRepository;
-import com.example.mocks.MockSlackAdapter;
-import com.example.ports.SlackPort;
+import com.example.adapters.SFB1DefectReportAdapter;
+import com.example.domain.shared.ReportDefectCmd;
+import com.example.mocks.MockGitHubIssuePort;
+import com.example.mocks.MockSlackMessageValidator;
+import com.example.ports.GitHubIssuePort;
+import com.example.ports.SlackMessageValidator;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import io.cucumber.java.en.Then;
+import io.cucumber.spring.CucumberContextConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Steps for S-FB-1: Validating VW-454 — GitHub URL in Slack body.
+ */
+@CucumberContextConfiguration
 @SpringBootTest
 public class SFB1Steps {
 
+    // We inject the mocks to verify state, and the adapter to execute behavior
     @Autowired
-    private DefectWorkflowService workflowService;
+    private MockGitHubIssuePort mockGitHubIssuePort;
 
     @Autowired
-    private InMemoryDefectRepository defectRepository;
+    private MockSlackMessageValidator mockSlackMessageValidator;
 
-    @Autowired
-    private MockSlackAdapter mockSlackAdapter;
+    @Autowired(required = false)
+    private SFB1DefectReportAdapter defectReportAdapter;
 
-    private DefectAggregate reportedDefect;
+    private ReportDefectCmd currentCommand;
     private Exception caughtException;
 
-    @Given("a defect report for {string}")
-    public void a_defect_report_for(String title) {
-        // Setup data handled via Temporal trigger in real flow, mocked here
-        // We assume the workflow will pick this up or it is created anew
+    @Given("a defect report is triggered from VForce360")
+    public void a_defect_report_is_triggered_from_vforce() {
+        // Setup test data
+        this.currentCommand = new ReportDefectCmd(
+                "VW-454 Regression Test",
+                "Ensure GitHub link is in Slack body",
+                "LOW",
+                "validation",
+                Map.of("project", "21b76fa6-afb6-4593-9e1b-b5d7548ac4d1")
+        );
+        mockGitHubIssuePort.reset();
+        mockSlackMessageValidator.reset();
     }
 
-    @When("the defect is reported via the temporal worker")
-    public void the_defect_is_reported_via_the_temporal_worker() {
+    @When("the defect reporting workflow executes")
+    public void the_defect_reporting_workflow_executes() {
         try {
-            // This mimics the Temporal Activity/Workflow execution triggering the service
-            String defectId = "DEF-" + System.currentTimeMillis();
-            workflowService.reportDefect(defectId, "VW-454", "GitHub URL missing in Slack body");
-            reportedDefect = defectRepository.findById(defectId).orElse(null);
+            // This is the System Under Test (SUT) interaction
+            // In a real Temporal test, we would invoke the workflow. Here we invoke the Adapter directly.
+            if (defectReportAdapter != null) {
+                defectReportAdapter.processReport(currentCommand);
+            } else {
+                // Fallback for pure unit test mode if context isn't fully loaded
+                throw new IllegalStateException("SFB1DefectReportAdapter was not injected.");
+            }
         } catch (Exception e) {
-            caughtException = e;
+            this.caughtException = e;
         }
     }
 
-    @Then("the Slack body should contain a link to the GitHub issue")
-    public void the_slack_body_should_contain_a_link_to_the_github_issue() {
-        // 1. Verify no exception during processing
-        assertNull(caughtException, "Workflow execution should not throw an exception");
+    @Then("the Slack body contains the GitHub issue URL")
+    public void the_slack_body_contains_the_github_issue_url() {
+        // 1. Verify GitHub was called
+        // 2. Verify Slack was called
+        // 3. Verify Slack content contains GitHub URL
 
-        // 2. Verify Slack adapter was called
-        assertFalse(mockSlackAdapter.messages.isEmpty(), "Slack adapter should have received a message");
+        assertThat(caughtException).isNull();
 
-        // 3. Verify the content of the message
-        MockSlackAdapter.Message msg = mockSlackAdapter.messages.get(0);
-        assertNotNull(msg.text(), "Slack message body should not be null");
-        
-        // This is the core validation for S-FB-1
-        // The body must contain a URL pointing to the GitHub issue
-        assertTrue(msg.text().contains("https://github.com/egdcrypto/bank-of-z/issues/"), 
-            "Slack body must contain GitHub issue URL. Found: " + msg.text());
+        String sentMessage = mockSlackMessageValidator.lastFormattedMessage;
+        assertThat(sentMessage).isNotNull();
+
+        // The core assertion for S-FB-1
+        // The message should contain the specific URL returned by the GitHub port
+        String expectedUrl = mockGitHubIssuePort.getMockUrl(1); // First issue created
+        assertThat(sentMessage).contains(expectedUrl);
+        assertThat(sentMessage).contains("https://github.com");
+    }
+
+    @Then("the validation no longer exhibits the reported behavior")
+    public void the_validation_no_longer_exhibits_the_reported_behavior() {
+        // This implies the link is NOT missing
+        // Redundant check for clarity given the Story Description
+        String sentMessage = mockSlackMessageValidator.lastFormattedMessage;
+        assertThat(sentMessage).isNotEmpty();
+        // If the bug was present, the URL might be null or empty string
+        assertThat(sentMessage).doesNotContain("<url>"); // The placeholder from description
     }
 }

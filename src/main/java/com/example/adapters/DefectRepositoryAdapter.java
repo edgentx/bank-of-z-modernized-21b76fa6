@@ -9,9 +9,8 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Persistence adapter for DefectAggregate.
- * Uses an in-memory map for simplicity in this E2E validation scenario,
- * but implements the repository interface contract.
+ * Persistence adapter for the Defect Aggregate.
+ * Implements the repository interface defined in the domain layer.
  */
 @Component
 public class DefectRepositoryAdapter implements DefectRepository {
@@ -19,8 +18,9 @@ public class DefectRepositoryAdapter implements DefectRepository {
     private final Map<String, DefectAggregate> store = new HashMap<>();
 
     @Override
-    public void save(DefectAggregate aggregate) {
+    public DefectAggregate save(DefectAggregate aggregate) {
         store.put(aggregate.id(), aggregate);
+        return aggregate;
     }
 
     @Override

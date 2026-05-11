@@ -1,14 +1,14 @@
 package com.example.domain.account.model;
 
 import com.example.domain.shared.DomainEvent;
+
 import java.time.Instant;
 
 public record AccountStatusUpdatedEvent(
-    String aggregateId,
-    String accountNumber,
-    AccountStatus oldStatus,
-    AccountStatus newStatus,
-    Instant occurredAt
+        String aggregateId,
+        AccountAggregate.AccountStatus oldStatus,
+        AccountAggregate.AccountStatus newStatus,
+        Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {

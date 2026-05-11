@@ -1,29 +1,22 @@
 package com.example.mocks;
 
-import com.example.ports.TemporalWorkerPort;
-
-import java.util.ArrayList;
-import java.util.List;
+import com.example.ports.TemporalReportDefectPort;
 
 /**
- * Mock adapter for TemporalWorkerPort.
- * Records workflow invocations to verify behavior during tests.
+ * Mock adapter for Temporal Report Defect logic.
+ * Allows triggering the workflow logic directly in memory without a Temporal server.
+ * In a real scenario, this would wrap the Workflow implementation stub.
  */
-public class MockTemporalWorker implements TemporalWorkerPort {
+public class MockTemporalWorker {
 
-    private final List<String> reportedDefects = new ArrayList<>();
+    private final TemporalReportDefectPort workflowLogic;
 
-    @Override
-    public void reportDefect(String defectId) {
-        System.out.println("[MockTemporalWorker] Received reportDefect command for ID: " + defectId);
-        reportedDefects.add(defectId);
+    public MockTemporalWorker(TemporalReportDefectPort workflowLogic) {
+        this.workflowLogic = workflowLogic;
     }
 
-    public boolean hasReported(String defectId) {
-        return reportedDefects.contains(defectId);
-    }
-
-    public void reset() {
-        reportedDefects.clear();
+    public void executeReportDefect(String defectId, String title, String description) {
+        // Directly invoke the port method (simulating the Workflow execution)
+        workflowLogic.reportDefect(defectId, title, description);
     }
 }

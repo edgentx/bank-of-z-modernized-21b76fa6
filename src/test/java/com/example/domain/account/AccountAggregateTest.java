@@ -1,10 +1,8 @@
 package com.example.domain.account;
 
 import com.example.domain.account.model.AccountAggregate;
-import com.example.domain.account.model.AccountOpenedEvent;
 import com.example.domain.account.model.OpenAccountCmd;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -12,132 +10,82 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class AccountAggregateTest {
-
-    private static final BigDecimal MIN_BALANCE_SAVINGS = new BigDecimal("100.00");
-    private static final String CUSTOMER_ID = "cust-123";
-    private static final String SORT_CODE = "10-20-30";
+/**
+ * TDD Red Phase Tests for Account Aggregate (Story S-5).
+ * These tests validate the 'Execute' pattern and invariants.
+ */
+class AccountAggregateTest {
 
     @Test
-    void testExecuteOpenAccountCmd_Success() {
+    void testSuccessfullyExecuteOpenAccountCmd() {
         // Given
-        String accountId = "acc-new-1";
+        String accountId = "acc-123";
+        String customerId = "cust-456";
+        String accountType = "CHECKING";
+        BigDecimal initialDeposit = new BigDecimal("500.00");
+        String sortCode = "10-20-30";
+        
         AccountAggregate aggregate = new AccountAggregate(accountId);
-        OpenAccountCmd cmd = new OpenAccountCmd(
-            accountId,
-            CUSTOMER_ID,
-            "SAVINGS",
-            new BigDecimal("500.00"),
-            SORT_CODE
-        );
+        OpenAccountCmd cmd = new OpenAccountCmd(accountId, customerId, accountType, initialDeposit, sortCode, null);
 
         // When
         List<DomainEvent> events = aggregate.execute(cmd);
 
         // Then
-        assertFalse(events.isEmpty(), "Expected events to be emitted");
-        
-        DomainEvent event = events.get(0);
-        assertTrue(event instanceof AccountOpenedEvent, "Expected AccountOpenedEvent");
-        
-        AccountOpenedEvent openedEvent = (AccountOpenedEvent) event;
-        assertEquals("account.opened", openedEvent.type());
-        assertEquals(accountId, openedEvent.aggregateId());
-        assertEquals(CUSTOMER_ID, openedEvent.customerId());
-        assertEquals("SAVINGS", openedEvent.accountType());
-        assertEquals(new BigDecimal("500.00"), openedEvent.balance());
-        assertEquals(SORT_CODE, openedEvent.sortCode());
-        assertNotNull(openedEvent.occurredAt());
+        assertFalse(events.isEmpty(), "An event should be emitted");
+        assertEquals("account.opened", events.get(0).type());
+        assertEquals(accountId, events.get(0).aggregateId());
+
+        // Verify Aggregate State
+        assertEquals(customerId, aggregate.getCustomerId());
+        assertEquals(accountType, aggregate.getAccountType());
+        assertEquals(initialDeposit, aggregate.getBalance());
+        assertEquals(sortCode, aggregate.getSortCode());
+        assertNotNull(aggregate.getAccountNumber(), "Account number should be generated");
+        assertEquals(AccountAggregate.AccountStatus.ACTIVE, aggregate.getStatus());
     }
 
     @Test
-    void testExecuteOpenAccountCmd_InsufficientInitialDeposit_Rejected() {
-        // Given
-        String accountId = "acc-new-2";
+    void testOpenAccountCmd_Rejected_MinimumBalance() {
+        // Given: A requirement that Savings accounts need $100 min balance
+        String accountId = "acc-124";
+        String customerId = "cust-456";
+        String accountType = "SAVINGS";
+        BigDecimal initialDeposit = new BigDecimal("50.00"); // Violates min balance
+        String sortCode = "10-20-30";
+
         AccountAggregate aggregate = new AccountAggregate(accountId);
-        
-        // A deposit below the minimum required balance for the account type
-        OpenAccountCmd cmd = new OpenAccountCmd(
-            accountId,
-            CUSTOMER_ID,
-            "SAVINGS", // Requires 100.00
-            new BigDecimal("50.00"), // Only 50.00 provided
-            SORT_CODE
-        );
+        OpenAccountCmd cmd = new OpenAccountCmd(accountId, customerId, accountType, initialDeposit, sortCode, null);
 
         // When & Then
-        // Note: The domain rule is that the balance cannot drop below the minimum.
-        // Opening with 50.00 violates the invariant for SAVINGS.
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            aggregate.execute(cmd);
-        });
-
-        assertTrue(exception.getMessage().contains("below minimum"));
-    }
-
-    @Test
-    void testExecuteOpenAccountCmd_InvalidStatus_Rejected() {
-        // Given
-        // This test validates the invariant: "An account must be in an Active status to process withdrawals or transfers."
-        // While this is primarily for subsequent commands, the Aggregate construction or state validation
-        // should prevent processing if the aggregate is not in a valid state to accept new commands.
-        // Here we assume the aggregate defaults to a non-active state or requires specific initialization.
-        
-        String accountId = "acc-frozen-1";
-        AccountAggregate aggregate = new AccountAggregate(accountId);
-        
-        // Simulate an aggregate that is not Active (e.g., logic inside execute checks status)
-        OpenAccountCmd cmd = new OpenAccountCmd(
-            accountId,
-            CUSTOMER_ID,
-            "CHECKING",
-            new BigDecimal("100.00"),
-            SORT_CODE
-        );
-
-        // When & Then
-        // This assertion enforces the design rule that we cannot proceed if status checks fail
-        Exception exception = assertThrows(IllegalStateException.class, () -> {
-             aggregate.execute(cmd);
-        });
-        
-        assertTrue(exception.getMessage().contains("Active status"));
-    }
-
-    @Test
-    void testExecuteOpenAccountCmd_DuplicateAccountNumber_Rejected() {
-        // Given
-        String accountId = "acc-dup-1";
-        AccountAggregate aggregate = new AccountAggregate(accountId);
-        
-        OpenAccountCmd cmd = new OpenAccountCmd(
-            accountId,
-            CUSTOMER_ID,
-            "CHECKING",
-            new BigDecimal("100.00"),
-            SORT_CODE
-        );
-
-        // When & Then
-        // Invariants state: Account numbers must be uniquely generated and immutable.
-        // If the ID generation logic fails or detects a collision, it must reject.
         Exception exception = assertThrows(IllegalStateException.class, () -> {
             aggregate.execute(cmd);
         });
-        
-        assertTrue(exception.getMessage().contains("unique") || exception.getMessage().contains("immutable"));
+
+        assertTrue(exception.getMessage().contains("Minimum balance"));
     }
 
     @Test
-    void testExecuteUnknownCommand_ThrowsException() {
+    void testOpenAccountCmd_Rejected_NegativeInitialDeposit() {
         // Given
-        String accountId = "acc-unknown";
-        AccountAggregate aggregate = new AccountAggregate(accountId);
-        Command unknownCmd = new Command() {}; // Anonymous invalid command
+        AccountAggregate aggregate = new AccountAggregate("acc-125");
+        OpenAccountCmd cmd = new OpenAccountCmd("acc-125", "cust-456", "CHECKING", new BigDecimal("-10.00"), "10-20-30", null);
 
         // When & Then
-        assertThrows(UnknownCommandException.class, () -> {
-            aggregate.execute(unknownCmd);
+        assertThrows(IllegalArgumentException.class, () -> {
+            aggregate.execute(cmd);
+        });
+    }
+
+    @Test
+    void testOpenAccountCmd_Rejected_ImmutabilityOfId() {
+        // The command ID matches the aggregate ID. If they don't match, the aggregate constructor logic handles it.
+        // Here we verify null ID rejection.
+        AccountAggregate aggregate = new AccountAggregate("valid-id");
+        OpenAccountCmd cmd = new OpenAccountCmd(null, "cust-456", "CHECKING", BigDecimal.ZERO, "10-20-30", null);
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            aggregate.execute(cmd);
         });
     }
 }

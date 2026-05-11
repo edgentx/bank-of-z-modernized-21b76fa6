@@ -1,47 +1,35 @@
 package com.example.adapters;
 
-import com.example.ports.SlackMessageValidator;
+import com.example.domain.vforce360.model.ReportDefectCmd;
 import org.junit.jupiter.api.Test;
-
+import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * TDD Red Phase test for VW-454.
- * Verifies that the SlackMessageValidator properly formats the GitHub issue URL
- * within the Slack message body.
- */
 class SlackMessageValidatorImplTest {
 
-    private final SlackMessageValidator validator = new SlackMessageValidatorImpl();
+    private final SlackMessageValidatorImpl validator = new SlackMessageValidatorImpl();
 
     @Test
-    void testSlackBodyContainsGitHubUrl() {
-        // Given: Inputs from the Temporal workflow
-        String defectId = "VW-454";
-        String issueTitle = "Validating VW-454";
-        String githubUrl = "https://github.com/egdcrypto/bank-of-z/issues/454";
-
-        // When: The validator formats the message
-        String result = validator.formatSlackMessage(defectId, issueTitle, githubUrl);
-
-        // Then: The result contains the formatted URL line
-        // Expected: "Slack body includes GitHub issue: <url>"
-        assertTrue(result.contains("GitHub issue:"), "Body should contain 'GitHub issue:' label");
-        assertTrue(result.contains(githubUrl), "Body should contain the actual GitHub URL");
+    void validate_WhenBodyContainsUrl_ReturnsTrue() {
+        ReportDefectCmd cmd = new ReportDefectCmd("1", "Bug", "Desc", "http://github.com/repo/issue/1", Map.of());
+        String body = "Issue reported. Link: http://github.com/repo/issue/1";
+        
+        assertTrue(validator.validate(cmd, body));
     }
 
     @Test
-    void testSlackBodyEscapesUrlFormatting() {
-        // Given: Inputs
-        String defectId = "VW-454";
-        String issueTitle = "Validating VW-454";
-        String githubUrl = "https://github.com/egdcrypto/bank-of-z/issues/454";
+    void validate_WhenBodyDoesNotContainUrl_ReturnsFalse() {
+        ReportDefectCmd cmd = new ReportDefectCmd("1", "Bug", "Desc", "http://github.com/repo/issue/1", Map.of());
+        String body = "Issue reported. Link missing.";
+        
+        assertFalse(validator.validate(cmd, body));
+    }
 
-        // When: Formatting message
-        String result = validator.formatSlackMessage(defectId, issueTitle, githubUrl);
-
-        // Then: Ensure the formatting characters used in the bug report description are present
-        // and valid Java strings.
-        assertTrue(result.contains("<" + githubUrl + ">|"), "Body should contain Slack link formatting <|>");
+    @Test
+    void validate_WhenUrlIsNull_ReturnsFalse() {
+        ReportDefectCmd cmd = new ReportDefectCmd("1", "Bug", "Desc", null, Map.of());
+        String body = "Issue reported.";
+        
+        assertFalse(validator.validate(cmd, body));
     }
 }

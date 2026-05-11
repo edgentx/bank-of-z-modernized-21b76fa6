@@ -2,15 +2,13 @@ package com.example.domain.reporting.model;
 
 import com.example.domain.shared.Command;
 
-import java.time.Instant;
-
 /**
- * Command to report a defect discovered in the VForce360 system.
- * Part of S-FB-1: Fix for VW-454.
+ * Command to report a defect discovered during operations or reconciliation.
+ * This defect report triggers a workflow to log the issue to GitHub and notify via Slack.
  */
 public record ReportDefectCmd(
-    String defectId,
-    String description,
-    String severity,
-    Instant occurredAt
+        String defectId,
+        String title,
+        String description,
+        String severity // LOW, MEDIUM, HIGH, CRITICAL
 ) implements Command {}

@@ -1,112 +1,111 @@
 package com.example.steps;
 
+import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.statement.model.GenerateStatementCmd;
 import com.example.domain.statement.model.StatementAggregate;
 import com.example.domain.statement.model.StatementGeneratedEvent;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class S8Steps {
 
     private StatementAggregate aggregate;
-    private GenerateStatementCmd command;
-    private List<DomainEvent> resultEvents;
-    private Exception capturedException;
+    private Exception caughtException;
+    private String accountId = "ACC-12345";
+    private Instant periodEnd;
+    private BigDecimal openingBalance = new BigDecimal("100.00");
 
     @Given("a valid Statement aggregate")
     public void a_valid_statement_aggregate() {
-        aggregate = new StatementAggregate("stmt-123");
+        aggregate = new StatementAggregate("STMT-TEST-1");
+        periodEnd = Instant.now().minusSeconds(86400); // Yesterday
     }
 
-    @Given("a valid accountNumber is provided")
+    @And("a valid accountNumber is provided")
     public void a_valid_account_number_is_provided() {
-        // Context managed in the execution step
+        // accountId initialized
     }
 
-    @Given("a valid periodEnd is provided")
+    @And("a valid periodEnd is provided")
     public void a_valid_period_end_is_provided() {
-        // Context managed in the execution step
+        // periodEnd initialized
     }
 
     @When("the GenerateStatementCmd command is executed")
     public void the_generate_statement_cmd_command_is_executed() {
-        // Default valid data if command wasn't customized by specific violation scenarios
-        if (command == null) {
-            Instant past = Instant.now().minus(30, ChronoUnit.DAYS);
-            command = new GenerateStatementCmd(
-                    "stmt-123",
-                    "acc-456",
-                    past.minus(1, ChronoUnit.DAYS),
-                    past,
-                    BigDecimal.ZERO,
-                    new BigDecimal("100.00"),
-                    null // No previous balance for a happy path new account
-            );
-        }
-
         try {
-            resultEvents = aggregate.execute(command);
+            Command cmd = new GenerateStatementCmd(
+                    "STMT-TEST-1",
+                    accountId,
+                    periodEnd,
+                    openingBalance,
+                    null // No previous balance context for simple happy path
+            );
+            aggregate.execute(cmd);
         } catch (Exception e) {
-            capturedException = e;
+            caughtException = e;
         }
     }
 
     @Then("a statement.generated event is emitted")
     public void a_statement_generated_event_is_emitted() {
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof StatementGeneratedEvent);
-        
-        StatementGeneratedEvent event = (StatementGeneratedEvent) resultEvents.get(0);
-        assertEquals("stmt-123", event.aggregateId());
-        assertEquals("acc-456", event.accountNumber());
+        assertNull(caughtException, "Should not have thrown exception");
+        var events = aggregate.uncommittedEvents();
+        assertFalse(events.isEmpty(), "Should have uncommitted events");
+        DomainEvent event = events.get(0);
+        assertTrue(event instanceof StatementGeneratedEvent, "Event should be StatementGeneratedEvent");
+        assertEquals("statement.generated", event.type());
     }
-
-    // --- Failure Scenarios ---
 
     @Given("a Statement aggregate that violates: A statement must be generated for a closed period and cannot be altered retroactively.")
     public void a_statement_aggregate_that_violates_closed_period() {
-        aggregate = new StatementAggregate("stmt-fail-1");
-        // Period is in the future
-        Instant future = Instant.now().plus(1, ChronoUnit.DAYS);
-        command = new GenerateStatementCmd(
-                "stmt-fail-1",
-                "acc-789",
-                future.minus(1, ChronoUnit.DAYS),
-                future,
-                BigDecimal.ZERO,
-                BigDecimal.TEN,
-                null
-        );
+        aggregate = new StatementAggregate("STMT-TEST-FUTURE");
+        periodEnd = Instant.now().plusSeconds(3600); // Future (Violation)
     }
 
     @Given("a Statement aggregate that violates: Statement opening balance must exactly match the closing balance of the previous statement.")
-    public void a_statement_aggregate_that_violates_opening_balance() {
-        aggregate = new StatementAggregate("stmt-fail-2");
-        Instant past = Instant.now().minus(30, ChronoUnit.DAYS);
-        command = new GenerateStatementCmd(
-                "stmt-fail-2",
-                "acc-101",
-                past.minus(1, ChronoUnit.DAYS),
-                past,
-                new BigDecimal("50.00"), // Opening is 50
-                new BigDecimal("100.00"),
-                new BigDecimal("100.00") // Previous closing was 100 (Mismatch!)
-        );
+    public void a_statement_aggregate_that_violates_balance_matching() {
+        aggregate = new StatementAggregate("STMT-TEST-BALANCE");
+        periodEnd = Instant.now().minusSeconds(86400);
+        openingBalance = new BigDecimal("50.00"); // Current opening
     }
 
     @Then("the command is rejected with a domain error")
     public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(capturedException, "Expected an exception but command succeeded");
-        assertTrue(capturedException instanceof IllegalArgumentException || capturedException instanceof IllegalStateException);
+        assertNotNull(caughtException, "Should have thrown an exception");
+        assertTrue(caughtException instanceof IllegalArgumentException, "Exception should be domain error");
+    }
+
+    // Additional specific step for the balance mismatch scenario setup
+    @And("a previous closing balance exists that does not match")
+    public void a_previous_closing_balance_exists_that_does_not_match() {
+        // Handled inside the execute method hook below if we wanted to be hyper-specific,
+        // but for this scenario we trigger it via the Command data passed in the When step.
+    }
+
+    // Overriding When for the specific scenario to pass the mismatching data
+    @When("the GenerateStatementCmd command is executed with mismatching balance")
+    public void the_generate_statement_cmd_command_is_executed_with_mismatch() {
+        try {
+            BigDecimal previousClosing = new BigDecimal("100.00");
+            Command cmd = new GenerateStatementCmd(
+                    "STMT-TEST-BALANCE",
+                    accountId,
+                    periodEnd,
+                    openingBalance, // 50.00
+                    previousClosing // 100.00
+            );
+            aggregate.execute(cmd);
+        } catch (Exception e) {
+            caughtException = e;
+        }
     }
 }

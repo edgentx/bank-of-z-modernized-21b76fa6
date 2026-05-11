@@ -5,12 +5,12 @@ import java.time.Instant;
 
 /**
  * Command to update an existing routing rule.
- * Used to shift traffic from legacy to modern systems.
+ * Used to shift traffic from Legacy to Modern systems.
  */
 public record UpdateRoutingRuleCmd(
         String routeId,
         String ruleId,
         String newTarget,
-        Instant effectiveDate
-) implements Command {
-}
+        Instant effectiveDate,
+        int targetVersion
+) implements Command {}

@@ -1,12 +1,9 @@
 package com.example.ports;
 
-import com.example.domain.vforce360.model.DefectReportedEvent;
-
 /**
- * Port for sending notifications to Slack.
- * Follows the Hexagonal Architecture pattern.
+ * Port interface for Slack notifications.
+ * This decouples the domain logic from the specific Slack API implementation.
  */
 public interface SlackPort {
-    void sendNotification(DefectReportedEvent event);
-    String formatMessageBody(DefectReportedEvent event);
+    void postMessage(String channel, String text);
 }

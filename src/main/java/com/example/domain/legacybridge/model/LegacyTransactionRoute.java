@@ -20,15 +20,14 @@ public class LegacyTransactionRoute extends AggregateRoot {
     private boolean evaluated;
     private String targetSystem;
 
-    // State for the aggregate
-    private int currentVersion;
+    // State to simulate business logic for invariants
+    private int currentRulesVersion = 1; 
 
     public LegacyTransactionRoute(String routeId) {
         this.routeId = routeId;
         this.dualProcessingViolation = false;
         this.versioningViolation = false;
         this.evaluated = false;
-        this.currentVersion = 1;
     }
 
     @Override
@@ -51,7 +50,8 @@ public class LegacyTransactionRoute extends AggregateRoot {
     public List<DomainEvent> execute(Command cmd) {
         if (cmd instanceof EvaluateRoutingCmd c) {
             return evaluateRouting(c);
-        } else if (cmd instanceof UpdateRoutingRuleCmd c) {
+        }
+        if (cmd instanceof UpdateRoutingRuleCmd c) {
             return updateRoutingRule(c);
         }
         throw new UnknownCommandException(cmd);
@@ -64,12 +64,8 @@ public class LegacyTransactionRoute extends AggregateRoot {
         }
 
         // Invariant 2: Versioning check
-        if (cmd.rulesVersion() <= 0) {
-            throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
-        }
-
         if (versioningViolation) {
-            throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
+             throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
         }
 
         if (evaluated) {
@@ -99,37 +95,26 @@ public class LegacyTransactionRoute extends AggregateRoot {
     }
 
     private List<DomainEvent> updateRoutingRule(UpdateRoutingRuleCmd cmd) {
-        // Invariant: Check for dual processing violation state
+        // Invariant 1: Prevent dual-processing
         if (this.dualProcessingViolation) {
             throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
         }
 
-        // Invariant: Check for versioning violation state
+        // Invariant 2: Versioning check (Simulated business rule)
         if (this.versioningViolation) {
-            throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
+            throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
         }
 
-        // Input Validation
-        if (cmd.ruleId() == null || cmd.ruleId().isBlank()) {
-            throw new IllegalArgumentException("ruleId cannot be blank");
-        }
-        if (cmd.newTarget() == null || cmd.newTarget().isBlank()) {
-            throw new IllegalArgumentException("newTarget cannot be blank");
-        }
-        if (cmd.effectiveDate() == null) {
-            throw new IllegalArgumentException("effectiveDate cannot be null");
-        }
-
-        // Update state
+        // Logic to update the rule
+        // In a real scenario, this would update internal rule maps
         this.targetSystem = cmd.newTarget();
-        this.currentVersion = cmd.newVersion();
-
-        var event = new RoutingUpdatedEvent(
+        
+        var event = new RoutingRuleUpdatedEvent(
                 cmd.routeId(),
                 cmd.ruleId(),
                 cmd.newTarget(),
-                cmd.newVersion(),
-                cmd.effectiveDate()
+                cmd.effectiveDate(),
+                Instant.now()
         );
 
         addEvent(event);
@@ -143,9 +128,5 @@ public class LegacyTransactionRoute extends AggregateRoot {
 
     public String getTargetSystem() {
         return targetSystem;
-    }
-
-    public int getCurrentVersion() {
-        return currentVersion;
     }
 }

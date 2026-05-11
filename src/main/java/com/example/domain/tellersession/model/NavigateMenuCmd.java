@@ -1,17 +1,19 @@
 package com.example.domain.tellersession.model;
 
 import com.example.domain.shared.Command;
-import java.util.Objects;
 
 /**
- * Command to route the teller to a different menu or screen.
- * Emulates legacy menu navigation behavior.
+ * Command to navigate the teller UI to a specific menu or screen.
+ * Part of the S-19 story: Implement NavigateMenuCmd on TellerSession.
  */
-public record NavigateMenuCmd(String sessionId, String menuId, String action) implements Command {
+public record NavigateMenuCmd(String targetMenuId, String action) implements Command {
 
     public NavigateMenuCmd {
-        Objects.requireNonNull(sessionId, "sessionId cannot be null");
-        Objects.requireNonNull(menuId, "menuId cannot be null");
-        Objects.requireNonNull(action, "action cannot be null");
+        if (targetMenuId == null || targetMenuId.isBlank()) {
+            throw new IllegalArgumentException("targetMenuId cannot be blank");
+        }
+        if (action == null || action.isBlank()) {
+            throw new IllegalArgumentException("action cannot be blank");
+        }
     }
 }

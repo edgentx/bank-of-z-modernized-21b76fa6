@@ -1,7 +1,5 @@
 package com.example.ports;
 
-import java.net.URI;
-
 /**
  * Port interface for sending Slack notifications.
  */

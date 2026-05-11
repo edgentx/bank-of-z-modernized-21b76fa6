@@ -6,20 +6,22 @@ import java.time.Instant;
 
 public record AccountStatusUpdatedEvent(
     String aggregateId,
-    AccountAggregate.AccountStatus oldStatus,
-    AccountAggregate.AccountStatus newStatus,
+    String oldStatus,
+    String newStatus,
     Instant occurredAt
 ) implements DomainEvent {
     @Override
     public String type() {
         return "account.status.updated";
     }
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
+
     @Override
     public Instant occurredAt() {
         return occurredAt;
+    }
+
+    @Override
+    public String aggregateId() {
+        return aggregateId;
     }
 }

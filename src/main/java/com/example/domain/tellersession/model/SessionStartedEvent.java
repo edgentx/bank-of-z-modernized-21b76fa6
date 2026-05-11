@@ -3,42 +3,34 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Objects;
 
 /**
  * Event emitted when a teller session is successfully started.
  */
-public class SessionStartedEvent implements DomainEvent {
+public record SessionStartedEvent(
+        String type,
+        String aggregateId,
+        Instant occurredAt,
+        String tellerId,
+        String terminalId
+) implements DomainEvent {
 
-    private final String eventId;
-    private final String aggregateId;
-    private final String tellerId;
-    private final String terminalId;
-    private final Instant occurredAt;
-
-    public SessionStartedEvent(String aggregateId, String tellerId, String terminalId, Instant occurredAt) {
-        this.eventId = UUID.randomUUID().toString();
-        this.aggregateId = aggregateId;
-        this.tellerId = tellerId;
-        this.terminalId = terminalId;
-        this.occurredAt = occurredAt;
+    public SessionStartedEvent {
+        Objects.requireNonNull(type, "type cannot be null");
+        Objects.requireNonNull(aggregateId, "aggregateId cannot be null");
+        Objects.requireNonNull(occurredAt, "occurredAt cannot be null");
+        Objects.requireNonNull(tellerId, "tellerId cannot be null");
+        Objects.requireNonNull(terminalId, "terminalId cannot be null");
     }
 
-    @Override
-    public String type() {
-        return "session.started";
+    public static SessionStartedEvent of(String aggregateId, String tellerId, String terminalId) {
+        return new SessionStartedEvent(
+                "tellersession.session.started",
+                aggregateId,
+                Instant.now(),
+                tellerId,
+                terminalId
+        );
     }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
-    }
-
-    public String tellerId() { return tellerId; }
-    public String terminalId() { return terminalId; }
 }

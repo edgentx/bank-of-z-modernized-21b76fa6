@@ -1,35 +1,23 @@
 package com.example.adapters;
 
 import com.example.ports.GitHubPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
-
 /**
- * Real implementation of the GitHub port.
- * Interacts with GitHub API to create issues.
+ * Implementation of GitHubPort.
+ * In a real scenario, this would use a GitHub HTTP client (e.g., OkHttp).
+ * For this defect fix, we assume the URL construction logic or lookup.
  */
-@Component
 public class GitHubAdapter implements GitHubPort {
 
-    private static final Logger logger = LoggerFactory.getLogger(GitHubAdapter.class);
-    private static final String BASE_URL = "https://github.com/owner/repo/issues/";
+    private static final String BASE_URL = "https://github.com/egdcrypto/bank-of-z-modernized/issues/";
 
     @Override
-    public String createIssue(String title, String description) {
-        // In a real scenario, we would use WebClient to POST to GitHub API
-        // POST /repos/owner/repo/issues
-        
-        // Simulate API call latency and response
-        logger.info("Creating GitHub issue with title: {}", title);
-        
-        // Generate a deterministic ID based on random for simulation
-        int issueId = Math.abs(UUID.randomUUID().hashCode());
-        String url = BASE_URL + issueId;
-        
-        logger.info("GitHub issue created: {}", url);
-        return url;
+    public String getIssueUrl(String issueId) {
+        // Simple construction logic based on the defect report expected format
+        if (issueId == null || issueId.isBlank()) {
+            throw new IllegalArgumentException("Issue ID cannot be null");
+        }
+        return BASE_URL + issueId.replace("VW-", "");
     }
 }

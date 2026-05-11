@@ -5,8 +5,7 @@ import com.example.ports.SlackNotificationPort;
 
 /**
  * Workflow implementation for reporting defects.
- * This file is generated as a STUB to satisfy the compiler in the Red Phase.
- * It intentionally fails the logic requirements of the tests (S-FB-1).
+ * Orchestrates the creation of a GitHub issue and the subsequent Slack notification.
  */
 public class DefectReportWorkflow {
 
@@ -26,17 +25,12 @@ public class DefectReportWorkflow {
      * @param channel Target Slack channel.
      */
     public void reportDefect(String title, String body, String channel) {
-        // INTENTIONAL BUG (Red Phase):
-        // This implementation sends a Slack message but does NOT include the GitHub URL.
-        // This causes testReportDefect_shouldSendSlackNotificationContainingGitHubUrl to fail.
-        
-        // 1. Create GitHub Issue (We call it, but ignore the return value for the bug)
+        // 1. Create GitHub Issue
         String issueUrl = gitHubIssuePort.createIssue(title, body);
-        
-        // 2. Send Slack Notification
-        // Bug: The body below is hardcoded and does NOT include issueUrl.
-        String slackBody = "Defect Reported: " + title; 
-        
+
+        // 2. Send Slack Notification containing the GitHub URL
+        String slackBody = "Defect Reported: " + title + "\nGitHub Issue: " + issueUrl;
+
         slackNotificationPort.sendMessage(channel, slackBody);
     }
 }

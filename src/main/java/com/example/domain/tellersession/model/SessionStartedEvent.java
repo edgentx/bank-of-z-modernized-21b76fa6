@@ -3,27 +3,26 @@ package com.example.domain.tellersession.model;
 import com.example.domain.shared.DomainEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Event emitted when a teller session is successfully started.
- * @param sessionId The unique identifier for the session.
- * @param tellerId The authenticated ID of the teller.
- * @param terminalId The ID of the terminal where the session started.
- * @param occurredAt The timestamp when the event occurred.
  */
-public record SessionStartedEvent(String sessionId, String tellerId, String terminalId, Instant occurredAt) implements DomainEvent {
+public record SessionStartedEvent(
+        String aggregateId,
+        String tellerId,
+        String terminalId,
+        Instant occurredAt
+) implements DomainEvent {
+
+    public SessionStartedEvent {
+        if (aggregateId == null) throw new IllegalArgumentException("aggregateId required");
+        if (tellerId == null) throw new IllegalArgumentException("tellerId required");
+        if (terminalId == null) throw new IllegalArgumentException("terminalId required");
+    }
+
     @Override
     public String type() {
         return "session.started";
-    }
-
-    @Override
-    public String aggregateId() {
-        return sessionId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }

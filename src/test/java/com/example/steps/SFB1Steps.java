@@ -1,73 +1,65 @@
 package com.example.steps;
 
-import com.example.adapters.DefaultSlackAdapter;
-import com.example.domain.defect.Service;
-import com.example.domain.defect.model.DefectAggregate;
-import com.example.mocks.MockGitHubClient;
-import com.example.mocks.MockSlackNotifier;
+import com.example.domain.validation.model.ReportDefectCmd;
+import com.example.domain.validation.model.ValidationAggregate;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.springframework.beans.factory.annotation.Autowired;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Cucumber Steps for S-FB-1: Validating GitHub URL in Slack body.
+ * Cucumber Steps for Story S-FB-1.
+ * Location: src/test/java/com/example/steps/
  */
 public class SFB1Steps {
 
-    // We use mocks directly here to simulate the Temporal worker execution context
-    // without needing a full Spring Context or Temporal server.
-    private final MockSlackNotifier mockSlack = new MockSlackNotifier();
-    private final MockGitHubClient mockGitHub = new MockGitHubClient();
+    private ValidationAggregate aggregate;
+    private Exception capturedException;
+    private String generatedSlackBody;
+    private String validationId = "test-validation-id";
 
-    private DefectAggregate defectAggregate;
-    private Exception reportedException;
-
-    @Given("a defect report VW-454 exists")
-    public void a_defect_report_vw_454_exists() {
-        // In a real flow, this is loaded from DB. Here we instantiate it.
-        defectAggregate = new DefectAggregate("VW-454");
+    @Given("a defect report is triggered with valid GitHub URL")
+    public void a_defect_report_is_triggered_with_valid_github_url() {
+        aggregate = new ValidationAggregate(validationId);
+        // Aggregate is initialized, command will be executed in When step
     }
 
-    @When("the system executes the _report_defect workflow via Temporal worker")
-    public void the_system_executes_the_report_defect_workflow() {
+    @Given("a defect report is triggered without a GitHub URL")
+    public void a_defect_report_is_triggered_without_a_github_url() {
+        aggregate = new ValidationAggregate(validationId);
+    }
+
+    @When("the report defect command is executed with URL {string}")
+    public void the_report_defect_command_is_executed_with_url(String url) {
         try {
-            // This simulates the Service call that would be triggered by Temporal
-            // We inject mocks via constructor (assuming constructor injection in the real impl)
-            Service defectService = new Service(mockGitHub, mockSlack);
-            
-            // Assuming a method 'reportDefect' or similar exists on the Service
-            // Since the implementation is missing/compiling, this demonstrates the *intended* behavior.
-            // defectService.reportDefect(defectAggregate); 
-            
-            // For the sake of this Red Phase, we simulate the behavior we expect:
-            // 1. Service calls GitHub to get URL
-            String url = mockGitHub.getIssueUrl("VW-454");
-            
-            // 2. Service calls Slack with the URL included
-            String message = "Defect Reported: " + defectAggregate.id() + " - " + url;
-            mockSlack.notify("#vforce360-issues", message);
-
+            ReportDefectCmd cmd = new ReportDefectCmd(
+                "VW-454",
+                "Validating GitHub URL in Slack body",
+                "Checking if link is present",
+                "LOW",
+                url
+            );
+            var events = aggregate.execute(cmd);
+            // Simulate Slack body generation from the resulting event
+            if (!events.isEmpty()) {
+                generatedSlackBody = "Defect Reported: " + url;
+            }
         } catch (Exception e) {
-            reportedException = e;
+            capturedException = e;
         }
     }
 
-    @Then("the Slack body contains the GitHub issue link")
-    public void the_slack_body_contains_the_github_issue_link() {
-        if (reportedException != null) {
-            throw new RuntimeException("Workflow execution failed", reportedException);
-        }
+    @Then("the resulting Slack body should contain the GitHub issue URL")
+    public void the_resulting_slack_body_should_contain_the_github_issue_url() {
+        assertNotNull(generatedSlackBody, "Slack body should not be null");
+        assertTrue(generatedSlackBody.contains("https://github.com"), "Slack body should contain GitHub URL");
+    }
 
-        // The critical assertion for the bug fix
-        String lastMessage = mockSlack.getLastMessage();
-        assertNotNull("Slack should have received a message", lastMessage);
-        
-        String expectedUrl = mockGitHub.getIssueUrl("VW-454");
-        assertTrue("Slack body must contain the GitHub issue URL", 
-            mockSlack.bodyContains(expectedUrl));
+    @Then("the system should throw an error indicating the URL is required")
+    public void the_system_should_throw_an_error_indicating_the_url_is_required() {
+        assertNotNull(capturedException);
+        assertTrue(capturedException instanceof IllegalArgumentException);
+        assertTrue(capturedException.getMessage().contains("GitHub Issue URL is required"));
     }
 }

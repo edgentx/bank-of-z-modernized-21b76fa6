@@ -1,21 +1,26 @@
 package com.example.mocks;
 
-import com.example.domain.userinterface.model.ScreenMap;
-import com.example.domain.userinterface.repository.ScreenMapRepository;
+import com.example.domain.navigation.model.ScreenMapAggregate;
+import com.example.domain.navigation.repository.ScreenMapRepository;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
+/**
+ * Mock adapter for ScreenMapRepository.
+ * Used in tests to avoid real database dependencies.
+ */
 public class InMemoryScreenMapRepository implements ScreenMapRepository {
-    private final Map<String, ScreenMap> store = new HashMap<>();
+    private final Map<String, ScreenMapAggregate> store = new HashMap<>();
 
     @Override
-    public void save(ScreenMap aggregate) {
-        store.put(aggregate.id(), aggregate);
+    public ScreenMapAggregate load(String id) {
+        // In a real scenario, we might hydrate the state from events.
+        // For simple mocking, we return the instance or null.
+        return store.get(id);
     }
 
     @Override
-    public Optional<ScreenMap> findById(String id) {
-        return Optional.ofNullable(store.get(id));
+    public void save(ScreenMapAggregate aggregate) {
+        store.put(aggregate.id(), aggregate);
     }
 }

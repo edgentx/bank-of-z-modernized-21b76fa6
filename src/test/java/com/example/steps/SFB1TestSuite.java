@@ -6,10 +6,10 @@ import org.junit.runner.RunWith;
 
 @RunWith(Cucumber.class)
 @CucumberOptions(
-    features = "../../features/S-FB-1.feature", 
+    features = "features/S-FB-1.feature",
     glue = {"com.example.steps"},
-    plugin = {"pretty", "html:target/cucumber-report/S-FB-1.html"}
+    plugin = {"pretty", "summary"}
 )
 public class SFB1TestSuite {
-    // Test suite configuration
+    // Cucumber Test Suite for S-FB-1
 }

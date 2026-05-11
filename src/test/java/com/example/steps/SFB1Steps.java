@@ -1,14 +1,15 @@
 package com.example.steps;
 
+import com.example.application.DefectReportService;
 import com.example.domain.ports.SlackNotificationPort;
 import com.example.domain.shared.Command;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
+import org.mockito.Mockito;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-
-import org.mockito.Mockito;
 
 /**
  * Step definitions for S-FB-1: Validating VW-454.
@@ -18,6 +19,9 @@ public class SFB1Steps {
 
     // Mock Adapter
     private SlackNotificationPort slackMock;
+    
+    // System Under Test
+    private DefectReportService service;
     
     // State
     private Command reportCommand;
@@ -34,21 +38,18 @@ public class SFB1Steps {
             sentMessage = invocation.getArgument(0);
             return null;
         }).when(slackMock).send(anyString());
+        
+        // Initialize the service with the mock port (Dependency Injection)
+        service = new DefectReportService(slackMock);
     }
 
     @When("the defect payload is processed")
     public void the_defect_payload_is_processed() {
-        // Simulate the workflow execution (Red Phase: calling missing implementation)
-        // This will be implemented by the engineer in the Green phase.
-        // For now, we assume a handler or processor exists that we can invoke.
+        // Simulate the workflow execution calling the service
         try {
-            // The actual implementation logic would be here.
-            // e.g. processor.report(reportCommand, slackMock);
-            
-            // TEMPORARY: Simulating the failure if the logic doesn't exist or doesn't run
-            // In a real test scenario, this would call the service.
-            // To make this test RED (fail) initially if the logic is missing:
-            throw new IllegalStateException("Service implementation not invoked or missing");
+            // Using a generic command or null as the specific type doesn't matter for this scenario
+            reportCommand = new Command() {}; // Anonymous command implementation
+            service.reportDefect(reportCommand);
         } catch (Exception e) {
             this.capturedException = e;
         }
@@ -57,7 +58,8 @@ public class SFB1Steps {
     @Then("the Slack body includes the GitHub issue link {string}")
     public void the_slack_body_includes_the_github_issue_link(String expectedUrl) {
         // 1. Verify the service actually executed
-        assertNull(capturedException, "Workflow execution failed: " + capturedException.getMessage());
+        assertNull(capturedException, "Workflow execution failed: " + 
+            (capturedException != null ? capturedException.getMessage() : "null"));
 
         // 2. Verify that a message was sent to Slack
         assertNotNull(sentMessage, "No message was sent to Slack");

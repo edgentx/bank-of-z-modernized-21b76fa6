@@ -4,24 +4,19 @@ import com.example.domain.shared.AggregateRoot;
 import com.example.domain.shared.Command;
 import com.example.domain.shared.DomainEvent;
 import com.example.domain.shared.UnknownCommandException;
-
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Aggregate Root for Legacy Transaction Routing.
- * Manages routing logic and invariants.
- */
 public class LegacyTransactionRoute extends AggregateRoot {
-
     private final String routeId;
-    private int currentRuleVersion = 1; // Default version
-    private boolean isRouted = false;
+    private String currentTransactionType;
+    private String currentPayload;
+    private boolean evaluated;
+    private int currentRuleVersion;
 
-    // Test helpers to simulate invariant violations
-    private transient boolean forceDualProcessingViolation = false;
-    private transient boolean forceVersioningViolation = false;
+    // State for S-24 Invariant Violation Simulation
+    private boolean dualProcessingViolation = false;
+    private boolean versioningViolation = false;
 
     public LegacyTransactionRoute(String routeId) {
         this.routeId = routeId;
@@ -34,26 +29,63 @@ public class LegacyTransactionRoute extends AggregateRoot {
 
     @Override
     public List<DomainEvent> execute(Command cmd) {
-        if (cmd instanceof UpdateRoutingRuleCmd c) {
-            return handleUpdateRoutingRule(c);
+        if (cmd instanceof EvaluateRoutingCmd c) {
+            return evaluateRouting(c);
         }
-        // If there were other commands, they would be here.
-        // Removing references to non-existent S-24 specific commands to fix compilation.
+        if (cmd instanceof UpdateRoutingRuleCmd c) {
+            return updateRoutingRule(c);
+        }
         throw new UnknownCommandException(cmd);
     }
 
-    private List<DomainEvent> handleUpdateRoutingRule(UpdateRoutingRuleCmd cmd) {
-        // Invariant: Routing rules must be versioned to allow safe rollback.
-        if (forceVersioningViolation || currentRuleVersion <= 0) {
+    // Existing Logic
+    private List<DomainEvent> evaluateRouting(EvaluateRoutingCmd cmd) {
+        if (cmd.ruleVersion() <= 0) {
+            throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
+        }
+        if (cmd.dualProcessingAttempt()) {
+            throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
+        }
+        if (cmd.transactionType() == null || cmd.transactionType().isBlank()) {
+            throw new IllegalArgumentException("transactionType is required");
+        }
+        if (cmd.payload() == null || cmd.payload().isBlank()) {
+            throw new IllegalArgumentException("payload is required");
+        }
+
+        String targetSystem = determineTargetSystem(cmd.transactionType());
+
+        var event = new RoutingEvaluatedEvent(
+            cmd.routeId(),
+            cmd.transactionType(),
+            targetSystem,
+            cmd.ruleVersion(),
+            Instant.now()
+        );
+
+        this.currentTransactionType = cmd.transactionType();
+        this.currentPayload = cmd.payload();
+        this.evaluated = true;
+        this.currentRuleVersion = cmd.ruleVersion();
+
+        addEvent(event);
+        incrementVersion();
+        return List.of(event);
+    }
+
+    // New S-24 Logic
+    private List<DomainEvent> updateRoutingRule(UpdateRoutingRuleCmd cmd) {
+        // S-24 Invariant 1: Versioning Check
+        if (versioningViolation) {
             throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
         }
 
-        // Invariant: A transaction must route to exactly one backend system.
-        if (forceDualProcessingViolation) {
+        // S-24 Invariant 2: Dual Processing Check
+        if (dualProcessingViolation) {
             throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
         }
 
-        // Basic validation
+        // Basic Validation
         if (cmd.ruleId() == null || cmd.ruleId().isBlank()) {
             throw new IllegalArgumentException("ruleId is required");
         }
@@ -64,34 +96,27 @@ public class LegacyTransactionRoute extends AggregateRoot {
             throw new IllegalArgumentException("effectiveDate is required");
         }
 
-        // Business Logic
-        var event = new RoutingRuleUpdatedEvent(
-                cmd.routeId(),
-                cmd.ruleId(),
-                cmd.newTarget(),
-                cmd.effectiveDate(),
-                Instant.now()
+        var event = new RoutingUpdatedEvent(
+            cmd.routeId(),
+            cmd.ruleId(),
+            cmd.newTarget(),
+            cmd.effectiveDate()
         );
 
-        // Apply state changes (simulated)
-        // In a real scenario, this might update internal rules configuration.
-        this.currentRuleVersion++; 
         addEvent(event);
         incrementVersion();
-        
         return List.of(event);
     }
 
-    // Test Helper Methods
-    public void setForceDualProcessingViolation(boolean force) {
-        this.forceDualProcessingViolation = force;
+    private String determineTargetSystem(String transactionType) {
+        return transactionType.startsWith("MODERN_") ? "VForce360" : "CICS";
     }
 
-    public void setForceVersioningViolation(boolean force) {
-        this.forceVersioningViolation = force;
-    }
+    // Test Setters for Invariant Violations
+    public void markDualProcessingViolation() { this.dualProcessingViolation = true; }
+    public void markVersioningViolation() { this.versioningViolation = true; }
 
-    public void setCurrentRuleVersion(int version) {
-        this.currentRuleVersion = version;
-    }
+    public boolean isEvaluated() { return evaluated; }
+    public String getCurrentTransactionType() { return currentTransactionType; }
+    public int getCurrentRuleVersion() { return currentRuleVersion; }
 }

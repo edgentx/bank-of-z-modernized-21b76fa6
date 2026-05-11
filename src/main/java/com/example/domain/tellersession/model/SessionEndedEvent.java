@@ -8,9 +8,6 @@ import java.util.Objects;
 /**
  * Domain event emitted when a Teller Session is terminated.
  * Part of S-20.
- * 
- * Record fields: aggregateId, tellerId, occurredAt.
- * Note: This matches the constructor signature required by the error logs.
  */
 public record SessionEndedEvent(
     String aggregateId,

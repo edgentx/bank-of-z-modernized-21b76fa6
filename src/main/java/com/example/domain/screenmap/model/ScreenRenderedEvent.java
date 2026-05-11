@@ -2,38 +2,21 @@ package com.example.domain.screenmap.model;
 
 import com.example.domain.shared.DomainEvent;
 import java.time.Instant;
-import java.util.Objects;
+import java.util.Map;
 
 /**
- * Domain event emitted when a screen is successfully rendered.
+ * Event emitted when a screen layout is successfully generated.
+ * Used by S-21: ScreenMap RenderScreenCmd.
  */
 public record ScreenRenderedEvent(
+    String type,
     String aggregateId,
+    Instant occurredAt,
     String screenId,
     String deviceType,
-    String layoutContent,
-    Instant occurredAt
+    String layout
 ) implements DomainEvent {
-
-    public ScreenRenderedEvent {
-        Objects.requireNonNull(aggregateId);
-        Objects.requireNonNull(screenId);
-        Objects.requireNonNull(deviceType);
-        Objects.requireNonNull(layoutContent);
-    }
-
-    @Override
-    public String type() {
-        return "screen.rendered";
-    }
-
-    @Override
-    public String aggregateId() {
-        return aggregateId;
-    }
-
-    @Override
-    public Instant occurredAt() {
-        return occurredAt;
+    public ScreenRenderedEvent(String aggregateId, String screenId, String deviceType, String layout) {
+        this("screen.rendered", aggregateId, Instant.now(), screenId, deviceType, layout);
     }
 }

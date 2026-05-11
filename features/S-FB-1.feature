@@ -1,7 +1,6 @@
-Feature: Validating VW-454 — GitHub URL in Slack body
+Feature: Validating VW-454 — GitHub URL in Slack body (end-to-end)
 
-  Scenario: Report defect and verify Slack contains GitHub URL
-    Given the defect reporting system is initialized
-    And GitHub will return issue URL "https://github.com/example/repo/issues/454"
-    When _report_defect is triggered via temporal-worker exec
-    Then Slack body contains GitHub issue "https://github.com/example/repo/issues/454"
+  Scenario: Verify Slack notification contains GitHub issue link
+    Given a defect is reported via VForce360 PM diagnostic conversation
+    When the temporal worker executes the report_defect workflow
+    Then the Slack body includes the GitHub issue link

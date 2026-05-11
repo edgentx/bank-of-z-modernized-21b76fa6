@@ -1,12 +1,10 @@
 package com.example.ports;
 
+import com.example.domain.validation.model.DefectReportedEvent;
+
 /**
- * Port for sending Slack notifications.
+ * Port interface for sending Slack notifications.
  */
 public interface SlackPort {
-    /**
-     * Sends a message to a Slack channel.
-     * @param text The message text/markdown.
-     */
-    void sendMessage(String text);
+    void sendNotification(String channel, DefectReportedEvent event);
 }

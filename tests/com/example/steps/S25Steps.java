@@ -3,93 +3,58 @@ package com.example.steps;
 import com.example.domain.legacybridge.model.DataSyncCheckpoint;
 import com.example.domain.legacybridge.model.RecordSyncCheckpointCmd;
 import com.example.domain.shared.DomainEvent;
-import com.example.domain.shared.UnknownCommandException;
-import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.junit.jupiter.api.Assertions;
 
+import java.util.List;
+
+/**
+ * Story-specific step definitions for S-25 (RecordSyncCheckpointCmd).
+ * Shared DataSyncCheckpoint Givens + the rejection @Then live in
+ * {@link DataSyncCheckpointSharedSteps} / {@link CommonSteps};
+ * scenario state is shared via {@link DataSyncCheckpointSharedContext}.
+ */
 public class S25Steps {
 
-    private DataSyncCheckpoint aggregate;
-    private Exception capturedException;
-    private String lastEvent;
+    private final DataSyncCheckpointSharedContext ctx;
+    private final ScenarioContext sc;
 
-    @Given("a valid DataSyncCheckpoint aggregate")
-    public void a_valid_DataSyncCheckpoint_aggregate() {
-        aggregate = new DataSyncCheckpoint("checkpoint-1");
-    }
-
-    @Given("a valid syncOffset is provided")
-    public void a_valid_syncOffset_is_provided() {
-        // Context setup, usually handled in the When block via Command construction
-    }
-
-    @Given("a valid validationHash is provided")
-    public void a_valid_validationHash_is_provided() {
-        // Context setup
+    public S25Steps(DataSyncCheckpointSharedContext ctx, ScenarioContext sc) {
+        this.ctx = ctx;
+        this.sc = sc;
     }
 
     @When("the RecordSyncCheckpointCmd command is executed")
     public void the_RecordSyncCheckpointCmd_command_is_executed() {
-        // Execute valid command based on context of previous Givens
-        RecordSyncCheckpointCmd cmd = new RecordSyncCheckpointCmd("checkpoint-1", 100L, "hash-abc");
-        try {
-            var events = aggregate.execute(cmd);
-            if (!events.isEmpty()) {
-                lastEvent = events.get(0).type();
-            }
-        } catch (Exception e) {
-            capturedException = e;
+        DataSyncCheckpoint aggregate = ctx.aggregate;
+        // S-25 violation paths leave the aggregate either initialized at offset 100
+        // (strict-increase trap → retry at offset 50) or empty with a bad hash
+        // (data-validation trap → submit blank hash). Detect from the seeded
+        // aggregate id so this single @When can drive every S-25 scenario.
+        long offset = 100L;
+        String hash = "hash-abc";
+        if ("checkpoint-strict-increase".equals(aggregate.id())) {
+            offset = 50L;
+            hash = "hash-retry";
+        } else if ("checkpoint-bad-hash".equals(aggregate.id())) {
+            offset = 10L;
+            hash = "";
         }
-    }
-
-    @Given("a DataSyncCheckpoint aggregate that violates: Checkpoint offsets must strictly increase and cannot be skipped.")
-    public void a_DataSyncCheckpoint_aggregate_that_violates_Checkpoint_offsets_must_strictly_increase() {
-        aggregate = new DataSyncCheckpoint("checkpoint-2");
-        // Set initial offset to 100
-        aggregate.execute(new RecordSyncCheckpointCmd("checkpoint-2", 100L, "initial"));
-        capturedException = null;
-    }
-
-    // Specific When for the violation context to ensure correct command parameters
-    @When("the RecordSyncCheckpointCmd command is executed with offset 50")
-    public void the_RecordSyncCheckpointCmd_command_is_executed_with_lower_offset() {
-        RecordSyncCheckpointCmd cmd = new RecordSyncCheckpointCmd("checkpoint-2", 50L, "hash-xyz");
+        RecordSyncCheckpointCmd cmd = new RecordSyncCheckpointCmd(aggregate.id(), offset, hash);
         try {
-            aggregate.execute(cmd);
+            ctx.resultingEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            capturedException = e;
-        }
-    }
-
-    @Given("a DataSyncCheckpoint aggregate that violates: Data validation must pass before a checkpoint is committed.")
-    public void a_DataSyncCheckpoint_aggregate_that_violates_data_validation() {
-        aggregate = new DataSyncCheckpoint("checkpoint-3");
-        capturedException = null;
-    }
-
-    @When("the RecordSyncCheckpointCmd command is executed with invalid hash")
-    public void the_RecordSyncCheckpointCmd_command_is_executed_with_invalid_hash() {
-        // Empty hash violates the validation check
-        RecordSyncCheckpointCmd cmd = new RecordSyncCheckpointCmd("checkpoint-3", 10L, "");
-        try {
-            aggregate.execute(cmd);
-        } catch (Exception e) {
-            capturedException = e;
+            sc.thrownException = e;
         }
     }
 
     @Then("a checkpoint.recorded event is emitted")
     public void a_checkpoint_recorded_event_is_emitted() {
-        Assertions.assertNotNull(lastEvent);
-        Assertions.assertEquals("checkpoint.recorded", lastEvent);
-    }
-
-    @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        Assertions.assertNotNull(capturedException);
-        // We expect either IllegalStateException or IllegalArgumentException
-        Assertions.assertTrue(capturedException instanceof IllegalStateException || capturedException instanceof IllegalArgumentException);
+        Assertions.assertNull(sc.thrownException, "Should not have thrown: " + sc.thrownException);
+        List<DomainEvent> events = ctx.resultingEvents;
+        Assertions.assertNotNull(events, "Events should not be null");
+        Assertions.assertFalse(events.isEmpty());
+        Assertions.assertEquals("checkpoint.recorded", events.get(0).type());
     }
 }

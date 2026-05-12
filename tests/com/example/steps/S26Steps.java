@@ -1,108 +1,74 @@
 package com.example.steps;
 
-import com.example.domain.legacybridge.model.*;
-import com.example.domain.shared.Command;
+import com.example.domain.legacybridge.model.DataSyncCheckpoint;
+import com.example.domain.legacybridge.model.ParityVerifiedEvent;
+import com.example.domain.legacybridge.model.RecordSyncCheckpointCmd;
+import com.example.domain.legacybridge.model.VerifyDataParityCmd;
 import com.example.domain.shared.DomainEvent;
-import io.cucumber.java.en.And;
-import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import static org.junit.jupiter.api.Assertions.*;
 
-import java.time.Instant;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Story-specific step definitions for S-26 (VerifyDataParityCmd).
+ * Shared DataSyncCheckpoint Givens + the rejection @Then live in
+ * {@link DataSyncCheckpointSharedSteps} / {@link CommonSteps};
+ * scenario state is shared via {@link DataSyncCheckpointSharedContext}.
+ */
 public class S26Steps {
 
-    private DataSyncCheckpoint aggregate;
-    private VerifyDataParityCmd currentCmd;
-    private Exception thrownException;
-    private List<DomainEvent> resultEvents;
+    private final DataSyncCheckpointSharedContext ctx;
+    private final ScenarioContext sc;
 
-    // Scenario 1: Success
-    @Given("a valid DataSyncCheckpoint aggregate")
-    public void aValidDataSyncCheckpointAggregate() {
-        String id = "checkpoint-1";
-        aggregate = new DataSyncCheckpoint(id);
-        // Initialize the aggregate state by applying a past checkpoint event
-        // This simulates a loaded aggregate from the repo.
-        var initCmd = new RecordSyncCheckpointCmd(id, 100L, "hash-123");
-        aggregate.execute(initCmd);
-        aggregate.clearEvents(); // Clear commit log from initialization
-    }
-
-    @And("a valid entityType is provided")
-    public void aValidEntityTypeIsProvided() {
-        // Command construction is deferred to the 'When' step
-    }
-
-    @And("a valid dateRange is provided")
-    public void aValidDateRangeIsProvided() {
-        // Command construction is deferred to the 'When' step
+    public S26Steps(DataSyncCheckpointSharedContext ctx, ScenarioContext sc) {
+        this.ctx = ctx;
+        this.sc = sc;
     }
 
     @When("the VerifyDataParityCmd command is executed")
-    public void theVerifyDataParityCmdCommandIsExecuted() {
-        // Construct a valid command for the "Happy Path" scenario
-        // Using an offset > 100 (from init) to satisfy invariants.
-        currentCmd = new VerifyDataParityCmd("checkpoint-1", "Account", 150L, "2023-01-01/2023-01-31", "hash-abc");
+    public void the_VerifyDataParityCmd_command_is_executed() {
+        DataSyncCheckpoint aggregate = ctx.aggregate;
+        // S-26 success expects an aggregate already at offset 100. The shared
+        // "a valid DataSyncCheckpoint aggregate" Given seeds an empty aggregate
+        // (S-25's success path needs that), so VerifyDataParity bootstraps the
+        // baseline checkpoint here when it has not already been seeded by a
+        // violation Given.
+        if (!ctx.initialized) {
+            aggregate.execute(new RecordSyncCheckpointCmd(aggregate.id(), 100L, "hash-baseline"));
+            aggregate.clearEvents();
+            ctx.initialized = true;
+        }
+
+        long offset = 150L;
+        String hash = "hash-abc";
+        if ("checkpoint-strict-increase".equals(aggregate.id())) {
+            offset = 50L; // violates strict-increase: baseline is 100
+        } else if ("checkpoint-bad-hash".equals(aggregate.id())) {
+            offset = 20L;
+            hash = "   ";
+        }
+        VerifyDataParityCmd cmd = new VerifyDataParityCmd(
+                aggregate.id(), "Account", offset, "2026-01-01/2026-01-31", hash);
         try {
-            resultEvents = aggregate.execute(currentCmd);
+            ctx.resultingEvents = aggregate.execute(cmd);
         } catch (Exception e) {
-            thrownException = e;
+            sc.thrownException = e;
         }
     }
 
     @Then("a parity.verified event is emitted")
-    public void aParityVerifiedEventIsEmitted() {
-        assertNull(thrownException, "Should not throw exception: " + thrownException);
-        assertNotNull(resultEvents);
-        assertEquals(1, resultEvents.size());
-        assertTrue(resultEvents.get(0) instanceof ParityVerifiedEvent);
-        
-        ParityVerifiedEvent event = (ParityVerifiedEvent) resultEvents.get(0);
-        assertEquals("checkpoint-1", event.aggregateId());
+    public void a_parity_verified_event_is_emitted() {
+        assertNull(sc.thrownException, "Should not throw exception: " + sc.thrownException);
+        List<DomainEvent> events = ctx.resultingEvents;
+        assertNotNull(events);
+        assertEquals(1, events.size());
+        assertTrue(events.get(0) instanceof ParityVerifiedEvent);
+
+        ParityVerifiedEvent event = (ParityVerifiedEvent) events.get(0);
+        assertEquals(ctx.aggregate.id(), event.aggregateId());
         assertEquals("Account", event.entityType());
     }
-
-    // Scenario 2: Offsets must strictly increase
-    @Given("a DataSyncCheckpoint aggregate that violates: Checkpoint offsets must strictly increase and cannot be skipped.")
-    public void aDataSyncCheckpointAggregateThatViolatesCheckpointOffsets() {
-        // Initialize aggregate to offset 100
-        String id = "checkpoint-2";
-        aggregate = new DataSyncCheckpoint(id);
-        var initCmd = new RecordSyncCheckpointCmd(id, 100L, "hash-init");
-        aggregate.execute(initCmd);
-        aggregate.clearEvents();
-
-        // Prepare a command with offset 50 (violates invariant)
-        currentCmd = new VerifyDataParityCmd(id, "Account", 50L, "range", "hash-new");
-    }
-
-    // When step is reused from above
-
-    @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        assertNotNull(thrownException);
-        // The existing implementation throws IllegalStateException
-        assertTrue(thrownException instanceof IllegalStateException || thrownException instanceof IllegalArgumentException);
-        assertTrue(thrownException.getMessage().contains("strictly increase") || thrownException.getMessage().contains("validation"));
-    }
-
-    // Scenario 3: Data validation must pass
-    @Given("a DataSyncCheckpoint aggregate that violates: Data validation must pass before a checkpoint is committed.")
-    public void aDataSyncCheckpointAggregateThatViolatesDataValidation() {
-        // Initialize aggregate
-        String id = "checkpoint-3";
-        aggregate = new DataSyncCheckpoint(id);
-        var initCmd = new RecordSyncCheckpointCmd(id, 10L, "hash-init");
-        aggregate.execute(initCmd);
-        aggregate.clearEvents();
-
-        // Prepare a command with valid offset but BLANK validation hash
-        // This triggers the validation invariant
-        currentCmd = new VerifyDataParityCmd(id, "Account", 20L, "range", "   ");
-    }
-
-    // When and Then steps are reused from above
 }

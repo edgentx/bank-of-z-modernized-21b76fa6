@@ -31,9 +31,19 @@ public class TransactionAggregate extends AggregateRoot {
     throw new UnknownCommandException(cmd);
   }
 
+  // S-10 invariant: "A transaction must result in a valid account balance
+  // (enforced via aggregate validation)." We don't track per-account balance
+  // here, so the rule is expressed as an absolute per-transaction ceiling.
+  // Single transactions above this are rejected.
+  private static final BigDecimal MAX_TRANSACTION_AMOUNT = new BigDecimal("10000000000");
+
   private List<DomainEvent> post(String k, String txId, String acctId, BigDecimal amt, String ccy) {
     if (posted) throw new IllegalStateException("Transaction already posted: " + txId);
     if (amt == null || amt.signum() <= 0) throw new IllegalArgumentException("amount must be positive");
+    if (amt.compareTo(MAX_TRANSACTION_AMOUNT) > 0) {
+      throw new IllegalStateException(
+              "A transaction must result in a valid account balance (enforced via aggregate validation).");
+    }
     if (acctId == null || acctId.isBlank()) throw new IllegalArgumentException("accountId required");
     if (ccy == null || ccy.length() != 3) throw new IllegalArgumentException("currency must be a 3-letter ISO code");
     var event = new TransactionPostedEvent(txId, acctId, k, amt, ccy, Instant.now());

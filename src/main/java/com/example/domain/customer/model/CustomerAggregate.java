@@ -35,6 +35,27 @@ public class CustomerAggregate extends AggregateRoot {
       incrementVersion();
       return List.of(event);
     }
+    if (cmd instanceof DeleteCustomerCmd c) {
+      // S-4 declared the DeleteCustomerCmd + CustomerDeletedEvent types but
+      // the handler was never wired into execute(), so every scenario routed
+      // through UnknownCommandException. Same three invariants as
+      // UpdateCustomerDetailsCmd, plus the application-supplied
+      // hasActiveAccounts flag.
+      if (!enrolled) {
+        throw new IllegalStateException("A customer must have a valid, unique email address and government-issued ID.");
+      }
+      if (nameDobViolation || fullName == null || fullName.isBlank()) {
+        throw new IllegalStateException("Customer name and date of birth cannot be empty.");
+      }
+      if (activeAccountsViolation || c.hasActiveAccounts()) {
+        throw new IllegalStateException("A customer cannot be deleted if they own active bank accounts.");
+      }
+      var event = new CustomerDeletedEvent(c.customerId(), Instant.now());
+      this.enrolled = false;
+      addEvent(event);
+      incrementVersion();
+      return List.of(event);
+    }
     if (cmd instanceof UpdateCustomerDetailsCmd c) {
       // Invariant: A customer must have a valid, unique email address and government-issued ID.
       if (!enrolled) {

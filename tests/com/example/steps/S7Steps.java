@@ -20,9 +20,11 @@ import java.util.List;
 public class S7Steps {
 
     private final AccountSharedContext ctx;
+    private final ScenarioContext sc;
 
-    public S7Steps(AccountSharedContext ctx) {
+    public S7Steps(AccountSharedContext ctx, ScenarioContext sc) {
         this.ctx = ctx;
+        this.sc = sc;
     }
 
     @When("the CloseAccountCmd command is executed")
@@ -33,6 +35,7 @@ public class S7Steps {
             ctx.repository.save(agg);
         } catch (Throwable t) {
             ctx.thrownException = t;
+            sc.thrownException = t;
         }
     }
 

@@ -18,9 +18,11 @@ import java.util.List;
 public class S5Steps {
 
     private final AccountSharedContext ctx;
+    private final ScenarioContext sc;
 
-    public S5Steps(AccountSharedContext ctx) {
+    public S5Steps(AccountSharedContext ctx, ScenarioContext sc) {
         this.ctx = ctx;
+        this.sc = sc;
     }
 
     @When("the OpenAccountCmd command is executed")
@@ -31,6 +33,7 @@ public class S5Steps {
             ctx.repository.save(agg);
         } catch (Throwable t) {
             ctx.thrownException = t;
+            sc.thrownException = t;
         }
     }
 

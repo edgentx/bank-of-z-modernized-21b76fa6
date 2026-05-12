@@ -17,9 +17,11 @@ import java.util.List;
 public class S4Steps {
 
     private final CustomerSharedContext ctx;
+    private final ScenarioContext sc;
 
-    public S4Steps(CustomerSharedContext ctx) {
+    public S4Steps(CustomerSharedContext ctx, ScenarioContext sc) {
         this.ctx = ctx;
+        this.sc = sc;
     }
 
     @When("the DeleteCustomerCmd command is executed")
@@ -31,6 +33,7 @@ public class S4Steps {
             ctx.repository.save(agg);
         } catch (Throwable t) {
             ctx.thrownException = t;
+            sc.thrownException = t;
         }
     }
 

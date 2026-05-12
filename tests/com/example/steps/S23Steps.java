@@ -3,86 +3,53 @@ package com.example.steps;
 import com.example.domain.legacybridge.model.EvaluateRoutingCmd;
 import com.example.domain.legacybridge.model.LegacyTransactionRoute;
 import com.example.domain.legacybridge.model.RoutingEvaluatedEvent;
-import com.example.mocks.InMemoryLegacyTransactionRouteRepository;
-import io.cucumber.java.en.Given;
+import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Story-specific step definitions for S-23 (EvaluateRoutingCmd).
+ * Shared LegacyTransactionRoute Givens + the rejection @Then live in
+ * {@link LegacyTransactionRouteSharedSteps} / {@link CommonSteps};
+ * scenario state is shared via {@link LegacyTransactionRouteSharedContext}.
+ */
 public class S23Steps {
 
-    private InMemoryLegacyTransactionRouteRepository repository = new InMemoryLegacyTransactionRouteRepository();
-    private LegacyTransactionRoute aggregate;
-    private EvaluateRoutingCmd command;
-    private Exception caughtException;
-    private RoutingEvaluatedEvent resultEvent;
+    private final LegacyTransactionRouteSharedContext ctx;
+    private final ScenarioContext sc;
 
-    @Given("a valid LegacyTransactionRoute aggregate")
-    public void a_valid_LegacyTransactionRoute_aggregate() {
-        aggregate = new LegacyTransactionRoute("ROUTE-1");
-        repository.save(aggregate);
-    }
-
-    @Given("a valid transactionType is provided")
-    public void a_valid_transactionType_is_provided() {
-        // Transaction type is part of the command, initialized in @When
-    }
-
-    @Given("a valid payload is provided")
-    public void a_valid_payload_is_provided() {
-        // Payload is part of the command, initialized in @When
-    }
-
-    @Given("a LegacyTransactionRoute aggregate that violates: A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.")
-    public void a_LegacyTransactionRoute_aggregate_that_violates_dual_processing() {
-        aggregate = new LegacyTransactionRoute("ROUTE-DUAL-ERR");
-        aggregate.markDualProcessingViolation();
-        repository.save(aggregate);
-    }
-
-    @Given("a LegacyTransactionRoute aggregate that violates: Routing rules must be versioned to allow safe rollback.")
-    public void a_LegacyTransactionRoute_aggregate_that_violates_versioning() {
-        aggregate = new LegacyTransactionRoute("ROUTE-VER-ERR");
-        aggregate.markVersioningViolation();
-        repository.save(aggregate);
+    public S23Steps(LegacyTransactionRouteSharedContext ctx, ScenarioContext sc) {
+        this.ctx = ctx;
+        this.sc = sc;
     }
 
     @When("the EvaluateRoutingCmd command is executed")
     public void the_EvaluateRoutingCmd_command_is_executed() {
+        LegacyTransactionRoute aggregate = ctx.aggregate;
+        Map<String, Object> payload = Map.of("source", "WEB", "amount", 100);
+        EvaluateRoutingCmd command = new EvaluateRoutingCmd(aggregate.id(), "TRANSFER", payload, 1);
         try {
-            // Determine context based on aggregate state (Default vs Violations)
-            String routeId = aggregate.id();
-            
-            // Default valid payload
-            Map<String, Object> payload = Map.of("source", "WEB", "amount", 100);
-            
-            // Default valid version
-            int version = 1;
-
-            command = new EvaluateRoutingCmd(routeId, "TRANSFER", payload, version);
-            
-            var events = aggregate.execute(command);
-            if (!events.isEmpty()) {
-                resultEvent = (RoutingEvaluatedEvent) events.get(0);
-            }
+            ctx.resultingEvents = aggregate.execute(command);
         } catch (Exception e) {
-            caughtException = e;
+            sc.thrownException = e;
         }
     }
 
     @Then("a routing.evaluated event is emitted")
     public void a_routing_evaluated_event_is_emitted() {
-        assertNotNull(resultEvent, "Expected event to be emitted");
-        assertEquals("routing.evaluated", resultEvent.type());
-        assertEquals(aggregate.id(), resultEvent.aggregateId());
-    }
+        assertNull(sc.thrownException, "Should not throw exception");
+        List<DomainEvent> events = ctx.resultingEvents;
+        assertNotNull(events, "Events should not be null");
+        assertEquals(1, events.size());
+        assertTrue(events.get(0) instanceof RoutingEvaluatedEvent);
 
-    @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(caughtException, "Expected exception to be thrown");
-        assertTrue(caughtException instanceof IllegalStateException || caughtException instanceof IllegalArgumentException);
+        RoutingEvaluatedEvent event = (RoutingEvaluatedEvent) events.get(0);
+        assertEquals("routing.evaluated", event.type());
+        assertEquals(ctx.aggregate.id(), event.aggregateId());
     }
 }

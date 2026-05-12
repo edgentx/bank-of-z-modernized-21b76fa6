@@ -19,9 +19,11 @@ import java.util.List;
 public class S6Steps {
 
     private final AccountSharedContext ctx;
+    private final ScenarioContext sc;
 
-    public S6Steps(AccountSharedContext ctx) {
+    public S6Steps(AccountSharedContext ctx, ScenarioContext sc) {
         this.ctx = ctx;
+        this.sc = sc;
     }
 
     @And("a valid accountNumber is provided")
@@ -42,6 +44,7 @@ public class S6Steps {
             ctx.repository.save(agg);
         } catch (Throwable t) {
             ctx.thrownException = t;
+            sc.thrownException = t;
         }
     }
 

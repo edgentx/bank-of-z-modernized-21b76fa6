@@ -1,0 +1,61 @@
+# syntax=docker/dockerfile:1.7
+#
+# Bank-of-Z modernization — Spring Boot backend, GraalVM AOT (native) image.
+# Used for latency-critical services (S-40 AC: GraalVM native image
+# compilation is configured for critical services).
+#
+# Trade-off vs the JVM Dockerfile:
+#   Pros: ~50ms startup (vs ~3s), ~40MB RSS (vs ~250MB), smaller attack surface
+#         (no JIT, no JDK on disk in runtime image).
+#   Cons: ~5min compile time, reflection/dynamic-proxy code must be reachable
+#         at AOT analysis time (Spring AOT handles this for Spring Data &
+#         controllers; bespoke reflection requires reachability metadata).
+
+# ---- Stage 1: AOT compile ----------------------------------------------------
+FROM ghcr.io/graalvm/graalvm-community:21 AS build
+WORKDIR /workspace
+
+# GraalVM CE 21 ships gu+native-image but no Maven; pull it in.
+RUN microdnf install -y --nodocs maven tar gzip \
+    && microdnf clean all
+
+COPY pom.xml ./
+RUN mvn -B -q -DskipTests dependency:go-offline
+
+COPY src ./src
+COPY features ./features
+COPY tests ./tests
+
+# `-Pnative` activates the native-maven-plugin profile declared in pom.xml.
+# `process-aot` (run by spring-boot-maven-plugin during package) emits the
+# reachability hints; `native:compile-no-fork` consumes them.
+RUN mvn -B -q -DskipTests -Pnative package \
+    && cp target/teller-core /workspace/app
+
+# ---- Stage 2: runtime --------------------------------------------------------
+# Distroless-style minimal base. `gcr.io/distroless/base-debian12` has no
+# shell and no package manager — only the libs the static-ish binary needs
+# (libc, libm, glibc). It also already runs as a non-root `nonroot` user.
+FROM gcr.io/distroless/base-debian12:nonroot AS runtime
+
+ARG VCS_REF=unknown
+ARG VERSION=0.0.0
+ARG BUILD_DATE=unknown
+LABEL org.opencontainers.image.source="https://github.com/egdcrypto/bank-of-z-modernized-21b76fa6" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.title="bank-of-z-teller-core-native" \
+      org.opencontainers.image.description="Bank-of-Z modernization — Spring Boot teller-core service (GraalVM native)"
+
+COPY --from=build --chown=nonroot:nonroot /workspace/app /app/app
+
+USER nonroot:nonroot
+WORKDIR /app
+EXPOSE 8080
+
+# Distroless has no curl; rely on Kubernetes httpGet probes instead. The
+# HEALTHCHECK directive is omitted intentionally for the native image — the
+# orchestrator probes /actuator/health over HTTP directly.
+
+ENTRYPOINT ["/app/app"]

@@ -1,0 +1,29 @@
+# Keep the docker build context small — anything not needed by the Dockerfile
+# bloats `docker build` and slows the runner.
+
+.git
+.github
+.gitignore
+.idea
+.vscode
+
+# Build outputs
+target/
+*.class
+*.jar
+*.log
+
+# Frontend lives in its own Dockerfile context, never ship its files to the
+# backend image.
+frontend/node_modules
+frontend/.next
+frontend/out
+
+# Local notes / screenshots / scratch
+*.md
+!README.md
+docs/
+
+# OS noise
+.DS_Store
+Thumbs.db

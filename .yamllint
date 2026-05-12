@@ -1,0 +1,33 @@
+# BANK S-42 — yamllint configuration for CI lint stage.
+#
+# Relaxed line-length and document-start rules so Helm overlays and
+# ArgoCD Application manifests don't trip over typical k8s manifest
+# formatting (long annotation values, no leading `---`).
+
+extends: default
+
+rules:
+  line-length:
+    max: 200
+    level: warning
+  document-start: disable
+  truthy:
+    # Allow GitHub Actions' `on:` key and Helm's quoted booleans.
+    allowed-values: ['true', 'false', 'yes', 'no', 'on', 'off']
+    check-keys: false
+  comments:
+    min-spaces-from-content: 1
+  comments-indentation: disable
+  indentation:
+    spaces: 2
+    indent-sequences: consistent
+  braces:
+    max-spaces-inside: 1
+  brackets:
+    max-spaces-inside: 1
+
+ignore: |
+  deploy/helm/teller/templates/
+  target/
+  node_modules/
+  frontend/.next/

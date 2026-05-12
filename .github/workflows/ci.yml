@@ -1,0 +1,122 @@
+name: ci
+
+# BANK S-42 — fast-feedback CI pipeline.
+#
+# Two jobs, both required for green CI on every push and pull request:
+#   * lint          — Helm chart, YAML, and Java source-format checks
+#   * unit-tests    — `mvn -B -ntp -DskipITs test` (Surefire only)
+#
+# The slower integration suite (TestContainers + JaCoCo) lives in
+# integration-tests.yml; container build/push + Trivy lives in
+# build-images.yml. Splitting the pipeline this way means PR reviewers see
+# lint + unit failures in ~2 min instead of waiting on the 10-minute
+# Testcontainers run, and the matrix in build-images.yml only fires once
+# the cheap stages pass.
+#
+# Security note: this workflow uses only built-in trusted inputs and never
+# interpolates untrusted strings (titles, branch names, commit messages)
+# inside `run:` blocks, per GitHub Actions script-injection guidance.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint (helm + yaml + java compile)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Helm lint (default + microk8s + eks overlays)
+        run: |
+          set -euo pipefail
+          helm lint deploy/helm/teller \
+            -f deploy/helm/teller/values.yaml
+          helm lint deploy/helm/teller \
+            -f deploy/helm/teller/values.yaml \
+            -f deploy/helm/teller/values-microk8s.yaml
+          helm lint deploy/helm/teller \
+            -f deploy/helm/teller/values.yaml \
+            -f deploy/helm/teller/values-eks.yaml
+
+      - name: Helm template renders (catches templating regressions)
+        run: |
+          set -euo pipefail
+          helm template teller deploy/helm/teller \
+            -f deploy/helm/teller/values.yaml \
+            -f deploy/helm/teller/values-microk8s.yaml \
+            > /tmp/render-microk8s.yaml
+          helm template teller deploy/helm/teller \
+            -f deploy/helm/teller/values.yaml \
+            -f deploy/helm/teller/values-eks.yaml \
+            > /tmp/render-eks.yaml
+          test -s /tmp/render-microk8s.yaml
+          test -s /tmp/render-eks.yaml
+
+      - name: Install yamllint
+        run: pip install --quiet 'yamllint==1.35.1'
+
+      - name: yamllint (workflows + ArgoCD manifests + helm overlays)
+        run: |
+          yamllint -c .yamllint .github/workflows deploy/argocd \
+            deploy/helm/teller/values.yaml \
+            deploy/helm/teller/values-microk8s.yaml \
+            deploy/helm/teller/values-eks.yaml
+
+      - name: Verify ArgoCD manifests are regenerated from the Helm chart
+        # Enforces the S-42 AC "ArgoCD Application manifests are auto-generated
+        # from Helm chart" — fails the PR if someone edited the chart and
+        # forgot to re-run deploy/argocd/generate.sh.
+        run: ./deploy/argocd/generate.sh --check
+
+      - name: Maven compile (warnings surface here, fast-fail)
+        run: mvn -B -ntp -DskipTests compile
+
+  unit-tests:
+    name: unit tests (mvn -DskipITs test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # Surefire only — TestContainers-driven IT suite stays in
+      # integration-tests.yml so unit feedback lands in ~2 min.
+      - name: Run unit tests
+        run: mvn -B -ntp -DskipITs test
+
+      - name: Upload Surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-surefire-reports
+          path: target/surefire-reports/

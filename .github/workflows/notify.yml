@@ -1,0 +1,98 @@
+name: notify
+
+# BANK S-42 — pipeline status notifications.
+#
+# Fires on completion of every other workflow listed in `workflow_run` and
+# posts a single Slack message to the channel webhook stored in the
+# repository secret SLACK_WEBHOOK_URL. The webhook is optional — when it
+# is absent (forks, local repos), the workflow short-circuits silently
+# instead of failing.
+#
+# Implementation choices:
+#   * workflow_run is the only event that fires *after* a workflow ends
+#     and exposes both conclusion + html_url, so a single notifier covers
+#     every other workflow with no duplication.
+#   * We pass the dynamic Slack payload via env vars (never direct
+#     interpolation in `run:`) to defeat workflow-injection vectors.
+#   * Conclusion → emoji + color mapping is small and inline; no extra
+#     marketplace action is required.
+
+on:
+  workflow_run:
+    workflows: [ci, build-images, "Integration Tests (S-44)"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  slack:
+    name: "post to #bank-deploys"
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.event != 'pull_request' || github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+      - name: Short-circuit when webhook is not configured
+        id: gate
+        env:
+          HOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [[ -z "${HOOK}" ]]; then
+            echo "slack webhook is not configured; skipping" >&2
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post status to Slack
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          WF_NAME: ${{ github.event.workflow_run.name }}
+          WF_STATUS: ${{ github.event.workflow_run.conclusion }}
+          WF_URL: ${{ github.event.workflow_run.html_url }}
+          WF_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          WF_SHA: ${{ github.event.workflow_run.head_sha }}
+          WF_ACTOR: ${{ github.event.workflow_run.actor.login }}
+          WF_EVENT: ${{ github.event.workflow_run.event }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          case "${WF_STATUS}" in
+            success)    EMOJI=":white_check_mark:"; COLOR="good"    ;;
+            failure)    EMOJI=":x:";                COLOR="danger"  ;;
+            cancelled)  EMOJI=":no_entry:";         COLOR="warning" ;;
+            *)          EMOJI=":grey_question:";    COLOR="warning" ;;
+          esac
+
+          # Build the JSON payload with jq so every dynamic field is properly
+          # escaped — never use string concatenation for untrusted-shaped data.
+          PAYLOAD="$(jq -n \
+            --arg emoji "${EMOJI}" \
+            --arg color "${COLOR}" \
+            --arg name  "${WF_NAME}" \
+            --arg status "${WF_STATUS}" \
+            --arg url   "${WF_URL}" \
+            --arg branch "${WF_BRANCH}" \
+            --arg sha   "${WF_SHA:0:12}" \
+            --arg actor "${WF_ACTOR}" \
+            --arg event "${WF_EVENT}" \
+            --arg repo  "${REPO}" \
+            '{
+              text: ($emoji + " *" + $name + "* " + $status + " on `" + $branch + "` (" + $repo + ")"),
+              attachments: [{
+                color: $color,
+                fields: [
+                  { title: "commit",   value: $sha,    short: true },
+                  { title: "event",    value: $event,  short: true },
+                  { title: "actor",    value: $actor,  short: true },
+                  { title: "workflow", value: $url,    short: false }
+                ]
+              }]
+            }')"
+
+          curl --fail --silent --show-error \
+               --max-time 10 \
+               -H "Content-Type: application/json" \
+               -d "${PAYLOAD}" \
+               "${SLACK_WEBHOOK_URL}"

@@ -22,6 +22,7 @@ public class AccountAggregate extends AggregateRoot {
   private String sortCode;
   private String status;
   private boolean opened;
+  private boolean closed;
   private boolean minBalanceViolation;
   private boolean activeStatusViolation;
   private boolean uniqueAccountNumberViolation;
@@ -85,9 +86,31 @@ public class AccountAggregate extends AggregateRoot {
       incrementVersion();
       return List.of(event);
     }
+    if (cmd instanceof CloseAccountCmd c) {
+      // Invariant: Account balance cannot drop below the minimum required balance for its specific account type.
+      if (minBalanceViolation) {
+        throw new IllegalStateException("Account balance cannot drop below the minimum required balance for its specific account type.");
+      }
+      // Invariant: An account must be in an Active status to process withdrawals or transfers.
+      if (activeStatusViolation) {
+        throw new IllegalStateException("An account must be in an Active status to process withdrawals or transfers.");
+      }
+      // Invariant: Account numbers must be uniquely generated and immutable.
+      if (uniqueAccountNumberViolation) {
+        throw new IllegalStateException("Account numbers must be uniquely generated and immutable.");
+      }
+      if (c.accountNumber() == null || c.accountNumber().isBlank()) throw new IllegalArgumentException("accountNumber required");
+      var event = new AccountClosedEvent(accountId, c.accountNumber(), Instant.now());
+      this.closed = true;
+      this.status = "CLOSED";
+      addEvent(event);
+      incrementVersion();
+      return List.of(event);
+    }
     throw new UnknownCommandException(cmd);
   }
 
+  public boolean isClosed() { return closed; }
   public boolean isOpened() { return opened; }
   public String getCustomerId() { return customerId; }
   public String getAccountType() { return accountType; }

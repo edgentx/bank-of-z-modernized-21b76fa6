@@ -19,6 +19,6 @@ public class ScreenMapAggregate extends AggregateRoot {
   @Override public String id() { return id; }
 
   @Override public List<DomainEvent> execute(Command cmd) {
-    throw new UnknownCommandException("ScreenMapAggregate: " + cmd.getClass().getSimpleName());
+    throw new UnknownCommandException(cmd);
   }
 }

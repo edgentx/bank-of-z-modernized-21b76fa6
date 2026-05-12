@@ -49,6 +49,16 @@
           with full JDK 21 bytecode support; runs cleanly on Java 17 too.
         -->
         <jacoco.version>0.8.11</jacoco.version>
+        <!--
+          S-40: override the embedded Tomcat shipped by spring-boot-starter-parent
+          3.2.0 (which is 10.1.16) to 10.1.53. This clears two Trivy-CRITICAL
+          CVEs the image scan flags:
+            CVE-2025-24813 (partial-PUT RCE / info-disclosure; fixed in 10.1.35)
+            CVE-2026-29145 (CLIENT_CERT auth-bypass;        fixed in 10.1.53)
+          Spring Boot picks this property up through its dependency-management
+          BOM, so no further dependency overrides are required.
+        -->
+        <tomcat.version>10.1.53</tomcat.version>
     </properties>
 
     <dependencyManagement>
@@ -525,6 +535,38 @@
                                 <bank.testcontainers.db2.enabled>true</bank.testcontainers.db2.enabled>
                             </systemPropertyVariables>
                         </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!--
+          S-40: GraalVM AOT compilation for critical services.
+          Activated with `mvn -Pnative -DskipTests native:compile` (driven from
+          the backend Dockerfile.native's build stage). Spring Boot 3 + the
+          native-maven-plugin emit reachability metadata at process-aot time,
+          then compile to a single static binary with sub-second startup.
+          Reflection surface in this codebase is limited to Spring Data
+          Mongo/JPA repository proxies — auto-detected by the Spring AOT
+          processor.
+        -->
+        <profile>
+            <id>native</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>0.10.1</version>
+                        <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                                <goals>
+                                    <goal>compile-no-fork</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>

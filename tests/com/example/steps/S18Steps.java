@@ -72,10 +72,16 @@ public class S18Steps {
   }
 
   // Scenario 3: Timeout Invariant
+  // Shared across S-18/S-19/S-20 feature files. S-18/S-19 reject when the
+  // session is in a timed-out state; S-20 rejects when the inactivity-timeout
+  // rule itself is being violated (since a timed-out session can still be
+  // formally ended). Set both flags so every consumer's rejection scenario
+  // fires consistently from the same Gherkin Given.
   @Given("a TellerSession aggregate that violates: Sessions must timeout after a configured period of inactivity.")
   public void a_teller_session_aggregate_that_violates_timeout() {
     aggregate = new TellerSessionAggregate("session-timeout-fail");
     aggregate.setTimedOut(true);
+    aggregate.setInactivityTimeoutRuleViolated(true);
   }
 
   // Scenario 4: Navigation Invariant

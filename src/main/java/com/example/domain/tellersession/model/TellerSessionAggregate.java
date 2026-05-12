@@ -19,6 +19,11 @@ import java.util.List;
  *   1. Teller must be authenticated to initiate/continue a session.
  *   2. Session must not be timed out from inactivity.
  *   3. Navigation state must accurately reflect the current operational context.
+ *
+ * Invariants enforced on EndSessionCmd (BANK S-20):
+ *   1. Teller must be authenticated to initiate a session.
+ *   2. Sessions must timeout after a configured period of inactivity.
+ *   3. Navigation state must accurately reflect the current operational context.
  */
 public class TellerSessionAggregate extends AggregateRoot {
   private final String id;
@@ -27,7 +32,7 @@ public class TellerSessionAggregate extends AggregateRoot {
   private boolean navigationStateValid = true;
   private Status status = Status.NONE;
 
-  public enum Status { NONE, ACTIVE }
+  public enum Status { NONE, ACTIVE, ENDED }
 
   public TellerSessionAggregate(String id) { this.id = id; }
 
@@ -45,6 +50,7 @@ public class TellerSessionAggregate extends AggregateRoot {
   @Override public List<DomainEvent> execute(Command cmd) {
     if (cmd instanceof StartSessionCmd c) return startSession(c);
     if (cmd instanceof NavigateMenuCmd c) return navigateMenu(c);
+    if (cmd instanceof EndSessionCmd c) return endSession(c);
     throw new UnknownCommandException(cmd);
   }
 
@@ -79,6 +85,23 @@ public class TellerSessionAggregate extends AggregateRoot {
       throw new IllegalStateException("Cannot navigate menu: navigation state does not reflect current operational context");
     }
     var event = MenuNavigatedEvent.create(id, c.sessionId(), c.menuId(), c.action());
+    addEvent(event);
+    incrementVersion();
+    return List.of(event);
+  }
+
+  private List<DomainEvent> endSession(EndSessionCmd c) {
+    if (!authenticated) {
+      throw new IllegalStateException("Cannot end session: teller is not authenticated");
+    }
+    if (timedOut) {
+      throw new IllegalStateException("Cannot end session: session has timed out due to inactivity");
+    }
+    if (!navigationStateValid) {
+      throw new IllegalStateException("Cannot end session: navigation state does not reflect current operational context");
+    }
+    var event = SessionEndedEvent.create(id, c.sessionId());
+    this.status = Status.ENDED;
     addEvent(event);
     incrementVersion();
     return List.of(event);

@@ -44,6 +44,26 @@
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
 
+        <!--
+          DB2 history bridge — S-29.
+          Spring Data JPA + Hibernate map the legacy DB2 history tables
+          (transaction_history, account_history) so the modernized application
+          can read pre-migration records during the Strangler Fig cutover.
+          Flyway versions the schema so dev/CI/prod evolve from the same
+          baseline; the IBM DB2 JDBC driver is brought in at runtime so the
+          jar is not required to compile the JPA entities.
+        -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.ibm.db2</groupId>
+            <artifactId>jcc</artifactId>
+            <version>11.5.9.0</version>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Testing Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -73,6 +93,17 @@
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+          H2 in-memory database with DB2 compatibility mode — S-29 integration
+          tests exercise Flyway migrations and Spring Data JPA repositories
+          against an embedded engine so CI does not need a real DB2 instance.
+        -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

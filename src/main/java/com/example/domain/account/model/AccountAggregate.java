@@ -20,6 +20,7 @@ public class AccountAggregate extends AggregateRoot {
   private String accountType;
   private long initialDeposit;
   private String sortCode;
+  private String status;
   private boolean opened;
   private boolean minBalanceViolation;
   private boolean activeStatusViolation;
@@ -63,6 +64,27 @@ public class AccountAggregate extends AggregateRoot {
       incrementVersion();
       return List.of(event);
     }
+    if (cmd instanceof UpdateAccountStatusCmd c) {
+      // Invariant: Account balance cannot drop below the minimum required balance for its specific account type.
+      if (minBalanceViolation) {
+        throw new IllegalStateException("Account balance cannot drop below the minimum required balance for its specific account type.");
+      }
+      // Invariant: An account must be in an Active status to process withdrawals or transfers.
+      if (activeStatusViolation) {
+        throw new IllegalStateException("An account must be in an Active status to process withdrawals or transfers.");
+      }
+      // Invariant: Account numbers must be uniquely generated and immutable.
+      if (uniqueAccountNumberViolation) {
+        throw new IllegalStateException("Account numbers must be uniquely generated and immutable.");
+      }
+      if (c.accountNumber() == null || c.accountNumber().isBlank()) throw new IllegalArgumentException("accountNumber required");
+      if (c.newStatus() == null || c.newStatus().isBlank()) throw new IllegalArgumentException("newStatus required");
+      var event = new AccountStatusUpdatedEvent(accountId, c.newStatus(), Instant.now());
+      this.status = c.newStatus();
+      addEvent(event);
+      incrementVersion();
+      return List.of(event);
+    }
     throw new UnknownCommandException(cmd);
   }
 
@@ -71,4 +93,5 @@ public class AccountAggregate extends AggregateRoot {
   public String getAccountType() { return accountType; }
   public long getInitialDeposit() { return initialDeposit; }
   public String getSortCode() { return sortCode; }
+  public String getStatus() { return status; }
 }

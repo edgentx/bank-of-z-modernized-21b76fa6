@@ -35,7 +35,7 @@ env:
 jobs:
   # Compute shared image tags once so both image jobs use the same values.
   meta:
-    runs-on: ubuntu-latest
+    runs-on: vforce360-arc-gpu
     outputs:
       sha: ${{ steps.tags.outputs.sha }}
       version: ${{ steps.tags.outputs.version }}
@@ -66,7 +66,7 @@ jobs:
   # Backend + frontend images build in parallel via the matrix strategy.
   image:
     needs: meta
-    runs-on: ubuntu-latest
+    runs-on: vforce360-arc-gpu
     strategy:
       fail-fast: false
       matrix:

@@ -30,7 +30,20 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
-        
+        <!--
+          Spring Data MongoDB — S-28 introduces concrete adapters for the 10
+          domain repository ports. The starter brings in MongoTemplate,
+          MongoRepository, and the Mongo auto-configuration that reads
+          spring.data.mongodb.* from application.properties at runtime.
+          Unit tests mock the Spring Data interfaces with Mockito instead of
+          spinning up an embedded Mongo, so no flapdoodle/testcontainers dep
+          is required here.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
+
         <!-- Testing Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

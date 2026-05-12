@@ -11,7 +11,8 @@ import java.util.List;
  * Owns the layout/render contract for legacy BMS screens during the
  * mainframe→modern transition.
  *
- * Invariants enforced on RenderScreenCmd (BANK S-21):
+ * Invariants enforced on RenderScreenCmd (BANK S-21) and
+ * ValidateScreenInputCmd (BANK S-22):
  *   1. All mandatory input fields must be validated before screen submission.
  *   2. Field lengths must strictly adhere to legacy BMS constraints during
  *      the transition period.
@@ -42,6 +43,7 @@ public class ScreenMapAggregate extends AggregateRoot {
 
   @Override public List<DomainEvent> execute(Command cmd) {
     if (cmd instanceof RenderScreenCmd c) return renderScreen(c);
+    if (cmd instanceof ValidateScreenInputCmd c) return validateScreenInput(c);
     throw new UnknownCommandException(cmd);
   }
 
@@ -55,6 +57,21 @@ public class ScreenMapAggregate extends AggregateRoot {
         "Cannot render screen: field lengths violate legacy BMS constraints");
     }
     var event = ScreenRenderedEvent.create(id, c.screenId(), c.deviceType());
+    addEvent(event);
+    incrementVersion();
+    return List.of(event);
+  }
+
+  private List<DomainEvent> validateScreenInput(ValidateScreenInputCmd c) {
+    if (!mandatoryFieldsValidated) {
+      throw new IllegalStateException(
+        "Cannot validate screen input: mandatory input fields have not been validated before submission");
+    }
+    if (!bmsFieldLengthCompliant) {
+      throw new IllegalStateException(
+        "Cannot validate screen input: field lengths violate legacy BMS constraints");
+    }
+    var event = InputValidatedEvent.create(id, c.screenId(), c.inputFields());
     addEvent(event);
     incrementVersion();
     return List.of(event);

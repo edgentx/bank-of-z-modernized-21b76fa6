@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth/context';
 
 const links: ReadonlyArray<{
-  href: '/' | '/accounts' | '/customers' | '/transactions';
+  href: '/' | '/accounts' | '/customers' | '/transactions' | '/terminal';
   label: string;
 }> = [
   { href: '/', label: 'Home' },
   { href: '/accounts', label: 'Accounts' },
   { href: '/customers', label: 'Customers' },
   { href: '/transactions', label: 'Transactions' },
+  { href: '/terminal', label: 'Terminal' },
 ];
 
 export function Nav() {

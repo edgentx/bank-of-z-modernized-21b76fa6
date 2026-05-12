@@ -21,9 +21,11 @@ import java.util.List;
 public class S8Steps {
 
     private final StatementSharedContext ctx;
+    private final ScenarioContext sc;
 
-    public S8Steps(StatementSharedContext ctx) {
+    public S8Steps(StatementSharedContext ctx, ScenarioContext sc) {
         this.ctx = ctx;
+        this.sc = sc;
     }
 
     @When("the GenerateStatementCmd command is executed")
@@ -34,6 +36,7 @@ public class S8Steps {
             ctx.repository.save(agg);
         } catch (Throwable t) {
             ctx.thrownException = t;
+            sc.thrownException = t;
         }
     }
 

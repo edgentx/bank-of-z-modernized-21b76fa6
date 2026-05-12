@@ -81,6 +81,25 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <!--
+              Surefire's default include patterns (Test*/​*Test/​*Tests/​*TestCase) skip the
+              JUnit-Platform @Suite classes that wire the Cucumber engine to the BDD
+              features. Without this, `mvn test` reports green while the Cucumber-JVM
+              suite never actually runs (Phase-2 domain gate cannot be a fake green).
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <includes>
+                        <include>**/Test*.java</include>
+                        <include>**/*Test.java</include>
+                        <include>**/*Tests.java</include>
+                        <include>**/*TestCase.java</include>
+                        <include>**/*TestSuite.java</include>
+                    </includes>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

@@ -3,13 +3,13 @@ package com.example.steps;
 import com.example.domain.account.model.AccountAggregate;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
-import org.junit.jupiter.api.Assertions;
 
 /**
  * Step definitions shared by all Account-aggregate stories (S-5, ...).
  * Each Given seeds {@link AccountSharedContext#aggregate}; story-specific
  * step classes ({@code S5Steps}) read from that context in their @When/@Then methods.
+ * The "the command is rejected with a domain error" assertion lives in
+ * {@link CommonSteps} and reads {@link ScenarioContext#thrownException}.
  */
 public class AccountSharedSteps {
 
@@ -56,14 +56,4 @@ public class AccountSharedSteps {
         ctx.repository.save(ctx.aggregate);
     }
 
-    @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(ctx.thrownException, "Expected a domain error but command succeeded");
-        Assertions.assertTrue(
-                ctx.thrownException instanceof IllegalArgumentException
-                        || ctx.thrownException instanceof IllegalStateException,
-                "Expected IllegalArgumentException or IllegalStateException, got: "
-                        + (ctx.thrownException == null ? "null" : ctx.thrownException.getClass())
-        );
-    }
 }

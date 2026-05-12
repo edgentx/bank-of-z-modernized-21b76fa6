@@ -4,8 +4,6 @@ import com.example.domain.customer.model.CustomerAggregate;
 import com.example.domain.customer.model.EnrollCustomerCmd;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
-import org.junit.jupiter.api.Assertions;
 
 /**
  * Step definitions shared by all Customer-aggregate stories (S-3, S-4, ...).
@@ -70,14 +68,4 @@ public class CustomerSharedSteps {
         ctx.repository.save(ctx.aggregate);
     }
 
-    @Then("the command is rejected with a domain error")
-    public void theCommandIsRejectedWithADomainError() {
-        Assertions.assertNotNull(ctx.thrownException, "Expected a domain error but command succeeded");
-        Assertions.assertTrue(
-                ctx.thrownException instanceof IllegalArgumentException
-                        || ctx.thrownException instanceof IllegalStateException,
-                "Expected IllegalArgumentException or IllegalStateException, got: "
-                        + (ctx.thrownException == null ? "null" : ctx.thrownException.getClass())
-        );
-    }
 }

@@ -18,9 +18,11 @@ import java.util.List;
 public class S3Steps {
 
     private final CustomerSharedContext ctx;
+    private final ScenarioContext sc;
 
-    public S3Steps(CustomerSharedContext ctx) {
+    public S3Steps(CustomerSharedContext ctx, ScenarioContext sc) {
         this.ctx = ctx;
+        this.sc = sc;
     }
 
     @When("the UpdateCustomerDetailsCmd command is executed")
@@ -31,6 +33,7 @@ public class S3Steps {
             ctx.repository.save(agg);
         } catch (Throwable t) {
             ctx.thrownException = t;
+            sc.thrownException = t;
         }
     }
 

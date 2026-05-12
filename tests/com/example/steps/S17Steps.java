@@ -14,10 +14,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class S17Steps {
 
+    private final ScenarioContext sc;
     private ReconciliationBatch batch;
     private ForceBalanceCmd cmd;
     private List<DomainEvent> resultingEvents;
-    private Exception thrownException;
+
+    public S17Steps(ScenarioContext sc) {
+        this.sc = sc;
+    }
 
     @Given("a valid ReconciliationBatch aggregate")
     public void a_valid_reconciliation_batch_aggregate() {
@@ -42,17 +46,16 @@ public class S17Steps {
     @When("the ForceBalanceCmd command is executed")
     public void the_force_balance_cmd_command_is_executed() {
         try {
-            // Simulating command construction with valid data
             cmd = new ForceBalanceCmd("batch-123", "op-456", "Manual reconciliation required");
             resultingEvents = batch.execute(cmd);
         } catch (Exception e) {
-            thrownException = e;
+            sc.thrownException = e;
         }
     }
 
     @Then("a reconciliation.balanced event is emitted")
     public void a_reconciliation_balanced_event_is_emitted() {
-        assertNull(thrownException, "Should not have thrown an exception");
+        assertNull(sc.thrownException, "Should not have thrown an exception");
         assertNotNull(resultingEvents, "Events list should not be null");
         assertEquals(1, resultingEvents.size(), "Should emit exactly one event");
 
@@ -78,10 +81,4 @@ public class S17Steps {
         this.batch.markEntriesUnaccounted();
     }
 
-    @Then("the command is rejected with a domain error")
-    public void the_command_is_rejected_with_a_domain_error() {
-        assertNotNull(thrownException, "Expected an exception to be thrown");
-        assertTrue(thrownException instanceof IllegalStateException, "Expected IllegalStateException");
-        assertTrue(thrownException.getMessage() != null && !thrownException.getMessage().isBlank(), "Error message should be present");
-    }
 }

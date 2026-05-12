@@ -20,9 +20,11 @@ import java.util.List;
 public class S9Steps {
 
     private final StatementSharedContext ctx;
+    private final ScenarioContext sc;
 
-    public S9Steps(StatementSharedContext ctx) {
+    public S9Steps(StatementSharedContext ctx, ScenarioContext sc) {
         this.ctx = ctx;
+        this.sc = sc;
     }
 
     @When("the ExportStatementCmd command is executed")
@@ -33,6 +35,7 @@ public class S9Steps {
             ctx.repository.save(agg);
         } catch (Throwable t) {
             ctx.thrownException = t;
+            sc.thrownException = t;
         }
     }
 

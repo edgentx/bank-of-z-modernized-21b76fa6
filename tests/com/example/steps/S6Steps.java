@@ -26,7 +26,7 @@ public class S6Steps {
 
     @And("a valid accountNumber is provided")
     public void aValidAccountNumberIsProvided() {
-        // No-op: accountNumber is supplied when the command is constructed in @When.
+        ctx.accountNumber = "ACC-0000123";
     }
 
     @And("a valid newStatus is provided")

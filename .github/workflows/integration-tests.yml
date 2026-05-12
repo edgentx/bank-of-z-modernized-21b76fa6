@@ -1,0 +1,84 @@
+name: Integration Tests (S-44)
+
+# BANK S-44 — TestContainers-backed REST integration suite + JaCoCo coverage.
+#
+# Runs on every PR and push to main. The job depends on Docker being
+# available on the runner (GitHub-hosted ubuntu-latest provides this
+# out of the box) so the MongoDB / Redis / MinIO containers can boot.
+# The DB2 container is deliberately *not* enabled here (the IBM image is
+# ~5 GiB / ~5 min to start, which would breach the "Test execution time
+# is under 10 minutes for full suite" AC); the default path uses H2 in
+# DB2-compatibility mode. To exercise real DB2, an operator can dispatch
+# this workflow with the `run-db2` input set to true.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run-db2:
+        description: 'Run the opt-in DB2 Testcontainer (adds ~5 min)'
+        required: false
+        default: 'false'
+
+jobs:
+  integration-tests:
+    name: mvn verify (Testcontainers + JaCoCo)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      # Gates BaseApiIntegrationTest's @EnabledIfEnvironmentVariable — when
+      # absent the integration suite is skipped (developer laptop default).
+      BANK_INTEGRATION_TESTS: 'true'
+      # Reduce Testcontainers' Ryuk container overhead in ephemeral CI VMs.
+      TESTCONTAINERS_RYUK_DISABLED: 'true'
+      # Hop the workflow_dispatch input through an env var rather than
+      # interpolating it directly into a `run:` block — see GH Actions
+      # script-injection guidance.
+      RUN_DB2: ${{ github.event.inputs.run-db2 }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Verify Docker is available
+        run: docker version
+
+      - name: Maven verify (unit + integration + coverage)
+        run: |
+          PROFILE=""
+          if [ "$RUN_DB2" = "true" ]; then
+            PROFILE="-P db2-integration"
+          fi
+          mvn -B -ntp $PROFILE verify
+
+      - name: Upload Surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+
+      - name: Upload Failsafe reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failsafe-reports
+          path: target/failsafe-reports/
+
+      - name: Upload JaCoCo coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/

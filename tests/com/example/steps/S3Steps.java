@@ -1,7 +1,8 @@
 package com.example.steps;
 
 import com.example.domain.customer.model.CustomerAggregate;
-import com.example.domain.customer.model.DeleteCustomerCmd;
+import com.example.domain.customer.model.CustomerDetailsUpdatedEvent;
+import com.example.domain.customer.model.UpdateCustomerDetailsCmd;
 import com.example.domain.shared.DomainEvent;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -10,36 +11,37 @@ import org.junit.jupiter.api.Assertions;
 import java.util.List;
 
 /**
- * Story-specific step definitions for S-4 (DeleteCustomerCmd).
+ * Story-specific step definitions for S-3 (UpdateCustomerDetailsCmd).
  * Shared Customer Given/Then steps live in {@link CustomerSharedSteps};
  * scenario state is shared via {@link CustomerSharedContext}.
  */
-public class S4Steps {
+public class S3Steps {
 
     private final CustomerSharedContext ctx;
 
-    public S4Steps(CustomerSharedContext ctx) {
+    public S3Steps(CustomerSharedContext ctx) {
         this.ctx = ctx;
     }
 
-    @When("the DeleteCustomerCmd command is executed")
-    public void theDeleteCustomerCmdCommandIsExecuted() {
+    @When("the UpdateCustomerDetailsCmd command is executed")
+    public void theUpdateCustomerDetailsCmdCommandIsExecuted() {
         try {
-            CustomerAggregate agg = ctx.repository.findById(ctx.aggregate.id()).orElseThrow();
-            boolean hasActiveAccounts = "cust-active".equals(agg.id());
-            agg.execute(new DeleteCustomerCmd(agg.id(), hasActiveAccounts));
+            CustomerAggregate agg = ctx.repository.findById(ctx.aggregate.id()).orElse(ctx.aggregate);
+            agg.execute(new UpdateCustomerDetailsCmd(agg.id(), "newmail@example.com", "12-34-56"));
             ctx.repository.save(agg);
         } catch (Throwable t) {
             ctx.thrownException = t;
         }
     }
 
-    @Then("a customer.deleted event is emitted")
-    public void aCustomerDeletedEventIsEmitted() {
+    @Then("a customer.details.updated event is emitted")
+    public void aCustomerDetailsUpdatedEventIsEmitted() {
         Assertions.assertNull(ctx.thrownException, "Expected no error, but got: " + ctx.thrownException);
         CustomerAggregate updated = ctx.repository.findById(ctx.aggregate.id()).orElseThrow();
         List<DomainEvent> events = updated.uncommittedEvents();
         Assertions.assertFalse(events.isEmpty(), "Expected events to be emitted");
-        Assertions.assertEquals("customer.deleted", events.get(0).type());
+        DomainEvent event = events.get(0);
+        Assertions.assertEquals("customer.details.updated", event.type());
+        Assertions.assertInstanceOf(CustomerDetailsUpdatedEvent.class, event);
     }
 }

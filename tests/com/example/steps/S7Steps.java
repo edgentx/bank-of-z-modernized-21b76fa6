@@ -30,7 +30,7 @@ public class S7Steps {
         try {
             AccountAggregate agg = ctx.repository.findById(ctx.aggregate.id()).orElse(ctx.aggregate);
             String accountNumber = ctx.accountNumber != null ? ctx.accountNumber : "ACC-DEFAULT";
-            agg.execute(new CloseAccountCmd(accountNumber));
+            agg.execute(new CloseAccountCmd(agg.id(), accountNumber));
             ctx.repository.save(agg);
         } catch (Throwable t) {
             ctx.thrownException = t;

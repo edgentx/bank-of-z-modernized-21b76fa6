@@ -16,5 +16,13 @@ export type { CustomerDetail, CustomerSearchQuery, CustomerSummary } from './cus
 export { dashboardApi } from './dashboard';
 export type { DashboardSummary } from './dashboard';
 
+export { terminalApi } from './terminal';
+export type {
+  ScreenField,
+  ScreenHighlight,
+  ScreenInputPayload,
+  ScreenMap,
+} from './terminal';
+
 export { useApiResource } from './use-api-resource';
 export type { ApiResourceState, UseApiResourceResult } from './use-api-resource';

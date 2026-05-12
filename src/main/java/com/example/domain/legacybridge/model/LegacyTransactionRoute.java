@@ -18,12 +18,14 @@ public class LegacyTransactionRoute extends AggregateRoot {
     private boolean versioningViolation;
     private boolean evaluated;
     private String targetSystem;
+    private int currentRulesVersion;
 
     public LegacyTransactionRoute(String routeId) {
         this.routeId = routeId;
         this.dualProcessingViolation = false;
         this.versioningViolation = false;
         this.evaluated = false;
+        this.currentRulesVersion = 0;
     }
 
     @Override
@@ -47,7 +49,51 @@ public class LegacyTransactionRoute extends AggregateRoot {
         if (cmd instanceof EvaluateRoutingCmd c) {
             return evaluateRouting(c);
         }
+        if (cmd instanceof UpdateRoutingRuleCmd c) {
+            return updateRoutingRule(c);
+        }
         throw new UnknownCommandException(cmd);
+    }
+
+    private List<DomainEvent> updateRoutingRule(UpdateRoutingRuleCmd cmd) {
+        // Invariant 1: A transaction must route to exactly one backend system
+        // (modern or legacy) to prevent dual-processing.
+        if (dualProcessingViolation) {
+            throw new IllegalStateException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
+        }
+        if (cmd.newTarget() == null || cmd.newTarget().isBlank()) {
+            throw new IllegalArgumentException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
+        }
+        String t = cmd.newTarget().toUpperCase();
+        if (!t.equals("MODERN") && !t.equals("LEGACY")) {
+            throw new IllegalArgumentException("A transaction must route to exactly one backend system (modern or legacy) to prevent dual-processing.");
+        }
+
+        // Invariant 2: Routing rules must be versioned to allow safe rollback.
+        if (versioningViolation) {
+            throw new IllegalStateException("Routing rules must be versioned to allow safe rollback.");
+        }
+        if (cmd.rulesVersion() <= 0) {
+            throw new IllegalArgumentException("Routing rules must be versioned to allow safe rollback.");
+        }
+        if (cmd.rulesVersion() <= currentRulesVersion) {
+            throw new IllegalStateException("Routing rules must be versioned to allow safe rollback. provided=" + cmd.rulesVersion() + " current=" + currentRulesVersion);
+        }
+
+        var event = new RoutingUpdatedEvent(
+                cmd.ruleId(),
+                t,
+                cmd.effectiveDate(),
+                cmd.rulesVersion(),
+                java.time.Instant.now(),
+                null
+        );
+
+        this.targetSystem = t;
+        this.currentRulesVersion = cmd.rulesVersion();
+        addEvent(event);
+        incrementVersion();
+        return List.of(event);
     }
 
     private List<DomainEvent> evaluateRouting(EvaluateRoutingCmd cmd) {

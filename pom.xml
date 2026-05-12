@@ -159,6 +159,32 @@
         </dependency>
 
         <!--
+          IBM MQ JMS messaging adapter — S-34.
+          The async-messaging port (MessagePublisherPort + the @JmsListener
+          listener-container infrastructure) is backed by IBM MQ over JMS to
+          replicate the legacy CICS↔IMS async fan-out pattern. Spring Boot 3.2
+          is on Jakarta EE 10 (jakarta.jms.*), so we use the Jakarta-namespace
+          IBM MQ client artifact (com.ibm.mq.jakarta.client) rather than the
+          legacy javax.* one. spring-jms brings the JmsTemplate, listener
+          container factory, and JmsTransactionManager — we deliberately
+          avoid mq-jms-spring-boot-starter so the wiring stays explicit and
+          test-controllable (same pattern as Redis/Minio/Temporal above).
+        -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jms</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.jms</groupId>
+            <artifactId>jakarta.jms-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.ibm.mq</groupId>
+            <artifactId>com.ibm.mq.jakarta.client</artifactId>
+            <version>9.3.5.0</version>
+        </dependency>
+
+        <!--
           Temporal in-process test environment — S-33.
           TestWorkflowEnvironment runs a fully-functional Temporal service +
           worker inside the JVM, so integration tests exercise the real

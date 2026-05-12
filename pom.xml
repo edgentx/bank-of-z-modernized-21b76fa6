@@ -18,6 +18,13 @@
     <properties>
         <java.version>17</java.version>
         <cucumber.version>7.14.0</cucumber.version>
+        <!--
+          S-33: Temporal Java SDK version. Pinned here so the workflow + activity
+          SDK and the in-process test environment (temporal-testing) stay on the
+          same release line. 1.22.x is the current LTS-shaped track (gRPC client
+          + worker + payload converters mature, replay APIs stable).
+        -->
+        <temporal.version>1.24.1</temporal.version>
     </properties>
     
     <dependencies>
@@ -128,10 +135,41 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!--
+          Temporal workflow + activity SDK — S-33.
+          Durable workflow execution for the account-opening saga and the
+          CICS/IMS legacy-transaction orchestration. The SDK ships its own
+          gRPC stack, payload converters, and worker. We deliberately do NOT
+          pull in temporal-spring-boot-starter (alpha) — wiring is done by
+          hand in TemporalConfig the same way Redis/Minio adapters are wired,
+          so the worker bean lifecycle is fully testable without spring boot
+          auto-config side effects.
+        -->
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-sdk</artifactId>
+            <version>${temporal.version}</version>
+        </dependency>
+
         <!-- Testing Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+          Temporal in-process test environment — S-33.
+          TestWorkflowEnvironment runs a fully-functional Temporal service +
+          worker inside the JVM, so integration tests exercise the real
+          workflow + activity stubs (including saga compensation, retry
+          policies, timeouts, and query methods) without a running Temporal
+          server. CI does not need a Temporal sidecar.
+        -->
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-testing</artifactId>
+            <version>${temporal.version}</version>
             <scope>test</scope>
         </dependency>
         

@@ -1,0 +1,171 @@
+{{- if .Values.backend.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "teller.fullname" . }}-{{ .Values.backend.name }}
+  labels:
+    {{- include "teller.labels" (dict "ctx" . "component" .Values.backend.name) | nindent 4 }}
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "teller.selectorLabels" (dict "ctx" . "component" .Values.backend.name) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "teller.labels" (dict "ctx" . "component" .Values.backend.name) | nindent 8 }}
+      annotations:
+        # Force pod restart when config/policy contents change.
+        checksum/config: {{ include (print $.Template.BasePath "/backend-configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/backend-secret.yaml") . | sha256sum }}
+        {{- if .Values.envoy.enabled }}
+        checksum/envoy: {{ include (print $.Template.BasePath "/envoy-configmap.yaml") . | sha256sum }}
+        {{- end }}
+        {{- if .Values.opa.enabled }}
+        checksum/opa: {{ include (print $.Template.BasePath "/opa-configmap.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.backend.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.backend.podSecurityContext | nindent 8 }}
+      containers:
+        # --- Spring Boot teller-core --------------------------------------
+        - name: {{ .Values.backend.name }}
+          image: {{ include "teller.image" (dict "global" .Values.global "image" .Values.backend.image) }}
+          imagePullPolicy: {{ include "teller.pullPolicy" (dict "global" .Values.global "image" .Values.backend.image) }}
+          securityContext:
+            {{- toYaml .Values.backend.containerSecurityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.service.port }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "teller.backend.configmapName" . }}
+            - secretRef:
+                name: {{ include "teller.backend.secretName" . }}
+          {{- with .Values.backend.extraEnv }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.backend.probes.liveness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.backend.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.backend.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.backend.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.backend.probes.liveness.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.backend.probes.readiness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.backend.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.backend.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.backend.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.backend.probes.readiness.failureThreshold }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+
+        {{- if .Values.envoy.enabled }}
+        # --- Envoy sidecar (front-proxy + ext_authz to OPA) ---------------
+        - name: envoy
+          image: "{{ .Values.envoy.image.repository }}:{{ .Values.envoy.image.tag }}"
+          imagePullPolicy: {{ .Values.envoy.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.backend.containerSecurityContext | nindent 12 }}
+          args:
+            - "-c"
+            - "/etc/envoy/envoy.yaml"
+            - "--service-cluster"
+            - "{{ .Values.backend.name }}"
+          ports:
+            - name: proxy
+              containerPort: {{ .Values.envoy.listenPort }}
+              protocol: TCP
+            - name: admin
+              containerPort: {{ .Values.envoy.adminPort }}
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: admin
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: admin
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          volumeMounts:
+            - name: envoy-config
+              mountPath: /etc/envoy
+              readOnly: true
+          resources:
+            {{- toYaml .Values.envoy.resources | nindent 12 }}
+        {{- end }}
+
+        {{- if .Values.opa.enabled }}
+        # --- OPA sidecar (policy decision point for Envoy ext_authz) ------
+        - name: opa
+          image: "{{ .Values.opa.image.repository }}:{{ .Values.opa.image.tag }}"
+          imagePullPolicy: {{ .Values.opa.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.backend.containerSecurityContext | nindent 12 }}
+          args:
+            - "run"
+            - "--server"
+            - "--addr=0.0.0.0:{{ .Values.opa.port }}"
+            - "--diagnostic-addr=0.0.0.0:8282"
+            - "--set=plugins.envoy_ext_authz_grpc.addr=0.0.0.0:9192"
+            - "--set=plugins.envoy_ext_authz_grpc.path=envoy/authz/allow"
+            - "/policies/default.rego"
+            - "/policies/data.json"
+          ports:
+            - name: opa-http
+              containerPort: {{ .Values.opa.port }}
+              protocol: TCP
+            - name: opa-grpc
+              containerPort: 9192
+              protocol: TCP
+            - name: opa-diag
+              containerPort: 8282
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /health?bundle=false
+              port: opa-diag
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: opa-diag
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          volumeMounts:
+            - name: opa-policies
+              mountPath: /policies
+              readOnly: true
+          resources:
+            {{- toYaml .Values.opa.resources | nindent 12 }}
+        {{- end }}
+      volumes:
+        {{- if .Values.envoy.enabled }}
+        - name: envoy-config
+          configMap:
+            name: {{ include "teller.envoy.configmapName" . }}
+        {{- end }}
+        {{- if .Values.opa.enabled }}
+        - name: opa-policies
+          configMap:
+            name: {{ include "teller.opa.configmapName" . }}
+        {{- end }}
+{{- end }}

@@ -1,0 +1,34 @@
+{{- if and .Values.frontend.enabled .Values.nginxIngress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "teller.fullname" . }}-frontend
+  labels:
+    {{- include "teller.labels" (dict "ctx" . "component" .Values.frontend.name) | nindent 4 }}
+  annotations:
+    {{- with .Values.nginxIngress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- if and .Values.certManager.enabled (not .Values.certManager.certificates.create) }}
+    cert-manager.io/cluster-issuer: {{ .Values.certManager.clusterIssuer.name | quote }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.nginxIngress.ingressClassName }}
+  tls:
+    - hosts:
+        - {{ .Values.nginxIngress.host | quote }}
+      secretName: {{ .Values.nginxIngress.tlsSecretName }}
+  rules:
+    - host: {{ .Values.nginxIngress.host | quote }}
+      http:
+        paths:
+          {{- range .Values.nginxIngress.paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "teller.fullname" $ }}-{{ $.Values.frontend.name }}
+                port:
+                  number: {{ $.Values.frontend.service.port }}
+          {{- end }}
+{{- end }}

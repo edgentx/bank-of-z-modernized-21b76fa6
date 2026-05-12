@@ -1,0 +1,12 @@
+{{- if .Values.backend.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "teller.backend.configmapName" . }}
+  labels:
+    {{- include "teller.labels" (dict "ctx" . "component" .Values.backend.name) | nindent 4 }}
+data:
+  {{- range $k, $v := .Values.backend.config }}
+  {{ $k }}: {{ $v | quote }}
+  {{- end }}
+{{- end }}

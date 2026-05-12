@@ -1,0 +1,49 @@
+# AWS EKS overlay for the `teller` chart.
+#
+# Pairs with the production EKS cluster: gp3-backed storage, Route53-managed
+# DNS01 ACME, and tighter resource floors driven by reserved-instance sizing.
+#
+# Usage:
+#   helm upgrade --install teller deploy/helm/teller \
+#     -f deploy/helm/teller/values.yaml \
+#     -f deploy/helm/teller/values-eks.yaml
+
+global:
+  cluster: eks
+  domain: bank.example.com
+  imageRegistry: ghcr.io
+  imageRepository: edgentx
+  commonLabels:
+    bank.example.com/environment: prod
+    bank.example.com/cluster: eks
+
+backend:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1024Mi
+    limits:
+      cpu: "2"
+      memory: 2048Mi
+
+frontend:
+  replicaCount: 3
+
+kong:
+  host: api.bank.example.com
+
+nginxIngress:
+  host: app.bank.example.com
+
+certManager:
+  clusterIssuer:
+    create: true
+    name: letsencrypt-prod
+    email: tls-admin@bank.example.com
+    server: "https://acme-v02.api.letsencrypt.org/directory"
+    solver: dns01
+    dns01:
+      provider: route53
+      region: us-east-1
+      hostedZoneID: ""   # supplied via --set or external secret

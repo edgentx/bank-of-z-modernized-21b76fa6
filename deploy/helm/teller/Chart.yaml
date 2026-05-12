@@ -1,0 +1,27 @@
+apiVersion: v2
+name: teller
+description: |
+  Bank-of-Z modernization deployment chart. Packages the teller-core
+  Spring Boot backend plus the Next.js frontend, the Envoy + OPA
+  sidecars that front each backend pod, Kong-class Ingress for the
+  REST API, NGINX-class Ingress for the SPA, and cert-manager
+  ClusterIssuer + Certificate resources for TLS.
+type: application
+version: 0.1.0
+appVersion: "0.0.1-SNAPSHOT"
+kubeVersion: ">=1.26.0-0"
+maintainers:
+  - name: Bank-of-Z modernization
+    url: https://github.com/edgentx/bank-of-z-modernized-21b76fa6
+keywords:
+  - bank-of-z
+  - teller-core
+  - cics
+  - ims
+  - db2
+  - spring-boot
+  - nextjs
+  - envoy
+  - opa
+  - kong
+  - cert-manager

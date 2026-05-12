@@ -1,0 +1,280 @@
+# Default values for the Bank-of-Z `teller` umbrella chart.
+#
+# Two environment-specific overlay files are shipped alongside this one:
+#   * values-eks.yaml      — AWS EKS production (Route53 DNS01, gp3 storage)
+#   * values-microk8s.yaml — VForce360 MicroK8s (HTTP01, hostpath storage)
+#
+# The base file below is neutral: it MUST NOT bind any provider-specific
+# choices (no AWS-only IAM, no MicroK8s-only addons). Overlays opt in.
+
+# --- Global -------------------------------------------------------------------
+global:
+  # Cluster flavor selector. Overlays set this to "eks" or "microk8s" so
+  # template guards can branch (e.g. cert-manager solver, storage class).
+  cluster: ""
+  # Base hostname for all Ingress resources. Overlays MUST override.
+  domain: "bank.example.com"
+  imageRegistry: ghcr.io
+  imageRepository: edgentx
+  imagePullPolicy: IfNotPresent
+  imagePullSecrets: []
+  # Common labels applied to every rendered object.
+  commonLabels: {}
+
+# --- Backend: teller-core (Spring Boot) ---------------------------------------
+backend:
+  enabled: true
+  name: teller-core
+  replicaCount: 2
+  image:
+    # Final reference resolves to {{ registry }}/{{ repository }}/{{ name }}:{{ tag }}
+    name: teller-core
+    tag: latest
+    pullPolicy: ""
+
+  service:
+    type: ClusterIP
+    port: 8080
+    # Envoy listens here and forwards to the application port above on localhost.
+    sidecarPort: 9080
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 768Mi
+    limits:
+      cpu: "2"
+      memory: 1536Mi
+
+  podAnnotations: {}
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop: ["ALL"]
+
+  # Spring Boot Actuator health probes (Dockerfile + S-40 conventions).
+  probes:
+    liveness:
+      path: /actuator/health/liveness
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+    readiness:
+      path: /actuator/health/readiness
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 2
+      failureThreshold: 3
+
+  # Spring application configuration. Everything in `config` becomes
+  # plain env in the ConfigMap; everything in `secrets` becomes env in
+  # the Secret. Keys mirror the env-var names application.properties
+  # already reads (SPRING_DATASOURCE_USERNAME, etc.).
+  config:
+    SPRING_PROFILES_ACTIVE: "k8s"
+    SERVER_PORT: "8080"
+    MANAGEMENT_SERVER_PORT: "8080"
+    SPRING_DATA_MONGODB_URI: "mongodb://mongo:27017/bank"
+    SPRING_DATASOURCE_URL: "jdbc:db2://db2:50000/BANK"
+    SPRING_DATASOURCE_USERNAME: "db2inst1"
+    STORAGE_MINIO_ENDPOINT: "http://minio:9000"
+    STORAGE_MINIO_DEFAULT_BUCKET: "bank-documents"
+    STORAGE_MINIO_REGION: "us-east-1"
+    STORAGE_MINIO_SECURE: "false"
+    CACHE_REDIS_HOST: "redis"
+    CACHE_REDIS_PORT: "6379"
+    CACHE_REDIS_DATABASE: "0"
+    CACHE_REDIS_NAMESPACE: "bank"
+    WORKFLOW_TEMPORAL_TARGET: "temporal:7233"
+    WORKFLOW_TEMPORAL_NAMESPACE: "bank"
+    WORKFLOW_TEMPORAL_TASK_QUEUE: "bank-tasks"
+    WORKFLOW_TEMPORAL_WORKER_ENABLED: "true"
+    MESSAGING_IBMMQ_ENABLED: "false"
+    MESSAGING_IBMMQ_HOST: "ibmmq"
+    MESSAGING_IBMMQ_PORT: "1414"
+    MESSAGING_IBMMQ_CHANNEL: "DEV.APP.SVRCONN"
+    MESSAGING_IBMMQ_QUEUE_MANAGER: "QM1"
+    MESSAGING_IBMMQ_LISTENER_ENABLED: "false"
+    TELEMETRY_OTEL_ENABLED: "true"
+    TELEMETRY_OTEL_SERVICE_NAME: "teller-core"
+    TELEMETRY_OTEL_ENVIRONMENT: "dev"
+    TELEMETRY_OTEL_OTLP_ENDPOINT: "http://otel-collector:4317"
+    TELEMETRY_OTEL_METRICS_ENABLED: "true"
+    TELEMETRY_OTEL_METRICS_URL: "http://otel-collector:4318/v1/metrics"
+
+  # These map 1:1 into a Secret. Production overlays should leave the
+  # right-hand values empty here and patch them via an external secret
+  # manager (External Secrets / SealedSecrets / AWS SM).
+  secrets:
+    SPRING_DATASOURCE_PASSWORD: "changeit"
+    STORAGE_MINIO_ACCESS_KEY: "minioadmin"
+    STORAGE_MINIO_SECRET_KEY: "minioadmin"
+    CACHE_REDIS_PASSWORD: ""
+    MESSAGING_IBMMQ_USER: "app"
+    MESSAGING_IBMMQ_PASSWORD: ""
+
+  # Extra env appended verbatim (use for downward-API or already-existing
+  # ExternalSecret references). Each entry is a corev1.EnvVar.
+  extraEnv: []
+
+# --- Frontend: teller-frontend (Next.js + nginx) ------------------------------
+frontend:
+  enabled: true
+  name: teller-frontend
+  replicaCount: 2
+  image:
+    name: teller-frontend
+    tag: latest
+    pullPolicy: ""
+
+  service:
+    type: ClusterIP
+    port: 80
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+  podAnnotations: {}
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop: ["ALL"]
+
+  probes:
+    liveness:
+      path: /
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+    readiness:
+      path: /
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      timeoutSeconds: 2
+      failureThreshold: 3
+
+# --- Envoy sidecar (front-proxy on each backend pod) --------------------------
+# Every backend pod runs Envoy as a sidecar that terminates inbound traffic
+# from the Service, calls OPA for an ext_authz decision, and forwards to
+# the Spring Boot app on localhost:{{ backend.service.port }}.
+envoy:
+  enabled: true
+  image:
+    repository: envoyproxy/envoy
+    tag: v1.31-latest
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  # Listener port (matches backend.service.sidecarPort above).
+  listenPort: 9080
+  adminPort: 9901
+
+# --- OPA sidecar (policy decision point) --------------------------------------
+opa:
+  enabled: true
+  image:
+    repository: openpolicyagent/opa
+    tag: 0.68.0-rootless
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  port: 9191
+  # Default policy: allow-all unless overridden. Overlays / Helmfile
+  # patches should supply the production policy via the data.rego key.
+  policy:
+    default: |
+      package envoy.authz
+
+      default allow := true
+    data: |
+      {}
+
+# --- Kong API Gateway Ingress (REST API) --------------------------------------
+kong:
+  enabled: true
+  ingressClassName: kong
+  host: "api.bank.example.com"
+  paths:
+    - path: /api
+      pathType: Prefix
+  # cert-manager-managed TLS secret name.
+  tlsSecretName: teller-api-tls
+  # Kong plugin annotations applied to the Ingress object.
+  annotations:
+    konghq.com/strip-path: "false"
+    konghq.com/protocols: "https"
+    konghq.com/https-redirect-status-code: "308"
+    konghq.com/plugins: "rate-limit,request-id"
+
+# --- NGINX Ingress (frontend SPA hosting) -------------------------------------
+nginxIngress:
+  enabled: true
+  ingressClassName: nginx
+  host: "app.bank.example.com"
+  paths:
+    - path: /
+      pathType: Prefix
+  tlsSecretName: teller-frontend-tls
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "16m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+
+# --- cert-manager -------------------------------------------------------------
+certManager:
+  enabled: true
+  # Toggle ClusterIssuer rendering. Set false in overlays when the cluster
+  # already has a shared ClusterIssuer that other charts also rely on.
+  clusterIssuer:
+    create: true
+    name: letsencrypt-prod
+    email: tls-admin@bank.example.com
+    server: "https://acme-v02.api.letsencrypt.org/directory"
+    # solver: "http01" or "dns01". Overlays choose: EKS=>dns01, MicroK8s=>http01.
+    solver: http01
+    # Used when solver=http01.
+    http01IngressClass: nginx
+    # Used when solver=dns01.
+    dns01:
+      provider: route53
+      region: us-east-1
+      hostedZoneID: ""
+  # Render dedicated Certificate objects (one per Ingress host). If false,
+  # cert-manager.io/cluster-issuer annotations on the Ingress drive issuance
+  # via the ingress-shim controller instead.
+  certificates:
+    create: true

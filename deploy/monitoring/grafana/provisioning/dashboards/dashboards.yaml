@@ -1,0 +1,18 @@
+# S-43: Grafana dashboard provisioning. Auto-loads every .json file in
+# /var/lib/grafana/dashboards/ on Grafana startup. The bank-observability
+# folder appears in the Grafana UI.
+apiVersion: 1
+
+providers:
+  - name: bank-of-z
+    orgId: 1
+    folder: Bank of Z
+    folderUid: bank-of-z
+    type: file
+    disableDeletion: true
+    editable: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

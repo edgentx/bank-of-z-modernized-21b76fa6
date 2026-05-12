@@ -1,0 +1,116 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Workflows started (1h)",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum(increase(temporal_workflow_started[1h]))", "refId": "A" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Workflows completed (1h)",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        { "expr": "sum(increase(temporal_workflow_completed[1h]))", "refId": "A" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Workflows failed (1h)",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        { "expr": "sum(increase(temporal_workflow_failed[1h]))", "refId": "A" },
+        { "expr": "sum(increase(temporal_workflow_terminated[1h]))", "refId": "B", "hide": true }
+      ],
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [ {"color":"green","value":null}, {"color":"yellow","value":1}, {"color":"red","value":10} ] } }, "overrides": [] }
+    },
+    {
+      "type": "stat",
+      "title": "Activity p95 latency",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(temporal_activity_endtoend_latency_bucket[5m])))", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Workflow outcomes by type",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        { "expr": "sum by (workflow_type) (rate(temporal_workflow_completed[5m]))", "legendFormat": "{{workflow_type}} completed", "refId": "A" },
+        { "expr": "sum by (workflow_type) (rate(temporal_workflow_failed[5m]))", "legendFormat": "{{workflow_type}} failed", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "Activity error rate by type",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        { "expr": "sum by (activity_type) (rate(temporal_activity_failed[5m]))", "legendFormat": "{{activity_type}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Task-queue schedule-to-start latency",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum by (le, task_queue) (rate(temporal_task_schedule_to_start_latency_bucket[5m])))", "legendFormat": "p95 {{task_queue}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "Worker poll success rate",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        { "expr": "sum by (task_queue) (rate(temporal_poll_success_total[5m]))", "legendFormat": "success {{task_queue}}", "refId": "A" },
+        { "expr": "sum by (task_queue) (rate(temporal_poll_timeout_total[5m]))", "legendFormat": "timeout {{task_queue}}", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Redis exporter — hit / miss",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "targets": [
+        { "expr": "rate(redis_keyspace_hits_total[5m])", "legendFormat": "hits/s", "refId": "A" },
+        { "expr": "rate(redis_keyspace_misses_total[5m])", "legendFormat": "misses/s", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "MinIO — bucket usage",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "targets": [
+        { "expr": "sum by (bucket) (minio_bucket_usage_total_bytes)", "legendFormat": "{{bucket}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["bank-of-z", "temporal", "infrastructure"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "",
+  "title": "Bank of Z — Temporal & Infra",
+  "uid": "bank-temporal-infra",
+  "version": 1,
+  "weekStart": ""
+}

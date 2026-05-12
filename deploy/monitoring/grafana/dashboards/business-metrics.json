@@ -1,0 +1,114 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Open accounts (24h)",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum(increase(domain_events_total{event=\"account.opened\"}[24h]))", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] }
+    },
+    {
+      "type": "stat",
+      "title": "Deposits (24h)",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        { "expr": "sum(increase(domain_events_total{event=\"transaction.deposited\"}[24h]))", "refId": "A" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Withdrawals (24h)",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        { "expr": "sum(increase(domain_events_total{event=\"transaction.withdrawn\"}[24h]))", "refId": "A" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Reverse transactions (24h)",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        { "expr": "sum(increase(domain_events_total{event=\"transaction.reversed\"}[24h]))", "refId": "A" }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Domain events emitted (per minute)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        { "expr": "sum by (event) (rate(domain_events_total[5m]))", "legendFormat": "{{event}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "Command rejection rate (validation failures)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        { "expr": "sum by (command) (rate(domain_command_rejected_total[5m]))", "legendFormat": "{{command}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Teller-session lifecycle",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        { "expr": "sum(rate(domain_events_total{event=\"session.started\"}[5m]))", "legendFormat": "started", "refId": "A" },
+        { "expr": "sum(rate(domain_events_total{event=\"session.ended\"}[5m]))", "legendFormat": "ended", "refId": "B" },
+        { "expr": "sum(rate(domain_events_total{event=\"session.timed_out\"}[5m]))", "legendFormat": "timed-out", "refId": "C" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "Legacy bridge routing decisions",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        { "expr": "sum by (route) (rate(legacy_bridge_route_decisions_total[5m]))", "legendFormat": "{{route}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Cache hit ratio (Redis)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "targets": [
+        { "expr": "sum by (cache) (rate(cache_gets_total{result=\"hit\"}[5m])) / clamp_min(sum by (cache) (rate(cache_gets_total[5m])), 1)", "legendFormat": "{{cache}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "Documents stored in MinIO (per minute)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "targets": [
+        { "expr": "sum(rate(minio_s3_requests_total{api=\"PutObject\"}[5m]))", "legendFormat": "PutObject/s", "refId": "A" },
+        { "expr": "sum(rate(minio_s3_requests_total{api=\"GetObject\"}[5m]))", "legendFormat": "GetObject/s", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["bank-of-z", "business"],
+  "templating": { "list": [] },
+  "time": { "from": "now-24h", "to": "now" },
+  "timezone": "",
+  "title": "Bank of Z — Business Metrics",
+  "uid": "bank-business-metrics",
+  "version": 1,
+  "weekStart": ""
+}

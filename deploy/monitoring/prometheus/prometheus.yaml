@@ -1,0 +1,241 @@
+# S-43: Prometheus server configuration for the Bank-of-Z modernization stack.
+#
+# Service-discovery topology
+# --------------------------
+# We discover targets by Kubernetes pod role so a fresh helm release picks up
+# new replicas automatically — no per-service ServiceMonitor wiring required.
+# Pods opt in via the annotations:
+#
+#   prometheus.io/scrape: "true"
+#   prometheus.io/path:   "/actuator/prometheus"   (default: /metrics)
+#   prometheus.io/port:   "8080"                   (default: container port)
+#   prometheus.io/scheme: "http"                   (default: http)
+#
+# These annotations are rendered onto the teller-core backend by the Helm
+# chart (values.yaml :: backend.podAnnotations) and onto each exporter
+# Deployment defined under deploy/monitoring/exporters/.
+#
+# Scrape jobs
+# -----------
+#   kubernetes-pods         — annotation-driven discovery of every app pod
+#                             (teller-core JVM + Spring Boot + Micrometer).
+#   kubernetes-service-endpoints
+#                           — Service-level discovery for ad-hoc additions.
+#   kube-state-metrics      — cluster object counts (Deployment/Pod/PVC) for
+#                             the resource-usage dashboards.
+#   node-exporter           — node CPU / memory / disk / network for the
+#                             system-health dashboard + alert rules.
+#   redis-exporter          — Redis cache (S-32) via redis_exporter sidecar.
+#   minio                   — MinIO native /minio/v2/metrics/cluster.
+#   temporal-frontend       — Temporal Server's exposed Prometheus endpoint
+#                             (workflow / activity / task-queue counters
+#                             feeding the Temporal dashboard).
+#   alertmanager-self       — Alertmanager scrapes itself so we can alert
+#                             on the alerting pipeline being unhealthy.
+#
+# Alertmanager and the alert-rule include path are scoped to the same
+# `bank-observability` namespace as Prometheus itself.
+
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 30s
+  external_labels:
+    cluster: ${CLUSTER_NAME:-bank}
+    environment: ${ENVIRONMENT:-dev}
+
+# All alert-rule groups live in the rules/ sibling directory and are mounted
+# into the Prometheus pod at /etc/prometheus/rules. Globs let us add new
+# files without touching this config.
+rule_files:
+  - /etc/prometheus/rules/*.rules.yaml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager.bank-observability.svc.cluster.local:9093
+
+scrape_configs:
+  # --- 1. Annotation-driven pod discovery --------------------------------
+  # The dominant path: any pod (across any namespace) carrying
+  # prometheus.io/scrape="true" becomes a target. The relabel chain
+  # rewrites __metrics_path__ / __address__ from the corresponding
+  # annotations so the same scrape config covers Spring Boot's
+  # /actuator/prometheus and any third-party exporter using /metrics.
+  - job_name: kubernetes-pods
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      # Drop pods that don't opt in.
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: "true"
+      # Drop pods without an assigned IP yet (terminating / pending).
+      - source_labels: [__meta_kubernetes_pod_phase]
+        action: drop
+        regex: Pending|Succeeded|Failed
+      # Rewrite the scrape path.
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      # Rewrite the address to use the port annotation when present.
+      - source_labels:
+          - __address__
+          - __meta_kubernetes_pod_annotation_prometheus_io_port
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      # Honour the scheme annotation (http/https).
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scheme]
+        action: replace
+        target_label: __scheme__
+        regex: (https?)
+      # Promote standard pod labels onto every sample so dashboards can
+      # group by app.kubernetes.io/name and namespace without joins.
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: pod
+      - source_labels: [__meta_kubernetes_pod_container_name]
+        action: replace
+        target_label: container
+
+  # --- 2. Service-endpoint discovery -------------------------------------
+  # Lets us scrape things that ship metrics on a Service-only path
+  # (kube-state-metrics, third-party operators) without changing pod
+  # annotations. Same annotation contract, but on Service objects.
+  - job_name: kubernetes-service-endpoints
+    kubernetes_sd_configs:
+      - role: endpoints
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+        action: keep
+        regex: "true"
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels:
+          - __address__
+          - __meta_kubernetes_service_annotation_prometheus_io_port
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+        action: replace
+        target_label: __scheme__
+        regex: (https?)
+      - action: labelmap
+        regex: __meta_kubernetes_service_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: namespace
+      - source_labels: [__meta_kubernetes_service_name]
+        action: replace
+        target_label: service
+
+  # --- 3. kube-state-metrics --------------------------------------------
+  # Cluster object inventory. Service-name-targeted because KSM ships a
+  # well-known headless Service that already carries scrape annotations
+  # in the upstream helm chart; we also pin the job here for the
+  # ClusterHealth alert rule to reference.
+  - job_name: kube-state-metrics
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names: [kube-system, bank-observability]
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: kube-state-metrics
+      - action: labelmap
+        regex: __meta_kubernetes_service_label_(.+)
+
+  # --- 4. node-exporter -------------------------------------------------
+  - job_name: node-exporter
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names: [bank-observability]
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: node-exporter
+      - source_labels: [__meta_kubernetes_pod_node_name]
+        action: replace
+        target_label: node
+
+  # --- 5. Redis exporter -----------------------------------------------
+  # S-32 introduced Redis as the distributed cache. The redis_exporter
+  # Deployment talks to the same redis Service the Spring Boot adapter
+  # uses (cache.redis.host=redis).
+  - job_name: redis-exporter
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names: [bank-observability, bank]
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: redis-exporter
+
+  # --- 6. MinIO ---------------------------------------------------------
+  # MinIO's bundled cluster metrics endpoint. Authentication is the
+  # operator JWT; the bearer_token_file is populated by a Secret mounted
+  # into the Prometheus pod.
+  - job_name: minio
+    metrics_path: /minio/v2/metrics/cluster
+    scheme: http
+    bearer_token_file: /etc/prometheus/minio/token
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names: [bank, bank-observability]
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: minio
+      - source_labels: [__meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: http
+
+  # --- 7. Temporal frontend --------------------------------------------
+  # Temporal Server exposes its Prometheus endpoint on the frontend
+  # service when prometheus_listenAddress is set in the server config.
+  - job_name: temporal-frontend
+    metrics_path: /metrics
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names: [bank, bank-observability]
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: temporal-frontend
+      - source_labels: [__meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: metrics
+
+  # --- 8. Alertmanager self-scrape -------------------------------------
+  - job_name: alertmanager
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names: [bank-observability]
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: alertmanager
+
+  # --- 9. Prometheus self-scrape ---------------------------------------
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

@@ -15,7 +15,7 @@ WORKDIR /workspace
 # Maven wrapper would be ideal, but the repo ships the bare pom.xml; install
 # Maven from the package index (single-shot apt-get to keep the layer small).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends maven=3.8.7-1 \
+    && apt-get install -y --no-install-recommends maven \
     && rm -rf /var/lib/apt/lists/*
 
 # Resolve dependencies first so the layer is cached when only sources change.

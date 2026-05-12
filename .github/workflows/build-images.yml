@@ -123,7 +123,7 @@ jobs:
 
       # Trivy enforces the "no critical vulnerabilities" acceptance criterion.
       - name: Trivy scan (fail on CRITICAL)
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: ${{ steps.ref.outputs.image }}:sha-${{ needs.meta.outputs.sha }}
           format: sarif

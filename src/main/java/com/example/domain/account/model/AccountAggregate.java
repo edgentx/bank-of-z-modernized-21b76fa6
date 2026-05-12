@@ -19,6 +19,6 @@ public class AccountAggregate extends AggregateRoot {
   @Override public String id() { return id; }
 
   @Override public List<DomainEvent> execute(Command cmd) {
-    throw new UnknownCommandException("AccountAggregate: " + cmd.getClass().getSimpleName());
+    throw new UnknownCommandException(cmd);
   }
 }

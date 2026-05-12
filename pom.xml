@@ -25,7 +25,36 @@
           + worker + payload converters mature, replay APIs stable).
         -->
         <temporal.version>1.24.1</temporal.version>
+        <!--
+          S-35: OpenTelemetry Java SDK version. Pinned here so the API, SDK,
+          OTLP exporter, and context-propagation jars stay on the same release
+          line. 1.34.x is the most recent stable line at the time of S-35 and
+          maps cleanly onto Spring Boot 3.2 + Micrometer 1.12. We deliberately
+          do NOT use opentelemetry-spring-boot-starter (alpha) — the SDK is
+          wired by hand in OpenTelemetryConfig the same way Temporal/Redis/MQ
+          adapters do, so the bean lifecycle is testable without auto-config
+          side effects and a single starter upgrade cannot silently change
+          tracing semantics across the application.
+        -->
+        <opentelemetry.version>1.34.1</opentelemetry.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!--
+              OpenTelemetry BOM aligns api/sdk/exporter/context versions so a
+              transitive bump in one module never drags an incompatible
+              version of another into the classpath.
+            -->
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-bom</artifactId>
+                <version>${opentelemetry.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     
     <dependencies>
         <!-- Spring Boot Starters -->
@@ -151,10 +180,63 @@
             <version>${temporal.version}</version>
         </dependency>
 
+        <!--
+          OpenTelemetry tracing stack — S-35.
+          The API (Tracer / Span / SpanBuilder / Context), the SDK with the
+          BatchSpanProcessor + tracer provider, and the OTLP gRPC exporter
+          that ships finished spans to the collector. Hand-wired in
+          OpenTelemetryConfig — no opentelemetry-spring-boot-starter — so
+          bean lifecycle stays deterministic and testable, matching the
+          Redis/Minio/Temporal/JMS adapter convention.
+        -->
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-sdk</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-context</artifactId>
+        </dependency>
+
+        <!--
+          Micrometer → OTLP metrics registry — S-35 actuator integration.
+          Spring Boot 3.2's actuator already exposes a Micrometer MeterRegistry
+          bound to /actuator/metrics; adding micrometer-registry-otlp wires an
+          additional registry that pushes the same meters to the OTLP HTTP
+          /v1/metrics endpoint on the collector, so the same Spring Boot
+          instrumentation feeds both /actuator/metrics scrapes and the
+          OpenTelemetry pipeline. Boot auto-configures the registry from
+          management.otlp.metrics.export.* properties — no Java config needed.
+          The version is managed by spring-boot-starter-parent (1.12.x).
+        -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-otlp</artifactId>
+        </dependency>
+
         <!-- Testing Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+          OpenTelemetry SDK testing utilities — S-35.
+          In-memory SpanExporter so unit tests can assert that domain spans
+          were recorded with the right attributes (CICS/IMS pathway IDs,
+          span name, kind) without standing up a collector.
+        -->
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-sdk-testing</artifactId>
             <scope>test</scope>
         </dependency>
 

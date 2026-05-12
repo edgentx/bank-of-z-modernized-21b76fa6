@@ -12,7 +12,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import com.example.domain.shared.DomainEvent;
+import com.example.infrastructure.telemetry.JmsTraceContextPropagator;
 import com.example.ports.MessagingException;
+import io.opentelemetry.api.OpenTelemetry;
 import java.time.Instant;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +42,15 @@ class IbmMqJmsMessagePublisherTest {
 
   private final JmsTemplate template = mock(JmsTemplate.class);
   private final IbmMqJmsProperties props = new IbmMqJmsProperties();
+  /**
+   * S-35: publisher always carries a {@link JmsTraceContextPropagator}; in
+   * unit tests we wire it against {@code OpenTelemetry.noop()} so the
+   * trace-context inject path is exercised end to end but emits no keys
+   * (the property bag on the captured post-processor message therefore
+   * only contains the caller-supplied headers).
+   */
+  private final JmsTraceContextPropagator propagator =
+      new JmsTraceContextPropagator(OpenTelemetry.noop());
   private IbmMqJmsMessagePublisher publisher;
 
   @BeforeEach
@@ -47,7 +58,7 @@ class IbmMqJmsMessagePublisherTest {
     props.setDestinations(Map.of(
         "account.events", "BANK.ACCT.EVT.Q",
         "transaction.events", "BANK.TXN.EVT.Q"));
-    publisher = new IbmMqJmsMessagePublisher(template, props);
+    publisher = new IbmMqJmsMessagePublisher(template, props, propagator);
   }
 
   // ---------------------------------------------------------------------------
@@ -60,7 +71,10 @@ class IbmMqJmsMessagePublisherTest {
 
     publisher.publish("account.events", event);
 
-    verify(template).convertAndSend("BANK.ACCT.EVT.Q", event);
+    // S-35: publish() now goes through the 3-arg convertAndSend so the
+    // outbound message can have trace-context properties injected on it
+    // by the JMS propagator post-processor.
+    verify(template).convertAndSend(eq("BANK.ACCT.EVT.Q"), eq(event), any(MessagePostProcessor.class));
   }
 
   @Test
@@ -69,7 +83,7 @@ class IbmMqJmsMessagePublisherTest {
 
     publisher.publish("ad.hoc.queue", event);
 
-    verify(template).convertAndSend("ad.hoc.queue", event);
+    verify(template).convertAndSend(eq("ad.hoc.queue"), eq(event), any(MessagePostProcessor.class));
   }
 
   @Test
@@ -90,7 +104,7 @@ class IbmMqJmsMessagePublisherTest {
   void publishMapsSpringJmsExceptionToPortException() {
     SampleEvent event = new SampleEvent("acct-7", Instant.parse("2026-05-12T12:00:00Z"));
     doThrow(new UncategorizedJmsException("MQ down"))
-        .when(template).convertAndSend(anyString(), any(Object.class));
+        .when(template).convertAndSend(anyString(), any(Object.class), any(MessagePostProcessor.class));
 
     MessagingException ex = assertThrows(MessagingException.class,
         () -> publisher.publish("account.events", event));

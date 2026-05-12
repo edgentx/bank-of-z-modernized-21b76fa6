@@ -1,9 +1,12 @@
 package com.example.infrastructure.jms;
 
+import com.example.infrastructure.telemetry.JmsTraceContextPropagator;
 import com.ibm.mq.jakarta.jms.MQConnectionFactory;
 import com.ibm.msg.client.jakarta.wmq.WMQConstants;
+import io.opentelemetry.api.OpenTelemetry;
 import jakarta.jms.ConnectionFactory;
 import jakarta.jms.JMSException;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -176,8 +179,15 @@ public class IbmMqJmsConfig {
    */
   @Bean
   public IbmMqJmsMessagePublisher ibmMqJmsMessagePublisher(JmsTemplate jmsTemplate,
-      IbmMqJmsProperties props) {
-    return new IbmMqJmsMessagePublisher(jmsTemplate, props);
+      IbmMqJmsProperties props,
+      ObjectProvider<JmsTraceContextPropagator> tracePropagatorProvider) {
+    // S-35: resolve the OpenTelemetry JMS propagator if telemetry is on the
+    // classpath; fall back to a no-op propagator backed by OpenTelemetry.noop()
+    // so contexts that load only the MQ stack (the existing tests, the BDD
+    // suite, the operator-tool standalones) do not require telemetry beans.
+    JmsTraceContextPropagator propagator = tracePropagatorProvider.getIfAvailable(
+        () -> new JmsTraceContextPropagator(OpenTelemetry.noop()));
+    return new IbmMqJmsMessagePublisher(jmsTemplate, props, propagator);
   }
 
   /**

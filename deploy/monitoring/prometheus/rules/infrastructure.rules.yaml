@@ -1,0 +1,145 @@
+# S-43: Infrastructure-level alert rules — Redis, MinIO, Temporal, node.
+#
+# Routed via team=platform → #bank-platform-alerts.
+
+groups:
+
+  # ----- Redis (S-32) -------------------------------------------------
+  - name: bank-redis
+    interval: 30s
+    rules:
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Redis instance {{ $labels.instance }} is DOWN"
+          description: |
+            redis_exporter reports the upstream Redis as unreachable.
+            teller-core caches (session, account-balance, statement) will
+            miss to the systems of record while this lasts.
+
+      - alert: RedisMemoryUsageHigh
+        expr: |
+          redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Redis memory usage >85% on {{ $labels.instance }}"
+
+      - alert: RedisRejectedConnections
+        expr: increase(redis_rejected_connections_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Redis is rejecting new connections"
+
+  # ----- MinIO (S-31) -------------------------------------------------
+  - name: bank-minio
+    interval: 30s
+    rules:
+      # MinIO publishes minio_node_drive_offline_total via the cluster
+      # metrics endpoint. Any offline drive needs immediate attention.
+      - alert: MinioDriveOffline
+        expr: minio_node_drive_offline_total > 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "MinIO drive offline on {{ $labels.server }}"
+
+      - alert: MinioBucketUsageHigh
+        expr: |
+          minio_bucket_usage_total_bytes / clamp_min(minio_bucket_quota_total_bytes, 1) > 0.80
+        for: 15m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "MinIO bucket {{ $labels.bucket }} >80% of quota"
+
+  # ----- Temporal (S-33) ----------------------------------------------
+  - name: bank-temporal
+    interval: 30s
+    rules:
+      # Temporal frontend's service_error_with_type metric counts errors
+      # per type — workflow saga compensation issues, gRPC failures, etc.
+      - alert: TemporalFrontendErrors
+        expr: |
+          sum by (operation) (
+            rate(temporal_service_error_with_type{job="temporal-frontend"}[5m])
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: teller-core
+        annotations:
+          summary: "Temporal '{{ $labels.operation }}' error rate >0.1/s"
+
+      - alert: TemporalWorkflowFailing
+        expr: |
+          sum by (workflow_type) (
+            rate(temporal_workflow_failed[5m])
+          ) > 0
+        for: 5m
+        labels:
+          severity: warning
+          team: teller-core
+        annotations:
+          summary: "Temporal workflow '{{ $labels.workflow_type }}' failing"
+          description: |
+            One or more workflow executions of type
+            {{ $labels.workflow_type }} have failed in the last 5 minutes.
+
+      - alert: TemporalTaskQueueBacklog
+        expr: |
+          temporal_task_schedule_to_start_latency_bucket{quantile="0.95"} > 30
+        for: 10m
+        labels:
+          severity: warning
+          team: teller-core
+        annotations:
+          summary: "Temporal task queue {{ $labels.task_queue }} backlogged"
+
+  # ----- Cluster nodes ------------------------------------------------
+  - name: bank-nodes
+    interval: 30s
+    rules:
+      - alert: NodeCpuSaturated
+        expr: |
+          (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m]))) > 0.90
+        for: 15m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Node {{ $labels.instance }} CPU >90%"
+
+      - alert: NodeMemoryPressure
+        expr: |
+          (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
+          / node_memory_MemTotal_bytes > 0.90
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Node {{ $labels.instance }} memory >90%"
+
+      - alert: NodeDiskFillingUp
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/", fstype!~"tmpfs|fuse.lxcfs"}
+           / node_filesystem_size_bytes{mountpoint="/", fstype!~"tmpfs|fuse.lxcfs"}) < 0.10
+        for: 10m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Node {{ $labels.instance }} root FS <10% free"

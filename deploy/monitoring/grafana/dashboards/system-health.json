@@ -1,0 +1,149 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "teller-core pods up",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "count(up{job=\"kubernetes-pods\", app_kubernetes_io_name=\"teller-core\"} == 1)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "none", "thresholds": { "mode": "absolute", "steps": [ {"color": "red", "value": null}, {"color": "yellow", "value": 1}, {"color": "green", "value": 2} ] } }, "overrides": [] },
+      "options": { "colorMode": "background" }
+    },
+    {
+      "type": "stat",
+      "title": "HTTP requests / sec",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{app_kubernetes_io_name=\"teller-core\"}[5m]))",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+    },
+    {
+      "type": "stat",
+      "title": "5xx ratio (5m)",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{app_kubernetes_io_name=\"teller-core\", status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{app_kubernetes_io_name=\"teller-core\"}[5m])), 1)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [ {"color":"green", "value": null}, {"color":"yellow", "value": 0.01}, {"color":"red", "value": 0.05} ] } }, "overrides": [] }
+    },
+    {
+      "type": "stat",
+      "title": "p95 latency (s)",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{app_kubernetes_io_name=\"teller-core\"}[5m])))",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "thresholds": { "mode": "absolute", "steps": [ {"color":"green", "value": null}, {"color":"yellow", "value": 1}, {"color":"red", "value": 1.5} ] } }, "overrides": [] }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "HTTP latency percentiles",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{app_kubernetes_io_name=\"teller-core\"}[5m])))", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{app_kubernetes_io_name=\"teller-core\"}[5m])))", "legendFormat": "p95", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{app_kubernetes_io_name=\"teller-core\"}[5m])))", "legendFormat": "p99", "refId": "C" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP status mix",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        { "expr": "sum by (status) (rate(http_server_requests_seconds_count{app_kubernetes_io_name=\"teller-core\"}[5m]))", "legendFormat": "{{status}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "JVM heap usage",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        { "expr": "sum by (pod) (jvm_memory_used_bytes{app_kubernetes_io_name=\"teller-core\", area=\"heap\"})", "legendFormat": "{{pod}} used", "refId": "A" },
+        { "expr": "sum by (pod) (jvm_memory_max_bytes{app_kubernetes_io_name=\"teller-core\", area=\"heap\"})", "legendFormat": "{{pod}} max", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "JVM GC pause time (avg per cycle)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        { "expr": "rate(jvm_gc_pause_seconds_sum{app_kubernetes_io_name=\"teller-core\"}[5m]) / clamp_min(rate(jvm_gc_pause_seconds_count{app_kubernetes_io_name=\"teller-core\"}[5m]), 1)", "legendFormat": "{{pod}} {{action}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Container CPU utilisation",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "targets": [
+        { "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"bank\", container=\"teller-core\"}[5m]))", "legendFormat": "{{pod}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "cores" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "Container memory usage",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "targets": [
+        { "expr": "container_memory_working_set_bytes{namespace=\"bank\", container=\"teller-core\"}", "legendFormat": "{{pod}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Node CPU (1 - idle)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "targets": [
+        { "expr": "1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m]))", "legendFormat": "{{instance}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "Node disk free % (root)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "targets": [
+        { "expr": "node_filesystem_avail_bytes{mountpoint=\"/\", fstype!~\"tmpfs|fuse.lxcfs\"} / node_filesystem_size_bytes{mountpoint=\"/\", fstype!~\"tmpfs|fuse.lxcfs\"}", "legendFormat": "{{instance}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["bank-of-z", "system-health"],
+  "templating": { "list": [] },
+  "time": { "from": "now-3h", "to": "now" },
+  "timezone": "",
+  "title": "Bank of Z — System Health",
+  "uid": "bank-system-health",
+  "version": 1,
+  "weekStart": ""
+}

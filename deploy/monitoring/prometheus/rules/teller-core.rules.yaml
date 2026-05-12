@@ -1,0 +1,216 @@
+# S-43: Alert rules for the teller-core Spring Boot service.
+#
+# Three groups, mirrored from the acceptance criteria:
+#   1. error-rate    — 5xx ratio + circuit-breaker trips
+#   2. latency       — p95/p99 over Spring MVC + downstream adapters
+#   3. resource      — JVM heap / GC + container CPU / memory headroom
+#
+# Severity convention (consumed by alertmanager routing):
+#   warning   — page the on-call channel during business hours
+#   critical  — page the rotation 24/7
+#
+# All rules carry a `team` label so alertmanager can route by ownership:
+#   team=teller-core for app-level signals; team=platform for infra.
+
+groups:
+
+  # ----- 1. Error-rate rules ------------------------------------------
+  - name: teller-core.error-rate
+    interval: 30s
+    rules:
+      # Spring MVC: ratio of 5xx responses over the last 5 minutes.
+      # The Micrometer http_server_requests_seconds_count series carries
+      # `status` and `uri` tags out of the box.
+      - alert: TellerCoreHttp5xxRateHigh
+        expr: |
+          sum by (namespace, pod) (
+            rate(http_server_requests_seconds_count{job="kubernetes-pods",
+                                                    app_kubernetes_io_name="teller-core",
+                                                    status=~"5.."}[5m])
+          )
+          /
+          sum by (namespace, pod) (
+            rate(http_server_requests_seconds_count{job="kubernetes-pods",
+                                                    app_kubernetes_io_name="teller-core"}[5m])
+          )
+          > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: teller-core
+        annotations:
+          summary: "teller-core 5xx rate >5% on {{ $labels.pod }}"
+          description: |
+            More than 5% of HTTP responses from teller-core have been 5xx for
+            the last 5 minutes on pod {{ $labels.pod }} (ns {{ $labels.namespace }}).
+            Current ratio: {{ $value | printf "%.2f" }}.
+          runbook_url: https://wiki.bank.example.com/runbooks/teller-core/5xx
+
+      - alert: TellerCoreHttp5xxRateElevated
+        expr: |
+          sum by (namespace) (
+            rate(http_server_requests_seconds_count{job="kubernetes-pods",
+                                                    app_kubernetes_io_name="teller-core",
+                                                    status=~"5.."}[5m])
+          )
+          /
+          sum by (namespace) (
+            rate(http_server_requests_seconds_count{job="kubernetes-pods",
+                                                    app_kubernetes_io_name="teller-core"}[5m])
+          )
+          > 0.01
+        for: 15m
+        labels:
+          severity: warning
+          team: teller-core
+        annotations:
+          summary: "teller-core 5xx rate >1% in {{ $labels.namespace }}"
+          description: "Sustained elevated 5xx ratio; investigate before SLO burn."
+
+      # Resilience4j / Spring circuit breaker open transitions. Emitted by
+      # Micrometer when CACHE/REST/DB ports flip from CLOSED to OPEN.
+      - alert: TellerCoreCircuitBreakerOpen
+        expr: |
+          increase(resilience4j_circuitbreaker_state_total{state="open"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          team: teller-core
+        annotations:
+          summary: "Circuit breaker '{{ $labels.name }}' opened on {{ $labels.pod }}"
+          description: |
+            A teller-core circuit breaker transitioned to OPEN, indicating a
+            downstream port (DB2, Redis, MinIO, Temporal, IBM MQ) is failing
+            or slow enough to trip the breaker.
+
+  # ----- 2. Latency rules ---------------------------------------------
+  - name: teller-core.latency
+    interval: 30s
+    rules:
+      # Spring MVC p95 latency, computed from the histogram_quantile of
+      # the http_server_requests_seconds_bucket series.
+      - alert: TellerCoreHttpP95LatencyHigh
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le, namespace, uri) (
+              rate(http_server_requests_seconds_bucket{job="kubernetes-pods",
+                                                        app_kubernetes_io_name="teller-core",
+                                                        uri!~".*/actuator.*"}[5m])
+            )
+          ) > 1.5
+        for: 10m
+        labels:
+          severity: warning
+          team: teller-core
+        annotations:
+          summary: "teller-core p95 latency >1.5s on {{ $labels.uri }}"
+          description: |
+            HTTP p95 latency for {{ $labels.uri }} in namespace
+            {{ $labels.namespace }} has been above 1.5s for the last 10 minutes.
+
+      - alert: TellerCoreHttpP99LatencyCritical
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum by (le, namespace, uri) (
+              rate(http_server_requests_seconds_bucket{job="kubernetes-pods",
+                                                        app_kubernetes_io_name="teller-core",
+                                                        uri!~".*/actuator.*"}[5m])
+            )
+          ) > 5.0
+        for: 5m
+        labels:
+          severity: critical
+          team: teller-core
+        annotations:
+          summary: "teller-core p99 latency >5s on {{ $labels.uri }}"
+          description: |
+            HTTP p99 latency for {{ $labels.uri }} is above 5s — well past
+            user-perceptible threshold. Page the rotation.
+
+      # Downstream-adapter latency: hikari / mongo / minio / redis seen via
+      # Micrometer's named timers. Generic "client call slow" guardrail.
+      - alert: TellerCoreDownstreamCallSlow
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le, name) (
+              rate(downstream_call_seconds_bucket{job="kubernetes-pods",
+                                                   app_kubernetes_io_name="teller-core"}[5m])
+            )
+          ) > 2.0
+        for: 10m
+        labels:
+          severity: warning
+          team: teller-core
+        annotations:
+          summary: "Downstream '{{ $labels.name }}' p95 >2s"
+          description: |
+            Downstream adapter '{{ $labels.name }}' is slow; check the
+            upstream service (DB2, Redis, MinIO, Temporal) before
+            symptoms surface in the HTTP latency rules.
+
+  # ----- 3. Resource-usage rules --------------------------------------
+  - name: teller-core.resource
+    interval: 30s
+    rules:
+      # JVM heap headroom. Micrometer publishes jvm_memory_used_bytes and
+      # jvm_memory_max_bytes per (area, id) tuple — we only care about heap.
+      - alert: TellerCoreJvmHeapHigh
+        expr: |
+          (
+            sum by (pod) (jvm_memory_used_bytes{area="heap",
+                                                app_kubernetes_io_name="teller-core"})
+            /
+            sum by (pod) (jvm_memory_max_bytes{area="heap",
+                                                app_kubernetes_io_name="teller-core"})
+          ) > 0.90
+        for: 10m
+        labels:
+          severity: warning
+          team: teller-core
+        annotations:
+          summary: "JVM heap >90% on {{ $labels.pod }}"
+          description: "Heap pressure rising — risk of OutOfMemory."
+
+      # GC pause time. Long GCs indicate either heap exhaustion or a
+      # promotion crisis worth investigating.
+      - alert: TellerCoreJvmGcPauseHigh
+        expr: |
+          rate(jvm_gc_pause_seconds_sum{app_kubernetes_io_name="teller-core"}[5m])
+            / clamp_min(rate(jvm_gc_pause_seconds_count{app_kubernetes_io_name="teller-core"}[5m]), 1) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          team: teller-core
+        annotations:
+          summary: "Average GC pause >500ms on {{ $labels.pod }}"
+
+      # Container CPU vs request — sustained throttling means resource
+      # under-allocation, not application bug.
+      - alert: TellerCoreContainerCpuThrottling
+        expr: |
+          rate(container_cpu_cfs_throttled_periods_total{namespace="bank",
+                                                         container="teller-core"}[5m])
+          /
+          clamp_min(rate(container_cpu_cfs_periods_total{namespace="bank",
+                                                          container="teller-core"}[5m]), 1) > 0.25
+        for: 15m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "teller-core CPU throttled >25% on {{ $labels.pod }}"
+
+      - alert: TellerCoreContainerMemoryNearLimit
+        expr: |
+          container_memory_working_set_bytes{namespace="bank", container="teller-core"}
+          /
+          container_spec_memory_limit_bytes{namespace="bank", container="teller-core"} > 0.90
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "teller-core memory >90% of limit on {{ $labels.pod }}"

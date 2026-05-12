@@ -257,6 +257,23 @@
             <artifactId>micrometer-registry-otlp</artifactId>
         </dependency>
 
+        <!--
+          Micrometer → Prometheus text-exposition registry — S-43 monitoring
+          stack. The actuator endpoint /actuator/prometheus is exposed in
+          management.endpoints.web.exposure.include but the endpoint itself
+          only materialises when a PrometheusMeterRegistry is on the
+          classpath. With this on the classpath, Spring Boot auto-configures
+          it; the same Micrometer instrumentation that already feeds OTLP
+          push now also produces the text exposition format that the
+          in-cluster Prometheus server scrapes from each pod via the
+          prometheus.io/scrape pod annotations rendered by the chart.
+          Version managed by spring-boot-starter-parent (1.12.x).
+        -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
         <!-- Testing Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

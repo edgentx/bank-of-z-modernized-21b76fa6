@@ -1,0 +1,133 @@
+# S-43: Alertmanager routing configuration.
+#
+# Receiver topology
+# -----------------
+#   slack-bank-platform-alerts  — infra signals (Redis, MinIO, nodes,
+#                                 cluster-state); owner = SRE/platform
+#   slack-teller-core-alerts    — application signals (5xx, latency,
+#                                 circuit breakers, Temporal saga errors)
+#   pagerduty-critical          — paged 24/7 for severity=critical
+#
+# Routing rules
+# -------------
+#   severity=critical → pagerduty-critical AND the appropriate slack
+#                       channel (continue: true)
+#   team=platform     → slack-bank-platform-alerts
+#   team=teller-core  → slack-teller-core-alerts
+#   anything else     → slack-bank-platform-alerts (catch-all)
+#
+# Inhibits
+# --------
+#   A critical "Redis is DOWN" page should silence the warning-level
+#   "Redis memory high" alarm on the same instance.
+#   A node-level NodeMemoryPressure should silence pod-level
+#   TellerCoreContainerMemoryNearLimit for pods on that node.
+#
+# Secrets: the webhook URLs and PagerDuty integration key are pulled from
+# environment variables that the Alertmanager pod loads from a Secret
+# (alertmanager-secrets). Production overlays set these via External
+# Secrets / SealedSecrets; the literal strings below are placeholders.
+
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: ''
+  smtp_from: 'alertmanager@bank.example.com'
+
+route:
+  receiver: slack-bank-platform-alerts
+  group_by: ['alertname', 'namespace', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  routes:
+    # Critical first — page the rotation, AND continue so the appropriate
+    # team channel still gets the notification.
+    - matchers:
+        - severity = "critical"
+      receiver: pagerduty-critical
+      continue: true
+
+    # Team-based fan-out.
+    - matchers:
+        - team = "teller-core"
+      receiver: slack-teller-core-alerts
+      group_by: ['alertname', 'namespace', 'pod']
+
+    - matchers:
+        - team = "platform"
+      receiver: slack-bank-platform-alerts
+      group_by: ['alertname', 'instance']
+
+    # Alertmanager self-monitoring goes to platform.
+    - matchers:
+        - alertname =~ "Alertmanager.*"
+      receiver: slack-bank-platform-alerts
+
+inhibit_rules:
+  # If the Redis exporter says Redis is DOWN, suppress memory / rejected-
+  # connection chatter against the same instance until it comes back.
+  - source_matchers:
+      - alertname = "RedisDown"
+    target_matchers:
+      - alertname =~ "Redis.*"
+    equal: ['instance']
+
+  # Node-level memory pressure inhibits pod-level memory alerts on that node.
+  - source_matchers:
+      - alertname = "NodeMemoryPressure"
+    target_matchers:
+      - alertname = "TellerCoreContainerMemoryNearLimit"
+    equal: ['namespace']
+
+  # A critical 5xx page inhibits the warning-level "elevated" variant.
+  - source_matchers:
+      - alertname = "TellerCoreHttp5xxRateHigh"
+    target_matchers:
+      - alertname = "TellerCoreHttp5xxRateElevated"
+    equal: ['namespace']
+
+receivers:
+  - name: slack-bank-platform-alerts
+    slack_configs:
+      - api_url_file: /etc/alertmanager/secrets/slack-platform-webhook
+        channel: '#bank-platform-alerts'
+        send_resolved: true
+        title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}'
+        title_link: '{{ template "slack.default.titlelink" . }}'
+        text: |-
+          {{ range .Alerts -}}
+          *Severity:* `{{ .Labels.severity }}`
+          *Namespace:* `{{ .Labels.namespace }}`
+          *Instance:* `{{ .Labels.instance }}`
+          *Description:* {{ .Annotations.description }}
+          {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+          {{ end }}
+
+  - name: slack-teller-core-alerts
+    slack_configs:
+      - api_url_file: /etc/alertmanager/secrets/slack-teller-webhook
+        channel: '#teller-core-alerts'
+        send_resolved: true
+        title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}'
+        text: |-
+          {{ range .Alerts -}}
+          *Severity:* `{{ .Labels.severity }}`
+          *Pod:* `{{ .Labels.pod }}`
+          *Description:* {{ .Annotations.description }}
+          {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+          {{ end }}
+
+  - name: pagerduty-critical
+    pagerduty_configs:
+      - routing_key_file: /etc/alertmanager/secrets/pagerduty-routing-key
+        send_resolved: true
+        severity: 'critical'
+        description: '[{{ .CommonLabels.alertname }}] on {{ .CommonLabels.namespace }}'
+        details:
+          firing: '{{ .Alerts.Firing | len }}'
+          summary: '{{ .CommonAnnotations.summary }}'
+          description: '{{ .CommonAnnotations.description }}'
+          team: '{{ .CommonLabels.team }}'
+
+templates:
+  - /etc/alertmanager/templates/*.tmpl

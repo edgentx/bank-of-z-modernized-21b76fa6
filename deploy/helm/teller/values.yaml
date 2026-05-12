@@ -46,7 +46,16 @@ backend:
       cpu: "2"
       memory: 1536Mi
 
-  podAnnotations: {}
+  # S-43: Prometheus pod-discovery annotations. The cluster Prometheus uses
+  # `kubernetes_sd_configs: role: pod` and filters by these labels (see
+  # deploy/monitoring/prometheus/prometheus.yaml), so every backend pod that
+  # exposes /actuator/prometheus is scraped automatically without per-service
+  # ServiceMonitor objects.
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/actuator/prometheus"
+    prometheus.io/port: "8080"
+    prometheus.io/scheme: "http"
   podSecurityContext:
     runAsNonRoot: true
     runAsUser: 10001

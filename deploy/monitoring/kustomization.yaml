@@ -1,0 +1,66 @@
+# S-43: Kustomization for the bank-observability stack.
+#
+# `kubectl apply -k deploy/monitoring/` installs the full stack:
+#   - Namespace bank-observability
+#   - Prometheus (server + ConfigMaps from prometheus.yaml + rules/)
+#   - Alertmanager (server + ConfigMap from alertmanager.yaml)
+#   - Grafana (server + dashboard + datasource ConfigMaps)
+#   - kube-state-metrics, node-exporter, redis-exporter
+#
+# configMapGenerator merges live YAML/JSON files into the empty ConfigMaps
+# declared in the deployments so the source of truth stays out of base64.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: bank-observability
+
+resources:
+  - prometheus/deployment.yaml
+  - alertmanager/deployment.yaml
+  - grafana/deployment.yaml
+  - exporters/redis-exporter.yaml
+  - exporters/node-exporter.yaml
+  - exporters/kube-state-metrics.yaml
+
+# generatorOptions: disableNameSuffixHash keeps the ConfigMap names stable
+# (prometheus-config, prometheus-rules, ...) so the Deployments reference
+# the right object on every apply. The empty placeholder ConfigMaps in
+# the deployment manifests are removed by the corresponding generator
+# entries below — the generator owns these names.
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: prometheus-config
+    behavior: create
+    files:
+      - prometheus.yaml=prometheus/prometheus.yaml
+
+  - name: prometheus-rules
+    behavior: create
+    files:
+      - teller-core.rules.yaml=prometheus/rules/teller-core.rules.yaml
+      - infrastructure.rules.yaml=prometheus/rules/infrastructure.rules.yaml
+
+  - name: alertmanager-config
+    behavior: create
+    files:
+      - alertmanager.yaml=alertmanager/alertmanager.yaml
+
+  - name: grafana-datasources
+    behavior: create
+    files:
+      - prometheus.yaml=grafana/provisioning/datasources/prometheus.yaml
+
+  - name: grafana-dashboards-provider
+    behavior: create
+    files:
+      - dashboards.yaml=grafana/provisioning/dashboards/dashboards.yaml
+
+  - name: grafana-dashboards
+    behavior: create
+    files:
+      - system-health.json=grafana/dashboards/system-health.json
+      - business-metrics.json=grafana/dashboards/business-metrics.json
+      - temporal-workflows.json=grafana/dashboards/temporal-workflows.json

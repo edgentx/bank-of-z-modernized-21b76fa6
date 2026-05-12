@@ -1,0 +1,29 @@
+# S-43: Grafana datasource provisioning.
+#
+# Auto-loaded at Grafana startup from /etc/grafana/provisioning/datasources/.
+# Editable=false means operators can't change the URL through the UI; the
+# only path to change it is through this file, kept in git.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus.bank-observability.svc.cluster.local:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 15s
+      httpMethod: POST
+      prometheusType: Prometheus
+      prometheusVersion: 2.55.0
+      manageAlerts: false
+
+  - name: Alertmanager
+    type: alertmanager
+    access: proxy
+    url: http://alertmanager.bank-observability.svc.cluster.local:9093
+    editable: false
+    jsonData:
+      implementation: prometheus
+      handleGrafanaManagedAlerts: false

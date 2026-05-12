@@ -1,8 +1,10 @@
 package com.example.domain.tellersession;
 
 import com.example.domain.shared.DomainEvent;
+import com.example.domain.tellersession.model.EndSessionCmd;
 import com.example.domain.tellersession.model.MenuNavigatedEvent;
 import com.example.domain.tellersession.model.NavigateMenuCmd;
+import com.example.domain.tellersession.model.SessionEndedEvent;
 import com.example.domain.tellersession.model.SessionStartedEvent;
 import com.example.domain.tellersession.model.StartSessionCmd;
 import com.example.domain.tellersession.model.TellerSessionAggregate;
@@ -10,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** BANK S-18/S-19 — TellerSession aggregate. */
+/** BANK S-18/S-19/S-20 — TellerSession aggregate. */
 class TellerSessionAggregateTest {
 
   @Test void startSessionHappyPathEmitsSessionStartedEvent() {
@@ -112,5 +114,60 @@ class TellerSessionAggregateTest {
   @Test void navigateMenuCmdRejectsBlankAction() {
     assertThrows(IllegalArgumentException.class,
         () -> new NavigateMenuCmd("session-1", "MAIN_MENU", ""));
+  }
+
+  // --- S-20 EndSessionCmd ---
+
+  @Test void endSessionHappyPathEmitsSessionEndedEvent() {
+    var agg = new TellerSessionAggregate("session-20");
+    List<DomainEvent> events = agg.execute(new EndSessionCmd("session-20"));
+    assertEquals(1, events.size());
+    assertInstanceOf(SessionEndedEvent.class, events.get(0));
+    var event = (SessionEndedEvent) events.get(0);
+    assertEquals("session.ended", event.type());
+    assertEquals("session-20", event.aggregateId());
+    assertEquals("session-20", event.sessionId());
+    assertEquals(TellerSessionAggregate.Status.ENDED, agg.getStatus());
+  }
+
+  @Test void endSessionRejectedWhenTellerNotAuthenticated() {
+    var agg = new TellerSessionAggregate("session-end-auth");
+    agg.setAuthenticated(false);
+    assertThrows(IllegalStateException.class,
+        () -> agg.execute(new EndSessionCmd("session-end-auth")));
+  }
+
+  @Test void endSessionRejectedWhenInactivityTimeoutRuleViolated() {
+    var agg = new TellerSessionAggregate("session-end-to");
+    agg.setInactivityTimeoutRuleViolated(true);
+    assertThrows(IllegalStateException.class,
+        () -> agg.execute(new EndSessionCmd("session-end-to")));
+  }
+
+  @Test void endSessionSucceedsWhenSessionAlreadyTimedOut() {
+    // A timed-out session can still be formally ended — the command is idempotent
+    // with respect to timeout and emits SessionEndedEvent so projections/listeners
+    // observe a clean lifecycle close.
+    var agg = new TellerSessionAggregate("session-end-already-to");
+    agg.setTimedOut(true);
+    List<DomainEvent> events = agg.execute(new EndSessionCmd("session-end-already-to"));
+    assertEquals(1, events.size());
+    assertInstanceOf(SessionEndedEvent.class, events.get(0));
+    assertEquals(TellerSessionAggregate.Status.ENDED, agg.getStatus());
+  }
+
+  @Test void endSessionRejectedWhenNavigationStateInvalid() {
+    var agg = new TellerSessionAggregate("session-end-nav");
+    agg.setNavigationStateValid(false);
+    assertThrows(IllegalStateException.class,
+        () -> agg.execute(new EndSessionCmd("session-end-nav")));
+  }
+
+  @Test void endSessionCmdRejectsBlankSessionId() {
+    assertThrows(IllegalArgumentException.class, () -> new EndSessionCmd(""));
+  }
+
+  @Test void endSessionCmdRejectsNullSessionId() {
+    assertThrows(IllegalArgumentException.class, () -> new EndSessionCmd(null));
   }
 }

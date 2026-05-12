@@ -22,13 +22,19 @@ import java.util.List;
  *
  * Invariants enforced on EndSessionCmd (BANK S-20):
  *   1. Teller must be authenticated to initiate a session.
- *   2. Sessions must timeout after a configured period of inactivity.
+ *   2. The inactivity-timeout rule must not be violated (the system must be
+ *      enforcing the configured inactivity timeout). NOTE: an already
+ *      timed-out session can still be formally ended — EndSessionCmd
+ *      gracefully closes the session lifecycle even when {@code timedOut} is
+ *      true. The rejection scenario is keyed on a distinct
+ *      {@code inactivityTimeoutRuleViolated} flag, not on {@code timedOut}.
  *   3. Navigation state must accurately reflect the current operational context.
  */
 public class TellerSessionAggregate extends AggregateRoot {
   private final String id;
   private boolean authenticated = true;
   private boolean timedOut = false;
+  private boolean inactivityTimeoutRuleViolated = false;
   private boolean navigationStateValid = true;
   private Status status = Status.NONE;
 
@@ -40,10 +46,12 @@ public class TellerSessionAggregate extends AggregateRoot {
 
   public void setAuthenticated(boolean authenticated) { this.authenticated = authenticated; }
   public void setTimedOut(boolean timedOut) { this.timedOut = timedOut; }
+  public void setInactivityTimeoutRuleViolated(boolean violated) { this.inactivityTimeoutRuleViolated = violated; }
   public void setNavigationStateValid(boolean navigationStateValid) { this.navigationStateValid = navigationStateValid; }
 
   public boolean isAuthenticated() { return authenticated; }
   public boolean isTimedOut() { return timedOut; }
+  public boolean isInactivityTimeoutRuleViolated() { return inactivityTimeoutRuleViolated; }
   public boolean isNavigationStateValid() { return navigationStateValid; }
   public Status getStatus() { return status; }
 
@@ -94,8 +102,8 @@ public class TellerSessionAggregate extends AggregateRoot {
     if (!authenticated) {
       throw new IllegalStateException("Cannot end session: teller is not authenticated");
     }
-    if (timedOut) {
-      throw new IllegalStateException("Cannot end session: session has timed out due to inactivity");
+    if (inactivityTimeoutRuleViolated) {
+      throw new IllegalStateException("Cannot end session: inactivity-timeout rule is being violated");
     }
     if (!navigationStateValid) {
       throw new IllegalStateException("Cannot end session: navigation state does not reflect current operational context");

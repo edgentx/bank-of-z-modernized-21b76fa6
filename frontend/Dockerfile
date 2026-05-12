@@ -26,7 +26,12 @@ RUN npm run build
 # ---- Stage 3: runtime --------------------------------------------------------
 # Alpine + nginx for the static-asset + reverse-proxy front, plus node for the
 # Next.js standalone server. Both processes run under the same non-root user.
-FROM nginx:1.27-alpine AS runtime
+FROM nginx:1.29-alpine AS runtime
+
+# Trivy AC: refresh the base's OS packages so libcrypto3/libssl3/libxml2 pick up
+# CVE-2025-15467 / CVE-2026-31789 / CVE-2025-49794 / CVE-2025-49796 fixes that
+# trickle through the alpine package index ahead of a new nginx-alpine tag.
+RUN apk update && apk upgrade --no-cache && rm -rf /var/cache/apk/*
 
 # nodejs is required to execute `.next/standalone/server.js`. Tini reaps zombie
 # children when the entrypoint backgrounds Node and execs nginx.

@@ -14,6 +14,11 @@ import java.util.List;
  *   1. Teller must be authenticated before a session can begin.
  *   2. Any prior session must NOT be in a timed-out state lingering on the aggregate.
  *   3. Navigation state must be coherent (not flagged as inconsistent with operational context).
+ *
+ * Invariants enforced on NavigateMenuCmd (BANK S-19):
+ *   1. Teller must be authenticated to initiate/continue a session.
+ *   2. Session must not be timed out from inactivity.
+ *   3. Navigation state must accurately reflect the current operational context.
  */
 public class TellerSessionAggregate extends AggregateRoot {
   private final String id;
@@ -39,6 +44,7 @@ public class TellerSessionAggregate extends AggregateRoot {
 
   @Override public List<DomainEvent> execute(Command cmd) {
     if (cmd instanceof StartSessionCmd c) return startSession(c);
+    if (cmd instanceof NavigateMenuCmd c) return navigateMenu(c);
     throw new UnknownCommandException(cmd);
   }
 
@@ -57,6 +63,22 @@ public class TellerSessionAggregate extends AggregateRoot {
     }
     var event = SessionStartedEvent.create(id, c.tellerId(), c.terminalId());
     this.status = Status.ACTIVE;
+    addEvent(event);
+    incrementVersion();
+    return List.of(event);
+  }
+
+  private List<DomainEvent> navigateMenu(NavigateMenuCmd c) {
+    if (!authenticated) {
+      throw new IllegalStateException("Cannot navigate menu: teller is not authenticated");
+    }
+    if (timedOut) {
+      throw new IllegalStateException("Cannot navigate menu: session has timed out due to inactivity");
+    }
+    if (!navigationStateValid) {
+      throw new IllegalStateException("Cannot navigate menu: navigation state does not reflect current operational context");
+    }
+    var event = MenuNavigatedEvent.create(id, c.sessionId(), c.menuId(), c.action());
     addEvent(event);
     incrementVersion();
     return List.of(event);

@@ -59,6 +59,17 @@
     </dependencies>
     
     <build>
+        <!--
+          DDD+hex layout: tests live under tests/ at the repo root, NOT under src/test/java.
+          This is a hard structural rule enforced by the lead reviewer (gate 5).
+        -->
+        <testSourceDirectory>${project.basedir}/tests</testSourceDirectory>
+        <testResources>
+            <testResource>
+                <directory>${project.basedir}/features</directory>
+                <targetPath>features</targetPath>
+            </testResource>
+        </testResources>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

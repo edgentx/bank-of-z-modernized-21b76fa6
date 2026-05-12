@@ -35,6 +35,16 @@ public class StatementSharedSteps {
         // No-op: periodEnd is supplied when the command is constructed in @When.
     }
 
+    @And("a valid statementId is provided")
+    public void aValidStatementIdIsProvided() {
+        // No-op: statementId is supplied when the command is constructed in @When.
+    }
+
+    @And("a valid format is provided")
+    public void aValidFormatIsProvided() {
+        // No-op: format is supplied when the command is constructed in @When.
+    }
+
     @Given("a Statement aggregate that violates: A statement must be generated for a closed period and cannot be altered retroactively.")
     public void aStatementAggregateThatViolatesClosedPeriod() {
         ctx.aggregate = new StatementAggregate("stmt-open-period");

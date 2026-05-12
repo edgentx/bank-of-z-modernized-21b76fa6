@@ -85,6 +85,20 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!--
+          MinIO document storage — S-31.
+          S3-compatible object-store SDK used by the DocumentStoragePort
+          implementation to persist statement exports, batch outputs and
+          customer documents. The MinIO Java SDK speaks the same protocol as
+          AWS S3 so the same adapter can target an EKS-hosted MinIO instance
+          in dev/CI and AWS S3 in prod just by changing the endpoint config.
+        -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>8.5.7</version>
+        </dependency>
+
         <!-- Testing Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

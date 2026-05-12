@@ -20,7 +20,7 @@ public class AccountAggregate extends AggregateRoot {
   private String accountType;
   private long initialDeposit;
   private String sortCode;
-  private String status;
+  private AccountStatus status;
   private boolean opened;
   private boolean minBalanceViolation;
   private boolean activeStatusViolation;
@@ -78,9 +78,9 @@ public class AccountAggregate extends AggregateRoot {
         throw new IllegalStateException("Account numbers must be uniquely generated and immutable.");
       }
       if (c.accountNumber() == null || c.accountNumber().isBlank()) throw new IllegalArgumentException("accountNumber required");
-      if (c.newStatus() == null || c.newStatus().isBlank()) throw new IllegalArgumentException("newStatus required");
-      var event = new AccountStatusUpdatedEvent(accountId, c.newStatus(), Instant.now());
-      this.status = c.newStatus();
+      AccountStatus next = AccountStatus.parse(c.newStatus());
+      var event = new AccountStatusUpdatedEvent(accountId, next, Instant.now());
+      this.status = next;
       addEvent(event);
       incrementVersion();
       return List.of(event);
@@ -93,5 +93,5 @@ public class AccountAggregate extends AggregateRoot {
   public String getAccountType() { return accountType; }
   public long getInitialDeposit() { return initialDeposit; }
   public String getSortCode() { return sortCode; }
-  public String getStatus() { return status; }
+  public AccountStatus getStatus() { return status; }
 }

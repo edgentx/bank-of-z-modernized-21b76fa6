@@ -21,6 +21,7 @@ npm run build        # production build
 npm run start        # serve the production build
 npm run lint         # eslint
 npm run typecheck    # tsc --noEmit
+npm run test         # node:test + tsx (lib/**/__tests__/**)
 npm run format       # prettier --write .
 ```
 
@@ -41,10 +42,11 @@ loaded by Next based on `NODE_ENV`.
 
 ```
 frontend/
-├── app/                # App Router routes (layout.tsx, page.tsx, accounts/, ...)
+├── app/                # App Router routes (layout.tsx, page.tsx, accounts/, login/, ...)
 ├── components/         # Shared UI (ui/) and chrome (layout/)
 ├── lib/
 │   ├── api/            # Axios client + typed envelope (Page, ApiError)
+│   ├── auth/           # Trusted-header identity, AuthProvider, role helpers
 │   └── utils.ts        # cn() helper
 ├── public/             # Static assets
 ├── tailwind.config.ts
@@ -54,3 +56,25 @@ frontend/
 
 Downstream stories should add per-resource modules under `lib/api/` (e.g. `accounts.ts`)
 that call `api.get<T>(...)` and surface `ApiError` to the UI.
+
+## Authentication (S-37)
+
+User identity is **never** collected by the teller frontend. Authentication is
+performed upstream by the Envoy + OPA sidecar, which forwards trusted headers
+on every request:
+
+| Header                  | Meaning                                      |
+| ----------------------- | -------------------------------------------- |
+| `X-User-Id`             | Sidecar-asserted user identifier             |
+| `X-User-Roles`          | Comma-separated role list                    |
+| `X-Session-Expires-At`  | Unix epoch (seconds or ms) or ISO-8601       |
+
+The root `app/layout.tsx` reads these via `next/headers` (`readTrustedIdentity()`)
+and seeds `<AuthProvider>` with the resulting `UserIdentity`. Client code calls
+`useAuth()` / `useUser()` for identity, `hasRole(...)` for authorization, and
+`logout()` to clear session state. The provider also runs a session-timeout
+watchdog that bounces the user back to `/login` when `X-Session-Expires-At`
+elapses (or on tab refocus, in case the timer drifted during sleep).
+
+Pure helpers live in `lib/auth/identity.ts` and are covered by
+`lib/auth/__tests__/`.

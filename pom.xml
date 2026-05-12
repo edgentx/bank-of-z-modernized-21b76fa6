@@ -99,6 +99,35 @@
             <version>8.5.7</version>
         </dependency>
 
+        <!--
+          Redis cache adapter — S-32.
+          Spring Data Redis backed by Lettuce (the default since Spring Boot
+          2.x — netty-based, non-blocking, thread-safe). Implements the
+          CachePort hex port for session, query-result, and frequently-
+          accessed-data caching. The JSR-310 Jackson module brings
+          serialization support for Instant/LocalDate so cached Java time
+          values round-trip cleanly.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+
+        <!--
+          Spring Boot actuator — S-32 acceptance criteria require the Redis
+          adapter to expose its liveness under the application health
+          endpoint. Actuator provides the HealthIndicator SPI we extend in
+          RedisHealthIndicator.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- Testing Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

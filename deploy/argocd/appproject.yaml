@@ -1,0 +1,88 @@
+# BANK S-42 — ArgoCD AppProject scoping bank-of-z deployments.
+#
+# Both teller-staging and teller-production reference `project: bank-of-z`.
+# Bundling them under one AppProject lets us enforce, in one place:
+#
+#   * sourceRepos     — only the official bank-of-z modernized repo
+#   * destinations    — only the two named clusters / namespaces
+#   * RBAC roles      — production-sync is a privileged role separate from
+#                       read-only viewers
+#
+# This is the security boundary that makes the production manual-sync gate
+# meaningful — without project RBAC, anyone with ArgoCD UI access could
+# click Sync.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: bank-of-z
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Bank-of-Z modernization (S-42 GitOps).
+
+  sourceRepos:
+    - https://github.com/edgentx/bank-of-z-modernized-21b76fa6
+    - https://github.com/edgentx/bank-of-z-modernized-21b76fa6.git
+
+  destinations:
+    - name: microk8s-staging
+      namespace: bank-staging
+    - name: eks-production
+      namespace: bank-production
+
+  # Allow only the resource kinds our chart actually ships, plus the
+  # cluster-scoped cert-manager primitives.
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: cert-manager.io
+      kind: ClusterIssuer
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: "*"
+    - group: apps
+      kind: "*"
+    - group: networking.k8s.io
+      kind: "*"
+    - group: autoscaling
+      kind: "*"
+    - group: policy
+      kind: "*"
+    - group: cert-manager.io
+      kind: "*"
+
+  roles:
+    - name: read-only
+      description: Read-only viewers of bank-of-z apps.
+      policies:
+        - p, proj:bank-of-z:read-only, applications, get, bank-of-z/*, allow
+      groups:
+        - bank-of-z:engineering
+
+    - name: staging-sync
+      description: Permitted to trigger syncs against the staging Application.
+      policies:
+        - p, proj:bank-of-z:staging-sync, applications, sync, bank-of-z/teller-staging, allow
+        - p, proj:bank-of-z:staging-sync, applications, get,  bank-of-z/*, allow
+      groups:
+        - bank-of-z:engineering
+
+    # The manual-approval gate that backs the AC. Only members of the
+    # `bank-of-z:release-managers` group can click Sync on production.
+    - name: production-sync
+      description: Manual approval gate for the production Application.
+      policies:
+        - p, proj:bank-of-z:production-sync, applications, sync, bank-of-z/teller-production, allow
+        - p, proj:bank-of-z:production-sync, applications, override, bank-of-z/teller-production, allow
+        - p, proj:bank-of-z:production-sync, applications, get, bank-of-z/*, allow
+      groups:
+        - bank-of-z:release-managers
+
+  orphanedResources:
+    warn: true

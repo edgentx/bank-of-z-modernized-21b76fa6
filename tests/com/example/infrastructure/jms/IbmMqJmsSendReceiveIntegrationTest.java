@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.example.domain.shared.DomainEvent;
+import com.example.infrastructure.telemetry.JmsTraceContextPropagator;
 import com.example.ports.MessagePublisherPort;
+import io.opentelemetry.api.OpenTelemetry;
 import jakarta.jms.JMSException;
 import jakarta.jms.Message;
 import jakarta.jms.MessageListener;
@@ -66,7 +68,12 @@ class IbmMqJmsSendReceiveIntegrationTest {
 
     IbmMqJmsProperties props = new IbmMqJmsProperties();
     props.setDestinations(Map.of("account.events", "BANK.ACCT.EVT.Q"));
-    MessagePublisherPort publisher = new IbmMqJmsMessagePublisher(template, props);
+    // S-35: publisher carries a JmsTraceContextPropagator that injects trace
+    // context onto outbound messages. Backed by OpenTelemetry.noop() here so
+    // the cycle test stays focused on the converter round-trip — no spans
+    // are emitted, no trace-context properties land on the captured message.
+    JmsTraceContextPropagator propagator = new JmsTraceContextPropagator(OpenTelemetry.noop());
+    MessagePublisherPort publisher = new IbmMqJmsMessagePublisher(template, props, propagator);
 
     // Recording listener that pulls messages off the queue and deserializes
     // through the same converter the production listener container would.

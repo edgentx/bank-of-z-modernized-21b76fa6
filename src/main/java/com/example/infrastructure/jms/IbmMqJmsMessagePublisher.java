@@ -1,6 +1,7 @@
 package com.example.infrastructure.jms;
 
 import com.example.domain.shared.DomainEvent;
+import com.example.infrastructure.telemetry.JmsTraceContextPropagator;
 import com.example.ports.MessagePublisherPort;
 import com.example.ports.MessagingException;
 import jakarta.jms.JMSException;
@@ -42,10 +43,22 @@ public class IbmMqJmsMessagePublisher implements MessagePublisherPort {
 
   private final JmsTemplate jmsTemplate;
   private final IbmMqJmsProperties props;
+  /**
+   * S-35: every outbound JMS publish has the current OpenTelemetry trace
+   * context injected onto the message's string-property bag so the
+   * downstream listener can rejoin the same trace. Resolved from an
+   * {@link org.springframework.beans.factory.ObjectProvider} in
+   * {@link IbmMqJmsConfig#ibmMqJmsMessagePublisher} so test contexts that
+   * load only the JMS config (without telemetry) get a no-op propagator
+   * instance — the publisher itself never has to branch on a feature flag.
+   */
+  private final JmsTraceContextPropagator tracePropagator;
 
-  public IbmMqJmsMessagePublisher(JmsTemplate jmsTemplate, IbmMqJmsProperties props) {
+  public IbmMqJmsMessagePublisher(JmsTemplate jmsTemplate, IbmMqJmsProperties props,
+      JmsTraceContextPropagator tracePropagator) {
     this.jmsTemplate = jmsTemplate;
     this.props = props;
+    this.tracePropagator = tracePropagator;
   }
 
   @Override
@@ -58,7 +71,10 @@ public class IbmMqJmsMessagePublisher implements MessagePublisherPort {
     }
     String wire = props.resolveDestination(destination);
     try {
-      jmsTemplate.convertAndSend(wire, event);
+      jmsTemplate.convertAndSend(wire, event, message -> {
+        tracePropagator.inject(message);
+        return message;
+      });
     } catch (JmsException e) {
       throw new MessagingException("Failed to publish " + event.type()
           + " to " + wire + ": " + e.getMessage(), e);
@@ -82,6 +98,7 @@ public class IbmMqJmsMessagePublisher implements MessagePublisherPort {
           throw new MessagingException(
               "Failed to apply JMS headers on send to " + wire + ": " + jms.getMessage(), jms);
         }
+        tracePropagator.inject(message);
         return message;
       });
     } catch (JmsException e) {

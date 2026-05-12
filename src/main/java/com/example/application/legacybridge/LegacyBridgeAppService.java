@@ -7,6 +7,8 @@ import com.example.domain.legacybridge.model.LegacyTransactionRoute;
 import com.example.domain.legacybridge.model.RecordSyncCheckpointCmd;
 import com.example.domain.legacybridge.model.UpdateRoutingRuleCmd;
 import com.example.domain.legacybridge.model.VerifyDataParityCmd;
+import com.example.infrastructure.telemetry.CicsImsAttributes;
+import com.example.infrastructure.telemetry.DomainTracer;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -22,18 +24,35 @@ import java.util.concurrent.ConcurrentHashMap;
  * have a Mongo adapter) is a deliberate stub and the rich legacybridge
  * variants own all the routing/parity logic for S-30. A future story can
  * promote these to Mongo-backed adapters via a dedicated port.
+ *
+ * <p>S-35: {@link #evaluateRouting} is wrapped in an OpenTelemetry custom
+ * span carrying the {@link CicsImsAttributes#LEGACY_ROUTE_ID} attribute so
+ * the modernized trace can be correlated with the mainframe's transaction
+ * log when the routing decision lands on the CICS/IMS pathway. The span
+ * helper is a no-op when {@code telemetry.otel.enabled=false}.
  */
 @Service
 public class LegacyBridgeAppService {
 
   private final Map<String, LegacyTransactionRoute> routes = new ConcurrentHashMap<>();
   private final Map<String, DataSyncCheckpoint> checkpoints = new ConcurrentHashMap<>();
+  private final DomainTracer domainTracer;
+
+  public LegacyBridgeAppService(DomainTracer domainTracer) {
+    this.domainTracer = domainTracer;
+  }
 
   public LegacyTransactionRoute evaluateRouting(EvaluateRoutingCmd cmd) {
-    LegacyTransactionRoute route = routes.computeIfAbsent(
-        cmd.routeId(), LegacyTransactionRoute::new);
-    route.execute(cmd);
-    return route;
+    return domainTracer.trace(
+        "legacy-bridge.evaluate-routing",
+        CicsImsAttributes.LEGACY_ROUTE_ID,
+        cmd.routeId(),
+        () -> {
+          LegacyTransactionRoute route = routes.computeIfAbsent(
+              cmd.routeId(), LegacyTransactionRoute::new);
+          route.execute(cmd);
+          return route;
+        });
   }
 
   public LegacyTransactionRoute updateRoutingRule(String routeId, UpdateRoutingRuleCmd cmd) {

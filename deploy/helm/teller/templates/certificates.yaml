@@ -1,0 +1,39 @@
+{{- if and .Values.certManager.enabled .Values.certManager.certificates.create -}}
+{{- if and .Values.backend.enabled .Values.kong.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "teller.fullname" . }}-api-cert
+  labels:
+    {{- include "teller.labels" (dict "ctx" . "component" "cert-manager") | nindent 4 }}
+spec:
+  secretName: {{ .Values.kong.tlsSecretName }}
+  duration: 2160h     # 90d
+  renewBefore: 360h   # 15d
+  issuerRef:
+    name: {{ .Values.certManager.clusterIssuer.name }}
+    kind: ClusterIssuer
+    group: cert-manager.io
+  dnsNames:
+    - {{ .Values.kong.host | quote }}
+{{- end }}
+{{- if and .Values.frontend.enabled .Values.nginxIngress.enabled }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "teller.fullname" . }}-frontend-cert
+  labels:
+    {{- include "teller.labels" (dict "ctx" . "component" "cert-manager") | nindent 4 }}
+spec:
+  secretName: {{ .Values.nginxIngress.tlsSecretName }}
+  duration: 2160h
+  renewBefore: 360h
+  issuerRef:
+    name: {{ .Values.certManager.clusterIssuer.name }}
+    kind: ClusterIssuer
+    group: cert-manager.io
+  dnsNames:
+    - {{ .Values.nginxIngress.host | quote }}
+{{- end }}
+{{- end }}

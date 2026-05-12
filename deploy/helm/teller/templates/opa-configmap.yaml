@@ -1,0 +1,13 @@
+{{- if and .Values.backend.enabled .Values.opa.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "teller.opa.configmapName" . }}
+  labels:
+    {{- include "teller.labels" (dict "ctx" . "component" .Values.backend.name) | nindent 4 }}
+data:
+  default.rego: |
+    {{- .Values.opa.policy.default | nindent 4 }}
+  data.json: |
+    {{- .Values.opa.policy.data | nindent 4 }}
+{{- end }}

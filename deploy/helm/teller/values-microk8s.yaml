@@ -1,0 +1,75 @@
+# VForce360 MicroK8s overlay for the `teller` chart.
+#
+# Single-node / small-cluster MicroK8s — no DNS01, no managed storage.
+# Uses cert-manager HTTP01 against the cluster's NGINX Ingress addon and
+# trims resource floors so the chart fits on a developer workstation.
+#
+# Usage:
+#   helm upgrade --install teller deploy/helm/teller \
+#     -f deploy/helm/teller/values.yaml \
+#     -f deploy/helm/teller/values-microk8s.yaml
+
+global:
+  cluster: microk8s
+  domain: bank.local
+  imageRegistry: ghcr.io
+  imageRepository: edgentx
+  commonLabels:
+    bank.example.com/environment: dev
+    bank.example.com/cluster: microk8s
+
+backend:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1024Mi
+
+frontend:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+envoy:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+opa:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+kong:
+  host: api.bank.local
+
+nginxIngress:
+  host: app.bank.local
+  # MicroK8s ships the public NGINX ingress class as "public" by default;
+  # uncomment if your cluster uses that name instead of "nginx".
+  # ingressClassName: public
+
+certManager:
+  clusterIssuer:
+    create: true
+    name: letsencrypt-staging
+    email: tls-admin@bank.local
+    server: "https://acme-staging-v02.api.letsencrypt.org/directory"
+    solver: http01
+    http01IngressClass: nginx

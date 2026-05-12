@@ -1,0 +1,91 @@
+{{- if and .Values.backend.enabled .Values.envoy.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "teller.envoy.configmapName" . }}
+  labels:
+    {{- include "teller.labels" (dict "ctx" . "component" .Values.backend.name) | nindent 4 }}
+data:
+  envoy.yaml: |
+    admin:
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: {{ .Values.envoy.adminPort }}
+
+    static_resources:
+      listeners:
+        - name: ingress_listener
+          address:
+            socket_address:
+              address: 0.0.0.0
+              port_value: {{ .Values.envoy.listenPort }}
+          filter_chains:
+            - filters:
+                - name: envoy.filters.network.http_connection_manager
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                    stat_prefix: ingress_http
+                    codec_type: AUTO
+                    route_config:
+                      name: local_route
+                      virtual_hosts:
+                        - name: local_service
+                          domains: ["*"]
+                          routes:
+                            - match:
+                                prefix: "/"
+                              route:
+                                cluster: teller_core
+                                timeout: 30s
+                    http_filters:
+                      {{- if .Values.opa.enabled }}
+                      - name: envoy.filters.http.ext_authz
+                        typed_config:
+                          "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
+                          transport_api_version: V3
+                          failure_mode_allow: false
+                          grpc_service:
+                            envoy_grpc:
+                              cluster_name: opa_ext_authz
+                            timeout: 0.5s
+                      {{- end }}
+                      - name: envoy.filters.http.router
+                        typed_config:
+                          "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+      clusters:
+        - name: teller_core
+          connect_timeout: 1s
+          type: STATIC
+          lb_policy: ROUND_ROBIN
+          load_assignment:
+            cluster_name: teller_core
+            endpoints:
+              - lb_endpoints:
+                  - endpoint:
+                      address:
+                        socket_address:
+                          address: 127.0.0.1
+                          port_value: {{ .Values.backend.service.port }}
+        {{- if .Values.opa.enabled }}
+        - name: opa_ext_authz
+          connect_timeout: 0.5s
+          type: STATIC
+          lb_policy: ROUND_ROBIN
+          typed_extension_protocol_options:
+            envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+              "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+              explicit_http_config:
+                http2_protocol_options: {}
+          load_assignment:
+            cluster_name: opa_ext_authz
+            endpoints:
+              - lb_endpoints:
+                  - endpoint:
+                      address:
+                        socket_address:
+                          address: 127.0.0.1
+                          port_value: 9192
+        {{- end }}
+{{- end }}

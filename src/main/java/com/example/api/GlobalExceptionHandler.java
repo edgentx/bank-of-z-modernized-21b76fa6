@@ -8,6 +8,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
 
@@ -77,6 +79,36 @@ public class GlobalExceptionHandler {
     return ResponseEntity
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .body(new ErrorResponse(500, "Internal Server Error", ex.getMessage()));
+  }
+
+  /**
+   * Missing route — Spring throws {@link NoResourceFoundException} when no
+   * controller method matches the request. Map to 404 so callers can
+   * distinguish "endpoint not implemented yet" from "endpoint blew up at
+   * runtime" — without this the catch-all Throwable handler swallows the
+   * exception and returns 500, which destroys ops signal during deploys
+   * and trips uptime monitors expecting 5xx to mean a real incident. (#81)
+   */
+  @ExceptionHandler(NoResourceFoundException.class)
+  public ResponseEntity<ErrorResponse> handleNoResource(NoResourceFoundException ex) {
+    return ResponseEntity
+        .status(HttpStatus.NOT_FOUND)
+        .body(new ErrorResponse(404, "Not Found", "No handler for " + ex.getResourcePath()));
+  }
+
+  /**
+   * Explicit {@link ResponseStatusException} thrown from handlers — respect
+   * the embedded status code. Without this, the catch-all below would
+   * remap to 500 regardless of the intended status (a controller throwing
+   * {@code new ResponseStatusException(NOT_FOUND, "screen X")} would
+   * surface as 500 to the client).
+   */
+  @ExceptionHandler(ResponseStatusException.class)
+  public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException ex) {
+    HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+    return ResponseEntity
+        .status(status)
+        .body(new ErrorResponse(status.value(), status.getReasonPhrase(), ex.getReason()));
   }
 
   @ExceptionHandler(Throwable.class)

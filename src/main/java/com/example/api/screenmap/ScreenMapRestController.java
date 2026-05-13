@@ -37,7 +37,9 @@ public class ScreenMapRestController {
 
   private static final String SIGNON = "SIGNON";
   private static final String MAINMENU = "MAINMENU";
-  private static final String ACCT_INQ = "ACCT_INQ";
+  private static final String ACCTLIST = "ACCTLIST";
+  private static final String ACCTDET = "ACCTDET";
+  private static final String TXLIST = "TXLIST";
 
   private final Map<String, ScreenMapResponse> seeded;
 
@@ -45,15 +47,19 @@ public class ScreenMapRestController {
   private final Map<String, String> next =
       Map.of(
           SIGNON, MAINMENU,
-          MAINMENU, ACCT_INQ,
-          ACCT_INQ, MAINMENU);
+          MAINMENU, ACCTLIST,
+          ACCTLIST, ACCTDET,
+          ACCTDET, TXLIST,
+          TXLIST, MAINMENU);
 
   public ScreenMapRestController() {
     this.seeded =
         Map.of(
             SIGNON, signonScreen(),
             MAINMENU, mainMenuScreen(),
-            ACCT_INQ, accountInquiryScreen());
+            ACCTLIST, accountListScreen(),
+            ACCTDET, accountDetailScreen(),
+            TXLIST, transactionListScreen());
   }
 
   @GetMapping("/{screenId}")
@@ -131,21 +137,99 @@ public class ScreenMapRestController {
         fields);
   }
 
-  private static ScreenMapResponse accountInquiryScreen() {
+  private static ScreenMapResponse accountListScreen() {
     List<ScreenFieldDto> fields =
         List.of(
-            ScreenFieldDto.bright("title", 2, 28, "BANK OF Z — ACCOUNT INQUIRY"),
-            ScreenFieldDto.label("acct_label", 5, 10, "Account No......:"),
-            ScreenFieldDto.input("account_id", 5, 29, 16),
-            ScreenFieldDto.label("ssn_label", 7, 10, "SSN (optional)..:"),
-            ScreenFieldDto.input("ssn", 7, 29, 11),
-            ScreenFieldDto.label("results_hdr", 11, 10, "Results"),
-            ScreenFieldDto.label("results_underline", 12, 10, "-------"),
-            ScreenFieldDto.label("hint", 14, 10, "(Press ENTER to look up; F3 returns to menu.)"),
-            ScreenFieldDto.label("status", 22, 2, "F3=MENU  ENTER=LOOKUP  F5=REFRESH"));
+            ScreenFieldDto.bright("title", 2, 28, "BANK OF Z — ACCOUNT LIST"),
+            ScreenFieldDto.label("cust_label", 4, 10, "Customer ID.....:"),
+            ScreenFieldDto.input("customer_id", 4, 29, 12),
+            ScreenFieldDto.bright("hdr_sel", 7, 4, "SEL"),
+            ScreenFieldDto.bright("hdr_acct", 7, 9, "ACCOUNT NO"),
+            ScreenFieldDto.bright("hdr_type", 7, 28, "TYPE"),
+            ScreenFieldDto.bright("hdr_status", 7, 40, "STATUS"),
+            ScreenFieldDto.bright("hdr_balance", 7, 56, "BALANCE"),
+            // Demo rows
+            ScreenFieldDto.input("sel_1", 9, 5, 1),
+            ScreenFieldDto.label("row_1_acct", 9, 9, "1000000000000001"),
+            ScreenFieldDto.label("row_1_type", 9, 28, "CHECKING"),
+            ScreenFieldDto.label("row_1_status", 9, 40, "OPEN"),
+            ScreenFieldDto.label("row_1_balance", 9, 56, "$  12,450.78"),
+            ScreenFieldDto.input("sel_2", 10, 5, 1),
+            ScreenFieldDto.label("row_2_acct", 10, 9, "1000000000000002"),
+            ScreenFieldDto.label("row_2_type", 10, 28, "SAVINGS"),
+            ScreenFieldDto.label("row_2_status", 10, 40, "OPEN"),
+            ScreenFieldDto.label("row_2_balance", 10, 56, "$ 187,432.11"),
+            ScreenFieldDto.label("hint", 19, 10, "Mark SEL with X and press ENTER to view detail."),
+            ScreenFieldDto.label("status", 22, 2, "F3=MENU  ENTER=DETAIL  F7=PGUP  F8=PGDN"));
     return new ScreenMapResponse(
-        ACCT_INQ,
-        "ACCOUNT INQUIRY",
+        ACCTLIST,
+        "ACCOUNT LIST",
+        ScreenMapResponse.DEFAULT_ROWS,
+        ScreenMapResponse.DEFAULT_COLS,
+        fields);
+  }
+
+  private static ScreenMapResponse accountDetailScreen() {
+    List<ScreenFieldDto> fields =
+        List.of(
+            ScreenFieldDto.bright("title", 2, 27, "BANK OF Z — ACCOUNT DETAIL"),
+            ScreenFieldDto.label("acct_label", 4, 4, "Account No......:"),
+            ScreenFieldDto.label("acct_value", 4, 23, "1000000000000001"),
+            ScreenFieldDto.label("type_label", 5, 4, "Type............:"),
+            ScreenFieldDto.label("type_value", 5, 23, "CHECKING"),
+            ScreenFieldDto.label("status_label", 6, 4, "Status..........:"),
+            ScreenFieldDto.label("status_value", 6, 23, "OPEN"),
+            ScreenFieldDto.label("cust_label", 7, 4, "Customer........:"),
+            ScreenFieldDto.label("cust_value", 7, 23, "C00042 — JANE DOE"),
+            ScreenFieldDto.label("opened_label", 8, 4, "Opened..........:"),
+            ScreenFieldDto.label("opened_value", 8, 23, "2024-08-12"),
+            ScreenFieldDto.label("ledger_label", 10, 4, "Ledger Balance..:"),
+            ScreenFieldDto.bright("ledger_value", 10, 23, "$    12,450.78"),
+            ScreenFieldDto.label("avail_label", 11, 4, "Available.......:"),
+            ScreenFieldDto.bright("avail_value", 11, 23, "$    11,950.78"),
+            ScreenFieldDto.label("pending_label", 12, 4, "Holds...........:"),
+            ScreenFieldDto.label("pending_value", 12, 23, "$       500.00"),
+            ScreenFieldDto.label("legacy_label", 14, 4, "Legacy Source...:"),
+            ScreenFieldDto.label("legacy_value", 14, 23, "DB2 (history bridge)"),
+            ScreenFieldDto.label("status", 22, 2, "F3=BACK  F4=TXLIST  F5=REFRESH  F12=CANCEL"));
+    return new ScreenMapResponse(
+        ACCTDET,
+        "ACCOUNT DETAIL",
+        ScreenMapResponse.DEFAULT_ROWS,
+        ScreenMapResponse.DEFAULT_COLS,
+        fields);
+  }
+
+  private static ScreenMapResponse transactionListScreen() {
+    List<ScreenFieldDto> fields =
+        List.of(
+            ScreenFieldDto.bright("title", 2, 27, "BANK OF Z — TRANSACTION LIST"),
+            ScreenFieldDto.label("acct_label", 4, 4, "For Account.....:"),
+            ScreenFieldDto.label("acct_value", 4, 23, "1000000000000001"),
+            ScreenFieldDto.bright("hdr_date", 6, 4, "DATE"),
+            ScreenFieldDto.bright("hdr_kind", 6, 16, "TYPE"),
+            ScreenFieldDto.bright("hdr_amount", 6, 28, "AMOUNT"),
+            ScreenFieldDto.bright("hdr_balance", 6, 46, "BALANCE"),
+            ScreenFieldDto.bright("hdr_ref", 6, 64, "REF"),
+            ScreenFieldDto.label("row_1_date", 8, 4, "2026-05-12"),
+            ScreenFieldDto.label("row_1_kind", 8, 16, "DEPOSIT"),
+            ScreenFieldDto.label("row_1_amount", 8, 28, "$  +1,200.00"),
+            ScreenFieldDto.label("row_1_balance", 8, 46, "$  12,450.78"),
+            ScreenFieldDto.label("row_1_ref", 8, 64, "T-9001"),
+            ScreenFieldDto.label("row_2_date", 9, 4, "2026-05-11"),
+            ScreenFieldDto.label("row_2_kind", 9, 16, "WITHDRAW"),
+            ScreenFieldDto.label("row_2_amount", 9, 28, "$    -200.00"),
+            ScreenFieldDto.label("row_2_balance", 9, 46, "$  11,250.78"),
+            ScreenFieldDto.label("row_2_ref", 9, 64, "T-8997"),
+            ScreenFieldDto.label("row_3_date", 10, 4, "2026-05-10"),
+            ScreenFieldDto.label("row_3_kind", 10, 16, "DEPOSIT"),
+            ScreenFieldDto.label("row_3_amount", 10, 28, "$    +500.00"),
+            ScreenFieldDto.label("row_3_balance", 10, 46, "$  11,450.78"),
+            ScreenFieldDto.label("row_3_ref", 10, 64, "T-8965"),
+            ScreenFieldDto.label("status", 22, 2, "F3=BACK  F7=PGUP  F8=PGDN  F12=CANCEL"));
+    return new ScreenMapResponse(
+        TXLIST,
+        "TRANSACTION LIST",
         ScreenMapResponse.DEFAULT_ROWS,
         ScreenMapResponse.DEFAULT_COLS,
         fields);

@@ -1,59 +1,23 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
-import { DefaultErrorFallback, ErrorBoundary } from '@/components/ui/error-boundary';
-import { Spinner } from '@/components/ui/spinner';
-import { Button } from '@/components/ui/button';
 import { TerminalEmulator } from '@/components/terminal/terminal-emulator';
-import type { ScreenMap } from '@/lib/api/terminal';
-import { terminalApi } from '@/lib/api/terminal';
-import { useApiResource } from '@/lib/api/use-api-resource';
+import { BANK_SCREENS, BANK_INITIAL_SCREEN } from '@/lib/screens/bank-screens';
 import { useAuth } from '@/lib/auth/context';
 
 const VIEW_ROLES = ['TELLER', 'SUPERVISOR', 'BRANCH_MANAGER'];
 
-const DEFAULT_SCREEN_ID = 'MAINMENU';
-
 /**
- * /terminal entry point. Resolves the requested screen-map from the backend
- * (defaulting to MAINMENU when the operator just opened the workstation)
- * and hands it to the 3270 emulator component.
+ * /terminal entry point. Renders the canonical @vforce360/terminal
+ * component (ported from dashboard/src/components/terminal/) against
+ * the BANK_SCREENS definition set in lib/screens/. Screen definitions
+ * are static client-side data — the BMS-map equivalent — and the
+ * emulator drives navigation + API submission internally per each
+ * screen's `apiMapping` / `menu` / `functionKeys`.
  */
 export function TerminalView() {
   const auth = useAuth();
-  const [screenId, setScreenId] = useState<string>(DEFAULT_SCREEN_ID);
-  const [history, setHistory] = useState<string[]>([]);
-  const [lastSubmission, setLastSubmission] = useState<Record<string, string> | null>(null);
-
-  const { state, refresh } = useApiResource<ScreenMap>(
-    (signal) => terminalApi.getScreen(screenId, signal),
-    [screenId],
-  );
-
-  const navigate = useCallback(
-    (next: string) => {
-      setHistory((stack) => [...stack, screenId]);
-      setScreenId(next);
-    },
-    [screenId],
-  );
-
-  const back = useCallback(() => {
-    setHistory((stack) => {
-      if (stack.length === 0) return stack;
-      const copy = stack.slice();
-      const prev = copy.pop();
-      if (prev) setScreenId(prev);
-      return copy;
-    });
-  }, []);
-
-  const onSubmit = useCallback((values: Record<string, string>) => {
-    setLastSubmission(values);
-  }, []);
-
-  const canExit = history.length > 0;
 
   const guard = useMemo(() => {
     if (!auth.authenticated) {
@@ -78,85 +42,13 @@ export function TerminalView() {
   if (guard) return guard;
 
   return (
-    <section aria-labelledby="terminal-heading" className="space-y-4">
-      <header className="flex items-end justify-between gap-3">
-        <div>
-          <h1 id="terminal-heading" className="text-3xl font-semibold text-teller">
-            3270 Terminal
-          </h1>
-          <p className="mt-1 text-slate-600">
-            Browser-resident replacement for the CICS green-screen workstation. Tab / F3 / Enter
-            preserve their host conventions so teller muscle memory carries over.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <span>Screen:</span>
-          <code className="rounded bg-slate-100 px-2 py-1 text-slate-700">{screenId}</code>
-          {canExit && (
-            <Button variant="ghost" onClick={back} aria-label="Back to previous screen">
-              ← Back
-            </Button>
-          )}
-        </div>
-      </header>
-
-      <ErrorBoundary
-        fallback={(error, reset) => (
-          <DefaultErrorFallback error={error} reset={reset} title="Terminal screen failed" />
-        )}
-      >
-        {state.status === 'idle' || state.status === 'loading' ? (
-          <div aria-busy="true" className="rounded-md border border-slate-200 bg-white p-6">
-            <Spinner label={`Loading ${screenId}`} />
-          </div>
-        ) : state.status === 'error' ? (
-          <div
-            role="alert"
-            className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-900"
-          >
-            <p className="font-semibold">Could not load terminal screen</p>
-            <p className="mt-1">{state.error.message}</p>
-            <Button variant="secondary" className="mt-3" onClick={refresh}>
-              Retry
-            </Button>
-          </div>
-        ) : (
-          <TerminalEmulator
-            screen={state.data}
-            onSubmit={onSubmit}
-            onExit={canExit ? back : undefined}
-            onClear={() => setLastSubmission(null)}
-          />
-        )}
-      </ErrorBoundary>
-
-      {lastSubmission && (
-        <Card
-          title="Last submission"
-          description="Captured locally — the host will validate via the screen-map command handler."
-        >
-          <pre className="overflow-x-auto rounded bg-slate-950 p-3 text-xs text-emerald-200">
-            {JSON.stringify(lastSubmission, null, 2)}
-          </pre>
-        </Card>
-      )}
-
-      <Card
-        title="Navigate"
-        description="Jump to a known screen — handy until the host wires AID-driven navigation back to the emulator."
-      >
-        <div className="mt-2 flex flex-wrap gap-2">
-          {['MAINMENU', 'SIGNON', 'ACCTLIST', 'ACCTDET', 'TXLIST'].map((id) => (
-            <Button
-              key={id}
-              variant={id === screenId ? 'primary' : 'secondary'}
-              onClick={() => navigate(id)}
-            >
-              {id}
-            </Button>
-          ))}
-        </div>
-      </Card>
-    </section>
+    <TerminalEmulator
+      screens={BANK_SCREENS}
+      initialScreen={BANK_INITIAL_SCREEN}
+      apiBase="/api"
+      theme="green"
+      fit="fluid"
+      persistKey="bank-teller"
+    />
   );
 }

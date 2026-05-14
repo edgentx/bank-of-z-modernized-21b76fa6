@@ -51,6 +51,8 @@ class VforceDevDatasourceConfigurationTest {
 
     assertEquals("${SPRING_DATA_MONGODB_URI:" + VFORCE_DEV_MONGO_URI + "}",
         props.getProperty("spring.data.mongodb.uri"));
+    assertEquals("${SPRING_DATA_MONGODB_AUTO_INDEX_CREATION:false}",
+        props.getProperty("spring.data.mongodb.auto-index-creation"));
     assertAuthenticatedVforceDevMongoUri(VFORCE_DEV_MONGO_URI);
     assertEquals("${SPRING_DATASOURCE_URL:" + H2_DB2_URL + "}",
         props.getProperty("spring.datasource.url"));
@@ -73,6 +75,9 @@ class VforceDevDatasourceConfigurationTest {
         "vforce_dev Mongo credentials must render through Secret, not ConfigMap");
     assertEquals(VFORCE_DEV_MONGO_URI,
         props.getProperty("backend.secrets.SPRING_DATA_MONGODB_URI"));
+    assertEquals("false",
+        props.getProperty("backend.config.SPRING_DATA_MONGODB_AUTO_INDEX_CREATION"),
+        "vforce_dev must not block smoke endpoints on Mongo index creation");
     assertAuthenticatedVforceDevMongoUri(props.getProperty("backend.secrets.SPRING_DATA_MONGODB_URI"));
     assertEquals(H2_DB2_URL, props.getProperty("backend.config.SPRING_DATASOURCE_URL"));
     assertEquals("sa", props.getProperty("backend.config.SPRING_DATASOURCE_USERNAME"));

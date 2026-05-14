@@ -22,7 +22,6 @@ backend:
   replicaCount: 1
   config:
     SPRING_PROFILES_ACTIVE: "k8s,vforce_dev"
-    SPRING_DATA_MONGODB_URI: "mongodb://bank-mongo:27017/bank"
     SPRING_DATASOURCE_URL: "jdbc:h2:mem:bank-vforce-dev;MODE=DB2;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1"
     SPRING_DATASOURCE_USERNAME: "sa"
     SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.h2.Driver"
@@ -30,6 +29,7 @@ backend:
     SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
     SPRING_FLYWAY_ENABLED: "true"
   secrets:
+    SPRING_DATA_MONGODB_URI: "mongodb://bank:bank-mongo-dev-pw@bank-mongo:27017/bank?authSource=admin"
     SPRING_DATASOURCE_PASSWORD: ""
   resources:
     requests:

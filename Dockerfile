@@ -76,10 +76,10 @@ ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAM
 # VForce360's dev deploy path can run this image without the Helm ConfigMap
 # that activates vforce_dev. Keep explicit SPRING_PROFILES_ACTIVE values from
 # Helm/prod authoritative, but make the standalone container default to the
-# in-cluster Mongo service and embedded DB2-compatible history datasource
-# instead of localhost services.
+# authenticated in-cluster Mongo service and embedded DB2-compatible history
+# datasource instead of localhost services.
 ENV SPRING_PROFILES_DEFAULT="vforce_dev"
-ENV SPRING_DATA_MONGODB_URI="mongodb://bank-mongo:27017/bank"
+ENV SPRING_DATA_MONGODB_URI="mongodb://bank:bank-mongo-dev-pw@bank-mongo:27017/bank?authSource=admin"
 
 # Actuator health probe (S-40 AC: health check endpoints configured).
 # 30s start period accommodates JPA validate + Flyway baseline on first boot.

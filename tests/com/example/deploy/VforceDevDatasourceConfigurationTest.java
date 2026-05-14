@@ -23,6 +23,8 @@ class VforceDevDatasourceConfigurationTest {
   private static final String LOCALHOST_MONGO = "localhost:27017";
   private static final String VFORCE_DEV_MONGO_URI =
       "mongodb://bank:bank-mongo-dev-pw@bank-mongo:27017/bank?authSource=admin";
+  private static final String MONGO_AUTO_INDEX_ENV =
+      "${SPRING_DATA_MONGODB_AUTO_INDEX_CREATION:false}";
   private static final String APP_PORT = "8000";
   private static final String FRONTEND_SERVICE_PORT = "80";
   private static final String FRONTEND_CONTAINER_PORT = "8080";
@@ -51,6 +53,8 @@ class VforceDevDatasourceConfigurationTest {
 
     assertEquals("${SPRING_DATA_MONGODB_URI:" + VFORCE_DEV_MONGO_URI + "}",
         props.getProperty("spring.data.mongodb.uri"));
+    assertEquals(MONGO_AUTO_INDEX_ENV,
+        props.getProperty("spring.data.mongodb.auto-index-creation"));
     assertAuthenticatedVforceDevMongoUri(VFORCE_DEV_MONGO_URI);
     assertEquals("${SPRING_DATASOURCE_URL:" + H2_DB2_URL + "}",
         props.getProperty("spring.datasource.url"));
@@ -74,6 +78,8 @@ class VforceDevDatasourceConfigurationTest {
     assertEquals(VFORCE_DEV_MONGO_URI,
         props.getProperty("backend.secrets.SPRING_DATA_MONGODB_URI"));
     assertAuthenticatedVforceDevMongoUri(props.getProperty("backend.secrets.SPRING_DATA_MONGODB_URI"));
+    assertEquals("false",
+        props.getProperty("backend.config.SPRING_DATA_MONGODB_AUTO_INDEX_CREATION"));
     assertEquals(H2_DB2_URL, props.getProperty("backend.config.SPRING_DATASOURCE_URL"));
     assertEquals("sa", props.getProperty("backend.config.SPRING_DATASOURCE_USERNAME"));
     assertEquals("org.h2.Driver",
@@ -81,6 +87,8 @@ class VforceDevDatasourceConfigurationTest {
     assertEquals("org.hibernate.dialect.H2Dialect",
         props.getProperty("backend.config.SPRING_JPA_DATABASE_PLATFORM"));
     assertEquals("", props.getProperty("backend.secrets.SPRING_DATASOURCE_PASSWORD"));
+    assertEquals("false", props.getProperty("backend.config.WORKFLOW_TEMPORAL_WORKER_ENABLED"),
+        "vforce_dev must not require an in-cluster Temporal service before smoke endpoints respond");
     assertEquals("false", props.getProperty("envoy.enabled"));
     assertEquals("false", props.getProperty("opa.enabled"));
     assertEquals("nginx", props.getProperty("kong.ingressClassName"),
@@ -122,7 +130,7 @@ class VforceDevDatasourceConfigurationTest {
     assertEquals(APP_PORT, helmProps.getProperty("backend.config.SERVER_PORT"));
     assertEquals(APP_PORT, helmProps.getProperty("backend.config.MANAGEMENT_SERVER_PORT"));
     assertTrue(dockerfile.contains("EXPOSE " + APP_PORT));
-    assertTrue(dockerfile.contains("localhost:" + APP_PORT + "/actuator/health"));
+    assertTrue(dockerfile.contains("localhost:" + APP_PORT + "/actuator/health/liveness"));
     assertTrue(nativeDockerfile.contains("EXPOSE " + APP_PORT));
   }
 

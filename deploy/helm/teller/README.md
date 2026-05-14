@@ -44,13 +44,17 @@ helm upgrade --install teller deploy/helm/teller \
 
 ## Sidecar topology
 
-Every backend pod runs three containers:
+By default, every backend pod runs three containers:
 
-1. `teller-core` — Spring Boot app, listens on `8080`.
-2. `envoy` — front-proxy, listens on `9080`, forwards to `127.0.0.1:8080`.
+1. `teller-core` — Spring Boot app, listens on `8000`.
+2. `envoy` — front-proxy, listens on `9080`, forwards to `127.0.0.1:8000`.
 3. `opa` — policy decision point, gRPC ext_authz on `127.0.0.1:9192`.
 
 The backend `Service` targets the Envoy port `9080`, so every request enters
 the pod through Envoy → `envoy.filters.http.ext_authz` → OPA → upstream Spring
 Boot. Disable either sidecar in `values.yaml` to fall back to a direct
 client-to-app path while debugging.
+
+The `values-microk8s.yaml` dev overlay disables Envoy and OPA so VForce360's
+generated `bank-app:8000` Service path targets the Spring Boot container
+directly on the same port used by the liveness/readiness probes.

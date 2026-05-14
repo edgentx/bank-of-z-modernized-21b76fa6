@@ -17,8 +17,24 @@ import org.springframework.core.io.FileSystemResource;
 class VforceDevDatasourceConfigurationTest {
 
   private static final String LOCALHOST_DB2 = "localhost:50000";
+  private static final String APP_PORT = "8000";
   private static final String H2_DB2_URL =
       "jdbc:h2:mem:bank-vforce-dev;MODE=DB2;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1";
+
+  @Test
+  void baseProfileDefaultsToEmbeddedHistoryStoreWhenPlatformSetsNoDatasource() throws IOException {
+    Path path = Path.of("src/main/resources/application.properties");
+    Properties props = loadProperties(path);
+
+    assertEquals("${SPRING_DATASOURCE_URL:" + H2_DB2_URL + "}",
+        props.getProperty("spring.datasource.url"));
+    assertEquals("${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.h2.Driver}",
+        props.getProperty("spring.datasource.driver-class-name"));
+    assertEquals("${SPRING_JPA_DATABASE_PLATFORM:org.hibernate.dialect.H2Dialect}",
+        props.getProperty("spring.jpa.database-platform"));
+    assertFalse(Files.readString(path).contains(LOCALHOST_DB2),
+        "base container defaults must not attempt DB2 against localhost:50000");
+  }
 
   @Test
   void vforceDevProfileDefaultsToEmbeddedDb2CompatibleHistoryStore() throws IOException {
@@ -49,6 +65,8 @@ class VforceDevDatasourceConfigurationTest {
     assertEquals("org.hibernate.dialect.H2Dialect",
         props.getProperty("backend.config.SPRING_JPA_DATABASE_PLATFORM"));
     assertEquals("", props.getProperty("backend.secrets.SPRING_DATASOURCE_PASSWORD"));
+    assertEquals("false", props.getProperty("envoy.enabled"));
+    assertEquals("false", props.getProperty("opa.enabled"));
     assertFalse(props.getProperty("backend.config.SPRING_DATASOURCE_URL").contains(LOCALHOST_DB2),
         "rendered vforce_dev config must not point DB2 history at localhost");
   }
@@ -59,6 +77,24 @@ class VforceDevDatasourceConfigurationTest {
 
     assertTrue(dockerfile.contains("SPRING_PROFILES_DEFAULT=\"vforce_dev\""),
         "standalone dev deploy containers must load the vforce_dev datasource defaults");
+  }
+
+  @Test
+  void generatedDevDeploymentPortDefaultsStayAligned() throws IOException {
+    Properties appProps = loadProperties(Path.of("src/main/resources/application.properties"));
+    Properties helmProps = loadYaml("deploy/helm/teller/values.yaml");
+    String dockerfile = Files.readString(Path.of("Dockerfile"));
+    String nativeDockerfile = Files.readString(Path.of("Dockerfile.native"));
+
+    assertEquals("${SERVER_PORT:" + APP_PORT + "}", appProps.getProperty("server.port"));
+    assertEquals("${MANAGEMENT_SERVER_PORT:${SERVER_PORT:" + APP_PORT + "}}",
+        appProps.getProperty("management.server.port"));
+    assertEquals(APP_PORT, helmProps.getProperty("backend.service.port"));
+    assertEquals(APP_PORT, helmProps.getProperty("backend.config.SERVER_PORT"));
+    assertEquals(APP_PORT, helmProps.getProperty("backend.config.MANAGEMENT_SERVER_PORT"));
+    assertTrue(dockerfile.contains("EXPOSE " + APP_PORT));
+    assertTrue(dockerfile.contains("localhost:" + APP_PORT + "/actuator/health"));
+    assertTrue(nativeDockerfile.contains("EXPOSE " + APP_PORT));
   }
 
   @Test

@@ -8,7 +8,7 @@
 #
 #   prometheus.io/scrape: "true"
 #   prometheus.io/path:   "/actuator/prometheus"   (default: /metrics)
-#   prometheus.io/port:   "8080"                   (default: container port)
+#   prometheus.io/port:   "8000"                   (default: container port)
 #   prometheus.io/scheme: "http"                   (default: http)
 #
 # These annotations are rendered onto the teller-core backend by the Helm

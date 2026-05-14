@@ -49,6 +49,7 @@ frontend:
       memory: 128Mi
 
 envoy:
+  enabled: false
   resources:
     requests:
       cpu: 25m
@@ -58,6 +59,7 @@ envoy:
       memory: 128Mi
 
 opa:
+  enabled: false
   resources:
     requests:
       cpu: 25m

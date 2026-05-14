@@ -52,7 +52,7 @@ COPY --from=build --chown=nonroot:nonroot /workspace/app /app/app
 
 USER nonroot:nonroot
 WORKDIR /app
-EXPOSE 8080
+EXPOSE 8000
 
 # Distroless has no curl; rely on Kubernetes httpGet probes instead. The
 # HEALTHCHECK directive is omitted intentionally for the native image — the

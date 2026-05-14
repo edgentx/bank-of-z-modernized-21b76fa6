@@ -66,7 +66,7 @@ LABEL org.opencontainers.image.source="https://github.com/egdcrypto/bank-of-z-mo
       org.opencontainers.image.description="Bank-of-Z modernization — Spring Boot teller-core service"
 
 USER app:app
-EXPOSE 8080
+EXPOSE 8000
 
 # Container-aware JVM tuning. -XX:+UseContainerSupport is the default on
 # JDK 17+, but ratios beat absolute Xmx when the same image runs across
@@ -82,7 +82,7 @@ ENV SPRING_PROFILES_DEFAULT="vforce_dev"
 # Actuator health probe (S-40 AC: health check endpoints configured).
 # 30s start period accommodates JPA validate + Flyway baseline on first boot.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD curl --fail --silent http://localhost:8080/actuator/health || exit 1
+    CMD curl --fail --silent http://localhost:8000/actuator/health || exit 1
 
 # Exec form so the JVM is PID 1 and receives SIGTERM for graceful shutdown.
 ENTRYPOINT ["sh", "-c", "exec java ${JAVA_OPTS} -jar /app/app.jar \"$@\"", "--"]

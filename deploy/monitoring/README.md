@@ -76,7 +76,7 @@ annotations on every `teller-core` pod:
 ```yaml
 prometheus.io/scrape: "true"
 prometheus.io/path: "/actuator/prometheus"
-prometheus.io/port: "8080"
+prometheus.io/port: "8000"
 prometheus.io/scheme: "http"
 ```
 

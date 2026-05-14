@@ -22,6 +22,7 @@ backend:
   replicaCount: 1
   config:
     SPRING_PROFILES_ACTIVE: "k8s,vforce_dev"
+    SPRING_DATA_MONGODB_URI: "mongodb://bank-mongo:27017/bank"
     SPRING_DATASOURCE_URL: "jdbc:h2:mem:bank-vforce-dev;MODE=DB2;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1"
     SPRING_DATASOURCE_USERNAME: "sa"
     SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.h2.Driver"

@@ -20,6 +20,16 @@ global:
 
 backend:
   replicaCount: 1
+  config:
+    SPRING_PROFILES_ACTIVE: "k8s,vforce_dev"
+    SPRING_DATASOURCE_URL: "jdbc:h2:mem:bank-vforce-dev;MODE=DB2;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1"
+    SPRING_DATASOURCE_USERNAME: "sa"
+    SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.h2.Driver"
+    SPRING_JPA_DATABASE_PLATFORM: "org.hibernate.dialect.H2Dialect"
+    SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+    SPRING_FLYWAY_ENABLED: "true"
+  secrets:
+    SPRING_DATASOURCE_PASSWORD: ""
   resources:
     requests:
       cpu: 100m

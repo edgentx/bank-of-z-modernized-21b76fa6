@@ -16,7 +16,18 @@ class HealthControllerTest {
 
   @Test
   void healthReturns200ForDeploymentProbeCompatibility() throws Exception {
-    mockMvc.perform(get("/health"))
+    assertHealthOk("/health");
+  }
+
+  @Test
+  void rootAndApiBaseReturn200ForDeploymentSmokeChecks() throws Exception {
+    assertHealthOk("/");
+    assertHealthOk("/api");
+    assertHealthOk("/api/health");
+  }
+
+  private void assertHealthOk(String path) throws Exception {
+    mockMvc.perform(get(path))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("UP"));
   }

@@ -70,6 +70,10 @@ opa:
       memory: 64Mi
 
 kong:
+  # VForce360's MicroK8s dev clusters provide the NGINX ingress controller but
+  # not a Kong controller. Keep the API host rendered, but bind it to the same
+  # ingress class as the frontend so api_responds reaches teller-core.
+  ingressClassName: nginx
   host: api.bank.local
 
 nginxIngress:

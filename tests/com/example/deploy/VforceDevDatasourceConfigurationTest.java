@@ -24,6 +24,8 @@ class VforceDevDatasourceConfigurationTest {
   private static final String VFORCE_DEV_MONGO_URI =
       "mongodb://bank:bank-mongo-dev-pw@bank-mongo:27017/bank?authSource=admin";
   private static final String APP_PORT = "8000";
+  private static final String FRONTEND_SERVICE_PORT = "80";
+  private static final String FRONTEND_CONTAINER_PORT = "8080";
   private static final String H2_DB2_URL =
       "jdbc:h2:mem:bank-vforce-dev;MODE=DB2;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1";
 
@@ -81,6 +83,8 @@ class VforceDevDatasourceConfigurationTest {
     assertEquals("", props.getProperty("backend.secrets.SPRING_DATASOURCE_PASSWORD"));
     assertEquals("false", props.getProperty("envoy.enabled"));
     assertEquals("false", props.getProperty("opa.enabled"));
+    assertEquals("nginx", props.getProperty("kong.ingressClassName"),
+        "vforce_dev API ingress must bind to the MicroK8s NGINX controller");
     assertFalse(props.getProperty("backend.config.SPRING_DATASOURCE_URL").contains(LOCALHOST_DB2),
         "rendered vforce_dev config must not point DB2 history at localhost");
   }
@@ -120,6 +124,35 @@ class VforceDevDatasourceConfigurationTest {
     assertTrue(dockerfile.contains("EXPOSE " + APP_PORT));
     assertTrue(dockerfile.contains("localhost:" + APP_PORT + "/actuator/health"));
     assertTrue(nativeDockerfile.contains("EXPOSE " + APP_PORT));
+  }
+
+  @Test
+  void frontendServiceTargetsNginxRuntimePort() throws IOException {
+    Properties helmProps = loadYaml("deploy/helm/teller/values.yaml");
+    String deployment =
+        Files.readString(Path.of("deploy/helm/teller/templates/frontend-deployment.yaml"));
+    String service = Files.readString(Path.of("deploy/helm/teller/templates/frontend-service.yaml"));
+    String dockerfile = Files.readString(Path.of("frontend/Dockerfile"));
+    String nginxConf = Files.readString(Path.of("frontend/docker/nginx.conf"));
+
+    assertEquals(FRONTEND_SERVICE_PORT, helmProps.getProperty("frontend.service.port"));
+    assertEquals(FRONTEND_CONTAINER_PORT, helmProps.getProperty("frontend.containerPort"));
+    assertTrue(deployment.contains("containerPort: {{ .Values.frontend.containerPort }}"),
+        "frontend Deployment must publish the real nginx listener as the named http port");
+    assertTrue(service.contains("targetPort: http"),
+        "frontend Service should continue routing to the named container port");
+    assertTrue(dockerfile.contains("EXPOSE " + FRONTEND_CONTAINER_PORT));
+    assertTrue(nginxConf.contains("listen " + FRONTEND_CONTAINER_PORT + " default_server;"));
+  }
+
+  @Test
+  void apiIngressRoutesBaseAndApiPrefixesForDeploymentSmokeChecks() {
+    Properties props = loadYaml("deploy/helm/teller/values.yaml");
+
+    assertEquals("/api", props.getProperty("kong.paths[0].path"));
+    assertEquals("Prefix", props.getProperty("kong.paths[0].pathType"));
+    assertEquals("/", props.getProperty("kong.paths[1].path"));
+    assertEquals("Prefix", props.getProperty("kong.paths[1].pathType"));
   }
 
   @Test

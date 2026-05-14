@@ -34,7 +34,7 @@ spec:
             {{- toYaml .Values.frontend.containerSecurityContext | nindent 12 }}
           ports:
             - name: http
-              containerPort: {{ .Values.frontend.service.port }}
+              containerPort: {{ .Values.frontend.containerPort }}
               protocol: TCP
           livenessProbe:
             httpGet:

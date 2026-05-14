@@ -3,6 +3,7 @@ package com.example.deploy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -50,6 +51,28 @@ class VforceDevDatasourceConfigurationTest {
     assertEquals("", props.getProperty("backend.secrets.SPRING_DATASOURCE_PASSWORD"));
     assertFalse(props.getProperty("backend.config.SPRING_DATASOURCE_URL").contains(LOCALHOST_DB2),
         "rendered vforce_dev config must not point DB2 history at localhost");
+  }
+
+  @Test
+  void containerImageDefaultsToVforceDevProfileWhenPlatformDoesNotSetOne() throws IOException {
+    String dockerfile = Files.readString(Path.of("Dockerfile"));
+
+    assertTrue(dockerfile.contains("SPRING_PROFILES_DEFAULT=\"vforce_dev\""),
+        "standalone dev deploy containers must load the vforce_dev datasource defaults");
+  }
+
+  @Test
+  void helmRolloutPullsFreshLatestImageAndChangesPodTemplateOnUpgrade() throws IOException {
+    Properties props = loadYaml("deploy/helm/teller/values.yaml");
+    String backendDeployment =
+        Files.readString(Path.of("deploy/helm/teller/templates/backend-deployment.yaml"));
+
+    assertEquals("Always", props.getProperty("global.imagePullPolicy"),
+        "mutable dev image tags must be pulled on each fresh pod");
+    assertTrue(backendDeployment.contains("bank.example.com/helm-release-revision"),
+        "helm upgrades must change the pod template even when the image tag stays latest");
+    assertTrue(backendDeployment.contains(".Release.Revision"),
+        "the rollout annotation must track the actual Helm release revision");
   }
 
   private static Properties loadProperties(Path path) throws IOException {

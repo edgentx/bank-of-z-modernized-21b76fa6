@@ -1,6 +1,5 @@
 package com.example.api;
 
-import java.util.Map;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -9,8 +8,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class HealthController {
 
   @GetMapping(value = {"/", "/health", "/api", "/api/health"},
-      produces = MediaType.APPLICATION_JSON_VALUE)
-  public Map<String, String> health() {
-    return Map.of("status", "UP");
+      produces = {
+          MediaType.APPLICATION_JSON_VALUE,
+          MediaType.TEXT_HTML_VALUE,
+          MediaType.TEXT_PLAIN_VALUE
+      })
+  public String health() {
+    return "{\"status\":\"UP\"}";
   }
 }

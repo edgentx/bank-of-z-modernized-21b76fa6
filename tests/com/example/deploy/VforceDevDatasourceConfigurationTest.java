@@ -17,6 +17,8 @@ import org.springframework.core.io.FileSystemResource;
 class VforceDevDatasourceConfigurationTest {
 
   private static final String LOCALHOST_DB2 = "localhost:50000";
+  private static final String LOCALHOST_MONGO = "localhost:27017";
+  private static final String VFORCE_DEV_MONGO_URI = "mongodb://bank-mongo:27017/bank";
   private static final String APP_PORT = "8000";
   private static final String H2_DB2_URL =
       "jdbc:h2:mem:bank-vforce-dev;MODE=DB2;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1";
@@ -41,6 +43,10 @@ class VforceDevDatasourceConfigurationTest {
     Path path = Path.of("src/main/resources/application-vforce_dev.properties");
     Properties props = loadProperties(path);
 
+    assertEquals("${SPRING_DATA_MONGODB_URI:" + VFORCE_DEV_MONGO_URI + "}",
+        props.getProperty("spring.data.mongodb.uri"));
+    assertFalse(props.getProperty("spring.data.mongodb.uri").contains(LOCALHOST_MONGO),
+        "vforce_dev must never fall back to Mongo on localhost:27017");
     assertEquals("${SPRING_DATASOURCE_URL:" + H2_DB2_URL + "}",
         props.getProperty("spring.datasource.url"));
     assertEquals("${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.h2.Driver}",
@@ -58,6 +64,8 @@ class VforceDevDatasourceConfigurationTest {
     Properties props = loadYaml("deploy/helm/teller/values-microk8s.yaml");
 
     assertEquals("k8s,vforce_dev", props.getProperty("backend.config.SPRING_PROFILES_ACTIVE"));
+    assertEquals(VFORCE_DEV_MONGO_URI,
+        props.getProperty("backend.config.SPRING_DATA_MONGODB_URI"));
     assertEquals(H2_DB2_URL, props.getProperty("backend.config.SPRING_DATASOURCE_URL"));
     assertEquals("sa", props.getProperty("backend.config.SPRING_DATASOURCE_USERNAME"));
     assertEquals("org.h2.Driver",
@@ -67,6 +75,8 @@ class VforceDevDatasourceConfigurationTest {
     assertEquals("", props.getProperty("backend.secrets.SPRING_DATASOURCE_PASSWORD"));
     assertEquals("false", props.getProperty("envoy.enabled"));
     assertEquals("false", props.getProperty("opa.enabled"));
+    assertFalse(props.getProperty("backend.config.SPRING_DATA_MONGODB_URI").contains(LOCALHOST_MONGO),
+        "rendered vforce_dev config must not point Mongo at localhost");
     assertFalse(props.getProperty("backend.config.SPRING_DATASOURCE_URL").contains(LOCALHOST_DB2),
         "rendered vforce_dev config must not point DB2 history at localhost");
   }
@@ -74,9 +84,20 @@ class VforceDevDatasourceConfigurationTest {
   @Test
   void containerImageDefaultsToVforceDevProfileWhenPlatformDoesNotSetOne() throws IOException {
     String dockerfile = Files.readString(Path.of("Dockerfile"));
+    String nativeDockerfile = Files.readString(Path.of("Dockerfile.native"));
 
     assertTrue(dockerfile.contains("SPRING_PROFILES_DEFAULT=\"vforce_dev\""),
         "standalone dev deploy containers must load the vforce_dev datasource defaults");
+    assertTrue(dockerfile.contains("SPRING_DATA_MONGODB_URI=\"" + VFORCE_DEV_MONGO_URI + "\""),
+        "standalone dev deploy containers must default Mongo to the in-cluster service");
+    assertFalse(dockerfile.contains("SPRING_DATA_MONGODB_URI=\"mongodb://localhost:27017/bank\""),
+        "standalone dev deploy containers must not default Mongo to localhost");
+    assertTrue(nativeDockerfile.contains("SPRING_PROFILES_DEFAULT=\"vforce_dev\""),
+        "native standalone dev deploy containers must load the vforce_dev datasource defaults");
+    assertTrue(nativeDockerfile.contains("SPRING_DATA_MONGODB_URI=\"" + VFORCE_DEV_MONGO_URI + "\""),
+        "native standalone dev deploy containers must default Mongo to the in-cluster service");
+    assertFalse(nativeDockerfile.contains("SPRING_DATA_MONGODB_URI=\"mongodb://localhost:27017/bank\""),
+        "native standalone dev deploy containers must not default Mongo to localhost");
   }
 
   @Test

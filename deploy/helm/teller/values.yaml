@@ -146,6 +146,11 @@ frontend:
   enabled: true
   name: teller-frontend
   replicaCount: 2
+  # The nginx runtime in frontend/docker/nginx.conf listens on 8080 as the
+  # non-root app user. Keep the Service on conventional port 80, but bind the
+  # pod's named http port to the real listener so probes and targetPort: http
+  # route to a live socket.
+  containerPort: 8080
   image:
     name: teller-frontend
     tag: latest
@@ -244,6 +249,8 @@ kong:
   host: "api.bank.example.com"
   paths:
     - path: /api
+      pathType: Prefix
+    - path: /
       pathType: Prefix
   # cert-manager-managed TLS secret name.
   tlsSecretName: teller-api-tls

@@ -7,6 +7,8 @@ metadata:
     {{- include "teller.labels" (dict "ctx" . "component" .Values.backend.name) | nindent 4 }}
 data:
   {{- range $k, $v := .Values.backend.config }}
+  {{- if not (hasKey $.Values.backend.secrets $k) }}
   {{ $k }}: {{ $v | quote }}
+  {{- end }}
   {{- end }}
 {{- end }}

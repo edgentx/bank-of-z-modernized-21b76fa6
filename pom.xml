@@ -155,6 +155,17 @@
             <version>11.5.9.0</version>
             <scope>runtime</scope>
         </dependency>
+        <!--
+          H2 in-memory database with DB2 compatibility mode.
+          The default test path has always used this instead of the full DB2
+          container. S-FB-2 also uses it for the vforce_dev deployment profile
+          so dev pods do not fail startup when no reachable DB2 service exists.
+        -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
 
         <!--
           MinIO document storage — S-31.
@@ -355,17 +366,6 @@
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <!--
-          H2 in-memory database with DB2 compatibility mode — S-29 integration
-          tests exercise Flyway migrations and Spring Data JPA repositories
-          against an embedded engine so CI does not need a real DB2 instance.
-        -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
 

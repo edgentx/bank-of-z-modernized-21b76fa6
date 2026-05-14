@@ -99,8 +99,9 @@ public class AccountAggregate extends AggregateRoot {
       if (uniqueAccountNumberViolation) {
         throw new IllegalStateException("Account numbers must be uniquely generated and immutable.");
       }
+      if (c.accountId() == null || c.accountId().isBlank()) throw new IllegalArgumentException("accountId required");
       if (c.accountNumber() == null || c.accountNumber().isBlank()) throw new IllegalArgumentException("accountNumber required");
-      var event = new AccountClosedEvent(accountId, c.accountNumber(), Instant.now());
+      var event = new AccountClosedEvent(c.accountId(), c.accountNumber(), Instant.now());
       this.closed = true;
       this.status = "CLOSED";
       addEvent(event);

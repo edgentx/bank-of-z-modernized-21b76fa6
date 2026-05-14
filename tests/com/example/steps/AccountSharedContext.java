@@ -12,4 +12,9 @@ public class AccountSharedContext {
     public final InMemoryAccountRepository repository = new InMemoryAccountRepository();
     public AccountAggregate aggregate;
     public Throwable thrownException;
+    /**
+     * Business-level account number — distinct from {@link AccountAggregate#id()}.
+     * Seeded by the "a valid accountNumber is provided" Cucumber step in {@link S6Steps}.
+     */
+    public String accountNumber;
 }

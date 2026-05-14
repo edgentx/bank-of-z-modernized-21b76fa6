@@ -31,7 +31,8 @@ public class S7Steps {
     public void theCloseAccountCmdCommandIsExecuted() {
         try {
             AccountAggregate agg = ctx.repository.findById(ctx.aggregate.id()).orElse(ctx.aggregate);
-            agg.execute(new CloseAccountCmd(agg.id()));
+            String accountNumber = ctx.accountNumber != null ? ctx.accountNumber : "ACC-DEFAULT";
+            agg.execute(new CloseAccountCmd(agg.id(), accountNumber));
             ctx.repository.save(agg);
         } catch (Throwable t) {
             ctx.thrownException = t;

@@ -2,10 +2,13 @@ package com.example.application.account;
 
 import com.example.application.AggregateNotFoundException;
 import com.example.domain.account.model.AccountAggregate;
+import com.example.domain.account.model.AccountStatus;
 import com.example.domain.account.model.CloseAccountCmd;
 import com.example.domain.account.model.OpenAccountCmd;
 import com.example.domain.account.model.UpdateAccountStatusCmd;
 import com.example.domain.account.repository.AccountRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -48,5 +51,13 @@ public class AccountAppService {
     return repository
         .findById(accountId)
         .orElseThrow(() -> new AggregateNotFoundException("Account", accountId));
+  }
+
+  public Page<AccountAggregate> list(
+      String accountNumber,
+      String customerId,
+      AccountStatus status,
+      Pageable pageable) {
+    return repository.list(accountNumber, customerId, status, pageable);
   }
 }

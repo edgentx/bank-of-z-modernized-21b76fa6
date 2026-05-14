@@ -3,6 +3,7 @@ package com.example.infrastructure.mongo.account;
 import com.example.domain.account.model.AccountAggregate;
 import com.example.domain.account.model.OpenAccountCmd;
 import com.example.domain.account.model.UpdateAccountStatusCmd;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
@@ -14,7 +15,8 @@ import static org.mockito.Mockito.*;
 class MongoAccountRepositoryTest {
 
   private final AccountMongoDataRepository data = mock(AccountMongoDataRepository.class);
-  private final MongoAccountRepository repo = new MongoAccountRepository(data);
+  private final MongoTemplate mongoTemplate = mock(MongoTemplate.class);
+  private final MongoAccountRepository repo = new MongoAccountRepository(data, mongoTemplate);
 
   @Test
   void saveBuildsFullyPopulatedDocument() {

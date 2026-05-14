@@ -1,8 +1,16 @@
 package com.example.infrastructure.mongo.account;
 
 import com.example.domain.account.model.AccountAggregate;
+import com.example.domain.account.model.AccountStatus;
 import com.example.domain.account.repository.AccountRepository;
 import com.example.infrastructure.mongo.support.AggregateFieldAccess;
+import java.util.regex.Pattern;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -11,9 +19,11 @@ import java.util.Optional;
 public class MongoAccountRepository implements AccountRepository {
 
   private final AccountMongoDataRepository data;
+  private final MongoTemplate mongoTemplate;
 
-  public MongoAccountRepository(AccountMongoDataRepository data) {
+  public MongoAccountRepository(AccountMongoDataRepository data, MongoTemplate mongoTemplate) {
     this.data = data;
+    this.mongoTemplate = mongoTemplate;
   }
 
   @Override
@@ -24,6 +34,32 @@ public class MongoAccountRepository implements AccountRepository {
   @Override
   public void save(AccountAggregate aggregate) {
     data.save(toDocument(aggregate));
+  }
+
+  @Override
+  public Page<AccountAggregate> list(
+      String accountNumber,
+      String customerId,
+      AccountStatus status,
+      Pageable pageable) {
+    Query query = new Query().with(pageable);
+
+    if (accountNumber != null && !accountNumber.isBlank()) {
+      query.addCriteria(Criteria.where("_id").regex(Pattern.quote(accountNumber), "i"));
+    }
+    if (customerId != null && !customerId.isBlank()) {
+      query.addCriteria(Criteria.where("customerId").is(customerId));
+    }
+    if (status != null) {
+      query.addCriteria(Criteria.where("status").is(status.name()));
+    }
+
+    var documents = mongoTemplate.find(query, AccountDocument.class);
+    Query countQuery = Query.of(query).limit(-1).skip(-1);
+    return PageableExecutionUtils.getPage(
+        documents.stream().map(this::toAggregate).toList(),
+        pageable,
+        () -> mongoTemplate.count(countQuery, AccountDocument.class));
   }
 
   AccountDocument toDocument(AccountAggregate agg) {

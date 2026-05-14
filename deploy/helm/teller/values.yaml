@@ -16,7 +16,10 @@ global:
   domain: "bank.example.com"
   imageRegistry: ghcr.io
   imageRepository: edgentx
-  imagePullPolicy: IfNotPresent
+  # The default app image tags are mutable (`latest` in dev and fresh build
+  # pipelines). Always pull so a new rollout cannot reuse a cached crash-looping
+  # image with the same tag. Immutable-tag overlays may override this.
+  imagePullPolicy: Always
   imagePullSecrets: []
   # Common labels applied to every rendered object.
   commonLabels: {}

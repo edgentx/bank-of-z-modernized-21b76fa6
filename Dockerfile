@@ -73,6 +73,12 @@ EXPOSE 8080
 # t3.medium/m5.large/c6g.xlarge nodes.
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Djava.security.egd=file:/dev/./urandom"
 
+# VForce360's dev deploy path can run this image without the Helm ConfigMap
+# that activates vforce_dev. Keep explicit SPRING_PROFILES_ACTIVE values from
+# Helm/prod authoritative, but make the standalone container default to the
+# embedded DB2-compatible history datasource instead of localhost DB2.
+ENV SPRING_PROFILES_DEFAULT="vforce_dev"
+
 # Actuator health probe (S-40 AC: health check endpoints configured).
 # 30s start period accommodates JPA validate + Flyway baseline on first boot.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \

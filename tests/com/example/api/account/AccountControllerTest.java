@@ -4,6 +4,7 @@ import com.example.api.GlobalExceptionHandler;
 import com.example.application.AggregateNotFoundException;
 import com.example.application.account.AccountAppService;
 import com.example.domain.account.model.AccountAggregate;
+import com.example.domain.account.model.AccountStatus;
 import com.example.domain.account.model.CloseAccountCmd;
 import com.example.domain.account.model.OpenAccountCmd;
 import com.example.domain.account.model.UpdateAccountStatusCmd;
@@ -13,13 +14,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -99,6 +104,44 @@ class AccountControllerTest {
 
     mockMvc.perform(delete("/api/accounts/a-1"))
         .andExpect(status().isNoContent());
+  }
+
+  @Test
+  void list_returns200WithEmptyPage() throws Exception {
+    when(service.list(isNull(), isNull(), isNull(), any()))
+        .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 25), 0));
+
+    mockMvc.perform(get("/api/accounts"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content").isArray())
+        .andExpect(jsonPath("$.content").isEmpty())
+        .andExpect(jsonPath("$.totalElements").value(0))
+        .andExpect(jsonPath("$.totalPages").value(0));
+  }
+
+  @Test
+  void list_honorsFiltersAndPagination() throws Exception {
+    AccountAggregate agg = opened();
+    agg.execute(new UpdateAccountStatusCmd("a-1", "ACTIVE"));
+    when(service.list(eq("a-"), eq("c-1"), eq(AccountStatus.ACTIVE), any()))
+        .thenReturn(new PageImpl<>(List.of(agg), PageRequest.of(0, 10), 1));
+
+    mockMvc.perform(get("/api/accounts")
+            .param("accountNumber", "a-")
+            .param("customerId", "c-1")
+            .param("status", "ACTIVE")
+            .param("page", "0")
+            .param("size", "10"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].accountId").value("a-1"))
+        .andExpect(jsonPath("$.content[0].accountNumber").value("a-1"))
+        .andExpect(jsonPath("$.content[0].customerId").value("c-1"))
+        .andExpect(jsonPath("$.content[0].customerName").value("a-1"))
+        .andExpect(jsonPath("$.content[0].status").value("ACTIVE"))
+        .andExpect(jsonPath("$.content[0].balance").value(1000))
+        .andExpect(jsonPath("$.content[0].currency").value("GBP"))
+        .andExpect(jsonPath("$.size").value(10))
+        .andExpect(jsonPath("$.totalElements").value(1));
   }
 
   @Test

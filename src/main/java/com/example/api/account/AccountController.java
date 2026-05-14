@@ -1,13 +1,19 @@
 package com.example.api.account;
 
+import com.example.api.account.dto.AccountSummary;
 import com.example.api.account.dto.AccountResponse;
 import com.example.api.account.dto.OpenAccountRequest;
 import com.example.api.account.dto.UpdateAccountStatusRequest;
 import com.example.application.account.AccountAppService;
+import com.example.domain.account.model.AccountStatus;
 import com.example.domain.account.model.CloseAccountCmd;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -17,6 +23,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -49,6 +56,20 @@ public class AccountController {
   public ResponseEntity<Void> close(@PathVariable String accountId) {
     service.close(accountId, new CloseAccountCmd(accountId));
     return ResponseEntity.noContent().build();
+  }
+
+  @GetMapping
+  @Operation(summary = "List accounts")
+  public ResponseEntity<Page<AccountSummary>> list(
+      @RequestParam(required = false) String accountNumber,
+      @RequestParam(required = false) String customerId,
+      @RequestParam(required = false) AccountStatus status,
+      @PageableDefault(page = 0, size = 25) Pageable pageable) {
+    Pageable bounded = pageable.getPageSize() > 100
+        ? PageRequest.of(pageable.getPageNumber(), 100, pageable.getSort())
+        : pageable;
+    return ResponseEntity.ok(service.list(accountNumber, customerId, status, bounded)
+        .map(AccountSummary::from));
   }
 
   @GetMapping("/{accountId}")

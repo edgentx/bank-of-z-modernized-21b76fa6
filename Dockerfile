@@ -81,10 +81,11 @@ ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAM
 ENV SPRING_PROFILES_DEFAULT="vforce_dev"
 ENV SPRING_DATA_MONGODB_URI="mongodb://bank:bank-mongo-dev-pw@bank-mongo:27017/bank?authSource=admin"
 
-# Actuator health probe (S-40 AC: health check endpoints configured).
-# 30s start period accommodates JPA validate + Flyway baseline on first boot.
+# Actuator liveness probe (S-40 AC: health check endpoints configured).
+# Keep the container healthcheck independent of optional backing services so
+# dev smoke tests do not fail while Mongo/Redis/OTLP are still warming up.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD curl --fail --silent http://localhost:8000/actuator/health || exit 1
+    CMD curl --fail --silent http://localhost:8000/actuator/health/liveness || exit 1
 
 # Exec form so the JVM is PID 1 and receives SIGTERM for graceful shutdown.
 ENTRYPOINT ["sh", "-c", "exec java ${JAVA_OPTS} -jar /app/app.jar \"$@\"", "--"]

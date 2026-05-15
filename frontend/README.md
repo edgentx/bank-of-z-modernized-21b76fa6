@@ -38,6 +38,14 @@ loaded by Next based on `NODE_ENV`.
 | `NEXT_PUBLIC_ENVIRONMENT` | Friendly env tag (development/staging/...).|
 | `API_REQUEST_TIMEOUT_MS`  | Server-side default request timeout.       |
 
+Production-style deployments should set `NEXT_PUBLIC_API_BASE_URL=/api` so browser calls stay on the same origin and route through the ingress to the Spring Boot API.
+
+## API Surface
+
+The landing dashboard loads `GET /api/dashboard/summary` and expects the typed summary shape in `lib/api/dashboard.ts`. Monetary totals are returned as minor units, matching the frontend formatting helpers.
+
+The 3270 terminal loads screen maps from `GET /api/terminal/screens/{screenId}`. The workstation starts on `MAINMENU`; the `SIGNON` screen is a terminal screen map, not a separate browser credential form.
+
 ## Layout
 
 ```

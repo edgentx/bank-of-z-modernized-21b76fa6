@@ -17,8 +17,10 @@ RUN npm ci --no-audit --no-fund
 # ---- Stage 2: build ----------------------------------------------------------
 FROM node:20-alpine AS build
 WORKDIR /app
+ARG NEXT_PUBLIC_API_BASE_URL=/api
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

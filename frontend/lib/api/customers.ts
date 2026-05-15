@@ -4,7 +4,8 @@
 // the Spring Boot teller-core service.
 
 import { api } from './client';
-import type { Page, PageRequest } from './types';
+import { normalizePage } from './types';
+import type { Page, PageLike, PageRequest } from './types';
 
 export interface CustomerSummary {
   customerId: string;
@@ -46,7 +47,9 @@ export const customersApi = {
     query: CustomerSearchQuery = {},
     signal?: AbortSignal,
   ): Promise<Page<CustomerSummary>> =>
-    api.get<Page<CustomerSummary>>('/customers', { params: toParams(query), signal }),
+    api
+      .get<PageLike<CustomerSummary>>('/customers', { params: toParams(query), signal })
+      .then(normalizePage),
   get: (customerId: string, signal?: AbortSignal): Promise<CustomerDetail> =>
     api.get<CustomerDetail>(`/customers/${encodeURIComponent(customerId)}`, { signal }),
 };

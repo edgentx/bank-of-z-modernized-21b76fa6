@@ -35,3 +35,33 @@ export interface Page<T> {
   totalItems: number;
   totalPages: number;
 }
+
+export interface SpringPage<T> {
+  content?: T[];
+  number?: number;
+  size?: number;
+  totalElements?: number;
+  totalPages?: number;
+}
+
+export type PageLike<T> = Page<T> | SpringPage<T>;
+
+export function normalizePage<T>(page: PageLike<T>): Page<T> {
+  const source = page as Page<T> & SpringPage<T>;
+  const items = Array.isArray(source.items)
+    ? source.items
+    : Array.isArray(source.content)
+      ? source.content
+      : [];
+
+  return {
+    items,
+    page: typeof source.page === 'number' ? source.page : source.number ?? 0,
+    size: source.size ?? items.length,
+    totalItems:
+      typeof source.totalItems === 'number'
+        ? source.totalItems
+        : source.totalElements ?? items.length,
+    totalPages: source.totalPages ?? 0,
+  };
+}

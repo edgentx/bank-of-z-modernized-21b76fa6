@@ -11,4 +11,7 @@ import java.util.List;
 public interface TransactionMongoDataRepository extends MongoRepository<TransactionDocument, String> {
   Page<TransactionDocument> findByAccountId(String accountId, Pageable pageable);
   List<TransactionDocument> findByAccountIdAndKind(String accountId, String kind);
+  long countByPostedFalseAndReversedFalse();
+  long countByPostedTrueAndReversedFalse();
+  List<TransactionDocument> findByKindAndPostedTrueAndReversedFalse(String kind);
 }

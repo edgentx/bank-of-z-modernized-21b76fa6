@@ -18,4 +18,5 @@ import java.util.List;
 public interface AccountMongoDataRepository extends MongoRepository<AccountDocument, String> {
   Page<AccountDocument> findByCustomerId(String customerId, Pageable pageable);
   List<AccountDocument> findByStatus(String status);
+  long countByStatus(String status);
 }

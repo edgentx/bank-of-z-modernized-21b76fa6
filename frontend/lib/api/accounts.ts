@@ -6,7 +6,8 @@
 // adjust the path roots if the backend gateway prefixes them.
 
 import { api } from './client';
-import type { Page, PageRequest } from './types';
+import { normalizePage } from './types';
+import type { Page, PageLike, PageRequest } from './types';
 
 export type AccountStatus = 'ACTIVE' | 'DORMANT' | 'CLOSED' | 'FROZEN';
 
@@ -60,7 +61,9 @@ function toParams(query: AccountSearchQuery): Record<string, string | number> {
 
 export const accountsApi = {
   list: (query: AccountSearchQuery = {}, signal?: AbortSignal): Promise<Page<AccountSummary>> =>
-    api.get<Page<AccountSummary>>('/accounts', { params: toParams(query), signal }),
+    api
+      .get<PageLike<AccountSummary>>('/accounts', { params: toParams(query), signal })
+      .then(normalizePage),
   get: (accountId: string, signal?: AbortSignal): Promise<AccountDetail> =>
     api.get<AccountDetail>(`/accounts/${encodeURIComponent(accountId)}`, { signal }),
   transactions: (
@@ -68,8 +71,10 @@ export const accountsApi = {
     query: PageRequest = {},
     signal?: AbortSignal,
   ): Promise<Page<AccountTransaction>> =>
-    api.get<Page<AccountTransaction>>(`/accounts/${encodeURIComponent(accountId)}/transactions`, {
-      params: { page: query.page ?? 0, size: query.size ?? 20, sort: query.sort ?? 'postedAt,desc' },
-      signal,
-    }),
+    api
+      .get<PageLike<AccountTransaction>>(`/accounts/${encodeURIComponent(accountId)}/transactions`, {
+        params: { page: query.page ?? 0, size: query.size ?? 20, sort: query.sort ?? 'postedAt,desc' },
+        signal,
+      })
+      .then(normalizePage),
 };

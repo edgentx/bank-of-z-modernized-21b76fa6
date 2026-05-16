@@ -19,5 +19,6 @@ import java.util.Optional;
 public interface CustomerMongoDataRepository extends MongoRepository<CustomerDocument, String> {
   Optional<CustomerDocument> findByEmail(String email);
   Page<CustomerDocument> findBySortCode(String sortCode, Pageable pageable);
+  Page<CustomerDocument> findByFullNameContainingIgnoreCase(String fullName, Pageable pageable);
   long countByEnrolledTrue();
 }

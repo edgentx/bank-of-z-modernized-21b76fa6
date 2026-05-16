@@ -24,18 +24,10 @@ export function TerminalView() {
   const auth = useAuth();
   const [screenId, setScreenId] = useState<string>(DEFAULT_SCREEN_ID);
   const [history, setHistory] = useState<string[]>([]);
-  const [lastSubmission, setLastSubmission] = useState<Record<string, string> | null>(null);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   const { state, refresh } = useApiResource<ScreenMap>(
     (signal) => terminalApi.getScreen(screenId, signal),
-    [screenId],
-  );
-
-  const navigate = useCallback(
-    (next: string) => {
-      setHistory((stack) => [...stack, screenId]);
-      setScreenId(next);
-    },
     [screenId],
   );
 
@@ -49,9 +41,21 @@ export function TerminalView() {
     });
   }, []);
 
-  const onSubmit = useCallback((values: Record<string, string>) => {
-    setLastSubmission(values);
-  }, []);
+  const onSubmit = useCallback(
+    async (values: Record<string, string>) => {
+      setSubmissionError(null);
+      try {
+        const next = await terminalApi.submit({ screenId, values });
+        if (next.screenId !== screenId) {
+          setHistory((stack) => [...stack, screenId]);
+        }
+        setScreenId(next.screenId);
+      } catch (err) {
+        setSubmissionError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [screenId],
+  );
 
   const canExit = history.length > 0;
 
@@ -125,38 +129,20 @@ export function TerminalView() {
             screen={state.data}
             onSubmit={onSubmit}
             onExit={canExit ? back : undefined}
-            onClear={() => setLastSubmission(null)}
+            onClear={() => setSubmissionError(null)}
           />
         )}
       </ErrorBoundary>
 
-      {lastSubmission && (
-        <Card
-          title="Last submission"
-          description="Captured locally — the host will validate via the screen-map command handler."
+      {submissionError && (
+        <div
+          role="alert"
+          className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-900"
         >
-          <pre className="overflow-x-auto rounded bg-slate-950 p-3 text-xs text-emerald-200">
-            {JSON.stringify(lastSubmission, null, 2)}
-          </pre>
-        </Card>
-      )}
-
-      <Card
-        title="Navigate"
-        description="Jump to a known screen — handy until the host wires AID-driven navigation back to the emulator."
-      >
-        <div className="mt-2 flex flex-wrap gap-2">
-          {['MAINMENU', 'SIGNON', 'ACCTLIST', 'ACCTDET', 'TXLIST'].map((id) => (
-            <Button
-              key={id}
-              variant={id === screenId ? 'primary' : 'secondary'}
-              onClick={() => navigate(id)}
-            >
-              {id}
-            </Button>
-          ))}
+          <p className="font-semibold">Terminal command failed</p>
+          <p className="mt-1">{submissionError}</p>
         </div>
-      </Card>
+      )}
     </section>
   );
 }

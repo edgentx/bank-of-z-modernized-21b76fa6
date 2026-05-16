@@ -47,4 +47,17 @@ class TerminalControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.screenId").value("MAINMENU"));
   }
+
+  @Test
+  void submitMainMenuOptionNavigatesToSelectedScreen() throws Exception {
+    var body = Map.of(
+        "screenId", "MAINMENU",
+        "values", Map.of("option", "1"));
+
+    mockMvc.perform(post("/api/terminal/screens/submit")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(body)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.screenId").value("ACCTLIST"));
+  }
 }

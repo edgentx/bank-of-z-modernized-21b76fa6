@@ -1,12 +1,17 @@
 package com.example.api.account;
 
 import com.example.api.account.dto.AccountSummary;
+import com.example.api.account.dto.AccountTransactionSummary;
 import com.example.api.account.dto.AccountResponse;
 import com.example.api.account.dto.OpenAccountRequest;
 import com.example.api.account.dto.UpdateAccountStatusRequest;
 import com.example.application.account.AccountAppService;
+import com.example.domain.account.model.AccountAggregate;
 import com.example.domain.account.model.AccountStatus;
 import com.example.domain.account.model.CloseAccountCmd;
+import com.example.infrastructure.mongo.customer.CustomerDocument;
+import com.example.infrastructure.mongo.customer.CustomerMongoDataRepository;
+import com.example.infrastructure.mongo.transaction.TransactionMongoDataRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -32,9 +37,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class AccountController {
 
   private final AccountAppService service;
+  private final CustomerMongoDataRepository customers;
+  private final TransactionMongoDataRepository transactions;
 
-  public AccountController(AccountAppService service) {
+  public AccountController(
+      AccountAppService service,
+      CustomerMongoDataRepository customers,
+      TransactionMongoDataRepository transactions) {
     this.service = service;
+    this.customers = customers;
+    this.transactions = transactions;
   }
 
   @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -69,12 +81,34 @@ public class AccountController {
         ? PageRequest.of(pageable.getPageNumber(), 100, pageable.getSort())
         : pageable;
     return ResponseEntity.ok(service.list(accountNumber, customerId, status, bounded)
-        .map(AccountSummary::from));
+        .map(account -> AccountSummary.from(account, customerName(account.getCustomerId()))));
+  }
+
+  @GetMapping("/{accountId}/transactions")
+  @Operation(summary = "List posted transactions for an account")
+  public ResponseEntity<Page<AccountTransactionSummary>> transactions(
+      @PathVariable String accountId,
+      @PageableDefault(page = 0, size = 25) Pageable pageable) {
+    Pageable bounded = pageable.getPageSize() > 100
+        ? PageRequest.of(pageable.getPageNumber(), 100, pageable.getSort())
+        : pageable;
+    AccountAggregate account = service.findById(accountId);
+    long runningBalance = account.getInitialDeposit();
+    return ResponseEntity.ok(transactions.findByAccountId(accountId, bounded)
+        .map(transaction -> AccountTransactionSummary.from(transaction, runningBalance)));
   }
 
   @GetMapping("/{accountId}")
   @Operation(summary = "Fetch an account by id")
   public AccountResponse find(@PathVariable String accountId) {
-    return AccountResponse.from(service.findById(accountId));
+    AccountAggregate account = service.findById(accountId);
+    return AccountResponse.from(account, customerName(account.getCustomerId()));
+  }
+
+  private String customerName(String customerId) {
+    return customers.findById(customerId)
+        .map(CustomerDocument::getFullName)
+        .filter(name -> !name.isBlank())
+        .orElse(customerId);
   }
 }

@@ -24,6 +24,7 @@ export function TerminalView() {
   const auth = useAuth();
   const [screenId, setScreenId] = useState<string>(DEFAULT_SCREEN_ID);
   const [history, setHistory] = useState<string[]>([]);
+  const [hostScreen, setHostScreen] = useState<ScreenMap | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   const { state, refresh } = useApiResource<ScreenMap>(
@@ -36,7 +37,10 @@ export function TerminalView() {
       if (stack.length === 0) return stack;
       const copy = stack.slice();
       const prev = copy.pop();
-      if (prev) setScreenId(prev);
+      if (prev) {
+        setHostScreen(null);
+        setScreenId(prev);
+      }
       return copy;
     });
   }, []);
@@ -46,6 +50,7 @@ export function TerminalView() {
       setSubmissionError(null);
       try {
         const next = await terminalApi.submit({ screenId, values });
+        setHostScreen(next);
         if (next.screenId !== screenId) {
           setHistory((stack) => [...stack, screenId]);
         }
@@ -58,6 +63,8 @@ export function TerminalView() {
   );
 
   const canExit = history.length > 0;
+  const displayScreen =
+    hostScreen?.screenId === screenId ? hostScreen : state.status === 'success' ? state.data : null;
 
   const guard = useMemo(() => {
     if (!auth.authenticated) {
@@ -109,11 +116,11 @@ export function TerminalView() {
           <DefaultErrorFallback error={error} reset={reset} title="Terminal screen failed" />
         )}
       >
-        {state.status === 'idle' || state.status === 'loading' ? (
+        {!displayScreen && (state.status === 'idle' || state.status === 'loading') ? (
           <div aria-busy="true" className="rounded-md border border-slate-200 bg-white p-6">
             <Spinner label={`Loading ${screenId}`} />
           </div>
-        ) : state.status === 'error' ? (
+        ) : !displayScreen && state.status === 'error' ? (
           <div
             role="alert"
             className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-900"
@@ -124,14 +131,14 @@ export function TerminalView() {
               Retry
             </Button>
           </div>
-        ) : (
+        ) : displayScreen ? (
           <TerminalEmulator
-            screen={state.data}
+            screen={displayScreen}
             onSubmit={onSubmit}
             onExit={canExit ? back : undefined}
             onClear={() => setSubmissionError(null)}
           />
-        )}
+        ) : null}
       </ErrorBoundary>
 
       {submissionError && (

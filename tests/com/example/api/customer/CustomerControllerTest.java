@@ -7,16 +7,24 @@ import com.example.domain.customer.model.CustomerAggregate;
 import com.example.domain.customer.model.DeleteCustomerCmd;
 import com.example.domain.customer.model.EnrollCustomerCmd;
 import com.example.domain.customer.model.UpdateCustomerDetailsCmd;
+import com.example.infrastructure.mongo.account.AccountDocument;
+import com.example.infrastructure.mongo.account.AccountMongoDataRepository;
+import com.example.infrastructure.mongo.customer.CustomerDocument;
+import com.example.infrastructure.mongo.customer.CustomerMongoDataRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
@@ -36,6 +44,8 @@ class CustomerControllerTest {
   @Autowired private MockMvc mockMvc;
   @Autowired private ObjectMapper objectMapper;
   @MockBean private CustomerAppService service;
+  @MockBean private CustomerMongoDataRepository customerData;
+  @MockBean private AccountMongoDataRepository accountData;
 
   private CustomerAggregate enrolled(String id) {
     CustomerAggregate agg = new CustomerAggregate(id);
@@ -136,5 +146,52 @@ class CustomerControllerTest {
     mockMvc.perform(get("/api/customers/c-1"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.customerId").value("c-1"));
+  }
+
+  @Test
+  void searchByName_returnsPagedCustomerSummaries() throws Exception {
+    CustomerDocument doc = new CustomerDocument(
+        "CUS-1001",
+        "Pat Morgan",
+        "pat.morgan@example.com",
+        "12-34-56",
+        true,
+        1);
+    when(customerData.findByFullNameContainingIgnoreCase("Pat", PageRequest.of(0, 25)))
+        .thenReturn(new PageImpl<>(List.of(doc), PageRequest.of(0, 25), 1));
+
+    mockMvc.perform(get("/api/customers")
+            .param("name", "Pat")
+            .param("page", "0")
+            .param("size", "25"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].customerId").value("CUS-1001"))
+        .andExpect(jsonPath("$.content[0].fullName").value("Pat Morgan"))
+        .andExpect(jsonPath("$.content[0].status").value("ENROLLED"));
+  }
+
+  @Test
+  void searchByAccountNumber_resolvesCustomerThroughAccount() throws Exception {
+    AccountDocument account = new AccountDocument();
+    account.setId("20123456");
+    account.setCustomerId("CUS-1001");
+    CustomerDocument customer = new CustomerDocument(
+        "CUS-1001",
+        "Pat Morgan",
+        "pat.morgan@example.com",
+        "12-34-56",
+        true,
+        1);
+
+    when(accountData.findById("20123456")).thenReturn(Optional.of(account));
+    when(customerData.findById("CUS-1001")).thenReturn(Optional.of(customer));
+
+    mockMvc.perform(get("/api/customers")
+            .param("accountNumber", "20123456")
+            .param("page", "0")
+            .param("size", "25"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].customerId").value("CUS-1001"))
+        .andExpect(jsonPath("$.content[0].fullName").value("Pat Morgan"));
   }
 }

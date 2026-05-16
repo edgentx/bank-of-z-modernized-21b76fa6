@@ -87,8 +87,19 @@ public class TerminalController {
   @PostMapping(value = "/submit", consumes = MediaType.APPLICATION_JSON_VALUE)
   @Operation(summary = "Submit a terminal screen and return the next screen")
   public ScreenMap submit(@RequestBody ScreenInputPayload payload) {
-    if ("SIGNON".equals(normalize(payload.screenId()))) {
+    String screenId = normalize(payload.screenId());
+    Map<String, String> values = payload.values() == null ? Map.of() : payload.values();
+    if ("SIGNON".equals(screenId)) {
       return getScreen("MAINMENU");
+    }
+    if ("MAINMENU".equals(screenId)) {
+      return switch (values.getOrDefault("option", "").trim()) {
+        case "1" -> getScreen("ACCTLIST");
+        case "2" -> getScreen("ACCTDET");
+        case "3" -> getScreen("TXLIST");
+        case "4" -> getScreen("SIGNON");
+        default -> getScreen("MAINMENU");
+      };
     }
     return getScreen(payload.screenId());
   }

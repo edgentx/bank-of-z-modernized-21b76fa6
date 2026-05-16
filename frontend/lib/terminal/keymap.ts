@@ -18,7 +18,14 @@ export interface KeyEventLike {
   metaKey?: boolean;
 }
 
-export type TerminalAction = 'NEXT_FIELD' | 'PREV_FIELD' | 'SUBMIT' | 'EXIT' | 'CLEAR' | 'NONE';
+export type TerminalAction =
+  | 'NEXT_FIELD'
+  | 'PREV_FIELD'
+  | 'SUBMIT'
+  | 'EXIT'
+  | 'CLEAR'
+  | 'HELP'
+  | 'NONE';
 
 /**
  * Translate a keyboard event into the 3270 action that the host expects.
@@ -27,8 +34,9 @@ export type TerminalAction = 'NEXT_FIELD' | 'PREV_FIELD' | 'SUBMIT' | 'EXIT' | '
  *   - Tab           → next unprotected field
  *   - Shift+Tab     → previous unprotected field
  *   - Enter / F5    → submit the screen (AID=ENTER / refresh)
+ *   - F1            → help
  *   - F3            → exit / back to previous screen (AID=PF3)
- *   - Esc / Pause   → clear (AID=CLEAR)
+ *   - Esc / Pause / F12 → clear (AID=CLEAR)
  *
  * Modifier-augmented combinations (Ctrl+Enter, Cmd+Tab, etc.) are passed
  * through as `NONE` so browser shortcuts keep working.
@@ -39,9 +47,10 @@ export function mapKey(event: KeyEventLike): TerminalAction {
   if (event.key === 'Tab') {
     return event.shiftKey ? 'PREV_FIELD' : 'NEXT_FIELD';
   }
+  if (event.key === 'F1') return 'HELP';
   if (event.key === 'Enter' || event.key === 'F5') return 'SUBMIT';
   if (event.key === 'F3') return 'EXIT';
-  if (event.key === 'Escape' || event.key === 'Pause') return 'CLEAR';
+  if (event.key === 'Escape' || event.key === 'Pause' || event.key === 'F12') return 'CLEAR';
 
   return 'NONE';
 }

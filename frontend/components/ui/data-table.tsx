@@ -18,6 +18,7 @@ export interface DataTableProps<T> {
   onRowSelect?: (row: T) => void;
   selectedRowKey?: string;
   className?: string;
+  tableClassName?: string;
 }
 
 const alignClass: Record<NonNullable<DataTableColumn<unknown>['align']>, string> = {
@@ -35,11 +36,12 @@ export function DataTable<T>({
   onRowSelect,
   selectedRowKey,
   className,
+  tableClassName,
 }: DataTableProps<T>) {
   const interactive = Boolean(onRowSelect);
   return (
     <div className={cn('overflow-x-auto rounded-md border border-slate-200 bg-white', className)}>
-      <table className="w-full border-collapse text-sm">
+      <table className={cn('w-full border-collapse text-sm', tableClassName)}>
         <caption className="sr-only">{caption}</caption>
         <thead className="bg-slate-50 text-slate-700">
           <tr>
@@ -76,7 +78,7 @@ export function DataTable<T>({
                   className={cn(
                     'text-slate-800',
                     interactive &&
-                      'cursor-pointer hover:bg-teller-surface focus-within:bg-teller-surface',
+                      'cursor-pointer focus-within:bg-teller-surface hover:bg-teller-surface',
                     selected && 'bg-teller-surface',
                   )}
                   onClick={onRowSelect ? () => onRowSelect(row) : undefined}

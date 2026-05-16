@@ -40,7 +40,7 @@ export function AccountsView() {
   const auth = useAuth();
   const [draftQuery, setDraftQuery] = useState('');
   const [filter, setFilter] = useState<ListFilter>(EMPTY_FILTER);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<AccountSummary | null>(null);
 
   const onSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
@@ -82,7 +82,10 @@ export function AccountsView() {
         </p>
       </header>
 
-      <Card title="Filters" description="Narrow the list by account number, customer ID, or status.">
+      <Card
+        title="Filters"
+        description="Narrow the list by account number, customer ID, or status."
+      >
         <form onSubmit={onSubmit} className="mt-3 flex flex-wrap items-end gap-3" role="search">
           <Input
             name="account-query"
@@ -122,8 +125,8 @@ export function AccountsView() {
         >
           <AccountList
             filter={filter}
-            selectedId={selectedId}
-            onSelect={(row) => setSelectedId(row.accountId)}
+            selectedId={selectedAccount?.accountId ?? null}
+            onSelect={setSelectedAccount}
           />
         </ErrorBoundary>
 
@@ -132,9 +135,22 @@ export function AccountsView() {
             <DefaultErrorFallback error={error} reset={reset} title="Account detail failed" />
           )}
         >
-          <AccountDetailPane accountId={selectedId} />
+          <AccountDetailPane accountId={selectedAccount?.accountId ?? null} />
         </ErrorBoundary>
       </div>
+
+      {selectedAccount && (
+        <ErrorBoundary
+          fallback={(error, reset) => (
+            <DefaultErrorFallback error={error} reset={reset} title="Transaction history failed" />
+          )}
+        >
+          <TransactionHistory
+            accountId={selectedAccount.accountId}
+            currency={selectedAccount.currency}
+          />
+        </ErrorBoundary>
+      )}
     </section>
   );
 }
@@ -172,7 +188,10 @@ function AccountList({
   }
   if (state.status === 'error') {
     return (
-      <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+      <div
+        role="alert"
+        className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-900"
+      >
         <p className="font-semibold">Could not load accounts</p>
         <p className="mt-1">{state.error.message}</p>
         <Button variant="secondary" className="mt-3" onClick={refresh}>
@@ -243,7 +262,10 @@ function AccountDetailLoader({ accountId }: { accountId: string }) {
   }
   if (state.status === 'error') {
     return (
-      <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+      <div
+        role="alert"
+        className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-900"
+      >
         <p className="font-semibold">Could not load account</p>
         <p className="mt-1">{state.error.message}</p>
         <Button variant="secondary" className="mt-3" onClick={refresh}>
@@ -256,13 +278,6 @@ function AccountDetailLoader({ accountId }: { accountId: string }) {
   return (
     <div className="space-y-5">
       <AccountDetailCard account={state.data} />
-      <ErrorBoundary
-        fallback={(error, reset) => (
-          <DefaultErrorFallback error={error} reset={reset} title="Transaction history failed" />
-        )}
-      >
-        <TransactionHistory accountId={state.data.accountId} currency={state.data.currency} />
-      </ErrorBoundary>
     </div>
   );
 }
@@ -282,7 +297,10 @@ function AccountDetailCard({ account }: { account: AccountDetail }) {
     { label: 'Updated', value: formatDateTime(account.updatedAt) },
   ];
   return (
-    <Card title={account.accountNumber} description={`${account.accountType} · ${account.currency}`}>
+    <Card
+      title={account.accountNumber}
+      description={`${account.accountType} · ${account.currency}`}
+    >
       <dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
         {rows.map((row) => (
           <div key={row.label} className="flex flex-col">
@@ -295,13 +313,7 @@ function AccountDetailCard({ account }: { account: AccountDetail }) {
   );
 }
 
-function TransactionHistory({
-  accountId,
-  currency,
-}: {
-  accountId: string;
-  currency: string;
-}) {
+function TransactionHistory({ accountId, currency }: { accountId: string; currency: string }) {
   const { state, refresh } = useApiResource<Page<AccountTransaction>>(
     (signal) => accountsApi.transactions(accountId, { size: 25 }, signal),
     [accountId],
@@ -316,7 +328,10 @@ function TransactionHistory({
   }
   if (state.status === 'error') {
     return (
-      <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+      <div
+        role="alert"
+        className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-900"
+      >
         <p className="font-semibold">Could not load transactions</p>
         <p className="mt-1">{state.error.message}</p>
         <Button variant="secondary" className="mt-3" onClick={refresh}>
@@ -361,6 +376,7 @@ function TransactionHistory({
         rows={state.data.items}
         rowKey={(row) => row.transactionId}
         emptyMessage="No transactions posted yet."
+        tableClassName="min-w-[48rem]"
       />
     </section>
   );
@@ -379,9 +395,7 @@ function AccountStatusBadge({ status }: { status: AccountStatus }) {
     CLOSED: 'bg-red-100 text-red-800',
   };
   return (
-    <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${palette[status]}`}
-    >
+    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${palette[status]}`}>
       {status}
     </span>
   );

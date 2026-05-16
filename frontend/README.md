@@ -31,12 +31,15 @@ Public, browser-exposed values are prefixed `NEXT_PUBLIC_`. Copy `.env.example` 
 `.env.local` for personal overrides; `.env.{environment}` files at the repo root are
 loaded by Next based on `NODE_ENV`.
 
-| Variable                  | Notes                                      |
-| ------------------------- | ------------------------------------------ |
-| `NEXT_PUBLIC_API_BASE_URL`| Base URL for the Spring Boot teller API.   |
-| `NEXT_PUBLIC_APP_NAME`    | Display name shown in the UI shell.        |
-| `NEXT_PUBLIC_ENVIRONMENT` | Friendly env tag (development/staging/...).|
-| `API_REQUEST_TIMEOUT_MS`  | Server-side default request timeout.       |
+| Variable                   | Notes                                                                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_API_BASE_URL` | Base URL for the Spring Boot teller API.                                                                                 |
+| `NEXT_PUBLIC_APP_NAME`     | Display name shown in the UI shell.                                                                                      |
+| `NEXT_PUBLIC_ENVIRONMENT`  | Friendly env tag (development/staging/...).                                                                              |
+| `API_REQUEST_TIMEOUT_MS`   | Server-side default request timeout.                                                                                     |
+| `BANK_MOCK_USER_ENABLED`   | Enables mocked teller identity when trusted headers are absent. Defaults to `true`. Set `false` when an IdP is deployed. |
+| `BANK_MOCK_USER_ID`        | Mock teller user ID. Defaults to `TELLER001`.                                                                            |
+| `BANK_MOCK_USER_ROLES`     | Comma-separated mock roles. Defaults to `TELLER,SUPERVISOR`.                                                             |
 
 Production-style deployments should set `NEXT_PUBLIC_API_BASE_URL=/api` so browser calls stay on the same origin and route through the ingress to the Spring Boot API.
 
@@ -71,11 +74,11 @@ User identity is **never** collected by the teller frontend. Authentication is
 performed upstream by the Envoy + OPA sidecar, which forwards trusted headers
 on every request:
 
-| Header                  | Meaning                                      |
-| ----------------------- | -------------------------------------------- |
-| `X-User-Id`             | Sidecar-asserted user identifier             |
-| `X-User-Roles`          | Comma-separated role list                    |
-| `X-Session-Expires-At`  | Unix epoch (seconds or ms) or ISO-8601       |
+| Header                 | Meaning                                |
+| ---------------------- | -------------------------------------- |
+| `X-User-Id`            | Sidecar-asserted user identifier       |
+| `X-User-Roles`         | Comma-separated role list              |
+| `X-Session-Expires-At` | Unix epoch (seconds or ms) or ISO-8601 |
 
 The root `app/layout.tsx` reads these via `next/headers` (`readTrustedIdentity()`)
 and seeds `<AuthProvider>` with the resulting `UserIdentity`. Client code calls
@@ -83,6 +86,12 @@ and seeds `<AuthProvider>` with the resulting `UserIdentity`. Client code calls
 `logout()` to clear session state. The provider also runs a session-timeout
 watchdog that bounces the user back to `/login` when `X-Session-Expires-At`
 elapses (or on tab refocus, in case the timer drifted during sleep).
+
+Until the platform identity provider is deployed for BANK, the frontend falls
+back to a mocked teller identity when trusted headers are missing:
+`TELLER001` with `TELLER,SUPERVISOR` roles. Disable that fallback with
+`BANK_MOCK_USER_ENABLED=false` once Envoy/OPA is forwarding real identity
+headers.
 
 Pure helpers live in `lib/auth/identity.ts` and are covered by
 `lib/auth/__tests__/`.

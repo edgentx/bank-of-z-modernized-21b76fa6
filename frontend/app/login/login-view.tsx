@@ -47,9 +47,9 @@ export function LoginView({ user, alreadyAuthenticated }: LoginViewProps) {
         description="Authentication is handled by the Envoy + OPA sidecar. Continue to be redirected through the identity provider."
       >
         <p className="mt-2 text-sm text-slate-600">
-          The teller workstation does not collect credentials directly — your session is
-          established upstream and the sidecar forwards <code>X-User-Id</code> and{' '}
-          <code>X-User-Roles</code> on every request.
+          The teller workstation does not collect credentials directly — your session is established
+          upstream and the sidecar forwards <code>X-User-Id</code> and <code>X-User-Roles</code> on
+          every request.
         </p>
         <div className="mt-6">
           <Button variant="primary" onClick={auth.reauthenticate}>

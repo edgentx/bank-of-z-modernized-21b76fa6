@@ -15,11 +15,15 @@ public record AccountSummary(
     String openedAt
 ) {
   public static AccountSummary from(AccountAggregate agg) {
+    return from(agg, agg.getCustomerId());
+  }
+
+  public static AccountSummary from(AccountAggregate agg, String customerName) {
     return new AccountSummary(
         agg.id(),
         agg.id(),
         agg.getCustomerId(),
-        agg.id(),
+        customerName,
         agg.getAccountType(),
         agg.getStatus(),
         agg.getInitialDeposit(),

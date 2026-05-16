@@ -15,6 +15,10 @@ test('Enter submits the screen (AID=ENTER)', () => {
   assert.equal(mapKey({ key: 'Enter' }), 'SUBMIT');
 });
 
+test('F5 refreshes by submitting the current screen', () => {
+  assert.equal(mapKey({ key: 'F5' }), 'SUBMIT');
+});
+
 test('F3 exits / returns to previous screen', () => {
   assert.equal(mapKey({ key: 'F3' }), 'EXIT');
 });
@@ -33,7 +37,6 @@ test('Modifier-augmented keys fall through so browser shortcuts work', () => {
 test('Unrelated keys produce NONE', () => {
   assert.equal(mapKey({ key: 'a' }), 'NONE');
   assert.equal(mapKey({ key: 'ArrowLeft' }), 'NONE');
-  assert.equal(mapKey({ key: 'F5' }), 'NONE');
 });
 
 test('shouldConsume is true for every recognised action, false for NONE', () => {

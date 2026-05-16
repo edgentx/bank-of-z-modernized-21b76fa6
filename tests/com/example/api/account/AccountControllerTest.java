@@ -8,7 +8,15 @@ import com.example.domain.account.model.AccountStatus;
 import com.example.domain.account.model.CloseAccountCmd;
 import com.example.domain.account.model.OpenAccountCmd;
 import com.example.domain.account.model.UpdateAccountStatusCmd;
+import com.example.infrastructure.mongo.customer.CustomerDocument;
+import com.example.infrastructure.mongo.customer.CustomerMongoDataRepository;
+import com.example.infrastructure.mongo.transaction.TransactionDocument;
+import com.example.infrastructure.mongo.transaction.TransactionMongoDataRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -18,9 +26,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.List;
-import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -40,6 +45,8 @@ class AccountControllerTest {
   @Autowired private MockMvc mockMvc;
   @Autowired private ObjectMapper objectMapper;
   @MockBean private AccountAppService service;
+  @MockBean private CustomerMongoDataRepository customers;
+  @MockBean private TransactionMongoDataRepository transactions;
 
   private AccountAggregate opened() {
     AccountAggregate agg = new AccountAggregate("a-1");
@@ -125,6 +132,8 @@ class AccountControllerTest {
     agg.execute(new UpdateAccountStatusCmd("a-1", "ACTIVE"));
     when(service.list(eq("a-"), eq("c-1"), eq(AccountStatus.ACTIVE), any()))
         .thenReturn(new PageImpl<>(List.of(agg), PageRequest.of(0, 10), 1));
+    when(customers.findById("c-1"))
+        .thenReturn(Optional.of(new CustomerDocument("c-1", "Alice Doe", "alice@example.com", "12-34-56", true, 1)));
 
     mockMvc.perform(get("/api/accounts")
             .param("accountNumber", "a-")
@@ -136,7 +145,7 @@ class AccountControllerTest {
         .andExpect(jsonPath("$.content[0].accountId").value("a-1"))
         .andExpect(jsonPath("$.content[0].accountNumber").value("a-1"))
         .andExpect(jsonPath("$.content[0].customerId").value("c-1"))
-        .andExpect(jsonPath("$.content[0].customerName").value("a-1"))
+        .andExpect(jsonPath("$.content[0].customerName").value("Alice Doe"))
         .andExpect(jsonPath("$.content[0].status").value("ACTIVE"))
         .andExpect(jsonPath("$.content[0].balance").value(1000))
         .andExpect(jsonPath("$.content[0].currency").value("GBP"))
@@ -151,5 +160,58 @@ class AccountControllerTest {
 
     mockMvc.perform(get("/api/accounts/missing"))
         .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void find_returnsFrontendDetailShape() throws Exception {
+    AccountAggregate agg = opened();
+    agg.execute(new UpdateAccountStatusCmd("a-1", "ACTIVE"));
+    when(service.findById("a-1")).thenReturn(agg);
+    when(customers.findById("c-1"))
+        .thenReturn(Optional.of(new CustomerDocument("c-1", "Alice Doe", "alice@example.com", "12-34-56", true, 1)));
+
+    mockMvc.perform(get("/api/accounts/a-1"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.accountId").value("a-1"))
+        .andExpect(jsonPath("$.accountNumber").value("a-1"))
+        .andExpect(jsonPath("$.customerId").value("c-1"))
+        .andExpect(jsonPath("$.customerName").value("Alice Doe"))
+        .andExpect(jsonPath("$.balance").value(1000))
+        .andExpect(jsonPath("$.availableBalance").value(1000))
+        .andExpect(jsonPath("$.overdraftLimit").value(0))
+        .andExpect(jsonPath("$.currency").value("GBP"))
+        .andExpect(jsonPath("$.branch").value("12-34-56"))
+        .andExpect(jsonPath("$.openedAt").isString())
+        .andExpect(jsonPath("$.updatedAt").isString());
+  }
+
+  @Test
+  void transactions_returnsFrontendLedgerShape() throws Exception {
+    AccountAggregate agg = opened();
+    agg.execute(new UpdateAccountStatusCmd("a-1", "ACTIVE"));
+    TransactionDocument transaction = new TransactionDocument();
+    transaction.setId("tx-1");
+    transaction.setAccountId("a-1");
+    transaction.setKind("deposit");
+    transaction.setAmount(new BigDecimal("42.50"));
+    transaction.setCurrency("gbp");
+    transaction.setPosted(true);
+
+    when(service.findById("a-1")).thenReturn(agg);
+    when(transactions.findByAccountId(eq("a-1"), any()))
+        .thenReturn(new PageImpl<>(List.of(transaction), PageRequest.of(0, 25), 1));
+
+    mockMvc.perform(get("/api/accounts/a-1/transactions")
+            .param("page", "0")
+            .param("size", "25"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].transactionId").value("tx-1"))
+        .andExpect(jsonPath("$.content[0].accountId").value("a-1"))
+        .andExpect(jsonPath("$.content[0].postedAt").isString())
+        .andExpect(jsonPath("$.content[0].description").value("Deposit"))
+        .andExpect(jsonPath("$.content[0].type").value("DEPOSIT"))
+        .andExpect(jsonPath("$.content[0].amount").value(4250))
+        .andExpect(jsonPath("$.content[0].currency").value("GBP"))
+        .andExpect(jsonPath("$.content[0].runningBalance").value(1000));
   }
 }

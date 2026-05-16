@@ -24,18 +24,17 @@ function reader(headers: Record<string, string | undefined>) {
 }
 
 test('parseRoles splits, trims, and drops empties', () => {
-  assert.deepEqual(parseRoles(' teller , supervisor ,, admin '), [
-    'teller',
-    'supervisor',
-    'admin',
-  ]);
+  assert.deepEqual(parseRoles(' teller , supervisor ,, admin '), ['teller', 'supervisor', 'admin']);
 });
 
 test('parseRoles returns empty array for null/undefined/empty', () => {
   assert.deepEqual(parseRoles(undefined), []);
   assert.deepEqual(parseRoles(null), []);
   assert.deepEqual(parseRoles(''), []);
-  assert.deepEqual(parseRoles('   '), [' '.trim()].filter((s) => s.length > 0));
+  assert.deepEqual(
+    parseRoles('   '),
+    [' '.trim()].filter((s) => s.length > 0),
+  );
 });
 
 test('parseExpiresAt accepts unix seconds, ms, and ISO-8601', () => {
@@ -79,8 +78,10 @@ test('hasRole / hasAnyRole inspect identity.roles', () => {
     }),
   );
   assert.equal(hasRole(user, 'teller'), true);
+  assert.equal(hasRole(user, 'TELLER'), true);
   assert.equal(hasRole(user, 'admin'), false);
   assert.equal(hasAnyRole(user, ['admin', 'teller']), true);
+  assert.equal(hasAnyRole(user, ['admin', 'TELLER']), true);
   assert.equal(hasAnyRole(user, ['admin', 'auditor']), false);
   assert.equal(hasAnyRole(user, []), true, 'empty required-set is vacuously satisfied');
 });
@@ -107,9 +108,7 @@ test('session expiry: isSessionExpired and msUntilExpiry honor expiresAt', () =>
 });
 
 test('no expiry header => session never expires from the frontend POV', () => {
-  const user = identityFromHeaders(
-    reader({ [TRUSTED_USER_ID_HEADER]: 'eve' }),
-  );
+  const user = identityFromHeaders(reader({ [TRUSTED_USER_ID_HEADER]: 'eve' }));
   assert.equal(user.expiresAt, null);
   assert.equal(isSessionExpired(user, Number.MAX_SAFE_INTEGER), false);
   assert.equal(msUntilExpiry(user, Number.MAX_SAFE_INTEGER), null);
@@ -120,9 +119,7 @@ test('snapshot exposes authenticated boolean alongside identity', () => {
   assert.equal(anon.authenticated, false);
   assert.equal(anon.user.userId, ANONYMOUS_USER_ID);
 
-  const signedIn = snapshot(
-    identityFromHeaders(reader({ [TRUSTED_USER_ID_HEADER]: 'frank' })),
-  );
+  const signedIn = snapshot(identityFromHeaders(reader({ [TRUSTED_USER_ID_HEADER]: 'frank' })));
   assert.equal(signedIn.authenticated, true);
   assert.equal(signedIn.user.userId, 'frank');
 });

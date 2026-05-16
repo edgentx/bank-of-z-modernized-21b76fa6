@@ -59,12 +59,13 @@ export function isAuthenticated(user: UserIdentity): boolean {
 }
 
 export function hasRole(user: UserIdentity, role: string): boolean {
-  return user.roles.includes(role);
+  const target = role.toUpperCase();
+  return user.roles.some((candidate) => candidate.toUpperCase() === target);
 }
 
 export function hasAnyRole(user: UserIdentity, required: ReadonlyArray<string>): boolean {
   if (required.length === 0) return true;
-  return required.some((role) => user.roles.includes(role));
+  return required.some((role) => hasRole(user, role));
 }
 
 export function isSessionExpired(user: UserIdentity, nowMs: number): boolean {

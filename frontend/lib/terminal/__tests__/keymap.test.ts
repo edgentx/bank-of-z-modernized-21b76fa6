@@ -19,13 +19,18 @@ test('F5 refreshes by submitting the current screen', () => {
   assert.equal(mapKey({ key: 'F5' }), 'SUBMIT');
 });
 
+test('F1 opens terminal help', () => {
+  assert.equal(mapKey({ key: 'F1' }), 'HELP');
+});
+
 test('F3 exits / returns to previous screen', () => {
   assert.equal(mapKey({ key: 'F3' }), 'EXIT');
 });
 
-test('Escape and Pause act as CLEAR', () => {
+test('Escape, Pause, and F12 act as CLEAR', () => {
   assert.equal(mapKey({ key: 'Escape' }), 'CLEAR');
   assert.equal(mapKey({ key: 'Pause' }), 'CLEAR');
+  assert.equal(mapKey({ key: 'F12' }), 'CLEAR');
 });
 
 test('Modifier-augmented keys fall through so browser shortcuts work', () => {
@@ -40,7 +45,7 @@ test('Unrelated keys produce NONE', () => {
 });
 
 test('shouldConsume is true for every recognised action, false for NONE', () => {
-  for (const action of ['NEXT_FIELD', 'PREV_FIELD', 'SUBMIT', 'EXIT', 'CLEAR'] as const) {
+  for (const action of ['NEXT_FIELD', 'PREV_FIELD', 'SUBMIT', 'EXIT', 'CLEAR', 'HELP'] as const) {
     assert.equal(shouldConsume(action), true, `${action} should be consumed`);
   }
   assert.equal(shouldConsume('NONE'), false);

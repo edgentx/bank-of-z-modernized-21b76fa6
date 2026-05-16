@@ -3,6 +3,7 @@
 import {
   ChangeEvent,
   KeyboardEvent,
+  MouseEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -46,16 +47,22 @@ export function TerminalEmulator({ screen, onSubmit, onExit, onClear }: Terminal
 
   const [values, setValues] = useState<Record<string, string>>(initialValues);
   const [cursor, setCursor] = useState<number | null>(() => firstFieldIndex(screen.fields));
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const terminalRef = useRef<HTMLDivElement | null>(null);
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   useEffect(() => {
     setValues(initialValues);
     setCursor(firstFieldIndex(screen.fields));
+    setStatusMessage(null);
   }, [initialValues, screen.fields]);
 
   useEffect(() => {
-    if (cursor === null) return;
-    inputRefs.current[cursor]?.focus();
+    if (cursor === null) {
+      terminalRef.current?.focus({ preventScroll: true });
+      return;
+    }
+    inputRefs.current[cursor]?.focus({ preventScroll: true });
   }, [cursor]);
 
   const submit = useCallback(() => {
@@ -81,12 +88,20 @@ export function TerminalEmulator({ screen, onSubmit, onExit, onClear }: Terminal
           submit();
           break;
         case 'EXIT':
-          onExit?.();
+          if (onExit) {
+            onExit();
+          } else {
+            setStatusMessage('NO PREVIOUS SCREEN');
+          }
           break;
         case 'CLEAR':
           setValues(initialValues);
           setCursor(firstFieldIndex(screen.fields));
+          setStatusMessage('CLEARED');
           onClear?.();
+          break;
+        case 'HELP':
+          setStatusMessage('F1=HELP  F3=BACK  F5=REFRESH  F12=CLEAR  ENTER=SUBMIT');
           break;
         default:
           break;
@@ -103,17 +118,27 @@ export function TerminalEmulator({ screen, onSubmit, onExit, onClear }: Terminal
     [],
   );
 
+  const focusTerminalSurface = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    if (event.target instanceof HTMLInputElement) return;
+    terminalRef.current?.focus({ preventScroll: true });
+  }, []);
+
   return (
     <div
+      ref={terminalRef}
       role="application"
+      tabIndex={0}
       aria-label={`3270 terminal — ${screen.title}`}
       className="terminal-emulator"
       onKeyDown={handleKeyDown}
+      onMouseDown={focusTerminalSurface}
       data-screen-id={screen.screenId}
     >
       <div className="mb-2 flex items-baseline justify-between text-xs uppercase tracking-widest text-emerald-300">
         <span>{screen.title}</span>
-        <span aria-hidden="true">{screen.rows}×{screen.cols}</span>
+        <span aria-hidden="true">
+          {screen.rows}×{screen.cols}
+        </span>
       </div>
       <div
         className={cn(
@@ -140,7 +165,13 @@ export function TerminalEmulator({ screen, onSubmit, onExit, onClear }: Terminal
               field={field}
               cols={screen.cols}
               focused={cursor === index}
-              value={field.protected ? (field.label ?? field.value ?? '') : values[field.name] ?? ''}
+              value={
+                field.protected
+                  ? field.name === 'status' && statusMessage
+                    ? statusMessage
+                    : (field.label ?? field.value ?? '')
+                  : (values[field.name] ?? '')
+              }
               onFocus={() => setCursor(index)}
               onChange={handleChange(field)}
               registerRef={(el) => {
@@ -151,8 +182,8 @@ export function TerminalEmulator({ screen, onSubmit, onExit, onClear }: Terminal
         </div>
       </div>
       <p className="mt-3 text-xs text-slate-500">
-        <span className="font-semibold text-slate-600">Keys:</span>
-        {' '}Tab / Shift+Tab — fields · Enter — submit · F3 — exit · Esc — clear
+        <span className="font-semibold text-slate-600">Keys:</span> Tab / Shift+Tab — fields ·
+        Enter/F5 — submit · F3 — exit · F12/Esc — clear
       </p>
     </div>
   );
@@ -177,7 +208,10 @@ function TerminalField({
   onChange,
   registerRef,
 }: TerminalFieldProps) {
-  const span = Math.max(1, Math.min(cols - (field.col - 1), field.length || (field.label?.length ?? value.length) || 1));
+  const displayLength = field.protected
+    ? Math.max(field.length, value.length)
+    : field.length || value.length;
+  const span = Math.max(1, Math.min(cols - (field.col - 1), displayLength || 1));
   const style = {
     gridRow: field.row,
     gridColumnStart: field.col,
@@ -199,7 +233,7 @@ function TerminalField({
     return (
       <div
         style={style}
-        className={cn('whitespace-pre overflow-hidden', highlightClass)}
+        className={cn('overflow-hidden whitespace-pre', highlightClass)}
         data-field-name={field.name}
         data-protected="true"
       >
